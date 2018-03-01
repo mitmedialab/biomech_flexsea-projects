@@ -127,7 +127,7 @@ void MIT_DLeg_fsm_1(void)
 		case 4:
 			//Pick one of those demos:
 			//openSpeedFSM();
-			twoPositionFSM();
+			//twoPositionFSM();
 			//If nothing is enabled in case 4 the user can control the motor from the GUI
 			break;
 
@@ -162,8 +162,8 @@ static void openSpeedFSM(void)
 	switch(fsm1State)
 	{
 		case 0:
-			setControlMode(CTRL_OPEN);
-			setMotorVoltage(0);
+			setControlMode(CTRL_OPEN, 0);
+			setMotorVoltage(0, 0);
 			fsm1State = 1;
 			deltaT = 0;
 			break;
@@ -174,7 +174,7 @@ static void openSpeedFSM(void)
 				deltaT = 0;
 				fsm1State = 2;
 			}
-			setMotorVoltage(0);
+			setMotorVoltage(0, 0);
 			break;
 		case 2:
 			deltaT++;
@@ -183,7 +183,7 @@ static void openSpeedFSM(void)
 				deltaT = 0;
 				fsm1State = 1;
 			}
-			setMotorVoltage(1000);
+			setMotorVoltage(1000, 0);
 			break;
 	}
 }
@@ -206,9 +206,9 @@ static void twoPositionFSM(void)
 			}
 			break;
 		case 0:
-			setControlMode(CTRL_POSITION);
-			setControlGains(20, 6, 0, 0);	//kp = 20, ki = 6
-			setMotorPosition(initPos);
+			setControlMode(CTRL_POSITION, 0);
+			setControlGains(20, 6, 0, 0, 0);	//kp = 20, ki = 6
+			setMotorPosition(initPos, 0);
 			fsm1State = 1;
 			deltaT = 0;
 			break;
@@ -219,7 +219,7 @@ static void twoPositionFSM(void)
 				deltaT = 0;
 				fsm1State = 2;
 			}
-			setMotorPosition(initPos + 10000);
+			setMotorPosition(initPos + 10000, 0);
 			break;
 		case 2:
 			deltaT++;
@@ -228,7 +228,7 @@ static void twoPositionFSM(void)
 				deltaT = 0;
 				fsm1State = 1;
 			}
-			setMotorPosition(initPos);
+			setMotorPosition(initPos, 0);
 			break;
 	}
 }

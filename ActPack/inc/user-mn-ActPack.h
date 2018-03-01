@@ -34,13 +34,13 @@
 void init_ActPack(void);
 void ActPack_fsm_1(void);
 void ActPack_fsm_2(void);
-void init_current_controller(void);
+void init_current_controller(uint8_t ch);
 
-void setMotorVoltage(int32_t v);
-void setMotorCurrent(int32_t i);
-void setControlMode(uint8_t m);
-void setControlGains(int16_t g0, int16_t g1, int16_t g2, int16_t g3);
-void setMotorPosition(int32_t i);
+void setMotorVoltage(int32_t v, uint8_t ch);
+void setMotorCurrent(int32_t i, uint8_t ch);
+void setControlMode(uint8_t m, uint8_t ch);
+void setControlGains(int16_t g0, int16_t g1, int16_t g2, int16_t g3, uint8_t ch);
+void setMotorPosition(int32_t i, uint8_t ch);
 
 void enableActPackFSM2(void);
 void disableActPackFSM2(void);

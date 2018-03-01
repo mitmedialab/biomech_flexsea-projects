@@ -46,6 +46,9 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 void rx_cmd_actpack_rw(uint8_t *buf, uint8_t *info);
 void rx_cmd_actpack_rr(uint8_t *buf, uint8_t *info);
 
+void rx_cmd_actpack_Action1(uint8_t controller, int32_t setpoint, uint8_t setGains,
+						int16_t g0,	int16_t g1,	int16_t g2, int16_t g3, uint8_t system, uint8_t ch);
+
 //****************************************************************************
 // Prototype(s) - simplified functions (DLL):
 //****************************************************************************

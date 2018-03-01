@@ -83,6 +83,12 @@ void ActPack_refresh_values(void)
 	
 	mot_acc = get_accl_1k_5samples_downsampled(&mot_ang_clks)/2609; //rad/s^2
 	rigid1.ex.mot_acc = mot_acc;
+	
+	#ifdef BOARD_SUBTYPE_POCKET
+	//ToDo second channel
+	pocket1.ex[0].mot_acc = rigid1.ex.mot_acc;
+	pocket1.ex[1].mot_acc = rigid1.ex.mot_acc;
+	#endif
 }
 
 //****************************************************************************

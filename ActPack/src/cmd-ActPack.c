@@ -75,12 +75,6 @@ uint8_t newActPackRRpacketAvailable(void)
 // Private Function Prototype(s)
 //****************************************************************************
 
-#if (defined BOARD_TYPE_FLEXSEA_EXECUTE || defined BOARD_TYPE_FLEXSEA_MANAGE)
-static void rx_cmd_actpack_Action1(uint8_t controller, int32_t setpoint, \
-									uint8_t setGains, int16_t g0, int16_t g1, \
-									int16_t g2, int16_t g3, uint8_t system);
-#endif //BOARD_TYPE_FLEXSEA_EXECUTE
-
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -281,9 +275,12 @@ void rx_cmd_actpack_rw(uint8_t *buf, uint8_t *info)
 	{
 		#if(defined BOARD_TYPE_FLEXSEA_EXECUTE || defined BOARD_TYPE_FLEXSEA_MANAGE)
 
-			//Act on the decoded data:
-			rx_cmd_actpack_Action1(tmpController, tmpSetpoint, tmpSetGains, tmpGain[0],
-									tmpGain[1], tmpGain[2], tmpGain[3], tmpSystem);
+			if(offset == 0 || offset == 1)
+			{
+				//Act on the decoded data:
+				rx_cmd_actpack_Action1(tmpController, tmpSetpoint, tmpSetGains, tmpGain[0],
+										tmpGain[1], tmpGain[2], tmpGain[3], tmpSystem, offset);
+			}
 
 		#else
 
@@ -430,7 +427,7 @@ void rx_cmd_actpack_rr(uint8_t *buf, uint8_t *info)
 #ifdef BOARD_TYPE_FLEXSEA_EXECUTE
 //Command = rx_cmd_actpack, section = READ
 void rx_cmd_actpack_Action1(uint8_t controller, int32_t setpoint, uint8_t setGains,
-						int16_t g0,	int16_t g1,	int16_t g2, int16_t g3, uint8_t system)
+						int16_t g0,	int16_t g1,	int16_t g2, int16_t g3, uint8_t system, uint8_t ch)
 {
 	(void) system;
 
@@ -478,58 +475,58 @@ void rx_cmd_actpack_Action1(uint8_t controller, int32_t setpoint, uint8_t setGai
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 //Command = rx_cmd_actpack, section = READ
 void rx_cmd_actpack_Action1(uint8_t controller, int32_t setpoint, uint8_t setGains,
-						int16_t g0,	int16_t g1,	int16_t g2, int16_t g3, uint8_t system)
+						int16_t g0,	int16_t g1,	int16_t g2, int16_t g3, uint8_t system, uint8_t ch)
 {
 	//Update controller (if needed):
-	setControlMode(controller);
+	setControlMode(controller, ch);
 
 	//Only change the setpoint if we are in current control mode:
-	if(ctrl[0].active_ctrl == CTRL_CURRENT)
+	if(ctrl[ch].active_ctrl == CTRL_CURRENT)
 	{
-		ctrl[0].current.setpoint_val = setpoint;
+		ctrl[ch].current.setpoint_val = setpoint;
 		if (setGains == CHANGE)
 		{
-			ctrl[0].current.gain.g0 = g0;
-			ctrl[0].current.gain.g1 = g1;
+			ctrl[ch].current.gain.g0 = g0;
+			ctrl[ch].current.gain.g1 = g1;
 			//Copy to writeEx:
-			setControlGains(g0, g1, g2, g3);
+			setControlGains(g0, g1, g2, g3, ch);
 		}
 		//Copy to writeEx:
-		setMotorCurrent(setpoint);
+		setMotorCurrent(setpoint, ch);
 	}
-	else if(ctrl[0].active_ctrl == CTRL_OPEN)
+	else if(ctrl[ch].active_ctrl == CTRL_OPEN)
 	{
-		setMotorVoltage(setpoint);
+		setMotorVoltage(setpoint, ch);
 	}
-	else if(ctrl[0].active_ctrl == CTRL_POSITION)
+	else if(ctrl[ch].active_ctrl == CTRL_POSITION)
 	{
-		ctrl[0].position.setp = setpoint;
+		ctrl[ch].position.setp = setpoint;
 		if (setGains == CHANGE)
 		{
-			ctrl[0].position.gain.g0 = g0;
-			ctrl[0].position.gain.g1 = g1;
-			ctrl[0].position.gain.g2 = g2;
+			ctrl[ch].position.gain.g0 = g0;
+			ctrl[ch].position.gain.g1 = g1;
+			ctrl[ch].position.gain.g2 = g2;
 			//Copy to writeEx:
-			setControlGains(g0, g1, g2, g3);
+			setControlGains(g0, g1, g2, g3, ch);
 		}
 		//Copy to writeEx:
-		setMotorPosition(setpoint);
+		setMotorPosition(setpoint, ch);
 	}
-	else if (ctrl[0].active_ctrl == CTRL_IMPEDANCE)
+	else if (ctrl[ch].active_ctrl == CTRL_IMPEDANCE)
 	{
-		ctrl[0].impedance.setpoint_val = setpoint;
+		ctrl[ch].impedance.setpoint_val = setpoint;
 
 		if (setGains == CHANGE)
 		{
-			ctrl[0].impedance.gain.g0 = g0;
-			ctrl[0].impedance.gain.g1 = g1;
-			ctrl[0].current.gain.g0 = g2;
-			ctrl[0].current.gain.g1 = g3;
+			ctrl[ch].impedance.gain.g0 = g0;
+			ctrl[ch].impedance.gain.g1 = g1;
+			ctrl[ch].current.gain.g0 = g2;
+			ctrl[ch].current.gain.g1 = g3;
 			//Copy to writeEx:
-			setControlGains(g0, g1, g2, g3);
+			setControlGains(g0, g1, g2, g3, ch);
 		}
 		//Copy to writeEx:
-		setMotorPosition(setpoint);
+		setMotorPosition(setpoint, ch);
 	}
 
 	ActPackSys = system;

@@ -77,8 +77,10 @@ void initializeUserStructs(void)
 		#ifdef BOARD_SUBTYPE_POCKET
 			
 			#if(ENC_COMMUT == ENC_QUADRATURE)
-			rigid1.ex.enc_ang = exec1.enc_ang;
-			rigid1.ex.enc_ang_vel = &(as5047.signed_ang_vel);
+			pocket1.ex[0].enc_ang = &encoder.count;
+			pocket1.ex[1].enc_ang = &encoder2.count;
+			pocket1.ex[0].enc_ang_vel = &(as5047.signed_ang_vel);
+			pocket1.ex[1].enc_ang_vel = &(as5047.signed_ang_vel);
 			#endif
 			
 			//rigid1.ex.joint_ang = &(as5048b.filt.ang_clks_16b);

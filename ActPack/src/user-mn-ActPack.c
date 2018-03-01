@@ -96,6 +96,7 @@ void ActPack_fsm_1(void)
 {
 	static uint32_t timer = 0, deltaT = 0;
 	static uint8_t fsm1State = 0;
+	uint8_t ch = 0;
 
 	#ifdef CO_ENABLE_ACTPACK
 		//In co-enabled scenarios we use the active project's FSM, not this one.
@@ -112,8 +113,8 @@ void ActPack_fsm_1(void)
 	switch(fsm1State)
 	{
 		case 0:
-			setControlMode(CTRL_OPEN);
-			setMotorVoltage(0);
+			setControlMode(CTRL_OPEN, ch);
+			setMotorVoltage(0, ch);
 			fsm1State = 1;
 			deltaT = 0;
 			break;
@@ -124,7 +125,7 @@ void ActPack_fsm_1(void)
 				deltaT = 0;
 				fsm1State = 2;
 			}
-			setMotorVoltage(0);
+			setMotorVoltage(0, ch);
 			break;
 		case 2:
 			deltaT++;
@@ -133,7 +134,7 @@ void ActPack_fsm_1(void)
 				deltaT = 0;
 				fsm1State = 1;
 			}
-			setMotorVoltage(1000);
+			setMotorVoltage(1000, ch);
 			break;
 	}
 }
@@ -201,67 +202,67 @@ void ActPack_fsm_2(void)
 }
 
 //This should be static, but exo-angles needs it. (ToDo)
-void init_current_controller(void)
+void init_current_controller(uint8_t ch)
 {
-	ctrl[0].active_ctrl = CTRL_CURRENT;
-	ctrl[0].current.gain.g0 = CTRL_I_KP;
-	ctrl[0].current.gain.g1 = CTRL_I_KI;
-	ctrl[0].current.setpoint_val = 0;
+	ctrl[ch].active_ctrl = CTRL_CURRENT;
+	ctrl[ch].current.gain.g0 = CTRL_I_KP;
+	ctrl[ch].current.gain.g1 = CTRL_I_KI;
+	ctrl[ch].current.setpoint_val = 0;
 
 	//Prep for comm:
-	writeEx[0].ctrl = CTRL_CURRENT;
-	writeEx[0].g[0] = CTRL_I_KP;
-	writeEx[0].g[1] = CTRL_I_KI;
-	writeEx[0].setpoint = 0;
-	writeEx[0].setGains = CHANGE;
+	writeEx[ch].ctrl = CTRL_CURRENT;
+	writeEx[ch].g[0] = CTRL_I_KP;
+	writeEx[ch].g[1] = CTRL_I_KI;
+	writeEx[ch].setpoint = 0;
+	writeEx[ch].setGains = CHANGE;
 }
 
-void setMotorVoltage(int32_t v)
+void setMotorVoltage(int32_t v, uint8_t ch)
 {
-	if(writeEx[0].ctrl == CTRL_OPEN)
+	if(writeEx[ch].ctrl == CTRL_OPEN)
 	{
-		writeEx[0].setpoint = v;
+		writeEx[ch].setpoint = v;
 	}
 }
 
-void setMotorCurrent(int32_t i)
+void setMotorCurrent(int32_t i, uint8_t ch)
 {
-	ctrl[0].current.setpoint_val =  i;
+	ctrl[ch].current.setpoint_val =  i;
 
 	//Prep for comm:
-	if(writeEx[0].ctrl == CTRL_CURRENT)
+	if(writeEx[ch].ctrl == CTRL_CURRENT)
 	{
-		writeEx[0].setpoint = i;
+		writeEx[ch].setpoint = i;
 	}
 }
 
-void setMotorPosition(int32_t i)
+void setMotorPosition(int32_t i, uint8_t ch)
 {
-	if(writeEx[0].ctrl == CTRL_POSITION)
+	if(writeEx[ch].ctrl == CTRL_POSITION)
 	{
-		writeEx[0].setpoint = i;
-		ctrl[0].position.setp =  i;
+		writeEx[ch].setpoint = i;
+		ctrl[ch].position.setp =  i;
 	}
-	else if(writeEx[0].ctrl == CTRL_IMPEDANCE)
+	else if(writeEx[ch].ctrl == CTRL_IMPEDANCE)
 	{
-		writeEx[0].setpoint = i;
-		ctrl[0].impedance.setpoint_val = i;
+		writeEx[ch].setpoint = i;
+		ctrl[ch].impedance.setpoint_val = i;
 	}
 }
 
-void setControlMode(uint8_t m)
+void setControlMode(uint8_t m, uint8_t ch)
 {
-	ctrl[0].active_ctrl = m;
-	writeEx[0].ctrl = m;
+	ctrl[ch].active_ctrl = m;
+	writeEx[ch].ctrl = m;
 }
 
-void setControlGains(int16_t g0, int16_t g1, int16_t g2, int16_t g3)
+void setControlGains(int16_t g0, int16_t g1, int16_t g2, int16_t g3, uint8_t ch)
 {
-	writeEx[0].g[0] = g0;
-	writeEx[0].g[1] = g1;
-	writeEx[0].g[2] = g2;
-	writeEx[0].g[3] = g3;
-	writeEx[0].setGains = CHANGE;
+	writeEx[ch].g[0] = g0;
+	writeEx[ch].g[1] = g1;
+	writeEx[ch].g[2] = g2;
+	writeEx[ch].g[3] = g3;
+	writeEx[ch].setGains = CHANGE;
 }
 
 void enableActPackFSM2(void){ActPackCoFSM = APC_FSM2_ENABLED;}
