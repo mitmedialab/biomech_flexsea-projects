@@ -66,9 +66,8 @@ void twoPositionFSM(void);
 //****************************************************************************
 
 //activate one of these for joint limits
-#define IS_ANKLE
-#define IS_KNEE
-
+//#define IS_ANKLE
+//#define IS_KNEE
 
 #ifdef IS_ANKLE
 #define JOINT_MIN -10
@@ -76,8 +75,8 @@ void twoPositionFSM(void);
 #endif
 
 #ifdef IS_KNEE
-#define JOINT_MIN -10
-#define JOINT_MAX 10
+#define JOINT_MIN -20
+#define JOINT_MAX 20
 #endif
 
 //safety limits

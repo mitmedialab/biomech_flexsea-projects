@@ -74,7 +74,7 @@ void MIT_DLeg_fsm_1(void)
 	//begin safety check
     if (safetyFailure()) {
     	//motor behavior changes based on failure mode
-    	//bypass
+    	//bypasses the switch statement if return true
 
     	return;
     }
@@ -129,12 +129,54 @@ void MIT_DLeg_fsm_2(void)
 // Private Function(s)
 //****************************************************************************
 int8_t safetyFailure(void) {
-	//toDo
+	//check joint angles
+//	if (*rigid1.ex.joint_ang <= )
+	//check torque sensor
+
+	//check motor and board temps
 	return 1;
 }
 
-int8_t findPoles(void) {
+// Output joint angle in radians, measured from joint zero
+static int32_t getJointAngleCounts(void)
+{
 	static uint32_t timer = 0, deltaT = 0;
+	static int32_t fsm1State = -1;
+
+	static int32_t jointAngle = 0;
+	static int32_t cpr = 16384;
+
+	// Set these during calibration
+	static int32_t zeroCount = 0;	// counts at zero angle.
+	static int32_t dorsiMaxCount = 0;	// counts at maximum Dorsiflexion
+	static int32_t plantarMaxCount = 0;	// counts at maximum Plantarflexion
+	static int32_t encoderDirection = 1; // set direction of counting
+
+	switch(fsm1State)
+		{
+			case -1:
+				//We give FSM2 some time to refresh values
+				timer++;
+				if(timer > 25)
+				{
+					zeroCount = *(rigid1.ex.enc_ang);
+					fsm1State = 0;
+				}
+				break;
+			case 0:
+				jointAngle = zeroCount - *(rigid1.ex.enc_ang);
+
+				break;
+		}
+
+
+
+
+	return jointAngle;
+}
+
+int8_t findPoles(void) {
+	static uint32_t timer = 0;
 	static int8_t polesState = 0;
 
 	timer++;

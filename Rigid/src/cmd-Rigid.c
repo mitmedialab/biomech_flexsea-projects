@@ -28,9 +28,9 @@ extern "C" {
 #include <stdlib.h>
 #include <flexsea.h>
 #include <flexsea_system.h>
+#include <flexsea_cmd_user.h>
 #include "../inc/cmd-Rigid.h"
 #include "flexsea_user_structs.h"
-#include <flexsea_cmd_user.h>
 #include "user-mn.h"
 
 #ifdef DEPHY

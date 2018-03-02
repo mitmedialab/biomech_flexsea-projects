@@ -33,6 +33,7 @@ extern "C" {
 #include <flexsea.h>
 #include <flexsea_system.h>
 //#include "../inc/cmd-Rigid.h"
+#include <flexsea_cmd_user.h>
 #include "cmd-Bilateral.h"
 #include "flexsea_user_structs.h"
 #include "user-mn.h"
