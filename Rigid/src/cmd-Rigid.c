@@ -30,6 +30,7 @@ extern "C" {
 #include <flexsea_system.h>
 #include "../inc/cmd-Rigid.h"
 #include "flexsea_user_structs.h"
+#include <flexsea_cmd_user.h>
 #include "user-mn.h"
 
 #ifdef DEPHY

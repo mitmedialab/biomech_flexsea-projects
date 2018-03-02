@@ -34,7 +34,7 @@
 #if(defined BOARD_TYPE_FLEXSEA_EXECUTE)
 	#include "mag_encoders.h"
 	#include "ext_input.h"
-	#if(defined BOARD_SUBTYPE_RIGID || defined BOARD_SUBTYPE_POCKET)
+	#ifdef BOARD_SUBTYPE_RIGID
 		#include "user-ex-rigid.h"
 	#endif
 #endif
@@ -49,7 +49,6 @@ struct motortb_s motortb;
 int16_t globvar[10] = {0,0,0,0,0,0,0,0,0,0};
 
 struct rigid_s rigid1, rigid2;
-struct pocket_s pocket1;
 struct dual_utt_s utt;
 
 //****************************************************************************
@@ -60,29 +59,19 @@ void initializeUserStructs(void)
 {
 	#if(defined BOARD_TYPE_FLEXSEA_EXECUTE)
 		#ifdef BOARD_SUBTYPE_RIGID
-
+			
 			#if(ENC_COMMUT == ENC_AS5047)
 			rigid1.ex.enc_ang = &(as5047.signed_ang);
 			rigid1.ex.enc_ang_vel = &(as5047.signed_ang_vel);
 			#endif
-
+			
 			#if(ENC_COMMUT == ENC_QUADRATURE)
 			rigid1.ex.enc_ang = &(as5047.signed_ang);
 			rigid1.ex.enc_ang_vel = &(as5047.signed_ang_vel);
 			#endif
-
+			
 			rigid1.ex.joint_ang = &(as5048b.filt.ang_clks_16b);
 			rigid1.ex.joint_ang_vel = &(as5048b.filt.vel_cpms_16b);
-		#endif
-		#ifdef BOARD_SUBTYPE_POCKET
-			
-			#if(ENC_COMMUT == ENC_QUADRATURE)
-			rigid1.ex.enc_ang = exec1.enc_ang;
-			rigid1.ex.enc_ang_vel = &(as5047.signed_ang_vel);
-			#endif
-			
-			//rigid1.ex.joint_ang = &(as5048b.filt.ang_clks_16b);
-			//rigid1.ex.joint_ang_vel = &(as5048b.filt.vel_cpms_16b);
 		#endif
 	#endif
 }

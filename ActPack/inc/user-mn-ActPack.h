@@ -78,13 +78,13 @@ typedef struct {
 // Shared variable(s)
 //****************************************************************************
 
-extern struct ctrl_s ctrl[2];
+extern struct ctrl_s ctrl;
 extern struct rigid_s dpRigid;
 extern int32_t dp_ank_ang_zero;
 extern int32_t dp_mot_ang_zero;
 extern int32_t mot_ang_offset;
 extern int32_t ank_ang_offset;
-extern writeEx_s writeEx[2];
+extern writeEx_s writeEx;
 
 #endif	//INC_ACTPACK_MN_H
 

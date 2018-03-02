@@ -90,7 +90,7 @@ void user_fsm(void);
 //Step 1) Select active project (from list):
 //==========================================
 
-#define ACTIVE_PROJECT			PROJECT_POCKET_2XDC
+#define ACTIVE_PROJECT			PROJECT_BIO_RIGID
 #define ACTIVE_SUBPROJECT		SUBPROJECT_A //A is Left
 
 //Step 2) Customize the enabled/disabled sub-modules:
@@ -290,7 +290,7 @@ void user_fsm(void);
 
 	//Enable/Disable sub-modules:
 	#define USE_RS485
-	//#define USE_USB
+	#define USE_USB
 	#define USE_COMM			//Requires USE_RS485 and/or USE_USB
 	#define USE_QEI
 	//#define USE_TRAPEZ
@@ -345,13 +345,12 @@ void user_fsm(void);
 	#define USE_RS485
 	//#define USE_USB
 	#define USE_COMM			//Requires USE_RS485 and/or USE_USB
-	#define USE_QEI				//Primary quadrature encoder
-	#define USE_QEI2			//	Second channel
+	//#define USE_QEI
 	//#define USE_TRAPEZ
 	#define USE_I2C_0			//3V3, Onboard (Manage)
-	//#define USE_I2C_1			//5V, External (Angle sensor)
+	#define USE_I2C_1			//5V, External (Angle sensor)
 	#define USE_STRAIN			//Requires USE_I2C_1
-	//#define USE_AS5047		//16-bit Position Sensor, SPI
+	//#define USE_AS5047			//16-bit Position Sensor, SPI
 	//#define USE_AS5048B		//Joint angle sensor (I2C)
 	#define USE_EEPROM			//
 	#define USE_I2T_LIMIT		//I2t current limit
@@ -378,9 +377,9 @@ void user_fsm(void);
 	#endif
 
 	//Encoders:
-	#define ENC_CONTROL			ENC_QUADRATURE
-	#define ENC_COMMUT			ENC_QUADRATURE
-	#define ENC_DISPLAY			ENC_QUADRATURE
+	#define ENC_CONTROL			ENC_NONE
+	#define ENC_COMMUT			ENC_NONE
+	#define ENC_DISPLAY			ENC_NONE
 	
 	#define CTRL_ENC_FCT(x) 	(x)  
 	#define CTRL_ENC_VEL_FCT(x) (x)    

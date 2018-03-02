@@ -1,7 +1,6 @@
 /****************************************************************************
 	[Project] FlexSEA: Flexible & Scalable Electronics Architecture
-	[Sub-project] 'flexsea-user' System commands & functions specific to
-	user projects
+	[Sub-project] 'flexsea-manage' Mid-level computing, and networking
 	Copyright (C) 2016 Dephy, Inc. <http://dephy.com/>
 
 	This program is free software: you can redistribute it and/or modify
@@ -17,64 +16,91 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************
-	[Lead developper] Jean-Francois (JF) Duval, jfduval at dephy dot com.
+	[Lead developper] Luke Mooney, lmooney at dephy dot com.
 	[Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors]
 *****************************************************************************
-	[This file] flexsea_cmd_user: Interface to the user functions
+	[This file] user_ankle_2dof: 2-DoF Ankle Functions
 ****************************************************************************/
 
-#ifndef INC_FLEXSEA_CMD_USER_H
-#define INC_FLEXSEA_CMD_USER_H
+#ifdef INCLUDE_UPROJ_MIT_DLEG
+#include "main.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
+#ifndef INC_MIT_DLEG
+#define INC_MIT_DLEG
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
 
-//****************************************************************************
-// Prototype(s):
-//****************************************************************************
-
-void init_flexsea_payload_ptr_user(void);
-
-//****************************************************************************
-// Definition(s):
-//****************************************************************************
-
-//Give nickname to function codes here. Always remember that they have to be
-//in the 100-127 range!
-
-#define CMD_A2DOF					100
-#define CMD_RICNU					101
-#define CMD_MOTORTB					103
-#define CMD_ANGLE_TORQUE_PROFILE	104
-#define CMD_CYCLE_TESTER			105
-#define CMD_DPEB31					106
-#define CMD_DPEB42					CMD_DPEB31
-#define CMD_UTT						107
-#define CMD_GAITSTATS				108
-
-#define CMD_READ_ALL_RIGID			120
-#define CMD_ACTPACK					121
-#define CMD_BILATERAL				125
-#define CMD_USER_DYNAMIC 			126
-
-//***************
-// Structure(s):
-//****************************************************************************
 
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
 
-#ifdef __cplusplus
-}
+extern int16_t glob_var_1;
+extern int16_t glob_var_2;
+extern int16_t glob_var_3;
+
+//****************************************************************************
+// Public Function Prototype(s):
+//****************************************************************************
+
+void init_MIT_DLeg(void);
+void MIT_DLeg_fsm_1(void);
+void MIT_DLeg_fsm_2(void);
+
+//****************************************************************************
+// Private Function Prototype(s):
+//****************************************************************************
+int8_t safetyFailure(void);
+int8_t findPoles(void);
+void openSpeedFSM(void);
+void twoPositionFSM(void);
+
+//****************************************************************************
+// Definition(s):
+//****************************************************************************
+
+//activate one of these for joint limits
+#define IS_ANKLE
+#define IS_KNEE
+
+
+#ifdef IS_ANKLE
+#define JOINT_MIN -10
+#define JOINT_MAX 10
 #endif
 
-#endif	//INC_FLEXSEA_CMD_USER_H
+#ifdef IS_KNEE
+#define JOINT_MIN -10
+#define JOINT_MAX 10
+#endif
+
+//safety limits
+#define MOTOR_TEMP_LIMIT 50
+#define TORQUE_LIMIT	 50
+#define CURRENT_LIMIT    10
+
+//Constants used by get_ankle_ang():
+//Where is this equation???
+#define A0 				(202.2+1140.0)
+#define A1 				1302.0
+#define A2				-39.06
+#define B1 				14.76
+#define B2 				-7.874
+#define W				0.00223
+
+#define SECONDS			1000
+
+//****************************************************************************
+// Structure(s)
+//****************************************************************************
+
+#endif	//INC_MIT_DLEG
+
+#endif 	//BOARD_TYPE_FLEXSEA_MANAGE
+#endif //INCLUDE_UPROJ_MIT_DLEG

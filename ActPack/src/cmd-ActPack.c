@@ -484,47 +484,47 @@ void rx_cmd_actpack_Action1(uint8_t controller, int32_t setpoint, uint8_t setGai
 	setControlMode(controller);
 
 	//Only change the setpoint if we are in current control mode:
-	if(ctrl[0].active_ctrl == CTRL_CURRENT)
+	if(ctrl.active_ctrl == CTRL_CURRENT)
 	{
-		ctrl[0].current.setpoint_val = setpoint;
+		ctrl.current.setpoint_val = setpoint;
 		if (setGains == CHANGE)
 		{
-			ctrl[0].current.gain.g0 = g0;
-			ctrl[0].current.gain.g1 = g1;
+			ctrl.current.gain.g0 = g0;
+			ctrl.current.gain.g1 = g1;
 			//Copy to writeEx:
 			setControlGains(g0, g1, g2, g3);
 		}
 		//Copy to writeEx:
 		setMotorCurrent(setpoint);
 	}
-	else if(ctrl[0].active_ctrl == CTRL_OPEN)
+	else if(ctrl.active_ctrl == CTRL_OPEN)
 	{
 		setMotorVoltage(setpoint);
 	}
-	else if(ctrl[0].active_ctrl == CTRL_POSITION)
+	else if(ctrl.active_ctrl == CTRL_POSITION)
 	{
-		ctrl[0].position.setp = setpoint;
+		ctrl.position.setp = setpoint;
 		if (setGains == CHANGE)
 		{
-			ctrl[0].position.gain.g0 = g0;
-			ctrl[0].position.gain.g1 = g1;
-			ctrl[0].position.gain.g2 = g2;
+			ctrl.position.gain.g0 = g0;
+			ctrl.position.gain.g1 = g1;
+			ctrl.position.gain.g2 = g2;
 			//Copy to writeEx:
 			setControlGains(g0, g1, g2, g3);
 		}
 		//Copy to writeEx:
 		setMotorPosition(setpoint);
 	}
-	else if (ctrl[0].active_ctrl == CTRL_IMPEDANCE)
+	else if (ctrl.active_ctrl == CTRL_IMPEDANCE)
 	{
-		ctrl[0].impedance.setpoint_val = setpoint;
+		ctrl.impedance.setpoint_val = setpoint;
 
 		if (setGains == CHANGE)
 		{
-			ctrl[0].impedance.gain.g0 = g0;
-			ctrl[0].impedance.gain.g1 = g1;
-			ctrl[0].current.gain.g0 = g2;
-			ctrl[0].current.gain.g1 = g3;
+			ctrl.impedance.gain.g0 = g0;
+			ctrl.impedance.gain.g1 = g1;
+			ctrl.current.gain.g0 = g2;
+			ctrl.current.gain.g1 = g3;
 			//Copy to writeEx:
 			setControlGains(g0, g1, g2, g3);
 		}

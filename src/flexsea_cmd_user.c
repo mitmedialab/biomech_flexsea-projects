@@ -67,7 +67,6 @@ extern "C" {
 
 #ifndef TEST_PC
 #include "../Rigid/inc/cmd-Rigid.h"
-#include "../Rigid/inc/cmd-Pocket.h"
 #endif	//TEST_PC
 
 #ifdef INCLUDE_UPROJ_ACTPACK
@@ -115,10 +114,6 @@ void init_flexsea_payload_ptr_user(void)
 	//Rigid:
 	flexsea_payload_ptr[CMD_READ_ALL_RIGID][RX_PTYPE_READ] = &rx_cmd_rigid_rw;
 	flexsea_payload_ptr[CMD_READ_ALL_RIGID][RX_PTYPE_REPLY] = &rx_cmd_rigid_rr;
-
-	//Pocket:
-	flexsea_payload_ptr[CMD_READ_ALL_POCKET][RX_PTYPE_READ] = &rx_cmd_pocket_rw;
-	flexsea_payload_ptr[CMD_READ_ALL_POCKET][RX_PTYPE_REPLY] = &rx_cmd_pocket_rr;
 
 	#ifndef TEST_PC
 

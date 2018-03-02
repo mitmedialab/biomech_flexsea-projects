@@ -49,7 +49,7 @@
 #endif	//PROJECT_UMICH_KNEE
 
 #if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-#include "user-mn-MIT-DLeg.h"
+#include <user-mn-MIT-DLeg-2dof.h>
 #endif
 
 //Dephy's Actuator Package (ActPack)

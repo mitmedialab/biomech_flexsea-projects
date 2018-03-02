@@ -58,10 +58,19 @@ void set_ankle_torque_1(int32_t);
 void set_ankle_torque_2(int32_t);
 
 //****************************************************************************
+// Private Function Prototype(s):
+//****************************************************************************
+
+static int8_t findPoles(void);
+static void openSpeedFSM(void);
+static void twoPositionFSM(void);
+
+//****************************************************************************
 // Definition(s):
 //****************************************************************************
 
 //Constants used by get_ankle_ang():
+//Where is this equation???
 #define A0 				(202.2+1140.0)
 #define A1 				1302.0
 #define A2				-39.06
