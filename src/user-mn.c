@@ -52,6 +52,10 @@
 #include "user-mn-MIT-DLeg.h"
 #endif
 
+#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+#include "user-mn-MIT-PocketClimb.h"
+#endif
+
 //Dephy's Actuator Package (ActPack)
 #if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 #include "user-mn-ActPack.h"
@@ -114,6 +118,16 @@ void init_user(void)
 	//ToDo: switch to their init
 	#endif	//PROJECT_UMICH_KNEE
 
+	//MIT D-Leg:
+	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
+	init_MIT_DLeg();
+	#endif	//PROJECT_MIT_DLEG
+
+	//MIT Pocket 2xDC / PocketClimb:
+	#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+	init_MIT_PocketClimb();
+	#endif	//PROJECT_POCKET_2XDC
+
 	//Dephy's Actuator Package (ActPack)
 	#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 	init_ActPack();
@@ -160,6 +174,11 @@ void user_fsm_1(void)
 		MIT_DLeg_fsm_1();
 		#endif	//PROJECT_MIT_DLEG
 
+		//MIT Pocket 2xDC / PocketClimb:
+		#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+		MIT_PocketClimb_fsm_1();
+		#endif	//PROJECT_POCKET_2XDC
+
 		//Dephy's Actuator Package (ActPack)
 		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 		ActPack_fsm_1();
@@ -198,6 +217,16 @@ void user_fsm_2(void)
 		rigid_fsm_2();
 		//ToDo: switch to their fsm2
 		#endif	//PROJECT_UMICH_KNEE
+
+		//MIT D-Leg:
+		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
+		MIT_DLeg_fsm_2();
+		#endif	//PROJECT_MIT_DLEG
+
+		//MIT Pocket 2xDC / PocketClimb:
+		#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+		MIT_PocketClimb_fsm_2();
+		#endif	//PROJECT_POCKET_2XDC
 
 		//Dephy's Actuator Package (ActPack)
 		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)

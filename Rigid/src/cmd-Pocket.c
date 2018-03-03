@@ -290,10 +290,14 @@ void rx_cmd_pocket_rw(uint8_t *buf, uint8_t *info)
 	uint8_t tmpController = 0, tmpSetGains = 0, tmpSystem = 0;
 	int32_t tmpSetpoint = 0;
 	int16_t tmpGain[4] = {0,0,0,0};
+	uint8_t tmpController2 = 0, tmpSetGains2 = 0;
+	int32_t tmpSetpoint2 = 0;
+	int16_t tmpGain2[4] = {0,0,0,0};
 
 	//Decode data received:
 	index = P_DATA1;
 	offset = buf[index++];
+	
 	tmpController = buf[index++];
 	tmpSetpoint = (int32_t)REBUILD_UINT32(buf, &index);
 	tmpSetGains = buf[index++];
@@ -301,11 +305,24 @@ void rx_cmd_pocket_rw(uint8_t *buf, uint8_t *info)
 	tmpGain[1] = (int16_t)REBUILD_UINT16(buf, &index);
 	tmpGain[2] = (int16_t)REBUILD_UINT16(buf, &index);
 	tmpGain[3] = (int16_t)REBUILD_UINT16(buf, &index);
+	
+	tmpController2 = buf[index++];
+	tmpSetpoint2 = (int32_t)REBUILD_UINT32(buf, &index);
+	tmpSetGains2 = buf[index++];
+	tmpGain2[0] = (int16_t)REBUILD_UINT16(buf, &index);
+	tmpGain2[1] = (int16_t)REBUILD_UINT16(buf, &index);
+	tmpGain2[2] = (int16_t)REBUILD_UINT16(buf, &index);
+	tmpGain2[3] = (int16_t)REBUILD_UINT16(buf, &index);
+	
 	tmpSystem = buf[index++];
 	
+	#ifdef BOARD_TYPE_FLEXSEA_EXECUTE
 	//Act on the decoded data:
 	rx_cmd_actpack_Action1(tmpController, tmpSetpoint, tmpSetGains, tmpGain[0],
-									tmpGain[1], tmpGain[2], tmpGain[3], tmpSystem, offset);
+									tmpGain[1], tmpGain[2], tmpGain[3], tmpSystem, 0);
+	rx_cmd_actpack_Action1(tmpController2, tmpSetpoint2, tmpSetGains2, tmpGain2[0],
+									tmpGain2[1], tmpGain2[2], tmpGain2[3], tmpSystem, 1);
+	#endif
 
 	//Reply:
 	tx_cmd_pocket_w(TX_N_DEFAULT, offset);

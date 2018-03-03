@@ -170,7 +170,7 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 		SPLIT_32((uint32_t)ri->ex.mot_current, shBuf, &index);
 		SPLIT_32((uint32_t)ri->ex.mot_acc, shBuf, &index);
 		SPLIT_16((uint16_t)(ri->ex.mot_volt >> 3), shBuf, &index);
-		SPLIT_16((uint16_t)(ctrl.current.setpoint_val >> 3), shBuf, &index);
+		SPLIT_16((uint16_t)(ctrl[0].current.setpoint_val >> 3), shBuf, &index);
 		SPLIT_16((uint16_t)ri->ex.strain, shBuf, &index);
 		SPLIT_16((uint16_t)ri->ex.status, shBuf, &index);
 		//(28 bytes)
@@ -430,43 +430,43 @@ void rx_cmd_actpack_Action1(uint8_t controller, int32_t setpoint, uint8_t setGai
 						int16_t g0,	int16_t g1,	int16_t g2, int16_t g3, uint8_t system, uint8_t ch)
 {
 	(void) system;
-
+	
 	//Update controller (if needed):
-	control_strategy(controller);
+	control_strategy(controller, ch);
 
 	//Only change the setpoint if we are in current control mode:
-	if(ctrl.active_ctrl == CTRL_CURRENT)
+	if(ctrl[ch].active_ctrl == CTRL_CURRENT)
 	{
-		ctrl.current.setpoint_val = setpoint;
+		ctrl[ch].current.setpoint_val = setpoint;
 		if (setGains == CHANGE)
 		{
-			ctrl.current.gain.g0 = g0;
-			ctrl.current.gain.g1 = g1;
+			ctrl[ch].current.gain.g0 = g0;
+			ctrl[ch].current.gain.g1 = g1;
 		}
 	}
-	else if(ctrl.active_ctrl == CTRL_OPEN)
+	else if(ctrl[ch].active_ctrl == CTRL_OPEN)
 	{
-		setMotorVoltage(setpoint);
+		setMotorVoltage(setpoint, ch);
 	}
-	else if(ctrl.active_ctrl == CTRL_POSITION)
+	else if(ctrl[ch].active_ctrl == CTRL_POSITION)
 	{
-		ctrl.position.setp = setpoint;
+		ctrl[ch].position.setp = setpoint;
 		if (setGains == CHANGE)
 		{
-			ctrl.position.gain.g0 = g0;
-			ctrl.position.gain.g1 = g1;
-			ctrl.position.gain.g2 = g2;
+			ctrl[ch].position.gain.g0 = g0;
+			ctrl[ch].position.gain.g1 = g1;
+			ctrl[ch].position.gain.g2 = g2;
 		}
 	}
-	else if (ctrl.active_ctrl == CTRL_IMPEDANCE)
+	else if (ctrl[ch].active_ctrl == CTRL_IMPEDANCE)
 	{
-		ctrl.impedance.setpoint_val = setpoint;
+		ctrl[ch].impedance.setpoint_val = setpoint;
 		if (setGains == CHANGE)
 		{
-			ctrl.impedance.gain.g0 = g0;
-			ctrl.impedance.gain.g1 = g1;
-			ctrl.current.gain.g0 = g2;
-			ctrl.current.gain.g1 = g3;
+			ctrl[ch].impedance.gain.g0 = g0;
+			ctrl[ch].impedance.gain.g1 = g1;
+			ctrl[ch].current.gain.g0 = g2;
+			ctrl[ch].current.gain.g1 = g3;
 		}
 	}
 }

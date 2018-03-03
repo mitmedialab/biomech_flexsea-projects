@@ -62,8 +62,8 @@ void initActPack(void)
 	setBoardID(SLAVE_ID);
 	
 	//Controller setup:
-	ctrl.active_ctrl = CTRL_NONE;		//No controller at boot
-	setMotorVoltage(0);				//0% PWM
+	ctrl[0].active_ctrl = CTRL_NONE;		//No controller at boot
+	setMotorVoltage(0,0);				//0% PWM
 }
 
 //Knee Finite State Machine.

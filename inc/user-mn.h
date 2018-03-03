@@ -360,7 +360,7 @@ void user_fsm_2(void);
 	//#define USE_SPI_PLAN		//Enables the external SPI port
 
 	//Runtime finite state machine (FSM):
-	//#define RUNTIME_FSM1		ENABLED	//Enable only if you DO NOT use Plan
+	#define RUNTIME_FSM1		ENABLED	//Enable only if you DO NOT use Plan
 	#define RUNTIME_FSM2		ENABLED	//Enable at all time, Mn <> Ex comm.
 
 	#define CO_ENABLE_ACTPACK	//Enables the ActPack state machine(s)
