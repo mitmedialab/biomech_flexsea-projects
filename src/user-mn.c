@@ -61,6 +61,9 @@
 #include "dephy-mn.h"
 #endif
 
+#if(ACTIVE_PROJECT == PROJECT_RUNNING_EXO)
+#include "user-mn-RunningExo.h"
+#endif	//PROJECT_RUNNING_EXO
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -122,6 +125,10 @@ void init_user(void)
 	#ifdef DEPHY
 	init_dephy();
 	#endif
+	
+	#if(ACTIVE_PROJECT == PROJECT_RUNNING_EXO)
+	init_runningExo();
+	#endif
 }
 
 //Call this function in one of the main while time slots.
@@ -169,6 +176,9 @@ void user_fsm_1(void)
 		dephy_fsm_1();
 		#endif
 
+		#if(ACTIVE_PROJECT == PROJECT_RUNNING_EXO)
+		RunningExo_fsm1();
+		#endif
 	#endif	//(RUNTIME_FSM1 == ENABLED)
 }
 
@@ -208,6 +218,9 @@ void user_fsm_2(void)
 		dephy_fsm_2();
 		#endif
 
+		#if(ACTIVE_PROJECT == PROJECT_RUNNING_EXO)
+		RunningExo_fsm2();
+		#endif
 	#endif	//(RUNTIME_FSM2 == ENABLED)
 }
 

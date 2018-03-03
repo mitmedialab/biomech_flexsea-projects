@@ -65,6 +65,7 @@ void user_fsm_2(void);
 #define PROJECT_UMICH_KNEE		6	//University of Michigan's Knee
 #define PROJECT_POCKET_2XDC		7	//FlexSEA-Pocket, 2x Brushed DC
 #define PROJECT_MIT_DLEG		8	//Biomechatronics' Rigid + Relative encoder
+#define PROJECT_RUNNING_EXO		9
 
 //List of sub-projects:
 #define SUBPROJECT_NONE			0
@@ -80,7 +81,7 @@ void user_fsm_2(void);
 //Step 1) Select active project (from list):
 //==========================================
 
-#define ACTIVE_PROJECT			PROJECT_MIT_DLEG
+#define ACTIVE_PROJECT			PROJECT_RUNNING_EXO
 #define ACTIVE_SUBPROJECT		SUBPROJECT_A
 
 //Step 2) Customize the enabled/disabled sub-modules:
@@ -410,6 +411,51 @@ void user_fsm_2(void);
 	#include "dephy-mn.h"
 
 #endif	//PROJECT_DEPHY
+
+#if(ACTIVE_PROJECT==PROJECT_RUNNING_EXO)//Running Exo Project
+//Currently the same as ActPack
+
+	#if (HW_VER < 10)
+
+		//Enable/Disable sub-modules:
+		#define USE_USB
+		#define USE_COMM			//Requires USE_RS485 and/or USE_USB
+		#define USE_I2C_1			//3V3, IMU & Digital pot
+		#define USE_I2C_2			//3V3, Expansion
+		#define USE_I2C_3			//Onboard, Regulate & Execute
+		#define USE_IMU				//Requires USE_I2C_1
+		#define USE_UART3			//Bluetooth
+		#define USE_EEPROM			//Emulated EEPROM, onboard FLASH
+		#define USE_WATCHDOG		//Independent watchdog (IWDG)
+		#define USE_6CH_AMP			//Requires USE_I2C_2. 6-ch Strain Amp.
+		#define USE_SPI_PLAN		//Enables the external SPI port
+
+		//Runtime finite state machine (FSM):
+		#define RUNTIME_FSM1		ENABLED	//Enable only if you DO NOT use Plan
+		#define RUNTIME_FSM2		ENABLED	//Enable at all time, Mn <> Ex comm.
+
+	#else
+
+		//Enable/Disable sub-modules:
+		#define USE_USB
+		#define USE_COMM			//Requires USE_RS485 and/or USE_USB
+		#define USE_I2C_1			//3V3, IMU & Digital pot
+		//#define USE_I2C_2			//3V3, Expansion
+		#define USE_I2C_3			//Onboard, Regulate & Execute
+		#define USE_IMU				//Requires USE_I2C_1
+		#define USE_UART3			//Bluetooth #1
+		#define USE_EEPROM			//Emulated EEPROM, onboard FLASH
+		//#define USE_WATCHDOG		//Independent watchdog (IWDG)
+		//#define USE_6CH_AMP		//Requires USE_I2C_2. 6-ch Strain Amp.
+		//#define USE_SPI_PLAN		//Enables the external SPI port
+
+		//Runtime finite state machine (FSM):
+		//#define RUNTIME_FSM1		ENABLED	//Enable only if you DO NOT use Plan
+		#define RUNTIME_FSM2		ENABLED	//Enable at all time, Mn <> Ex comm.
+
+	#endif
+#endif
+
 
 //****************************************************************************
 // Structure(s)
