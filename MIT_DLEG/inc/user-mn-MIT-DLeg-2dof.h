@@ -25,8 +25,6 @@
 ****************************************************************************/
 
 #ifdef INCLUDE_UPROJ_MIT_DLEG
-#include "main.h"
-
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
 #ifndef INC_MIT_DLEG
@@ -35,15 +33,12 @@
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-
+#include "main.h"
 
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
 
-extern int16_t glob_var_1;
-extern int16_t glob_var_2;
-extern int16_t glob_var_3;
 
 //****************************************************************************
 // Public Function Prototype(s):
@@ -58,6 +53,7 @@ void MIT_DLeg_fsm_2(void);
 //****************************************************************************
 int8_t safetyFailure(void);
 int8_t findPoles(void);
+float getJointAngle(void);
 void openSpeedFSM(void);
 void twoPositionFSM(void);
 
@@ -65,33 +61,40 @@ void twoPositionFSM(void);
 // Definition(s):
 //****************************************************************************
 
-//activate one of these for joint limits
-//#define IS_ANKLE
+//Joint Type: activate one of these for joint limit angles.
+//measured from nominal joint configuration, in degrees
+#define IS_ANKLE
 //#define IS_KNEE
+#define JOINT_ZERO_OFFSET 	0 		// Unit = ticks, Absolute encoder Zero Offset based on system calibration.
+#define JOINT_ENC_DIR 		1		// CW = 1, CCW = -1
+#define JOINT_CPR 			16384	// Counts per recolution
+//#define PI					3.141592F	// you know me!
 
+//Joint software limits
 #ifdef IS_ANKLE
-#define JOINT_MIN -10
-#define JOINT_MAX 10
+#define JOINT_MIN 			-10  	//Actuator physical limit min = 30deg dorsiflexion
+#define JOINT_MAX 			10   	//Actuator physical limit  max = 90deg plantarflex
 #endif
 
 #ifdef IS_KNEE
-#define JOINT_MIN -20
-#define JOINT_MAX 20
+#define JOINT_MIN 			-20		//Actuator physical limit min = 30deg extension
+#define JOINT_MAX 			20		//Actuator physical limit max = 90deg flexion
 #endif
+
+//Force Sensor
+#define STRAIN_GAIN 		202.6	//Defined by R23 on Execute, better would be G=250 to max range of ADC
+#define EXCITATION			5		// Excitation Voltage
+#define STRAIN_BIAS			2.5		// Strain measurement Bias
+#define	RATED_OUTPUT		0.002	// 2mV/V
+#define MAX_FORCE			4448	//Newtons, for LCM300 load cell
+#define MAX_FORCE_TICKS		(STRAIN_GAIN * EXCITATION * RATED_OUTPUT + STRAIN_BIAS)/5 * 65536	// max ticks expected
+#define MIN_FORCE_TICKS		(STRAIN_BIAS - STRAIN_GAIN * EXCITATION * RATED_OUTPUT)/5 * 65536	// min ticks expected
+#define FORCE_PER_TICK		2*MAX_FORCE / (MAX_FORCE_TICKS - MIN_FORCE_TICKS)	// Newtons/Tick
 
 //safety limits
 #define MOTOR_TEMP_LIMIT 50
 #define TORQUE_LIMIT	 50
 #define CURRENT_LIMIT    10
-
-//Constants used by get_ankle_ang():
-//Where is this equation???
-#define A0 				(202.2+1140.0)
-#define A1 				1302.0
-#define A2				-39.06
-#define B1 				14.76
-#define B2 				-7.874
-#define W				0.00223
 
 #define SECONDS			1000
 

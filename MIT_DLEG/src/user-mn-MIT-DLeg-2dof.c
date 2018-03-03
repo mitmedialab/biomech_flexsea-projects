@@ -50,6 +50,10 @@
 
 uint8_t mitDlegInfo[2] = {PORT_RS485_2, PORT_RS485_2};
 
+//SAFETY FLAGS
+static int8_t ANGLE_LIMIT_FLAG = 0;
+static int8_t FORCE_LIMIT_FLAG = 0;
+
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -66,7 +70,7 @@ void MIT_DLeg_fsm_1(void)
 {
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
-    static uint32_t time = 0, state = 0;
+    static uint32_t time = 0, state = -2;
 
     //Increment time (1 tick = 1ms)
     time++;
@@ -82,25 +86,30 @@ void MIT_DLeg_fsm_1(void)
 
 	switch(state)
 	{
-		case 0:
+		case -2:
 			//Same power-on delay as FSM2:
 			if(time >= AP_FSM2_POWER_ON_DELAY)
 			{
-				state = 1;
+				state = -1;
 				time = 0;
 			}
 
 			break;
 
-		case 1:
+		case -1:
 			if(findPoles()) {
-				state = 2;
+				state = 0;
 				time = 0;
 			}
 
 			break;
 
-		case 2:
+		case 0:
+			//reserve for additional initialization
+			state = 1;
+			time = 0;
+			break;
+		case 1:
 			//Pick one of those demos:
 			//openSpeedFSM();
 			twoPositionFSM();
@@ -137,42 +146,112 @@ int8_t safetyFailure(void) {
 	return 1;
 }
 
-// Output joint angle in radians, measured from joint zero
-static int32_t getJointAngleCounts(void)
+// Output joint angle in degrees, measured from joint zero
+float getJointAngle(void)
 {
-	static uint32_t timer = 0, deltaT = 0;
-	static int32_t fsm1State = -1;
+	static uint32_t timer = 0;	//probably don't need this state business.
+	static int8_t jointAngleState = -1;
+	static int32_t jointAngleCnts = 0;
+	static float jointAngle = 0;
 
-	static int32_t jointAngle = 0;
-	static int32_t cpr = 16384;
-
-	// Set these during calibration
-	static int32_t zeroCount = 0;	// counts at zero angle.
-	static int32_t dorsiMaxCount = 0;	// counts at maximum Dorsiflexion
-	static int32_t plantarMaxCount = 0;	// counts at maximum Plantarflexion
-	static int32_t encoderDirection = 1; // set direction of counting
-
-	switch(fsm1State)
+	switch(jointAngleState)
 		{
 			case -1:
-				//We give FSM2 some time to refresh values
+				//We give FSM2 some time to refresh values, first time -- likley not necessary?
 				timer++;
 				if(timer > 25)
 				{
-					zeroCount = *(rigid1.ex.enc_ang);
-					fsm1State = 0;
+					jointAngleCnts = *(rigid1.ex.enc_ang);
+					jointAngleState = 0;
 				}
 				break;
 			case 0:
-				jointAngle = zeroCount - *(rigid1.ex.enc_ang);
+				jointAngleCnts = JOINT_ENC_DIR * ( JOINT_ZERO_OFFSET - *(rigid1.ex.enc_ang) ); //todo: check this directionality
+				jointAngle = jointAngleCnts / JOINT_CPR * 360.0;
 
+				//Check angle limits, raise flag for safety check
+				if( jointAngle < JOINT_MIN || jointAngle > JOINT_MAX)
+				{
+					ANGLE_LIMIT_FLAG = 1;
+				}
+				break;
+			default:
+				//do nothing, if something went wrong.
 				break;
 		}
-
-
-
-
 	return jointAngle;
+}
+
+// Output axial force on screw, Returns [Newtons]
+float getAxialForce(void)
+{
+	static int8_t tareState = -1;
+	static uint32_t timer = 0;
+	static uint16_t strainReading = 0;
+	static uint16_t tareOffset = 0;
+	static int16_t strainMeasBias = 32768;	// centered around 2.5V, or 2^16/2 ticks.
+	static float axialForce = 0;
+
+	strainReading = (rigid1.ex.strain);
+
+	//Check for over force reading, set flag, and exit.
+	if (strainReading >= MAX_FORCE_TICKS || strainReading <= MIN_FORCE_TICKS)
+	{
+		FORCE_LIMIT_FLAG = 1;
+		return MAX_FORCE;
+	}
+
+	switch(tareState)
+	{
+		case -1:
+			//Tare the balance the first time this gets called.
+			timer++;
+			if(timer > 250)
+			{
+				strainReading = (rigid1.ex.strain);
+				tareOffset = (rigid1.ex.strain);
+
+				tareState = 0;
+			}
+			break;
+		case 0:
+			axialForce = ( strainReading - strainMeasBias - tareOffset ) * FORCE_PER_TICK;	// bias = 2.5V, or 32768 ticks
+			break;
+		default:
+			//problem occurred
+			break;
+	}
+	return axialForce;
+}
+
+// Linear Actuator Actual Moment Arm,
+// input(theta [deg] )
+// return moment arm projected length  [m]
+float calc_linearActuatorMomentArm(float theta)
+{
+	static float theta_r = 0;
+	theta_r = theta * M_PI / 180;
+	static float A = 0, c = 0, r = 0, C_ang = 0;
+	static float a = 0, b = 0, T = 0, F = 0;
+
+	//Do calculations in m
+    static float t = 0.047; 	// tibial offset
+    static float t_k = 0.140; 	// offset from knee along tibia
+    static float f = 0.039;  	// femur offset
+    static float f_k = 0.018;	// offset from knee along femur
+
+    a = sqrt( t*t + t_k*t_k);
+    b = sqrt( f*f + f_k*f_k);
+
+    T = atan(t/t_k);
+    F = atan(f/f_k);
+
+    C_ang = M_PI - theta_r - (T + F); 	// angle
+    c = sqrt(a*a + b*b - 2 * a * b * cos( C_ang ) );  // length of actuator from pivot to output
+    A = acos( ( a*a - ( c*c + b*b ) ) / ( -2 * b * c ) );
+    r = b * sin(A);
+
+    return r;
 }
 
 int8_t findPoles(void) {
