@@ -177,7 +177,7 @@ void user_fsm_1(void)
 		#endif
 
 		#if(ACTIVE_PROJECT == PROJECT_RUNNING_EXO)
-		RunningExo_fsm1();
+		RunningExo_fsm_1();
 		#endif
 	#endif	//(RUNTIME_FSM1 == ENABLED)
 }
@@ -219,7 +219,7 @@ void user_fsm_2(void)
 		#endif
 
 		#if(ACTIVE_PROJECT == PROJECT_RUNNING_EXO)
-		RunningExo_fsm2();
+		RunningExo_fsm_2();
 		#endif
 	#endif	//(RUNTIME_FSM2 == ENABLED)
 }
