@@ -63,15 +63,16 @@ void init_runningExo(void)
 }
 
 //Running Exo state machine
-//TODO
 void RunningExo_fsm_1(void)
+//TODO
 {
 
 }
 
 //Second state machine for the Running Exo
-//TODO
 void RunningExo_fsm_2(void)
+//TODO
+
 {
 
 }

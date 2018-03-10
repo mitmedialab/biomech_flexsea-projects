@@ -8,11 +8,7 @@
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors]
 *****************************************************************************
-	[This file] user-mn-ActPack: User code running on Mn
-****************************************************************************
-	[Change log] (Convention: YYYY-MM-DD | author | comment)
-	* 2017-09-27 | jfduval | Initial release
-	*
+	[This file] user-mn-RunningExo: Running Exoskeleton Project
 ****************************************************************************/
 
 #ifdef INCLUDE_UPROJ_RUNNINGEXO
@@ -41,12 +37,27 @@ void RunningExo_fsm_2(void);
 
 
 //****************************************************************************
-// Definition(s):
+// Constant Definition(s):
 //****************************************************************************
+//Controlling Strategy Options
+//TODO:
+#define OPEN_LOOP 1
+
+//Angle Limit
+//TODO:
+#define ENC_POS_MAX 16384
+#define ENC_POS_MIN 0
+
+//Velocity Limit
+//TODO:
+#define ENC_VEL_MAX 1000
+#define ENC_VEL_MIN -1000
+
 
 //****************************************************************************
 // Structure(s)
 //****************************************************************************
+
 
 //****************************************************************************
 // Shared variable(s)
