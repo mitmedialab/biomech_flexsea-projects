@@ -39,9 +39,13 @@ void RunningExo_fsm_2(void);
 //****************************************************************************
 // Constant Definition(s):
 //****************************************************************************
-//Controlling Strategy Options
-//TODO:
-#define OPEN_LOOP 1
+#define CONTROL_STRATEGY 1
+/* Controlling Strategy Options
+ * 0: No action
+ * 1: Trajectory Tracking
+ *
+ */
+#define TORQUE_TRACKING 1
 
 //Angle Limit
 //TODO:
@@ -53,7 +57,17 @@ void RunningExo_fsm_2(void);
 #define ENC_VEL_MAX 1000
 #define ENC_VEL_MIN -1000
 
+//Foot switch
+#define FOOTSWITCH_THRESHOLD 500		//threshold for heel strike
+#define FOOTSWITCH_TOE 0
+#define FOOTSWITCH_LATERAL 1
+#define FOOTSWITCH_HEEL 2
+#define FOOTSWITCH_MEDIAL 3
 
+//Lookup Table
+#if (CONTROL_STRATEGY == TORQUE_TRACKING)
+#define TABLE_SIZE 25
+#endif //(CONTROL_STRATEGY == TORQUE_TRACKING)
 //****************************************************************************
 // Structure(s)
 //****************************************************************************
@@ -62,6 +76,7 @@ void RunningExo_fsm_2(void);
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
+
 
 #endif	//INC_RUNNINGEXO_MN_H
 
