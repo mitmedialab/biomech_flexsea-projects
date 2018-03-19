@@ -13,12 +13,12 @@ extern "C" {
 
 WalkingStateMachine stateMachine;
 Act_s act1;
-// Gain Parameters are modified to match our joint angle convention
-GainParams eswGains = {0.04, 0, 0.004, -JOINT_ANGLE_DIR * 23};
-GainParams lswGains = {0.134, 0, 0.002, -JOINT_ANGLE_DIR * 2};
-GainParams estGains = {1.35, 0.025, 0.118, -JOINT_ANGLE_DIR * -5};
-GainParams lstGains = {0, 0, 0, -JOINT_ANGLE_DIR * 0}; //currently unused in simple implementation
-GainParams lstPowerGains = {4.5, 0, 0.005, -JOINT_ANGLE_DIR * -18};
+// Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
+GainParams eswGains = {0.04, 0, 0.004, JNT_ORIENT * 23};
+GainParams lswGains = {0.134, 0, 0.002, JNT_ORIENT * 2};
+GainParams estGains = {1.35, 0.025, 0.118, JNT_ORIENT * -5};
+GainParams lstGains = {0, 0, 0, JNT_ORIENT * 0}; //currently unused in simple implementation
+GainParams lstPowerGains = {4.5, 0, 0.005, JNT_ORIENT * -18};
 
 #ifndef BOARD_TYPE_FLEXSEA_PLAN
 
@@ -92,7 +92,7 @@ void runFlatGroundFSM(float* ptorqueDes) {
             //Late Swing transition vectors
             // VECTOR (1): Late Swing -> Early Stance (hard heel strike)
             //toDo: better transition criterion than this
-            if (act1.jointAngle > 0) {
+            if (act1.jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH) {
                 stateMachine.current_state = STATE_EARLY_STANCE;
             }
 
@@ -118,7 +118,7 @@ void runFlatGroundFSM(float* ptorqueDes) {
 
             //Late Stance Power transition vectors
             // VECTOR (1): Late Stance Power -> Early Swing - Condition 1
-            if (act1.jointTorque > ANKLE_UNLOADED_TORQUE_THRESH) {
+            if (abs(act1.jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) {
                 stateMachine.current_state = STATE_EARLY_SWING;
 
             }
@@ -134,6 +134,7 @@ void runFlatGroundFSM(float* ptorqueDes) {
 
             //turn off control.
             *ptorqueDes = 0;
+            stateMachine.current_state = STATE_LATE_SWING;
 
             break;
 	

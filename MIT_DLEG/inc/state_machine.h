@@ -17,10 +17,13 @@ extern "C" {
 //****************************************************************************
 #define ESW_TO_LSW_DELAY              			  100   // Transition time: 2->3 in ms
 
-//      THRESHOLD / LIMIT NAME                    VALUE          UNITS           BRIEF DESCRIPTION                             TRANSITION(S)
-#define HARD_HEALSTRIKE_SS_TORQ_RATE_THRESH      -180		// Nm/sec      - Foot-strike detector                          3->4
-#define LSTPWR_HS_TORQ_TRIGGER_THRESH             -5				// Nm          - The ONLY entry to Late Stance Power           4->5
-#define ANKLE_UNLOADED_TORQUE_THRESH              -5			// Nm          - Foot unloaded threshold                       5->2
+//      THRESHOLD / LIMIT NAME                    VALUE          	UNITS           BRIEF DESCRIPTION                             TRANSITION(S)
+#define HARD_HEELSTRIKE_TORQUE_THRESH             -80 * JNT_ORIENT				// Nm      - Foot-strike detector
+#define HARD_HEELSTRIKE_SS_TORQ_RATE_THRESH      -180 * JNT_ORIENT				// Nm/sec      - Foot-strike detector                          3->4
+#define LSTPWR_HS_TORQ_TRIGGER_THRESH               5 * JNT_ORIENT	// Nm          - The ONLY entry to Late Stance Power           4->5
+#define ANKLE_UNLOADED_TORQUE_THRESH                3            	// Nm          - Foot unloaded threshold                       5->2
+
+#define JNT_ORIENT								-JOINT_ANGLE_DIR	// 				JOINT_ANGLE_DIR is defined in user-mn-MIT-DLeg-2dof
 
 //****************************************************************************
 // Shared Variable(s):

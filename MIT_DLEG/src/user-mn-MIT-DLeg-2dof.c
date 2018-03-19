@@ -191,6 +191,7 @@ void MIT_DLeg_fsm_1(void)
 
 					//Testing functions
 
+			    									//Theta, K1, K2, B
 			    	torqueDes = biomCalcImpedance(user_data_1.w[0], user_data_1.w[1], user_data_1.w[2], user_data_1.w[3]);
 
 			    	setMotorTorque(&act1, torqueDes);
@@ -564,7 +565,7 @@ float biomCalcImpedance(float theta_set, float k1, float k2, float b)
 
 	theta = act1.jointAngle;
 	theta_d = act1.jointVel;
-	tor_d = k1 *(theta_set - theta) + k2 * powf((theta_set - theta), 3) - b*theta_d;
+	tor_d = k1 *(theta_set - theta) + k2 * powf((theta_set - theta), 3) + b*theta_d;
 
 	return tor_d;
 
