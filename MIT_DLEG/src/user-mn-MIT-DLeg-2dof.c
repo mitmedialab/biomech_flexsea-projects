@@ -187,7 +187,7 @@ void MIT_DLeg_fsm_1(void)
 			    } else {
 //
 //			    	runFlatGroundFSM(ptorqueDes);
-//					setMotorTorque(&act1, torqueDes);
+//					setMotorTorque(&act1, *ptorqueDes);
 
 					//Testing functions
 
@@ -269,7 +269,8 @@ int8_t safetyShutoff(void) {
 				isSafetyFlag = SAFETY_OK;
 				break;
 			} else {
-				setMotorTorque(&act1, 0); //run this in order to update torque genVars sent to Plan
+				// This could cause trouble, but seems more safe than an immediate drop in torque. Instead, reduce torque.
+				setMotorTorque(&act1, act1.tauDes * 0.75); // reduce desired torque by 25%
 			}
 
 			return 1;
@@ -389,6 +390,7 @@ void getJointAngleKinematic(float joint[])
 
 
 // Output axial force on screw, Returns [Newtons]
+// todo: consider averaging samples during operation, may smooth torque control, also introduces delay, of course.
 float getAxialForce(void)
 {
 	static int8_t tareState = -1;
@@ -416,7 +418,7 @@ float getAxialForce(void)
 			break;
 
 		case 0:
-			// Looks correct with simple weight, need to test with a scale
+
 			axialForce =  FORCE_DIR * (strainReading - tareOffset) * forcePerTick;
 
 			break;
@@ -507,6 +509,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	dtheta_m = actx->motorVel;
 	ddtheta_m = actx->motorAcc;
 
+	actx->tauDes = tau_des;				// save in case need to modify in safetyFailure()
 
 	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
 	tau_meas =  actx->jointTorque / N;	// measured torque reflected to motor [Nm]

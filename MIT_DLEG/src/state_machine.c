@@ -13,11 +13,12 @@ extern "C" {
 
 WalkingStateMachine stateMachine;
 Act_s act1;
-GainParams eswGains = {0.04, 0, 0.004, 23};
-GainParams lswGains = {0.134, 0, 0.002, 2};
-GainParams estGains = {1.35, 0.025, 0.118, -5};
-GainParams lstGains = {0, 0, 0, 0}; //currently unused in simple implementation
-GainParams lstPowerGains = {4.5, 0, 0.005, -18};
+// Gain Parameters are modified to match our joint angle convention
+GainParams eswGains = {0.04, 0, 0.004, -JOINT_ANGLE_DIR * 23};
+GainParams lswGains = {0.134, 0, 0.002, -JOINT_ANGLE_DIR * 2};
+GainParams estGains = {1.35, 0.025, 0.118, -JOINT_ANGLE_DIR * -5};
+GainParams lstGains = {0, 0, 0, -JOINT_ANGLE_DIR * 0}; //currently unused in simple implementation
+GainParams lstPowerGains = {4.5, 0, 0.005, -JOINT_ANGLE_DIR * -18};
 
 #ifndef BOARD_TYPE_FLEXSEA_PLAN
 
@@ -77,7 +78,7 @@ void runFlatGroundFSM(float* ptorqueDes) {
             //Early Swing transition vectors
             // VECTOR(1): Early Swing -> Late Swing
             if (time_in_state >= ESW_TO_LSW_DELAY) {
-                stateMachine.current_state = STATE_LATE_SWING;      //Transition occurs even the early swing motion is not finished
+                stateMachine.current_state = STATE_LATE_SWING;      //Transition occurs even if the early swing motion is not finished
             }
 
             //run any exit code here
