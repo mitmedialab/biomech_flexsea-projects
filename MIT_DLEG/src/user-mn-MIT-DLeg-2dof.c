@@ -99,6 +99,8 @@ static const float nScrew = N_SCREW;
 static const float jointMinSoft = JOINT_MIN_SOFT;
 static const float jointMaxSoft = JOINT_MAX_SOFT;
 
+static float k1 = 0, k2 =0, b= 0, theta_input =0;
+
 //struct act_s act1;		//actuator sensor structure declared extern in flexsea_user_structs
 				//defined in state_machine.c
 
@@ -190,9 +192,12 @@ void MIT_DLeg_fsm_1(void)
 //					setMotorTorque(&act1, *ptorqueDes);
 
 					//Testing functions
-
+//			    	k1 = user_data_1.w[0]/1000.;
+//			    	k2 = user_data_1.w[1]/1000.;
+//			    	b = user_data_1.w[2]/1000.;
+//			    	theta_input = user_data_1.w[3];
 			    									//K1, K2, B, Theta
-			    	torqueDes = biomCalcImpedance(user_data_1.w[0]/1000, user_data_1.w[1]/1000, user_data_1.w[2]/1000, user_data_1.w[3]);
+			    	torqueDes = biomCalcImpedance(user_data_1.w[0]/1000. , user_data_1.w[1]/1000., user_data_1.w[2]/1000., user_data_1.w[3]);
 
 			    	setMotorTorque(&act1, torqueDes);
 
@@ -554,7 +559,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 //UNUSED. See state_machine
 /*
  * Simple Biom controller
- * input:	theta_set, desired theta
+ * input:	theta_set, desired theta (degrees)
  * 			k1,k2,b, impedance parameters
  * return: 	tor_d, desired torque
  */
@@ -563,9 +568,9 @@ float biomCalcImpedance( float k1, float k2, float b, float theta_set)
 	float theta = 0, theta_d = 0;
 	float tor_d = 0;
 
-	theta = act1.jointAngle;
-	theta_d = act1.jointVel;
-	tor_d = k1 *(theta_set - theta) + k2 * powf((theta_set - theta), 3) + b*theta_d;
+	theta = act1.jointAngleDegrees;
+	theta_d = act1.jointVelDegrees;
+	tor_d = k1 * (theta_set - theta ) + k2 * powf((theta_set - theta ), 3) + b*theta_d;
 
 	return tor_d;
 
