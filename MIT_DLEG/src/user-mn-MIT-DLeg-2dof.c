@@ -499,7 +499,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	float tau_meas = 0, tau_ff=0;  	//joint torque reflected to motor.
 	float tau_err = 0;
 	static float tau_err_last = 0, tau_err_int = 0;
-	float tau_motor = 0, tau_err_dot = 0;		// motor torque signal
+	float tau_PID = 0, tau_err_dot = 0, tau_motor_comp = 0;		// motor torque signal
 	int32_t dtheta_m = 0, ddtheta_m = 0;		//motor vel, accel
 	int32_t I = 0;								// motor current signal
 
@@ -513,6 +513,8 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	tau_des = tau_des / N;				// scale output torque back to the motor [Nm].
 	tau_ff = tau_des / (N_ETA) ;		// Feed forward term for desired joint torque, reflected to motor [Nm]
 
+	tau_motor_comp = (motJ + MOT_TRANS)*ddtheta_m + motB*dtheta_m;	// compensation for motor parameters. not stable right now.
+
 	// Error is done at the motor. todo: could be done at the joint, messes with our gains.
 	tau_err = tau_des - tau_meas;
 	tau_err_dot = (tau_err - tau_err_last);
@@ -520,20 +522,14 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	tau_err_last = tau_err;
 
 	//PID around motor torque
-	tau_motor = tau_err*torqueKp + tau_err_dot*torqueKd + tau_err_int*torqueKi;
+	tau_PID = tau_err*torqueKp + tau_err_dot*torqueKd + tau_err_int*torqueKi;
 
-	I = 1/MOT_KT * ( tau_ff + tau_motor +(motJ + MOT_TRANS)*ddtheta_m + motB*dtheta_m) * currentScalar;
+	I = 1/MOT_KT * ( tau_ff + tau_PID + tau_motor_comp) * currentScalar;
 
 	//account for deadzone current (unused due to instability). Unsolved problem according to Russ Tedrake.
 //	if (abs(dtheta_m) < 3 && I < 0) {
 //		I -= motSticNeg; //in mA
 //	} else if (abs(dtheta_m) < 3 && I > 0) {
-//		I += motSticPos;
-//	}
-
-//	if ( I < 0) {
-//		I -= motSticNeg; //in mA
-//	} else if ( I > 0) {
 //		I += motSticPos;
 //	}
 
