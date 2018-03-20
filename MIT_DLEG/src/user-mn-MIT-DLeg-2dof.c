@@ -209,7 +209,7 @@ void MIT_DLeg_fsm_1(void)
 				rigid1.mn.genVar[2] = act1.jointTorque*1000;  //mNm
 				rigid1.mn.genVar[3] = act1.linkageMomentArm*1000; //mm
 				rigid1.mn.genVar[4] = act1.jointAngle*1000;
-				rigid1.mn.genVar[5] = act1.jointVelDegrees*1000; //deg
+				rigid1.mn.genVar[5] = act1.jointVelDegrees*10; //deg
 				rigid1.mn.genVar[6] = signalFilterSlope(act1.jointVel, 0.9, 6);  //deg/s * 1000
 //				rigid1.mn.genVar[7] = act1.desiredCurrent;
 
@@ -387,7 +387,6 @@ void getJointAngleKinematic(float joint[])
 
 	//VELOCITY
 	joint[1] = 	*(rigid1.ex.joint_ang_vel) * (angleUnit)/JOINT_CPR * SECONDS;
-
 	//ACCEL  -- todo: check to see if this works
 	joint[2] = (( joint[1] - last_jointVel )) * (angleUnit)/JOINT_CPR * SECONDS;
 	last_jointVel = joint[1];
@@ -451,9 +450,8 @@ float signalFilterSlope(float value, float a, float limit)
 
 	if (abs(slope[0] - slopeMean) >= limit )
 	{
-//		array[0] = a * array[1] + a*a* (array[2]);
-//		array[0] = a * array[0] + a*a* (slope[1]/slopeMean);
-		array[0] = a * array[0] + a*a* (array[1]) + a*a*a * array[2];
+//		array[0] = a * array[0] + a*a* (array[1]) + a*a*a * array[2];
+		array[0] = (array[1]+array[len])/2;
 	}
 
 	//shift all the values to the end of the array
