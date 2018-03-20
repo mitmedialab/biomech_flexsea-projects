@@ -209,8 +209,8 @@ void MIT_DLeg_fsm_1(void)
 				rigid1.mn.genVar[2] = act1.jointTorque*1000;  //mNm
 				rigid1.mn.genVar[3] = act1.linkageMomentArm*1000; //mm
 				rigid1.mn.genVar[4] = act1.jointAngle*1000;
-//				rigid1.mn.genVar[5] = act1.motorAcc;
-//				rigid1.mn.genVar[6] = tau_motor*1000;  //mNm
+				rigid1.mn.genVar[5] = act1.jointVelDegrees*1000; //deg
+				rigid1.mn.genVar[6] = signalFilterSlope(act1.jointVel, 0.9, 6);  //deg/s * 1000
 //				rigid1.mn.genVar[7] = act1.desiredCurrent;
 
 				rigid1.mn.genVar[9] = torqueDes*1000;
@@ -314,7 +314,7 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->jointAngle = joint[0]; //*(pjointKinematic + 0);
 	actx->jointAngleDegrees = actx->jointAngle * 360/angleUnit;
-	actx->jointVel = joint[1]; // *(pjointKinematic + 1);
+	actx->jointVel = joint[1];
 	actx->jointVelDegrees = actx->jointVel * 360/angleUnit;
 	actx->jointAcc = joint[2]; //*(pjointKinematic + 2);
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
@@ -391,6 +391,78 @@ void getJointAngleKinematic(float joint[])
 	//ACCEL  -- todo: check to see if this works
 	joint[2] = (( joint[1] - last_jointVel )) * (angleUnit)/JOINT_CPR * SECONDS;
 	last_jointVel = joint[1];
+
+}
+
+
+
+/* NOT WORKING!!
+ * Simple Kalman Filter for Signals
+ * http://home.wlu.edu/~levys/kalman_tutorial/
+ * // a = update trust gain, r = noise
+ * NOT WORKING!!! seems like it should, but it just drives to zero.
+ */
+float kalmanFilter(float vel, float a, float r)
+{
+	static uint8_t init = 0;
+	static float xhat = 0., p = 1., g=0., z=0.;
+
+	// Observe
+	z = vel;
+
+	if (init == 0)
+	{
+		xhat = z;
+		p = 1.;
+		init = 1;
+	}
+
+    // Predict
+    xhat = a * xhat;
+    p    = a * p * a;
+
+    // Update
+    g    = p  / (p  + r);
+    xhat = xhat + g * (z - xhat);
+    p    = (1. - g) * p;
+
+	return xhat;
+}
+
+/*
+ * Try filtering, with some sort of polynomial trust gain thing, a
+ */
+float signalFilterSlope(float value, float a, float limit)
+{
+	const int8_t len = 5;
+	const int8_t end = len -1;
+	static float array[5];
+	static float slope[5-1];
+	static float slopeMean =0;
+
+	array[0] = value;
+
+	for (int8_t i = end; i > 0; i--)
+	{
+		slope[i] = array[i-1] - array[i];
+		slopeMean += slope[i]/len;
+	}
+
+
+	if (abs(slope[0] - slopeMean) >= limit )
+	{
+//		array[0] = a * array[1] + a*a* (array[2]);
+//		array[0] = a * array[0] + a*a* (slope[1]/slopeMean);
+		array[0] = a * array[0] + a*a* (array[1]) + a*a*a * array[2];
+	}
+
+	//shift all the values to the end of the array
+	for (int8_t i = end; i > 0 ; i--)
+	{
+		array[i] = array[i-1];
+	}
+
+	return array[1];
 
 }
 
@@ -846,9 +918,9 @@ void torqueSweepTest(struct act_s *actx) {
 
 		user_data_1.r[3] = frequency;
 
-		rigid1.mn.genVar[5] = frequency; //hz
+//		rigid1.mn.genVar[5] = frequency; //hz
 
-		rigid1.mn.genVar[9] = user_data_1.r[2]*1000; //mNm
+//		rigid1.mn.genVar[9] = user_data_1.r[2]*1000; //mNm
 
 }
 

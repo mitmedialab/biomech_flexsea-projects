@@ -68,13 +68,15 @@ int8_t findPoles(void);
 void   mit_init_current_controller(void);
 
 // Mechanical transformations
-void   getJointAngleKinematic(float [3]);
+void   	getJointAngleKinematic(float [3]);
 float   getJointAngularVelocity(void);
 float   getAxialForce(void);
 float   getLinkageMomentArm(float);
 float   getJointTorque(struct act_s *actx);
 int16_t getMotorTempSensor(void);
 void    updateSensorValues(struct act_s *actx);
+float 	signalFilterSlope(float value, float a, float limit);
+float 	kalmanFilter(float vel, float a, float r);	// NOT WORKING
 
 //Control outputs
 float biomCalcImpedance(float theta_set, float k1, float k2, float b); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
@@ -148,7 +150,7 @@ void torqueSweepTest(struct act_s *actx);
 //Torque Control PID gains
 #define TORQ_KP_INIT			1.2 // good for step response, for zero torque 3 is good
 #define TORQ_KI_INIT			0.
-#define TORQ_KD_INIT			12. // good for step response, for zero torque 15 is good
+#define TORQ_KD_INIT			5. // good for step response, for zero torque 15 is good
 
 // Motor Parameters
 #define MOT_KT 			0.055	// Phase Kt value = linearKt/(3^0.5)
