@@ -46,8 +46,8 @@
 //****************************************************************************
 
 //variables contain the data
-extern int16_t emg_data[8]; //8 ch emg data
-extern int16_t emg_misc[3]; // array of int16_t reserved for various usage
+extern int16_t emg_data[8];
+extern uint8_t emg_packet;
 extern volatile uint8_t emg_on_flag; //this flag decide whether use EMG or not
 extern uint16_t emg_timestamp;
 extern volatile uint16_t emg_error_cnt;
@@ -55,19 +55,18 @@ extern volatile uint16_t emg_error_cnt;
 // Prototype(s):
 //****************************************************************************
 void MIT_EMG_update_status(void);
+//void MIT_EMG_command(uint8_t mode, uint8_t packet);
 void MIT_EMG_decode(void);
 void MIT_EMG_read(void);
 void MIT_EMG_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c);
 void MIT_EMG_I2C_RxCpltCallback(I2C_HandleTypeDef *hi2c); //attach this function on i2c.c
 void MIT_EMG_i2c2_fsm(void);
 
-uint8_t MIT_EMG_getState(void); //read value when only 1 is returned
-void MIT_EMG_changeState(uint8_t); //activate / deactive the EMG peripheral
-
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
 
+//8-ch Strain Amplifier:
 #define I2C_SLAVE_ADDR_EMG		16	//8 bits (7 = 0x66)
 
 #define EMG_PERIPH_READY 0
@@ -76,14 +75,16 @@ void MIT_EMG_changeState(uint8_t); //activate / deactive the EMG peripheral
 
 #define EMG_LINE_THRESHOLD 3475 // 2.8V/3.3V *4096
 #define EMG_TIMER_THRESHOLD 250 //250ms
-#define EMG_TIMER_PRESCALER 1 // comm freq = 1kHz/presc
+#define EMG_TIMER_PRESCALER 2 // comm freq = 1kHz/presc // 1 fot 1 kHz, 2 for 500 Hz
 
 #ifdef PROJECT_MIT_DLEG
 //#define EMG_LINE_READY 1 //AIN1-CON
+//#define EMG_LINE_ACTIVE 2 //AIN2-CON
 #endif
 
 #ifdef PROJECT_POCKET_2XDC //pocket AIN-0/1 Swapped
 //#define EMG_LINE_READY 1 //AIN0 - CON
+//#define EMG_LINE_ACTIVE 0 //AIN1 -CON
 #endif
 
 #define EMG_COMM_HEADER 0xAB;
@@ -102,6 +103,7 @@ void MIT_EMG_changeState(uint8_t); //activate / deactive the EMG peripheral
 #define EMG_STATE_DISABLE 0
 #define EMG_STATE_INACTIVE 1
 #define EMG_STATE_WAIT 2
+#define EMG_STATE_CLRBUF 3
 #define EMG_STATE_READ 4
 
 //****************************************************************************

@@ -16,49 +16,21 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************
-	[Lead developer] Luke Mooney, lmooney at dephy dot com.
+	[Lead developper] Luke Mooney, lmooney at dephy dot com.
 	[Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors]
 *****************************************************************************
-	[This file] user_ankle_2dof: EMG FSM functions
+	[This file] user_ankle_2dof: 2-DoF Ankle Functions
 ****************************************************************************/
 
+#ifdef INCLUDE_UPROJ_MIT_A2DOF
 #include "main.h"
-#include "state_variables.h"
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
-#ifndef INC_EMG_FSM_H
-#define INC_EMG_FSM_H
-
-//****************************************************************************
-// EASY ACCESS
-//****************************************************************************
-
-//HANDLE EMG FROM SEONG
-#define GAIN_LG					1.0
-#define GAIN_TA					1.0
-#define EMG_IN_MAX				10000
-
-//Constants for tuning the controller
-#define PF_TORQUE_GAIN			50
-#define DF_TORQUE_GAIN			50
-#define PFDF_STIFF_GAIN			100
-#define DP_ON_THRESH			0.1
-
-#define COCON_THRESH			0.3 //co-contraction threshold
-
-
-//VIRTUAL DYNAMIC JOINT PARAMS
-#define VIRTUAL_K				1.0
-#define VIRTUAL_B				0.1
-#define VIRTUAL_J				0.0025
-
-//physical robot impedance gains
-#define ROBOT_K					10 //a guess
-#define ROBOT_B					1  //a guess
-
+#ifndef INC_ANKLE_2DOF_H
+#define INC_ANKLE_2DOF_H
 
 //****************************************************************************
 // Include(s)
@@ -68,28 +40,40 @@
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
-extern int32_t EMGavgs[2];
-extern float PFDF_state[3];
+
+extern int16_t glob_var_1;
+extern int16_t glob_var_2;
+extern int16_t glob_var_3;
 
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
 
-void updateVirtualJoint(GainParams* pgains);
-void get_EMG(void);
-void interpret_EMG (float k, float b, float J);
-void RK4_SIMPLE(float dtheta, float domega, float* cur_state);
+void init_ankle_2dof(void);
+void ankle_2dof_fsm_1(void);
+void ankle_2dof_fsm_2(void);
+int16_t get_ankle_ang(double);
+int16_t get_ankle_trans(double);
+void set_ankle_torque_1(int32_t);
+void set_ankle_torque_2(int32_t);
 
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
 
+//Constants used by get_ankle_ang():
+#define A0 				(202.2+1140.0)
+#define A1 				1302.0
+#define A2				-39.06
+#define B1 				14.76
+#define B2 				-7.874
+#define W				0.00223
 
 //****************************************************************************
 // Structure(s)
 //****************************************************************************
 
-
-#endif	//INC_EMG_FSM_H
+#endif	//INC_ANKLE_2DOF_H
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE
+#endif //INCLUDE_UPROJ_MIT_A2DOF

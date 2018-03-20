@@ -43,9 +43,9 @@ volatile uint8_t emg_ready_flag=0;
 volatile uint16_t emg_error_cnt=0;
 //volatile uint8_t emg_active_flag;
 uint16_t emg_timestamp = 0;
+uint8_t emg_packet = EMG_DATA_MAC;
 
-int16_t emg_data[8] = {0,0,0,0,0,0,0,0}; //updated every cycle
-int16_t emg_misc[3] = {0,0,0}; //reserved
+int16_t emg_data[8] = {0,0,0,0,0,0,0,0};
 extern uint8_t i2c2_dma_tx_buf[24]; //from i2c.c
 extern uint8_t i2c2_dma_rx_buf[24]; //from i2c.c
 extern I2C_HandleTypeDef hi2c2;
@@ -55,32 +55,65 @@ extern I2C_HandleTypeDef hi2c2;
 
 void MIT_EMG_update_status(void)
 {
-
+	// ToDo: Change code later
+	// emg_ready_flag = ( rigid1.mn.analog[EMG_LINE_READY] > EMG_LINE_THRESHOLD);
+	// emg_active_flag = ( rigid1.mn.analog[EMG_LINE_ACTIVE] > EMG_LINE_THRESHOLD);
 #ifdef EMG_LINE_READY
 	if( rigid1.mn.analog[EMG_LINE_READY] > EMG_LINE_THRESHOLD)
 		emg_ready_flag =1;
 	else
 		emg_ready_flag = 0;
-
 #else
 	emg_ready_flag =1;
-
 #endif
 
+/*
+	if( rigid1.mn.analog[EMG_LINE_ACTIVE] > EMG_LINE_THRESHOLD)
+		emg_active_flag =1;
+	else
+		emg_active_flag = 0;
+*/
 	return;
 }
 
+/*
+void MIT_EMG_command(uint8_t mode, uint8_t packet)
+{
+	static HAL_StatusTypeDef retVal;
+
+	i2c2_dma_tx_buf[0] = 0xFE; //Communication header
+	i2c2_dma_tx_buf[1] = mode; // Communication mode
+	i2c2_dma_tx_buf[2] = 1; //comm prescaler -> not applicable
+	i2c2_dma_tx_buf[3] = packet; // PacketType
+	i2c2_dma_tx_buf[4] = 0;
+	i2c2_dma_tx_buf[5] = 0;
+	i2c2_dma_tx_buf[6] = 0;
+	i2c2_dma_tx_buf[7] = 0;
+	i2c2_dma_tx_buf[8] = 0;
+	i2c2_dma_tx_buf[9] = 0;
+
+
+	retVal = HAL_I2C_Master_Transmit_DMA(&hi2c2, I2C_SLAVE_ADDR_EMG, i2c2_dma_tx_buf, 10);
+	if(retVal == HAL_OK)
+	{
+		i2c2FsmState = I2C_FSM_TX_ADDR;
+	}
+	else
+	{
+		i2c2FsmState = I2C_FSM_PROBLEM;
+	}
+}
+*/
 
 void MIT_EMG_decode(void)
 {
 	//ToDo: need to include packet check function
 		emg_timestamp = (uint16_t)i2c2_dma_rx_buf[5] + (uint16_t)i2c2_dma_rx_buf[6]*100;
 	  memcpy(emg_data, i2c2_dma_rx_buf+8,16);
-		memcpy(emg_misc, i2c2_dma_rx_buf+2,6);
-		/*
-		for(uint8_t i=0;i<8;i++)
-			rigid1.mn.genVar[i] = emg_data[i];
-*/
+
+	//	for(uint8_t i=0;i<8;i++)
+		//	rigid1.mn.genVar[i] = emg_data[i];
+
 		return;
 }
 
@@ -183,12 +216,12 @@ void MIT_EMG_i2c2_fsm(void)
 				break;
 			}
 
-			else if(emg_ready_flag ==1) // line on
+			else if(emg_ready_flag ==1) //attempt ready
 			{
 				if(emg_prsc ==0)
 				{
 					if(emg_error_cnt>3)
-						emg_peripheral_state = EMG_PERIPH_READY;
+					emg_peripheral_state = EMG_PERIPH_READY;
 
 					if( emg_peripheral_state == EMG_PERIPH_READY)
 					{
@@ -196,15 +229,13 @@ void MIT_EMG_i2c2_fsm(void)
 						emg_peripheral_state = EMG_PERIPH_RECEIVE_WAIT;
 						emg_error_cnt=0;
 					}
-					else if(emg_peripheral_state == EMG_PERIPH_RECEIVE_WAIT)
+					else
 					{
-
-						MIT_EMG_read();
 						emg_error_cnt++;
 					}
 				}
 
-				if(emg_timer>EMG_TIMER_PRESCALER*3)
+				if(emg_timer>EMG_TIMER_THRESHOLD)
 				{
 					emg_state = EMG_STATE_WAIT;
 					emg_timer = 0;
@@ -230,27 +261,48 @@ void MIT_EMG_i2c2_fsm(void)
 
 		emg_timer++;
 }
+//External 8-ch EMG Amplifier:
 
-uint8_t MIT_EMG_getState(void) //read value when only 1 is returned (necessary for guaranteeing fresh data)
+/*
+void get_8ch_emg(void)
 {
-	if( emg_ready_flag ==1 && emg_state == EMG_STATE_READ && emg_on_flag ==1 )
-	{
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
+	static uint8_t cnt = 0;
+	HAL_StatusTypeDef retVal;
 
+	i2c2_dma_tx_buf[0] = 10;
+	i2c2_dma_tx_buf[1] = 20;
+	i2c2_dma_tx_buf[2] = 30;
+	i2c2_dma_tx_buf[3] = cnt++;
+
+	retVal = HAL_I2C_Master_Transmit_DMA(&hi2c2, I2C_SLAVE_ADDR_EMG, i2c2_dma_tx_buf, 20);
+	/*
+	retVal = HAL_I2C_Mem_Read_DMA(&hi2c2, I2C_SLAVE_ADDR_EMG, (uint16_t) MEM_R_CH1_H,
+								I2C_MEMADD_SIZE_8BIT, i2c2_dma_rx_buf, 20);
+
+
+	if(retVal == HAL_OK){i2c2FsmState = I2C_FSM_RX_DATA;}
+	else{i2c2FsmState = I2C_FSM_PROBLEM;}
 }
+*/
 
-void MIT_EMG_changeState(uint8_t on)
+//Unpack from buffer -->int16_t emg_buf[8];
+/*
+void unpackCompressed8ch(uint8_t *buf, int16_t *emg_buf )
 {
-	if( on >= 0 && on <= 1 )
-		emg_on_flag = on;
-
+	memcpy(emg_buf, buf, 16);
 	return;
+}*/
+/*
+void decode8chEmg(void)
+{
+	uint8_t retVal = 0;
+//	unpackCompressed8ch(i2c2_dma_rx_buf, ext_emg);
+
+	//Copy to genVar (GUI):
+//	for(int i = 0; i < 8; i++){rigid1.mn.genVar[i] = ext_emg[i];}
+
+	retVal = HAL_I2C_Master_Receive_DMA(&hi2c2, I2C_SLAVE_ADDR_EMG, i2c2_dma_rx_buf, 20);
+
 }
-
-
+*/
 #endif // USE_MIT_EMG_I2C

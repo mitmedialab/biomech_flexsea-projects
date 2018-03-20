@@ -28,13 +28,9 @@ extern "C" {
 #include <stdlib.h>
 #include <flexsea.h>
 #include <flexsea_system.h>
-#include <flexsea_cmd_user.h>
 #include "../inc/cmd-Rigid.h"
 #include "flexsea_user_structs.h"
 #include "user-mn.h"
-#include "cmd-DLeg.h"
-#include "state_machine.h"
-#include "state_variables.h"
 
 #ifdef DEPHY
 #include "dephy-mn.h"
@@ -196,7 +192,7 @@ void tx_cmd_rigid_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 			SPLIT_16((uint16_t)*(ri->ctrl.ank_ang_from_mot), shBuf, &index);
 			SPLIT_16((uint16_t)ri->ex.strain, shBuf, &index);
 			SPLIT_16((uint16_t)(ri->ex.ctrl.current.setpoint_val >> 3), shBuf, &index);
-			//(26 bytes)
+			//(28 bytes)
 		}
 		else if(offset == 1)
 		{
@@ -259,34 +255,6 @@ void tx_cmd_rigid_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 			shBuf[index++] = (uint8_t)rigid2.ctrl.walkingState;
 			shBuf[index++] = (uint8_t)rigid2.ctrl.gaitState;
 			//(30 bytes)
-		} else if (offset == 5) {
-
-			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
-			SPLIT_32((uint32_t) ri->mn.userVar[1], shBuf, &index);
-			SPLIT_32((uint32_t) ri->mn.userVar[2], shBuf, &index);
-			SPLIT_32((uint32_t) ri->mn.userVar[3], shBuf, &index);
-			SPLIT_32((uint32_t) ri->mn.userVar[4], shBuf, &index);
-			SPLIT_32((uint32_t) ri->mn.userVar[5], shBuf, &index);
-			SPLIT_32((uint32_t) ri->mn.userVar[6], shBuf, &index);
-
-			//(28 bytes)
-
-//			// set genVars to send back to Plan
-//			rigid1.mn.userVar[0] = actx->jointAngleDegrees;
-//			rigid1.mn.userVar[1] = actx->jointVelDegrees;
-//			rigid1.mn.userVar[2] = actx->linkageMomentArm;
-//			rigid1.mn.userVar[3] = actx->axialForce;
-//			rigid1.mn.userVar[4] = actx->jointTorque;
-//			rigid1.mn.userVar[5] = tauMeas;
-//			rigid1.mn.userVar[6] = tauDes; (impedance controller - spring contribution)
-		} else if (offset == 6) {
-			SPLIT_32((uint32_t) ri->mn.userVar[0], shBuf, &index);
-			shBuf[index++] = stateMachine.current_state;
-			shBuf[index++] = act1.safetyFlag;
-			SPLIT_32((uint32_t) act1.desiredCurrent, shBuf, &index);
-			SPLIT_32((uint32_t) act1.currentOpLimit, shBuf, &index);
-
-			//(14 bytes)
 		}
 
 	#endif	//BOARD_TYPE_FLEXSEA_MANAGE
@@ -319,7 +287,6 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 	uint16_t index = 0;
 	uint8_t offset = 0;
 	struct rigid_s *ri = &rigid1;
-	struct act_s *act = &act1;
 	(void)info;
 
 	#ifdef BOARD_TYPE_FLEXSEA_EXECUTE
@@ -350,6 +317,8 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 
 	#ifdef BOARD_TYPE_FLEXSEA_PLAN
 
+		rigidPtrXid(&ri, buf[P_XID]);
+
 		index = P_DATA1;
 		offset = buf[index++];
 
@@ -367,7 +336,7 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 			*(ri->ex.joint_ang_from_mot) = (int16_t) REBUILD_UINT16(buf, &index);
 			ri->ex.strain = REBUILD_UINT16(buf, &index);
 			ri->ex.ctrl.current.setpoint_val = (int32_t)(((int16_t)REBUILD_UINT16(buf, &index)) << 3);
-			//(26 bytes)
+			//(28 bytes)
 		}
 		else if(offset == 1)
 		{
@@ -450,33 +419,9 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 			rigid1.mn.genVar[genVindex++] = rigid2.ctrl.walkingState;
 			rigid1.mn.genVar[genVindex++] = rigid2.ctrl.gaitState;
 		}
-		else if (offset == 5) {
-
-			ri->ctrl.timestamp = REBUILD_UINT32(buf, &index);
-
-			act->jointVelDegrees = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
-			act->linkageMomentArm = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
-			act->axialForce = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
-			act->jointTorque = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
-			act->tauMeas = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
-			act->tauDes = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
-
-			//(28 bytes)
-
-			//rigid1.mn.userVar[1] = actx->jointVelDegrees;
-			//rigid1.mn.userVar[2] = actx->linkageMomentArm;
-			//rigid1.mn.userVar[3] = actx->axialForce;
-			//rigid1.mn.userVar[4] = actx->jointTorque;
-			//rigid1.mn.userVar[5] = tauMeas;
-			//rigid1.mn.userVar[6] = tauDes; (impedance controller - spring contribution)
-		} else if (offset == 6) {
-			act->jointAngleDegrees = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
-			stateMachine.current_state = (int8_t)buf[index++];
-			act->safetyFlag = (int8_t)buf[index++];
-			act->desiredCurrent = (int32_t) REBUILD_UINT32(buf, &index);
-			act->currentOpLimit = (int32_t) REBUILD_UINT32(buf, &index);
-
-			//(10 bytes)
+		else
+		{
+			//...
 		}
 
 	#endif	//BOARD_TYPE_FLEXSEA_PLAN

@@ -49,7 +49,11 @@
 #endif	//PROJECT_UMICH_KNEE
 
 #if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-#include <user-mn-MIT-DLeg-2dof.h>
+#include "user-mn-MIT-DLeg.h"
+#endif
+
+#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+#include "user-mn-MIT-PocketClimb.h"
 #include "user-mn-MIT-EMG.h"
 #endif
 
@@ -115,6 +119,16 @@ void init_user(void)
 	//ToDo: switch to their init
 	#endif	//PROJECT_UMICH_KNEE
 
+	//MIT D-Leg:
+	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
+	init_MIT_DLeg();
+	#endif	//PROJECT_MIT_DLEG
+
+	//MIT Pocket 2xDC / PocketClimb:
+	#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+	init_MIT_PocketClimb();
+	#endif	//PROJECT_POCKET_2XDC
+
 	//Dephy's Actuator Package (ActPack)
 	#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 	init_ActPack();
@@ -161,6 +175,11 @@ void user_fsm_1(void)
 		MIT_DLeg_fsm_1();
 		#endif	//PROJECT_MIT_DLEG
 
+		//MIT Pocket 2xDC / PocketClimb:
+		#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+		MIT_PocketClimb_fsm_1();
+		#endif	//PROJECT_POCKET_2XDC
+
 		//Dephy's Actuator Package (ActPack)
 		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 		ActPack_fsm_1();
@@ -200,6 +219,16 @@ void user_fsm_2(void)
 		//ToDo: switch to their fsm2
 		#endif	//PROJECT_UMICH_KNEE
 
+		//MIT D-Leg:
+		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
+		MIT_DLeg_fsm_2();
+		#endif	//PROJECT_MIT_DLEG
+
+		//MIT Pocket 2xDC / PocketClimb:
+		#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+		MIT_PocketClimb_fsm_2();
+		#endif	//PROJECT_POCKET_2XDC
+
 		//Dephy's Actuator Package (ActPack)
 		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 		ActPack_fsm_2();
@@ -211,6 +240,54 @@ void user_fsm_2(void)
 
 	#endif	//(RUNTIME_FSM2 == ENABLED)
 }
+
+
+//Optional second FSM
+//Call this function in one of the main while time slots.
+void user_fsm_3(void)
+{
+	#if(RUNTIME_FSM3 == ENABLED)
+
+		//MIT Ankle 2-DoF:
+		#if(ACTIVE_PROJECT == PROJECT_ANKLE_2DOF)
+		ankle_2dof_fsm_2();
+		#endif	//PROJECT_ANKLE_2DOF
+
+		//RIC/NU Knee code
+		#if(ACTIVE_PROJECT == PROJECT_RICNU_KNEE)
+		ricnu_knee_fsm_2();
+		#endif	//PROJECT_RICNU_KNEE
+
+		//Barebone Rigid:
+		#if(ACTIVE_PROJECT == PROJECT_BB_RIGID)
+		rigid_fsm_2();
+		#endif	//PROJECT_BB_RIGID
+
+		//University of Michigan's Knee:
+		#if(ACTIVE_PROJECT == PROJECT_UMICH_KNEE)
+		rigid_fsm_2();
+		//ToDo: switch to their fsm2
+		#endif	//PROJECT_UMICH_KNEE
+
+		//MIT D-Leg:
+		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
+		MIT_DLeg_fsm_2();
+		#endif	//PROJECT_MIT_DLEG
+
+		//MIT Pocket 2xDC / PocketClimb:
+		#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+		MIT_PocketClimb_fsm_3();
+		#endif	//PROJECT_POCKET_2XDC
+
+
+		#ifdef DEPHY
+		dephy_fsm_2();
+		#endif
+
+	#endif	//(RUNTIME_FSM2 == ENABLED)
+}
+
+
 
 //****************************************************************************
 // Private Function(s)

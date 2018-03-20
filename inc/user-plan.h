@@ -46,7 +46,6 @@
 #define PROJECT_DPEB			0	//DpEb2.1 and below
 #define PROJECT_DPEB31			0	//DpEb3.1 Exo
 #define PROJECT_ACTPACK			0	//Dephy's Actuator Package
-#define PROJECT_MIT_DLEG                0
 
 //List of sub-projects:
 #define SUBPROJECT_NONE			0

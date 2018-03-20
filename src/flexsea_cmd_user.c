@@ -67,6 +67,7 @@ extern "C" {
 
 #ifndef TEST_PC
 #include "../Rigid/inc/cmd-Rigid.h"
+#include "../Rigid/inc/cmd-Pocket.h"
 #endif	//TEST_PC
 
 #ifdef INCLUDE_UPROJ_ACTPACK
@@ -75,10 +76,6 @@ extern "C" {
 
 #ifdef DEPHY
 #include "flexsea_cmd_dephy.h"
-#endif
-
-#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-#include "cmd-DLeg.h"
 #endif
 
 //****************************************************************************
@@ -115,15 +112,13 @@ void init_flexsea_payload_ptr_user(void)
 	flexsea_payload_ptr[CMD_ACTPACK][RX_PTYPE_REPLY] = &rx_cmd_actpack_rr;
 	#endif
 
-	//DLeg gain adjustments
-	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-    flexsea_payload_ptr[CMD_DLEG][RX_PTYPE_READ] = &rx_cmd_dleg_rw;
-    flexsea_payload_ptr[CMD_DLEG][RX_PTYPE_REPLY] = &rx_cmd_dleg_rr;
-	#endif
-
 	//Rigid:
 	flexsea_payload_ptr[CMD_READ_ALL_RIGID][RX_PTYPE_READ] = &rx_cmd_rigid_rw;
 	flexsea_payload_ptr[CMD_READ_ALL_RIGID][RX_PTYPE_REPLY] = &rx_cmd_rigid_rr;
+
+	//Pocket:
+	flexsea_payload_ptr[CMD_READ_ALL_POCKET][RX_PTYPE_READ] = &rx_cmd_pocket_rw;
+	flexsea_payload_ptr[CMD_READ_ALL_POCKET][RX_PTYPE_REPLY] = &rx_cmd_pocket_rr;
 
 	#ifndef TEST_PC
 
