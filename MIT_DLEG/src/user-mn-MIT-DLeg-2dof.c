@@ -196,11 +196,15 @@ void MIT_DLeg_fsm_1(void)
 //			    	k2 = user_data_1.w[1]/1000.;
 //			    	b = user_data_1.w[2]/1000.;
 //			    	theta_input = user_data_1.w[3];
-			    									//K1, K2, B, Theta
+
+			    	if ( time >= 9 )
+			    	{
+			    	//K1, K2, B, Theta
 			    	torqueDes = biomCalcImpedance(user_data_1.w[0]/1000. , user_data_1.w[1]/1000., user_data_1.w[2]/1000., user_data_1.w[3]);
 
 			    	setMotorTorque(&act1, torqueDes);
-
+			    	time = 0;
+			    	}
 
 			    }
 
@@ -210,7 +214,7 @@ void MIT_DLeg_fsm_1(void)
 				rigid1.mn.genVar[3] = act1.linkageMomentArm*1000; //mm
 				rigid1.mn.genVar[4] = act1.jointAngle*1000;
 				rigid1.mn.genVar[5] = act1.jointVelDegrees*10; //deg
-				rigid1.mn.genVar[6] = signalFilterSlope(act1.jointVel, 0.9, 6);  //deg/s * 1000
+
 //				rigid1.mn.genVar[7] = act1.desiredCurrent;
 
 				rigid1.mn.genVar[9] = torqueDes*1000;
@@ -364,14 +368,16 @@ int16_t getMotorTempSensor(void)
 void getJointAngleKinematic(float joint[])
 {
 	static int32_t jointAngleCnts = 0;
-	static float last_jointVel = 0;
+	static float last_jointAngle = 0, last_jointVel = 0;
 	static int32_t jointAngleCntsAbsolute = 0;
 	static float jointAngleAbsolute = 0;
+	int32_t jointVel = 0;
 
 	//ANGLE
 	//Configuration orientation
 	jointAngleCnts = JOINT_ANGLE_DIR * ( jointZero + JOINT_ENC_DIR * (*(rigid1.ex.joint_ang)) );
 	joint[0] = jointAngleCnts  * (angleUnit)/JOINT_CPR;
+
 
 	//Absolute orientation to evaluate against soft-limits
 	jointAngleCntsAbsolute = JOINT_ANGLE_DIR * ( jointZeroAbs + JOINT_ENC_DIR * (*(rigid1.ex.joint_ang)) );
@@ -386,10 +392,20 @@ void getJointAngleKinematic(float joint[])
 	}
 
 	//VELOCITY
+//	joint[1] = ( joint[0] - last_jointAngle ) * SECONDS;
+
 	joint[1] = 	*(rigid1.ex.joint_ang_vel) * (angleUnit)/JOINT_CPR * SECONDS;
+	rigid1.mn.genVar[6] = joint[1];
+	joint[1] = 0.666 * joint[1] + 0.33*last_jointVel;	// simple filter
+	rigid1.mn.genVar[7] = joint[1];
+
 	//ACCEL  -- todo: check to see if this works
 	joint[2] = (( joint[1] - last_jointVel )) * (angleUnit)/JOINT_CPR * SECONDS;
+
+	last_jointAngle = joint[0];
 	last_jointVel = joint[1];
+
+
 
 }
 

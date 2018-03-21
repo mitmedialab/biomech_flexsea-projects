@@ -230,8 +230,8 @@ void torqueSweepTest(struct act_s *actx);
 
 //Joint software limits [Degrees]
 #ifdef IS_ANKLE
-#define JOINT_MIN_SOFT		-25	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
-#define JOINT_MAX_SOFT		85	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
+#define JOINT_MIN_SOFT		-20	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
+#define JOINT_MAX_SOFT		60	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
 #endif
 
 #ifdef IS_KNEE

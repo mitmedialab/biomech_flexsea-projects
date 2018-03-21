@@ -16,7 +16,7 @@ Act_s act1;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {0.04, 0, 0.004, JNT_ORIENT * 23};
 GainParams lswGains = {0.134, 0, 0.002, JNT_ORIENT * 2};
-GainParams estGains = {1.35, 0.025, 0.118, JNT_ORIENT * -5};
+GainParams estGains = {1.35, 0.025, 0.118, JNT_ORIENT * -5};	//todo: derate these gains.
 GainParams lstGains = {0, 0, 0, JNT_ORIENT * 0}; //currently unused in simple implementation
 GainParams lstPowerGains = {4.5, 0, 0.005, JNT_ORIENT * -18};
 
