@@ -57,7 +57,9 @@ extern Act_s act1;
 // Prototype(s):
 //****************************************************************************
 
-void runFlatGroundFSM(float* ptorqueDes);
+void runFlatGroundFSM(struct act_s *actx);
+static void updateImpedanceParams(void);
+static float updatePffTorque(void);
 
 #endif //STATE_MACHINE
 #endif //(INCLUDE_UPROJ_MIT_DLEG && BOARD_TYPE_FLEXSEA_MANAGE) || BOARD_TYPE_FLEXSEA_PLAN

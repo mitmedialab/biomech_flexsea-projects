@@ -33,7 +33,7 @@
 
 #include "user-mn.h"
 #include "user-mn-MIT-DLeg-2dof.h"
-#include "state_machine.h"
+#include "biom_state_machine.h"
 #include "state_variables.h"
 #include "user-mn-ActPack.h"
 #include "flexsea_sys_def.h"
@@ -188,8 +188,6 @@ void MIT_DLeg_fsm_1(void)
 //
 			    } else {
 //
-//			    	runFlatGroundFSM(ptorqueDes);
-//					setMotorTorque(&act1, *ptorqueDes);
 
 					//Testing functions
 //			    	k1 = user_data_1.w[0]/1000.;
@@ -201,9 +199,13 @@ void MIT_DLeg_fsm_1(void)
 			    	if (time >= 9)
 			    	{
 			    	//K1, K2, B, Theta
-			    	torqueDes = biomCalcImpedance(user_data_1.w[0]/1000. , user_data_1.w[1]/1000., user_data_1.w[2]/1000., user_data_1.w[3]);
+//			    	torqueDes = biomCalcImpedance(user_data_1.w[0]/1000. , user_data_1.w[1]/1000., user_data_1.w[2]/1000., user_data_1.w[3]);
+//
+//			    	setMotorTorque(&act1, torqueDes);
 
-			    	setMotorTorque(&act1, torqueDes);
+			    	runFlatGroundFSM(&act1);
+					setMotorTorque(&act1, act1.tauDes);
+
 			    	time = 0;
 			    	}
 

@@ -33,7 +33,7 @@ extern "C" {
 #include "flexsea_user_structs.h"
 #include "user-mn.h"
 #include "cmd-DLeg.h"
-#include "state_machine.h"
+#include "biom_state_machine.h"
 #include "state_variables.h"
 
 #ifdef DEPHY

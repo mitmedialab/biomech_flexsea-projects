@@ -11,7 +11,7 @@ extern "C" {
 
 #include <stdint.h>
 #include "flexsea_user_structs.h"
-#include "state_machine.h"
+#include "biom_state_machine.h"
 
 //****************************************************************************
 // RX/TX Prototype(s):

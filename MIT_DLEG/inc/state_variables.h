@@ -66,7 +66,7 @@ typedef struct act_s
     int8_t safetyFlag;		// todo: consider if necessary
 
     //biom early stance value
-    float scaleFactor = 1.0;
+    float scaleFactor;
     
     //pff values
     float samplesInLSP;

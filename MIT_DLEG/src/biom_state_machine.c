@@ -3,7 +3,8 @@ extern "C" {
 #endif
 
 #include "state_variables.h"
-#include "state_machine.h"
+//#include "state_machine.h"
+#include "biom_state_machine.h"
 #include "user-mn-MIT-DLeg-2dof.h"
 #include "user-mn-MIT-EMG.h"
 #include "flexsea_user_structs.h"
@@ -37,14 +38,14 @@ static void updatePFDFState(void);
 
 	@param ptorqueDes pointer to float meant to be updated with desired torque
 */
-void runFlatGroundFSM(float* ptorqueDes) {
+void runFlatGroundFSM(struct act_s *actx) {
 
     static int8_t isTransitioning = 0;
     static uint32_t time_in_state = 0;
 	
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
-    *ptorqueDes = 0;
+    actx->tauDes = 0;
 
     // Check for state change, then set isTransitioning flag
     if (stateMachine.current_state == stateMachine.last_sm_state) {
@@ -79,7 +80,7 @@ void runFlatGroundFSM(float* ptorqueDes) {
 //
 //			}
 
-            *ptorqueDes = calcJointTorque(eswGains);
+            actx->tauDes = calcJointTorque(eswGains);
 
             //Early Swing transition vectors
             // VECTOR(1): Early Swing -> Late Swing
@@ -93,12 +94,12 @@ void runFlatGroundFSM(float* ptorqueDes) {
 
         case STATE_LATE_SWING:
 
-            *ptorqueDes = calcJointTorque(lswGains);
+            actx->tauDes = calcJointTorque(lswGains);
 
             //Late Swing transition vectors
             // VECTOR (1): Late Swing -> Early Stance (hard heel strike)
             //toDo: better transition criterion than this
-            if (act1.jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH) {
+            if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH) {
                 stateMachine.current_state = STATE_EARLY_STANCE;
             }
 
@@ -106,16 +107,17 @@ void runFlatGroundFSM(float* ptorqueDes) {
 
         case STATE_EARLY_STANCE:
           if (isTransitioning) {
-                estGains[0] = K_ES_INITIAL_NM_P_RAD;
-                estGains[2] = act.jointAngleDegrees;
+        	  actx->scaleFactor = 1.0;
+        	  estGains.k1 = K_ES_INITIAL_NM_P_RAD;
+                estGains.thetaDes = actx->jointAngleDegrees;
             }
             updateImpedanceParams();
-            *ptorqueDes = calcJointTorque(estGains);
+            actx->tauDes = calcJointTorque(estGains);
 
             //Early Stance transition vectors
             // VECTOR (1): Early Stance -> Late Stance POWER!
             //toDo counterclockwise is positive?
-            if (act1.jointTorque < LSTPWR_HS_TORQ_TRIGGER_THRESH) {
+            if (actx->jointTorque < LSTPWR_HS_TORQ_TRIGGER_THRESH) {
 
                 stateMachine.current_state = STATE_LATE_STANCE_POWER;
             }
@@ -124,14 +126,14 @@ void runFlatGroundFSM(float* ptorqueDes) {
 		
         case STATE_LATE_STANCE_POWER:
             if (isTransitioning) {
-                act.samplesinLSP = 0.0;
-                act.pff_lumped_gain = act.pff_gain * powf(1.0/(PCI - LSTPWR_HS_TORQ_TRIGGER_THRESH), act.pff_exponent);
+                actx->samplesInLSP = 0.0;
+                actx->pff_lumped_gain = act1.pff_gain * powf(1.0/(PCI - LSTPWR_HS_TORQ_TRIGGER_THRESH), actx->pff_exponent);
             }
-            //*ptorqueDes = updatePffTq();
+            //actx->tauDes = updatePffTq();
 
             //Late Stance Power transition vectors
             // VECTOR (1): Late Stance Power -> Early Swing - Condition 1
-            if (abs(act1.jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) {
+            if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) {
                 stateMachine.current_state = STATE_EARLY_SWING;
 
             }
@@ -152,10 +154,10 @@ void runFlatGroundFSM(float* ptorqueDes) {
         	//check to make sure EMG is active
         	if (MIT_EMG_getState() == 1) {
 				updateVirtualJoint(&emgFreeGains);
-				*ptorqueDes = calcJointTorque(emgFreeGains);
+				actx->tauDes = calcJointTorque(emgFreeGains);
         	} else {
         		//reset and command 0 torque
-        		*ptorqueDes = 0;
+        		actx->tauDes = 0;
         		updatePFDFState();
         	}
 
@@ -166,7 +168,7 @@ void runFlatGroundFSM(float* ptorqueDes) {
         default:
 
             //turn off control.
-            *ptorqueDes = 0;
+            actx->tauDes = 0;
             stateMachine.current_state = STATE_LATE_SWING;
 
             break;
@@ -189,21 +191,21 @@ static float calcJointTorque(GainParams gainParams) {
          + gainParams.k2 * powf((gainParams.thetaDes - act1.jointAngleDegrees), 3) - gainParams.b * act1.jointVelDegrees;
 }
 
-static void updateImpedanceParams() {
-    act.scaleFactor = act.scaleFactor*EARLYSTANCE_DECAY_CONSTANT;
-    gainParams[0] = K_ES_FINAL_NM_P_DEG + act.scaleFactor * DELTA_K;
-    if (act.jointVel < 0){
-        gainParams[3] = act.jointAngleDegrees;
+static void updateImpedanceParams(void) {
+    act1.scaleFactor = act1.scaleFactor*EARLYSTANCE_DECAY_CONSTANT;
+    estGains.k1 = K_ES_FINAL_NM_P_DEG + act1.scaleFactor * DELTA_K;
+    if (act1.jointVel < 0){
+        estGains.thetaDes = act1.jointAngleDegrees;
     }
 }
 
-static float updatePffTorque(){
+static float updatePffTorque(void){
 
-    if (act.samplesinLSP < PFF_DELAY_SAMPLES){
-        act.samplesinLSP = act.samplesinLSP + 1;
+    if (act1.samplesInLSP < PFF_DELAY_SAMPLES){
+        act1.samplesInLSP = act1.samplesInLSP + 1.0;
     }
 
-    return  (act.samplesinLSP/PFF_DELAY_SAMPLES) * act.pff_lumped_gain * powf(act.ankleTorque - LSTPWR_HS_TORQ_TRIGGER_THRESH, act.pff_exponent);
+    return  (act1.samplesInLSP/PFF_DELAY_SAMPLES) * act1.pff_lumped_gain * powf(act1.jointTorque - LSTPWR_HS_TORQ_TRIGGER_THRESH, act1.pff_exponent);
 }
 
 //reset virtual joint to robot joint state
