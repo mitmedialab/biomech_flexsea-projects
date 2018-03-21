@@ -64,6 +64,18 @@ typedef struct act_s
     int32_t desiredCurrent; // desired current from getMotorCurrent()
     int32_t currentOpLimit; // current throttling limit
     int8_t safetyFlag;		// todo: consider if necessary
+
+    //biom early stance value
+    float scaleFactor = 1.0;
+    
+    //pff values
+    float samplesInLSP;
+    float pff_gain;
+    float pff_exponent;
+    float lsp_entry_tq;
+    float pff_lumped_gain;
+
+
 } Act_s;
 
 
