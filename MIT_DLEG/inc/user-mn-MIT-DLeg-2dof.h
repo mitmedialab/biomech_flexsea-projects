@@ -79,9 +79,13 @@ float 	signalFilterSlope(float value, float a, float limit);
 float 	kalmanFilter(float vel, float a, float r);	// NOT WORKING
 
 //Control outputs
-float biomCalcImpedance(float theta_set, float k1, float k2, float b); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
+float biomCalcImpedance(float k1, float k2, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
 void  setMotorTorque(struct act_s *actx, float tor_d);
 void  packRigidVars(struct act_s *actx);
+
+//Smoothing
+float windowSmoothJoint(int16_t val);
+float windowSmoothAxial(float val);
 
 //Main FSMs
 void openSpeedFSM(void);

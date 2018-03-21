@@ -5,7 +5,9 @@ extern "C" {
 #include "state_variables.h"
 #include "state_machine.h"
 #include "user-mn-MIT-DLeg-2dof.h"
+#include "user-mn-MIT-EMG.h"
 #include "flexsea_user_structs.h"
+#include "MIT_Ankle_EMG.h"
 #include "cmd-DLeg.h"
 #include "flexsea_system.h"
 #include "flexsea.h"
@@ -19,11 +21,14 @@ GainParams lswGains = {0.134, 0, 0.002, JNT_ORIENT * 2};
 GainParams estGains = {1.35, 0.025, 0.118, JNT_ORIENT * -5};	//todo: derate these gains.
 GainParams lstGains = {0, 0, 0, JNT_ORIENT * 0}; //currently unused in simple implementation
 GainParams lstPowerGains = {4.5, 0, 0.005, JNT_ORIENT * -18};
+GainParams emgStandGains = {0, 0, 0, 0}; //currently unused
+GainParams emgFreeGains = {2, 0, 0.005, 0};
 
 #ifndef BOARD_TYPE_FLEXSEA_PLAN
 
 //Static functions
 static float calcJointTorque(GainParams gainParams);
+static void updatePFDFState(void);
 
 /** Impedance Control Level-ground Walking FSM
 	Based on BiOM ankle and simplified.
@@ -130,6 +135,26 @@ void runFlatGroundFSM(float* ptorqueDes) {
 
             break;
 		
+        case STATE_LSW_EMG:
+        	//upon entering, make sure virtual joint and robot joint match
+        	if (isTransitioning) {
+        		updatePFDFState();
+        	}
+
+        	//check to make sure EMG is active
+        	if (MIT_EMG_getState() == 1) {
+				updateVirtualJoint(&emgFreeGains);
+				*ptorqueDes = calcJointTorque(emgFreeGains);
+        	} else {
+        		//reset and command 0 torque
+        		*ptorqueDes = 0;
+        		updatePFDFState();
+        	}
+
+        	//toDo: Late Swing EMG transition vectors to Early Stance HOW?! Perhaps load cell
+
+        	break;
+		
         default:
 
             //turn off control.
@@ -152,8 +177,15 @@ void runFlatGroundFSM(float* ptorqueDes) {
 */
 static float calcJointTorque(GainParams gainParams) {
 
-    return gainParams.k1 * (act1.jointAngleDegrees - gainParams.thetaDes) \
-         + gainParams.k2 * powf((act1.jointAngleDegrees - gainParams.thetaDes), 3) - gainParams.b * act1.jointVelDegrees;
+    return gainParams.k1 * (gainParams.thetaDes - act1.jointAngleDegrees) \
+         + gainParams.k2 * powf((gainParams.thetaDes - act1.jointAngleDegrees), 3) - gainParams.b * act1.jointVelDegrees;
+}
+
+//reset virtual joint to robot joint state
+static void updatePFDFState(void) {
+	PFDF_state[0] = act1.jointAngleDegrees;
+	PFDF_state[1] = act1.jointVelDegrees;
+	PFDF_state[2] = 0;
 }
 
 #endif //BOARD_TYPE_FLEXSEA_PLAN

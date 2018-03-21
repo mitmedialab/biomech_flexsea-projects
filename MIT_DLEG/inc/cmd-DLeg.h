@@ -43,7 +43,7 @@ void tx_cmd_dleg_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 // Shared variable(s)
 //****************************************************************************
 
-extern GainParams* stateGains[5];
+extern GainParams* stateGains[7];
 extern int16_t fsm1StatePlan;
 extern float currentScalarPlan;
 

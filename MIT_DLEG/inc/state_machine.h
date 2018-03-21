@@ -33,6 +33,8 @@ extern GainParams lswGains;
 extern GainParams estGains;
 extern GainParams lstGains; //currently unused in simple implementation
 extern GainParams lstPowerGains;
+extern GainParams emgStandGains; //currently unused
+extern GainParams emgFreeGains;
 extern WalkingStateMachine stateMachine;
 extern Act_s act1;
 

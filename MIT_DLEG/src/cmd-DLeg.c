@@ -21,7 +21,7 @@ extern "C" {
 //****************************************************************************
 
 //array used for indexing in cmd-DLeg !ORDER MATTERS!
-GainParams* stateGains[5] = {&eswGains, &lswGains, &estGains, &lstGains, &lstPowerGains};
+GainParams* stateGains[7] = {&eswGains, &lswGains, &estGains, &lstGains, &lstPowerGains, &emgStandGains, &emgFreeGains};
 int16_t fsm1StatePlan;
 float currentScalarPlan;
 

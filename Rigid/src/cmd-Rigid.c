@@ -262,12 +262,12 @@ void tx_cmd_rigid_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 		} else if (offset == 5) {
 
 			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
-			SPLIT_32( *(uint32_t*) &(ri->mn.userVar[1]), shBuf, &index);
-			SPLIT_32( *(uint32_t*) &(ri->mn.userVar[2]), shBuf, &index);
-			SPLIT_32( *(uint32_t*) &(ri->mn.userVar[3]), shBuf, &index);
-			SPLIT_32( *(uint32_t*) &(ri->mn.userVar[4]), shBuf, &index);
-			SPLIT_32( *(uint32_t*) &(ri->mn.userVar[5]), shBuf, &index);
-			SPLIT_32( *(uint32_t*) &(ri->mn.userVar[6]), shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[1], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[2], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[3], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[4], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[5], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[6], shBuf, &index);
 
 			//(28 bytes)
 
@@ -280,12 +280,13 @@ void tx_cmd_rigid_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 //			rigid1.mn.userVar[5] = tauMeas;
 //			rigid1.mn.userVar[6] = tauDes; (impedance controller - spring contribution)
 		} else if (offset == 6) {
+			SPLIT_32((uint32_t) ri->mn.userVar[0], shBuf, &index);
 			shBuf[index++] = stateMachine.current_state;
 			shBuf[index++] = act1.safetyFlag;
 			SPLIT_32((uint32_t) act1.desiredCurrent, shBuf, &index);
 			SPLIT_32((uint32_t) act1.currentOpLimit, shBuf, &index);
 
-			//(10 bytes)
+			//(14 bytes)
 		}
 
 	#endif	//BOARD_TYPE_FLEXSEA_MANAGE
@@ -348,8 +349,6 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 	#endif
 
 	#ifdef BOARD_TYPE_FLEXSEA_PLAN
-
-		rigidPtrXid(&ri, buf[P_XID]);
 
 		index = P_DATA1;
 		offset = buf[index++];
@@ -455,19 +454,12 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 
 			ri->ctrl.timestamp = REBUILD_UINT32(buf, &index);
 
-			int32_t jointVelDegrees = (int32_t) REBUILD_UINT32(buf, &index);
-			int32_t linkageMomentArm = (int32_t) REBUILD_UINT32(buf, &index);
-			int32_t axialForce = (int32_t) REBUILD_UINT32(buf, &index);
-			int32_t jointTorque = (int32_t) REBUILD_UINT32(buf, &index);
-			int32_t tauMeas = (int32_t) REBUILD_UINT32(buf, &index);
-			int32_t tauDes = (int32_t) REBUILD_UINT32(buf, &index);
-
-			act->jointVelDegrees = *(float*) &jointVelDegrees;
-			act->linkageMomentArm = *(float*) &linkageMomentArm;
-			act->axialForce = *(float*) &axialForce;
-			act->jointTorque = *(float*) &jointTorque;
-			act->tauMeas = *(float*) &tauMeas;
-			act->tauDes = *(float*) &tauDes;
+			act->jointVelDegrees = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->linkageMomentArm = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->axialForce = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->jointTorque = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->tauMeas = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->tauDes = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
 
 			//(28 bytes)
 
@@ -478,6 +470,7 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 			//rigid1.mn.userVar[5] = tauMeas;
 			//rigid1.mn.userVar[6] = tauDes; (impedance controller - spring contribution)
 		} else if (offset == 6) {
+			act->jointAngleDegrees = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
 			stateMachine.current_state = (int8_t)buf[index++];
 			act->safetyFlag = (int8_t)buf[index++];
 			act->desiredCurrent = (int32_t) REBUILD_UINT32(buf, &index);

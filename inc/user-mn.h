@@ -389,6 +389,8 @@ void user_fsm_2(void);
 	#define RUNTIME_FSM1		ENABLED	//Enable only if you DO NOT use Plan
 	#define RUNTIME_FSM2		ENABLED	//Enable at all time, Mn <> Ex comm.
 
+	#define USE_MIT_EMG_I2C
+
 	#define CO_ENABLE_ACTPACK	//Enables the ActPack state machine(s)
 
 	#if(ACTIVE_SUBPROJECT == SUBPROJECT_A)

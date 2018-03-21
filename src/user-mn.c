@@ -50,6 +50,7 @@
 
 #if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 #include <user-mn-MIT-DLeg-2dof.h>
+#include "user-mn-MIT-EMG.h"
 #endif
 
 //Dephy's Actuator Package (ActPack)
