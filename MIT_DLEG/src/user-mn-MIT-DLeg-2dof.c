@@ -44,6 +44,7 @@
 #include <math.h>
 
 
+
 #include "mit_filters.h"
 #include "arm_math.h"
 
@@ -212,15 +213,15 @@ void MIT_DLeg_fsm_1(void)
 			    }
 
 				rigid1.mn.genVar[0] = isSafetyFlag;
-				rigid1.mn.genVar[1] = act1.jointAngleDegrees; //deg
-				rigid1.mn.genVar[2] = act1.jointTorque*1000;  //mNm
-				rigid1.mn.genVar[3] = act1.linkageMomentArm*1000; //mm
-				rigid1.mn.genVar[4] = act1.jointAngle*1000;
-				rigid1.mn.genVar[5] = act1.jointVelDegrees*10; //deg
-
+				rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*10.0); //deg
+				rigid1.mn.genVar[2] = (int16_t) (act1.jointTorque*1000.0);  //mNm
+				rigid1.mn.genVar[3] = (int16_t) (act1.jointVel*1000.0); //mm
+				rigid1.mn.genVar[4] = (int16_t) (act1.jointAngle*1000.0);
+				rigid1.mn.genVar[5] = (int16_t) (act1.jointVelDegrees*10.0); //deg
+//				rigid1.mn.genVar[6] = estGains.k1;
 //				rigid1.mn.genVar[7] = act1.desiredCurrent;
-
-				rigid1.mn.genVar[9] = torqueDes*1000;
+//				rigid1.mn.genVar[8]
+				rigid1.mn.genVar[9] = (int16_t) (act1.tauDes*1000.);
 
 
 
@@ -316,14 +317,13 @@ int8_t safetyShutoff(void) {
  */
 void updateSensorValues(struct act_s *actx)
 {
-	float joint[3];
-	getJointAngleKinematic(joint);
+	getJointAngleKinematic(actx);
 
-	actx->jointAngle = joint[0]; //*(pjointKinematic + 0);
-	actx->jointAngleDegrees = actx->jointAngle * 360/angleUnit;
-	actx->jointVel = joint[1];
-	actx->jointVelDegrees = actx->jointVel * 360/angleUnit;
-	actx->jointAcc = joint[2]; //*(pjointKinematic + 2);
+	//actx->jointAngle = joint[0]; //*(pjointKinematic + 0);
+	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
+	//actx->jointVel = joint[1];
+	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
+	//actx->jointAcc = joint[2]; //*(pjointKinematic + 2);
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
 	actx->axialForce = getAxialForce();
 	actx->jointTorque = getJointTorque(&act1);
@@ -368,18 +368,18 @@ int16_t getMotorTempSensor(void)
  * 		todo: pass a reference to the act_s structure to set flags.
  */
 //float* getJointAngleKinematic( void )
-void getJointAngleKinematic(float joint[])
+void getJointAngleKinematic(struct act_s *actx)
 {
 	static int32_t jointAngleCnts = 0;
 	static float last_jointAngle = 0, last_jointVel = 0;
 	static int32_t jointAngleCntsAbsolute = 0;
 	static float jointAngleAbsolute = 0;
-	int32_t jointVel = 0;
+	//int32_t jointVel = 0;
 
 	//ANGLE
 	//Configuration orientation
 	jointAngleCnts = JOINT_ANGLE_DIR * ( jointZero + JOINT_ENC_DIR * (*(rigid1.ex.joint_ang)) );
-	joint[0] = jointAngleCnts  * (angleUnit)/JOINT_CPR;
+	actx->jointAngle = jointAngleCnts  * (angleUnit)/JOINT_CPR;
 
 
 	//Absolute orientation to evaluate against soft-limits
@@ -395,13 +395,15 @@ void getJointAngleKinematic(float joint[])
 	}
 
 	//VELOCITY
-	joint[1] = 	windowSmoothJoint(*(rigid1.ex.joint_ang_vel)) * (angleUnit)/JOINT_CPR * SECONDS;
+	//joint[1] = 	windowSmoothJoint(*(rigid1.ex.joint_ang_vel)) * (angleUnit)/JOINT_CPR * SECONDS;
+	actx->jointVel = 0.8*actx->jointVel + 0.2*(1000.0*(actx->jointAngle - actx->lastJointAngle));
 
 	//ACCEL  -- todo: check to see if this works
-	joint[2] = (( joint[1] - last_jointVel )) * (angleUnit)/JOINT_CPR * SECONDS;
+	actx->jointAcc = (( actx->jointVel - last_jointVel )) * (angleUnit)/JOINT_CPR * SECONDS;
 
-	last_jointAngle = joint[0];
-	last_jointVel = joint[1];
+	actx->lastJointAngle = actx->jointAngle;
+	//last_jointAngle = joint[0];
+	//last_jointVel = joint[1];
 
 
 

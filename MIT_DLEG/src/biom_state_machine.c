@@ -17,9 +17,9 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {0.04, 0, JNT_ORIENT * 23};
-GainParams lswGains = {0.134, 0, 0.002, JNT_ORIENT * 2};
-GainParams estGains = {0, 0, B_ES_NM_S_P_DEG, 0};	//todo: derate these gains.
+GainParams eswGains = {0.134, 0, 0.001, 0};	// goldfarb setpt = 23
+GainParams lswGains = {0.134, 0, 0.002, 0}; // goldfarb setpt = 2
+GainParams estGains = {0, 0, 0, 0};
 GainParams lstGains = {0, 0, 0, JNT_ORIENT * 0}; //currently unused in simple implementation
 
 GainParams lstPowerGains = {4.5, 0, 0.005, JNT_ORIENT * -18};
@@ -99,7 +99,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             //Late Swing transition vectors
             // VECTOR (1): Late Swing -> Early Stance (hard heel strike)
             //toDo: better transition criterion than this
-            if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH) {
+            if (actx->jointTorque < HARD_HEELSTRIKE_TORQUE_THRESH) {
                 stateMachine.current_state = STATE_EARLY_STANCE;
             }
 
@@ -108,18 +108,27 @@ void runFlatGroundFSM(struct act_s *actx) {
         case STATE_EARLY_STANCE:
           if (isTransitioning) {
         	  actx->scaleFactor = 1.0;
-        	  estGains.k1 = K_ES_INITIAL_NM_P_RAD;
+        	  estGains.k1 = K_ES_INITIAL_NM_P_DEG;
                 estGains.thetaDes = actx->jointAngleDegrees;
             }
+
+
             updateImpedanceParams();
+
             actx->tauDes = calcJointTorque(estGains);
 
             //Early Stance transition vectors
             // VECTOR (1): Early Stance -> Late Stance POWER!
             //toDo counterclockwise is positive?
-            if (actx->jointTorque < LSTPWR_HS_TORQ_TRIGGER_THRESH) {
+//            if (actx->jointTorque < LSTPWR_HS_TORQ_TRIGGER_THRESH) {  // real one.
+//			if (actx->jointTorque < HARD_HEELSTRIKE_TORQUE_THRESH) {	// for testing
+//
+////                stateMachine.current_state = STATE_LATE_STANCE_POWER;  // real one
+//				stateMachine.current_state = STATE_EARLY_SWING;		// for testing
+//            }
 
-                stateMachine.current_state = STATE_LATE_STANCE_POWER;
+            if (time_in_state >= EST_TO_ESW_DELAY) {
+            	stateMachine.current_state = STATE_EARLY_SWING;      //Transition occurs even if the early swing motion is not finished
             }
 		
             break;
@@ -177,6 +186,11 @@ void runFlatGroundFSM(struct act_s *actx) {
 
     //update last state in preparation for next loop
     stateMachine.last_sm_state = stateMachine.on_entry_sm_state;
+
+    rigid1.mn.genVar[6] =  (int16_t) ( estGains.k1 * 1000.0 );
+    rigid1.mn.genVar[7] = (int16_t) (estGains.thetaDes * 1000.0);
+    rigid1.mn.genVar[8] = stateMachine.current_state;
+
 }
 
 /** Impedance Control Torque
@@ -187,14 +201,19 @@ void runFlatGroundFSM(struct act_s *actx) {
 */
 static float calcJointTorque(GainParams gainParams) {
 
-    return gainParams.k1 * (gainParams.thetaDes - act1.jointAngleDegrees) \
-         + gainParams.k2 * powf((gainParams.thetaDes - act1.jointAngleDegrees), 3) - gainParams.b * act1.jointVelDegrees;
+	//if (fabs(act1.jointAngleDegrees) > 5){
+		return gainParams.k1 * (gainParams.thetaDes - act1.jointAngleDegrees) \
+         + gainParams.b * act1.jointVelDegrees;
+//	}else{
+//    	return gainParams.k1 * (gainParams.thetaDes - act1.jointAngleDegrees) \
+//    	         + gainParams.k2 * powf((gainParams.thetaDes - act1.jointAngleDegrees), 3) - gainParams.b * act1.jointVelDegrees;
+//	}
 }
 
 static void updateImpedanceParams(void) {
     act1.scaleFactor = act1.scaleFactor*EARLYSTANCE_DECAY_CONSTANT;
-    estGains.k1 = K_ES_FINAL_NM_P_DEG + act1.scaleFactor * DELTA_K;
-    if (act1.jointVel < 0){
+    estGains.k1 = K_ES_FINAL_NM_P_DEG + act1.scaleFactor * DELTA_K_DEG;
+    if (act1.jointVelDegrees < -10.0){
         estGains.thetaDes = act1.jointAngleDegrees;
     }
 }

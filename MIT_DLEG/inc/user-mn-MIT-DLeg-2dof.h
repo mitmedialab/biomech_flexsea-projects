@@ -68,7 +68,7 @@ int8_t findPoles(void);
 void   mit_init_current_controller(void);
 
 // Mechanical transformations
-void   	getJointAngleKinematic(float [3]);
+void   	getJointAngleKinematic(struct act_s *act_x);
 float   getJointAngularVelocity(void);
 float   getAxialForce(void);
 float   getLinkageMomentArm(float);
@@ -107,8 +107,8 @@ void torqueSweepTest(struct act_s *actx);
 //#define IS_KNEE
 
 //2. Select device
-#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-//#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
+//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
 //#define DEVICE_TF08_K01		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_K02		// Define specific actuator configuration. Knee 02
 
@@ -266,7 +266,7 @@ enum {
 #define SECONDS					1000		// Scale seconds to ms
 #define CURRENT_SCALAR_INIT		1000		// Scale Amps to mAmps
 #define ANG_UNIT				2*M_PI 		// Use Radians 2*M_PI
-
+#define DEG_PER_RAD 		57.2957795 // degree to rad conversion
 #endif	//INC_MIT_DLEG
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE || BOARD_TYPE_FLEXSEA_MANAGE
