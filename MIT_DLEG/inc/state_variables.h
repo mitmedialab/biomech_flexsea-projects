@@ -75,6 +75,7 @@ typedef struct act_s
     float pff_exponent;
     float lsp_entry_tq;
     float pff_lumped_gain;
+    float virtual_hardstop_tq;
 
 
 } Act_s;

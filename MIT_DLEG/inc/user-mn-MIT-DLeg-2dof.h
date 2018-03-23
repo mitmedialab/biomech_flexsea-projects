@@ -176,7 +176,7 @@ void torqueSweepTest(struct act_s *actx);
 #ifdef DEVICE_TF08_A02
 // copy from above and update, when ready.
 //Encoder
-#define JOINT_ZERO_OFFSET 	0		// [deg] Joint Angle offset, CW rotation, based on Setup, ie. TEDtalk flexfoot angle = 20, fittings, etc.
+#define JOINT_ZERO_OFFSET 	20		// [deg] Joint Angle offset, CW rotation, based on Setup, ie. TEDtalk flexfoot angle = 20, fittings, etc.
 #define JOINT_ENC_DIR 		-1		// Encoder orientation. CW = 1 (knee orientation), CCW = -1
 #define JOINT_ANGLE_DIR 	1		// Joint angle direction. RHR convention is Ankle: Dorsiflexion (-), Plantarflexion (+) with value == 1
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
@@ -246,8 +246,8 @@ void torqueSweepTest(struct act_s *actx);
 //Safety limits
 #define PCB_TEMP_LIMIT_INIT		70
 #define MOTOR_TEMP_LIMIT_INIT	70
-#define ABS_TORQUE_LIMIT_INIT	150		    // Joint torque [Nm]
-#define CURRENT_LIMIT_INIT		45000		// [mA] useful in this form, 40000 max
+#define ABS_TORQUE_LIMIT_INIT	100		    // Joint torque [Nm]
+#define CURRENT_LIMIT_INIT		40000		// [mA] useful in this form, 40000 max
 
 // Motor Temp Sensor
 #define V25_TICKS		943		//760mV/3.3V * 4096 = 943

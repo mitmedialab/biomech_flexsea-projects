@@ -183,7 +183,7 @@ void MIT_DLeg_fsm_1(void)
 //			    	  to allow code to move past this block.
 //			    	  Only update the walking FSM, but don't output torque.
 //			    	*/
-//			    	runFlatGroundFSM(ptorqueDes);
+			    	runFlatGroundFSM(&act1);
 //
 			    	return;
 //
@@ -197,18 +197,14 @@ void MIT_DLeg_fsm_1(void)
 //			    	theta_input = user_data_1.w[3];
 
 			    	//important slowdown to get rid of high frequency noise
-			    	if (time >= 9)
-			    	{
+
 			    	//K1, K2, B, Theta
-//			    	torqueDes = biomCalcImpedance(user_data_1.w[0]/1000. , user_data_1.w[1]/1000., user_data_1.w[2]/1000., user_data_1.w[3]);
-//
-//			    	setMotorTorque(&act1, torqueDes);
+//			    	biomCalcImpedance( float k1, float k2, float b, float theta_set)
+			    	//act1.tauDes = biomCalcImpedance(user_data_1.w[0]/1000. , user_data_1.w[1]/1000., user_data_1.w[2]/1000., user_data_1.w[3]);
 
 			    	runFlatGroundFSM(&act1);
 					setMotorTorque(&act1, act1.tauDes);
 
-			    	time = 0;
-			    	}
 
 			    }
 
@@ -395,7 +391,7 @@ void getJointAngleKinematic(struct act_s *actx)
 	}
 
 	//VELOCITY
-	//joint[1] = 	windowSmoothJoint(*(rigid1.ex.joint_ang_vel)) * (angleUnit)/JOINT_CPR * SECONDS;
+	//joint[1] = JOINT_ANGLE_DIR * JOINT_ENC_DIR * windowSmoothJoint(*(rigid1.ex.joint_ang_vel)) * (angleUnit)/JOINT_CPR * SECONDS;
 	actx->jointVel = 0.8*actx->jointVel + 0.2*(1000.0*(actx->jointAngle - actx->lastJointAngle));
 
 	//ACCEL  -- todo: check to see if this works
@@ -512,7 +508,7 @@ float getAxialForce(void)
 		case 0:
 
 			axialForce =  FORCE_DIR * (strainReading - tareOffset) * forcePerTick;
-			axialForce = windowSmoothAxial(axialForce);
+//			axialForce = windowSmoothAxial(axialForce);
 
 			break;
 
@@ -661,7 +657,7 @@ float biomCalcImpedance( float k1, float k2, float b, float theta_set)
 
 	theta = act1.jointAngleDegrees;
 	theta_d = act1.jointVelDegrees;
-	tor_d = k1 * (theta_set - theta ) + k2 * powf((theta_set - theta ), 3) + b*theta_d;
+	tor_d = k1 * (theta_set - theta ) + k2 * powf((theta_set - theta ), 3) - b*theta_d;
 
 	return tor_d;
 
