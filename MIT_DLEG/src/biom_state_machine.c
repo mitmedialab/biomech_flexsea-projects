@@ -48,10 +48,10 @@ void runFlatGroundFSM(struct act_s *actx) {
     static uint32_t time_in_state = 0;
 
     //vars to edit from GUI !!MUST INITIALIZE IN GUI!!				// Starting Points
-    lspEngAng = ((float) user_data_1.w[0])/10.0;					// 100
-    lstPGK1 = ((float) user_data_1.w[1])/10.0;						// 60
-    lstPGTheta =  ((float) user_data_1.w[2])/10.0;					// 130
-    lstPGDelTics = ((float) user_data_1.w[3]) + 1;					// 50
+    lspEngAng = ((float) user_data_1.w[0])/10.0;					// 100, late stance engagement angle
+    lstPGK1 = ((float) user_data_1.w[1])/10.0;						// 60,  late stance Power Gain K1
+    lstPGTheta =  ((float) user_data_1.w[2])/10.0;					// 130, late stance desired set point.
+    lstPGDelTics = ((float) user_data_1.w[3]) + 1;					// 50,  late stance Power Gain ramp value
     lstPowerGains.k1 = lstPGK1;
     lstPowerGains.thetaDes = lstPGTheta;
 
