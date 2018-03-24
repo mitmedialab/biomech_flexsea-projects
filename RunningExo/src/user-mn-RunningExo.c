@@ -57,12 +57,13 @@ struct runningExoSystemState
 	uint32_t pedometer;
 	//Time stamps
 	int32_t heelStrikeTime;
+	int32_t footFlatTime;
 	int32_t toeOffTime;
 	uint32_t prevStanceDuration;
 	uint32_t prevGaitDuration;
 	_Bool running;
 	_Bool enableOutput;
-	uint32_t disabledPedometer;
+	uint32_t disabledPedometer;					//number of disabled steps AFTER all issues are cleared
 	#if (CONTROL_STRATEGY == TORQUE_TRACKING)
 	//add controller specific stuff here
 	#endif //CONTROL_STRATEGY == TORQUE_TRACKING
@@ -70,7 +71,7 @@ struct runningExoSystemState
 
 //initialize one instance
 struct runningExoSystemState runningExoState =
-{.state=0,.prevStanceDuration=0,.timer=0,.pedometer=0,.heelStrikeTime=0,.toeOffTime=0, .enableOutput=0, .running=1, .prevGaitDuration=0};	//zero initialization
+{.state=0,.prevStanceDuration=0,.timer=0,.pedometer=0,.heelStrikeTime=0,.toeOffTime=0, .enableOutput=0, .running=1, .prevGaitDuration=0, .footFlatTime=0};	//zero initialization
 
 
 //****************************************************************************
@@ -95,7 +96,7 @@ struct runningExoSystemState runningExoState =
 //****************************************************************************
 void stateTransition(void);
 void trackTorque(void);
-
+void checkInvalidGait(void);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -117,14 +118,22 @@ void RunningExo_fsm_1(void)
 	//Torque Trajectory Tracking
 	//Update states
 	stateTransition();
+	//check for impossible gaits
+	checkInvalidGait();
 	//Perform actions
 	switch (runningExoState.state)
 	{
-		case 1:
+		case HEEL_STRIKE:
 			//Gait cycle is between heel strike and toe off
 			trackTorque();
 			break;
-		case 2:
+
+		case FOOT_FLAT:
+			//Foot flat is irrelevant in trajectory tracking
+			trackTorque();
+			break;
+
+		case SWING_PHASE:
 			//Swing phase
 			controlAction = 0;					//no force output
 			break;
@@ -133,8 +142,9 @@ void RunningExo_fsm_1(void)
 	controlAction *= (int)runningExoState.enableOutput;			//safety check
 	#endif //CONTROL_STRATEGY == TORQUE_TRACKING
 	rigid1.mn.genVar[0]=runningExoState.state;
-	rigid1.mn.genVar[1]=runningExoState.timer;
+	rigid1.mn.genVar[1]=runningExoState.footFlatTime;
 	rigid1.mn.genVar[2]=runningExoState.pedometer;
+	rigid1.mn.genVar[3]=controlAction;
 	//Time stamps
 	rigid1.mn.genVar[4]= runningExoState.heelStrikeTime;
 	rigid1.mn.genVar[5]= runningExoState.toeOffTime;
@@ -162,30 +172,44 @@ void stateTransition(void)
 	{
 		case SWING_PHASE:
 			//State Transition
-			if(rigid1.mn.analog[FOOTSWITCH_HEEL]>FOOTSWITCH_THRESHOLD)
+			if(rigid1.mn.analog[FOOTSWITCH_HEEL]>HEEL_STRIKE_THRESHOLD)
 			{
-				runningExoState.state = SWING_PHASE;
+				if (runningExoState.disabledPedometer>DISABLED_STEPS)
+					runningExoState.enableOutput=1;
+				runningExoState.state = HEEL_STRIKE;
 				runningExoState.prevGaitDuration=runningExoState.timer-runningExoState.heelStrikeTime;
 				runningExoState.heelStrikeTime=runningExoState.timer;
-			}
-
-			break;
-		case STANCE_PHASE:
-			//State Transition
-			if((rigid1.mn.analog[FOOTSWITCH_TOE]<FOOTSWITCH_THRESHOLD &&
-			rigid1.mn.analog[FOOTSWITCH_LATERAL]<FOOTSWITCH_THRESHOLD &&
-			rigid1.mn.analog[FOOTSWITCH_MEDIAL]<FOOTSWITCH_THRESHOLD)&&
-			rigid1.mn.analog[FOOTSWITCH_HEEL]<FOOTSWITCH_THRESHOLD)
-			{
-				runningExoState.state = STANCE_PHASE;
-				runningExoState.toeOffTime=runningExoState.timer;
-				runningExoState.prevStanceDuration=runningExoState.timer-runningExoState.heelStrikeTime;
-				//Count steps at the end of stance phase
+				//Count steps at the end of each swing phase
 				runningExoState.pedometer+=1;
 				if(!runningExoState.enableOutput)
 					runningExoState.disabledPedometer+=1;			//count
 				else
 					runningExoState.disabledPedometer = 0;
+			}
+
+			break;
+
+		case HEEL_STRIKE:
+			//State Transition
+			if((rigid1.mn.analog[FOOTSWITCH_TOE]>FOOT_FLAT_THRESHOLD ||
+						rigid1.mn.analog[FOOTSWITCH_LATERAL]>FOOT_FLAT_THRESHOLD ||
+						rigid1.mn.analog[FOOTSWITCH_MEDIAL]>FOOT_FLAT_THRESHOLD)&&
+						rigid1.mn.analog[FOOTSWITCH_HEEL]>FOOT_FLAT_THRESHOLD)
+			{
+				runningExoState.state = FOOT_FLAT;
+				runningExoState.footFlatTime=runningExoState.timer;
+			}
+			break;
+
+		case FOOT_FLAT:
+			if((rigid1.mn.analog[FOOTSWITCH_TOE]<TOE_OFF_THRESHOLD &&
+			rigid1.mn.analog[FOOTSWITCH_LATERAL]<TOE_OFF_THRESHOLD &&
+			rigid1.mn.analog[FOOTSWITCH_MEDIAL]<TOE_OFF_THRESHOLD)&&
+			rigid1.mn.analog[FOOTSWITCH_HEEL]<TOE_OFF_THRESHOLD)
+			{
+				runningExoState.state = SWING_PHASE;
+				runningExoState.toeOffTime=runningExoState.timer;
+				runningExoState.prevStanceDuration=runningExoState.timer-runningExoState.heelStrikeTime;
 			}
 			break;
 	}
@@ -326,19 +350,31 @@ void trackTorque(void)
 	if (runningExoState.running)
 	{
 		#ifdef RUNNING_TORQUE_TRACKING
-			torqueValue = unitRunningTorque[(int)(percentStance*(float)TABLE_SIZE)]*bodyWeight*controlAction;
+			torqueValue = unitRunningTorque[(int)(percentStance*(float)TABLE_SIZE)]*bodyWeight*torqueProfileGain;
 		#endif
 	}
 	else
 	{
 		#ifdef WALKING_TORQUE_TRACKING
-			torqueValue = unitWalkingTorque[(int)(percentStance*(float)TABLE_SIZE)]*bodyWeight*controlAction;
+			torqueValue = unitWalkingTorque[(int)(percentStance*(float)TABLE_SIZE)]*bodyWeight*torqueProfileGain;
 		#endif
 	}
 
 	//Set motor output
 	//TODO: Unit conversion and casting
-	controlAction = (int)torqueValue;
+	controlAction=torqueValue;
+}
+
+void checkInvalidGait(void)
+{
+	//gait too long
+	if (runningExoState.timer-runningExoState.heelStrikeTime > MAX_STANCE_PERIOD)
+	{
+		//disable output
+		runningExoState.enableOutput = 0;
+		runningExoState.disabledPedometer = 0;
+	}
+
 }
 
 #endif 	//defined BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN

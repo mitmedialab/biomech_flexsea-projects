@@ -4,6 +4,8 @@ Currently developed by [Albert Wu](wualbert@mit.edu) and [Sinba Yang](xingbang@m
 
 ## Usage of Variables in the GUI
 ### General Varaiable(genVar)
+rigid1.mn.genVar[0]=runningExoState.state;
+
 rigid1.mn.genVar[1]=runningExoState.timer;
 
 rigid1.mn.genVar[2]=runningExoState.pedometer;
