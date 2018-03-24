@@ -154,6 +154,15 @@ void stateTransition(void);
 #define FORCE_CALIB_B					-2455.6817859 	// Force = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
 
+//****************************************************************************
+// Running exoskeleton parameter(s)
+//****************************************************************************
+#define MOMENT_ARM_ON_FOOT 				0.25 //m, cable tension force's applied arm
+#define ANKLE_TORQUE_PER_TICK			FORCE_PER_TICK*MOMENT_ARM_ON_FOOT // N.m/tick, 0.01924465
+#define ANKLE_TORQUE_CALIB_M			0.0185766 // Torque = M*tick + B, from collected data set, applied load
+#define ANKLE_TORQUE_CALIB_B			-613.9204465 	// Torque = M*tick + B, , from collected data set, applied load
+										// r^2 = 0.999954358260752
+
 #elif ACTIVE_LEG == RIGHT_ANKLE
 
 #define LOAD_MAX_IN_POUND				500		// lb, maximum mass the force sensor can measure
@@ -180,10 +189,6 @@ void stateTransition(void);
 #define FORCE_CALIB_B					-2455.6817859 	// Force = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
 
-#endif //ACTIVE_LEG == LEFT_ANKLE
-
-
-
 //****************************************************************************
 // Running exoskeleton parameter(s)
 //****************************************************************************
@@ -192,6 +197,12 @@ void stateTransition(void);
 #define ANKLE_TORQUE_CALIB_M			0.0185766 // Torque = M*tick + B, from collected data set, applied load
 #define ANKLE_TORQUE_CALIB_B			-613.9204465 	// Torque = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
+
+#endif //ACTIVE_LEG == LEFT_ANKLE
+
+
+
+
 
 
 
