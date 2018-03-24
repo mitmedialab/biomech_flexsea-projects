@@ -174,7 +174,7 @@ void stateTransition(void)
 			//State Transition
 			if(rigid1.mn.analog[FOOTSWITCH_HEEL]>HEEL_STRIKE_THRESHOLD)
 			{
-				if (runningExoState.disabledPedometer>DISABLED_STEPS)
+				if (runningExoState.disabledPedometer>=DISABLED_STEPS)
 					runningExoState.enableOutput=1;
 				runningExoState.state = HEEL_STRIKE;
 				runningExoState.prevGaitDuration=runningExoState.timer-runningExoState.heelStrikeTime;
