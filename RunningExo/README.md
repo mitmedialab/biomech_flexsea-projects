@@ -4,23 +4,20 @@ Currently developed by [Albert Wu](wualbert@mit.edu) and [Sinba Yang](xingbang@m
 
 ## Usage of Variables in the GUI
 ### General Varaiable(genVar)
-* **genVar[0]**  
-   State in `fsm1()`. 1 is stance phase, 2 is swing phase
-* **genVar[1]**  
-   Control action commanded by FlexSEA rounded to the nearest integer. Arbitrary unit
-* **genVar[2]**  
-   Number of `fsm1()` executions. Increases until overflow happens then wraps around. Used for timekeeping. Unit is 
-   approximately 1 ms
-* **genVar[3]**  
-   Stance phase duration. Unit is approximately 1 ms
-* **genVar[4]**  
+rigid1.mn.genVar[0]=runningExoState.state;
 
-* **genVar[5]**  
-   *Debug message*.
-* **genVar[6]**  
-   *Debug message*.
-* **genVar[7]**  
+rigid1.mn.genVar[1]=runningExoState.timer;
 
-* **genVar[8]**  
+rigid1.mn.genVar[2]=runningExoState.pedometer;
 
-* **genVar[9]**  
+rigid1.mn.genVar[4]= runningExoState.heelStrikeTime;
+
+rigid1.mn.genVar[5]= runningExoState.toeOffTime;
+
+rigid1.mn.genVar[6]= runningExoState.prevStanceDuration;
+
+rigid1.mn.genVar[7]= runningExoState.prevGaitDuration;
+
+rigid1.mn.genVar[8]= runningExoState.enableOutput;
+
+rigid1.mn.genVar[9]= runningExoState.disabledPedometer;
