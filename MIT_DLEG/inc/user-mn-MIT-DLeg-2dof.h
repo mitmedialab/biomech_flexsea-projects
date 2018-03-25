@@ -73,6 +73,7 @@ float   getJointAngularVelocity(void);
 float   getAxialForce(void);
 float   getLinkageMomentArm(float);
 float   getJointTorque(struct act_s *actx);
+float 	getJointTorqueRate(struct act_s *actx);
 int16_t getMotorTempSensor(void);
 void    updateSensorValues(struct act_s *actx);
 float 	signalFilterSlope(float value, float a, float limit);

@@ -323,6 +323,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
 	actx->axialForce = getAxialForce();
 	actx->jointTorque = getJointTorque(&act1);
+	actx->jointTorqueRate = getJointTorqueRate(&act1);
 
 	actx->motorVel =  *rigid1.ex.enc_ang_vel / 16.384 * angleUnit;	// rad/s
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
@@ -575,6 +576,32 @@ float getJointTorque(struct act_s *actx)
 	}
 
 	return torque;
+}
+
+/*
+ *  Determine torque rate at joint using window averaging
+ *  input:	struct act_s
+ *  return: joint torque rate [Nm/s]
+ */
+float getJointTorqueRate(struct act_s *actx) {
+	#define TR_WINDOW_SIZE 3
+
+	static int8_t index = -1;
+	static float window[TR_WINDOW_SIZE];
+	static float average = 0;
+	static float previousTorque = 0;
+	float currentRate = 0;
+
+	index = (index + 1) % TR_WINDOW_SIZE;
+	currentRate = (actx->jointTorque - previousTorque)*SECONDS;
+	average -= window[index]/TR_WINDOW_SIZE;
+	window[index] = currentRate;
+	average += window[index]/TR_WINDOW_SIZE;
+
+	previousTorque = actx->jointTorque;
+
+	return average;
+
 }
 
 /*
