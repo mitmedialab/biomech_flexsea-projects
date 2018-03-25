@@ -57,6 +57,9 @@ typedef struct act_s
     float tauMeas;          // torque contribution from series spring
     float tauDes;           // FSM des torque - tauMeas
     float lastJointAngle;
+
+    float jointTorqueRate;  // Joint torque rate
+
     int32_t motorVel;		// motor velocity [rad/s]
     int32_t motorAcc;		// motor acceleration [rad/s/s]
     int16_t regTemp;		// regulate temperature
@@ -76,6 +79,9 @@ typedef struct act_s
     float lsp_entry_tq;
     float pff_lumped_gain;
     float virtual_hardstop_tq;
+
+    //biom late swing to early stance variables (may be optional)
+    
 
 
 } Act_s;

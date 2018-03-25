@@ -17,10 +17,10 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {0.134, 0, 0.001, 0};	// goldfarb setpt = 23
+GainParams eswGains = {0.134, 0, 0.001, -15};	// goldfarb setpt = 23
 GainParams lswGains = {0.134, 0, 0.02, 0}; // goldfarb setpt = 2
 GainParams estGains = {0, 0, B_ES_NM_S_P_DEG, 0};
-GainParams lstGains = {0, 0, 0, JNT_ORIENT * 0}; //currently unused in simple implementation
+GainParams lstGains = {0, 0, 0, 0}; //currently unused in simple implementation
 
 GainParams lstPowerGains = {4.5, 0, 0.1, JNT_ORIENT * -18};
 GainParams emgStandGains = {0, 0, 0, 0}; //currently unused
@@ -48,12 +48,12 @@ void runFlatGroundFSM(struct act_s *actx) {
     static uint32_t time_in_state = 0;
 
     //vars to edit from GUI !!MUST INITIALIZE IN GUI!!				// Starting Points
-    lspEngAng = ((float) user_data_1.w[0])/10.0;					// 100, late stance engagement angle
+   /* lspEngAng = ((float) user_data_1.w[0])/10.0;					// 100, late stance engagement angle
     lstPGK1 = ((float) user_data_1.w[1])/10.0;						// 60,  late stance Power Gain K1
     lstPGTheta =  ((float) user_data_1.w[2])/10.0;					// 130, late stance desired set point.
     lstPGDelTics = ((float) user_data_1.w[3]) + 1;					// 50,  late stance Power Gain ramp value
     lstPowerGains.k1 = lstPGK1;
-    lstPowerGains.thetaDes = lstPGTheta;
+    lstPowerGains.thetaDes = lstPGTheta;*/
 
     rigid1.mn.genVar[8] = lstPGDelTics;
 
@@ -108,25 +108,35 @@ void runFlatGroundFSM(struct act_s *actx) {
 
         case STATE_LATE_SWING:
 
+            updateVirtualHardstopTorque(actx);
             actx->tauDes = calcJointTorque(lswGains, actx);
 
-            //Late Swing transition vectors
-            // VECTOR (1): Late Swing -> Early Stance (hard heel strike)
-            //toDo: better transition criterion than this
-            if (actx->jointTorque < HARD_HEELSTRIKE_TORQUE_THRESH) {
+            //---------------------- LATE SWING TRANSITION VECTORS ----------------------//
+
+            // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+            if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+                stateMachine.current_state = STATE_EARLY_STANCE;
+            }
+            // VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
+            else if(actx->jointTorqueRate > GENTLE_HEALSTRIKE_TORQ_RATE_THRESH){
+                stateMachine.current_state = STATE_EARLY_STANCE;
+            }
+            // VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
+            else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){
                 stateMachine.current_state = STATE_EARLY_STANCE;
             }
 
+            //------------------------- END OF TRANSITION VECTORS ------------------------//
             break;
 
         case STATE_EARLY_STANCE:
           if (isTransitioning) {
-        	  actx->scaleFactor = 1.0;
-        	  estGains.k1 = K_ES_INITIAL_NM_P_DEG;
+                actx->scaleFactor = 1.0;
+                estGains.k1 = K_ES_INITIAL_NM_P_DEG;
                 estGains.thetaDes = actx->jointAngleDegrees;
             }
 
-          	//updateVirtualHardstopTorque(actx);
+          	updateVirtualHardstopTorque(actx);
             updateImpedanceParams(actx);
 
             actx->tauDes = calcJointTorque(estGains, actx);
@@ -144,10 +154,37 @@ void runFlatGroundFSM(struct act_s *actx) {
 //              if (time_in_state > EST_TO_ESW_DELAY){
 //            	  stateMachine.current_state = STATE_EARLY_SWING;
 //              }
-            if (actx->jointAngleDegrees * JNT_ORIENT >= lspEngAng && time_in_state > 200) {
-            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+
+            //---------------------- EARLY STANCE TRANSITION VECTORS ----------------------//
+
+            // VECTOR (A): Early Stance -> Late Stance (foot flat) - Condition 1
+            if (actx->jointAngleDegrees < EST_TO_LST_FOOT_FLAT_HS_ANGLE_LIMIT && actx->jointTorqueRate <EST_TO_LST_FOOT_FLAT_TORQ_RATE) {
+            	stateMachine.current_state = STATE_LATE_STANCE;      //Transition occurs even if the early swing motion is not finished
             }
-//
+            // VECTOR (A): Early Stance -> Late Stance (toe strike) - Condition 2
+            else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){
+                stateMachine.current_state = STATE_LATE_STANCE;
+            }
+
+            //------------------------- END OF TRANSITION VECTORS ------------------------//        
+            break;
+
+        case STATE_LATE_STANCE:
+            if (isTransitioning) {
+                lstGains.k1 = K_ES_FINAL_NM_P_DEG;
+                lstGains.thetaDes = actx->jointAngleDegrees;
+            }
+            updateVirtualHardstopTorque(actx);
+            actx->tauDes = calcJointTorque(lstGains, actx);
+
+            //---------------------- LATE STANCE TRANSITION VECTORS ----------------------//
+
+            // VECTOR (1): Late Stance -> Late Stance POWER
+            if (actx->jointAngleDegrees < LSTPWR_HS_TORQ_TRIGGER_THRESH ) {
+                stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+            }
+
+            //------------------------- END OF TRANSITION VECTORS ------------------------//     
             break;
 
         case STATE_LATE_STANCE_POWER:
@@ -236,7 +273,7 @@ static float calcJointTorque(GainParams gainParams, struct act_s *actx) {
 static void updateImpedanceParams(struct act_s *actx) {
     actx->scaleFactor = actx->scaleFactor*EARLYSTANCE_DECAY_CONSTANT;
     estGains.k1 = K_ES_FINAL_NM_P_DEG + actx->scaleFactor * DELTA_K_DEG;
-    if (actx->jointVelDegrees < -10.0){
+    if (actx->jointVelDegrees < 0.0){
         estGains.thetaDes = actx->jointAngleDegrees;
     }
 }
