@@ -22,7 +22,7 @@ GainParams lswGains = {0.134, 0, 0.02, 0}; // goldfarb setpt = 2
 GainParams estGains = {0, 0, B_ES_NM_S_P_DEG, 0};
 GainParams lstGains = {0, 0, 0, 0}; //currently unused in simple implementation
 
-GainParams lstPowerGains = {4.5, 0, 0.1, JNT_ORIENT * -18};
+GainParams lstPowerGains = {4.5, 0, 0.1, JNT_ORIENT * -15};
 GainParams emgStandGains = {0, 0, 0, 0}; //currently unused
 GainParams emgFreeGains = {2, 0, 0.005, 0};
 
@@ -54,6 +54,9 @@ void runFlatGroundFSM(struct act_s *actx) {
     lstPGDelTics = ((float) user_data_1.w[3]) + 1;					// 50,  late stance Power Gain ramp value
     lstPowerGains.k1 = lstPGK1;
     lstPowerGains.thetaDes = lstPGTheta;*/
+
+    lstPGDelTics = 50;
+
 
     rigid1.mn.genVar[8] = lstPGDelTics;
 
@@ -158,7 +161,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             //---------------------- EARLY STANCE TRANSITION VECTORS ----------------------//
 
             // VECTOR (A): Early Stance -> Late Stance (foot flat) - Condition 1
-            if (actx->jointAngleDegrees < EST_TO_LST_FOOT_FLAT_HS_ANGLE_LIMIT && actx->jointTorqueRate <EST_TO_LST_FOOT_FLAT_TORQ_RATE) {
+            if (actx->jointAngleDegrees < EST_TO_LST_FOOT_FLAT_HS_ANGLE_LIMIT && actx->jointTorqueRate < EST_TO_LST_FOOT_FLAT_TORQ_RATE) {
             	stateMachine.current_state = STATE_LATE_STANCE;      //Transition occurs even if the early swing motion is not finished
             }
             // VECTOR (A): Early Stance -> Late Stance (toe strike) - Condition 2
@@ -196,6 +199,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             if (actx->samplesInLSP < lstPGDelTics){
             	actx->samplesInLSP = actx->samplesInLSP + 1.0;
             }
+            updateVirtualHardstopTorque(actx);
             actx->tauDes = (actx->samplesInLSP/lstPGDelTics) * calcJointTorque(lstPowerGains, actx);
 
             //Late Stance Power transition vectors
