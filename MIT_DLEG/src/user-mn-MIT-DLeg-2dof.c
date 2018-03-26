@@ -604,6 +604,9 @@ float getJointTorqueRate(struct act_s *actx) {
 	window[index] = currentRate;
 	average += window[index]/TR_WINDOW_SIZE;
 
+//	currentRate = (actx->jointTorque - previousTorque)*SECONDS;
+//todo: do the recursive thing.
+
 	previousTorque = actx->jointTorque;
 
 	return average;

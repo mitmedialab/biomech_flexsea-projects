@@ -29,7 +29,7 @@ GainParams emgFreeGains = {2, 0, 0.005, 0};
 float lspEngAng = 10.0;
 float lstPGK1 = 4.5;
 float lstPGTheta =  JNT_ORIENT * -18;
-float lstPGDelTics = 1;
+float lstPGDelTics = 50.0;
 float pff_exponent_const = 2;
 float pff_lumped_gain_const = 35;
 
@@ -37,7 +37,7 @@ float pff_lumped_gain_const = 35;
 
 float est_k_final = K_ES_FINAL_NM_P_DEG;
 float virtual_spring_k = K_VIRTUAL_HARDSTOP_NM_P_DEG;
-
+int16_t pff_flag = 0;
 
 int16_t hardHSThresh = HARD_HEELSTRIKE_TORQ_RATE_THRESH;
 int16_t gentleHSThresh = GENTLE_HEALSTRIKE_TORQ_RATE_THRESH;
@@ -66,9 +66,11 @@ void runFlatGroundFSM(struct act_s *actx) {
 
 //    lstPowerGains.thetaDes = lstPGTheta;
 
-    est_k_final = (user_data_1.w[0])/10.0;            //3 in GUI (will be divided by 10)
-    virtual_spring_k = (user_data_1.w[1])/10.0;       //70
-    lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;						// 55,  late stance Power Gain K1
+    //est_k_final = ( (float) user_data_1.w[0])/10.0;            //30 in GUI (will be divided by 10) The stiffness while standing, midstance
+    lstPowerGains.thetaDes = ( (float) user_data_1.w[0])/10.0;		//-140, max pff ramp tics
+    virtual_spring_k = ( (float) user_data_1.w[1])/10.0;       //70, virtual hardstop
+    lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;		// 55,  late stance Power K1
+    lstPGDelTics = ( (float) user_data_1.w[3])/10.0;		//500, max pff ramp tics
 
 
     //gentleHSThresh = user_data_1.w[1];
@@ -129,7 +131,9 @@ void runFlatGroundFSM(struct act_s *actx) {
             break; // case STATE_EARLY_SWING
 
         case STATE_LATE_SWING:
-
+        	if (isTransitioning) {
+        		pff_flag = 0;
+        	}
             updateVirtualHardstopTorque(actx);
             actx->tauDes = calcJointTorque(lswGains, actx);
 
@@ -138,14 +142,17 @@ void runFlatGroundFSM(struct act_s *actx) {
             // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
             if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
                 stateMachine.current_state = STATE_EARLY_STANCE;
+                pff_flag = 1;
             }
             // VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
             else if(actx->jointTorqueRate > GENTLE_HEALSTRIKE_TORQ_RATE_THRESH){
                 stateMachine.current_state = STATE_EARLY_STANCE;
+                pff_flag = 1;
             }
             // VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
             else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){
                 stateMachine.current_state = STATE_EARLY_STANCE;
+                pff_flag = 0;
             }
 
             //------------------------- END OF TRANSITION VECTORS ------------------------//
@@ -202,8 +209,14 @@ void runFlatGroundFSM(struct act_s *actx) {
             //---------------------- LATE STANCE TRANSITION VECTORS ----------------------//
 
             // VECTOR (1): Late Stance -> Late Stance POWER
-            if (actx->jointAngleDegrees < LSTPWR_HS_TORQ_TRIGGER_THRESH ) {
-                stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+            if (actx->jointAngleDegrees < LSTPWR_HS_TORQ_TRIGGER_THRESH) {
+            	if (pff_flag){
+            		stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+            	}
+            }
+
+            if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 200) {
+                   stateMachine.current_state = STATE_EARLY_SWING;
             }
 
             //------------------------- END OF TRANSITION VECTORS ------------------------//     
@@ -291,7 +304,7 @@ void runFlatGroundFSM(struct act_s *actx) {
 */
 static float calcJointTorque(GainParams gainParams, struct act_s *actx) {
 
-	if (fabs(actx->jointAngleDegrees) > 5){
+	if (fabs(actx->jointVelDegrees) > 5){
 		return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
          - gainParams.b * actx->jointVelDegrees  + actx->virtual_hardstop_tq;
 	}else{
