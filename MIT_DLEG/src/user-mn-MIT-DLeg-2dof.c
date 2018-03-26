@@ -150,6 +150,9 @@ void MIT_DLeg_fsm_1(void)
 				time = 0;
 			}
 
+			//testing purposes only
+//			fsm1State = 0;
+
 			break;
 
 		case 0:
@@ -183,6 +186,7 @@ void MIT_DLeg_fsm_1(void)
 //			    	  to allow code to move past this block.
 //			    	  Only update the walking FSM, but don't output torque.
 //			    	*/
+			    	stateMachine.current_state = STATE_LATE_SWING;
 			    	runFlatGroundFSM(&act1);
 //
 			    	return;
@@ -203,7 +207,9 @@ void MIT_DLeg_fsm_1(void)
 			    	//act1.tauDes = biomCalcImpedance(user_data_1.w[0]/1000. , user_data_1.w[1]/1000., user_data_1.w[2]/1000., user_data_1.w[3]);
 
 			    	runFlatGroundFSM(&act1);
-					setMotorTorque(&act1, act1.tauDes);
+			    	if (user_data_1.w[3] > 0) {
+						setMotorTorque(&act1, act1.tauDes);
+			    	}
 
 
 			    }
@@ -211,13 +217,13 @@ void MIT_DLeg_fsm_1(void)
 				rigid1.mn.genVar[0] = isSafetyFlag;
 				rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*10.0); //deg
 				rigid1.mn.genVar[2] = (int16_t) (act1.jointTorque*1000.0);  //mNm
-				rigid1.mn.genVar[3] = (int16_t) (act1.jointVel*1000.0); //mm
+				rigid1.mn.genVar[3] = (int16_t) act1.jointTorqueRate;
 				rigid1.mn.genVar[4] = (int16_t) (act1.jointAngle*1000.0);
 				rigid1.mn.genVar[5] = (int16_t) (act1.jointVelDegrees*10.0); //deg
-//				rigid1.mn.genVar[6] = estGains.k1;
+				rigid1.mn.genVar[6] = estGains.k1;
 //				rigid1.mn.genVar[7] = act1.desiredCurrent;
-//				rigid1.mn.genVar[8]
-				rigid1.mn.genVar[9] = (int16_t) (act1.tauDes*1000.);
+//				rigid1.mn.genVar[8] = current state
+//				rigid1.mn.genVar[9] = (int16_t) (act1.tauDes*1000.);
 
 
 
@@ -280,7 +286,7 @@ int8_t safetyShutoff(void) {
 				break;
 			} else {
 				// This could cause trouble, but seems more safe than an immediate drop in torque. Instead, reduce torque.
-				setMotorTorque(&act1, act1.tauDes * 0.75); // reduce desired torque by 25%
+				setMotorCurrent(0); // zero motor current, but still update FSM demanded torque in EST for the next period
 			}
 
 			return 1;

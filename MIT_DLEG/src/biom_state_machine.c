@@ -17,12 +17,12 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {0.134, 0, 0.001, -15};	// goldfarb setpt = 23
-GainParams lswGains = {0.134, 0, 0.02, 0}; // goldfarb setpt = 2
+GainParams eswGains = {0.2, 0, 0.001, -15};	// goldfarb setpt = 23
+GainParams lswGains = {0.2, 0, 0.02, 0}; // goldfarb setpt = 2
 GainParams estGains = {0, 0, B_ES_NM_S_P_DEG, 0};
 GainParams lstGains = {0, 0, 0, 0}; //currently unused in simple implementation
 
-GainParams lstPowerGains = {4.5, 0, 0.1, JNT_ORIENT * -15};
+GainParams lstPowerGains = {4.5, 0, 0.1, JNT_ORIENT * -14};
 GainParams emgStandGains = {0, 0, 0, 0}; //currently unused
 GainParams emgFreeGains = {2, 0, 0.005, 0};
 
@@ -30,6 +30,18 @@ float lspEngAng = 10.0;
 float lstPGK1 = 4.5;
 float lstPGTheta =  JNT_ORIENT * -18;
 float lstPGDelTics = 1;
+float pff_exponent_const = 2;
+float pff_lumped_gain_const = 35;
+
+
+
+float est_k_final = K_ES_FINAL_NM_P_DEG;
+float virtual_spring_k = K_VIRTUAL_HARDSTOP_NM_P_DEG;
+
+
+int16_t hardHSThresh = HARD_HEELSTRIKE_TORQ_RATE_THRESH;
+int16_t gentleHSThresh = GENTLE_HEALSTRIKE_TORQ_RATE_THRESH;
+
 
 #ifndef BOARD_TYPE_FLEXSEA_PLAN
 
@@ -48,17 +60,24 @@ void runFlatGroundFSM(struct act_s *actx) {
     static uint32_t time_in_state = 0;
 
     //vars to edit from GUI !!MUST INITIALIZE IN GUI!!				// Starting Points
-   /* lspEngAng = ((float) user_data_1.w[0])/10.0;					// 100, late stance engagement angle
-    lstPGK1 = ((float) user_data_1.w[1])/10.0;						// 60,  late stance Power Gain K1
-    lstPGTheta =  ((float) user_data_1.w[2])/10.0;					// 130, late stance desired set point.
-    lstPGDelTics = ((float) user_data_1.w[3]) + 1;					// 50,  late stance Power Gain ramp value
-    lstPowerGains.k1 = lstPGK1;
-    lstPowerGains.thetaDes = lstPGTheta;*/
+//    lspEngAng = ((float) user_data_1.w[0])/10.0;					// 100, late stance engagement angle
+//    lstPGTheta =  ((float) user_data_1.w[2])/10.0;					// 130, late stance desired set point.
+//    lstPGDelTics = ((float) user_data_1.w[3]) + 1;					// 50,  late stance Power Gain ramp value
+
+//    lstPowerGains.thetaDes = lstPGTheta;
+
+    est_k_final = (user_data_1.w[0])/10.0;            //3 in GUI (will be divided by 10)
+    virtual_spring_k = (user_data_1.w[1])/10.0;       //70
+    lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;						// 55,  late stance Power Gain K1
+
+
+    //gentleHSThresh = user_data_1.w[1];
+
 
     lstPGDelTics = 50;
 
 
-    rigid1.mn.genVar[8] = lstPGDelTics;
+//    rigid1.mn.genVar[8] = lstPGDelTics;
 
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
@@ -193,14 +212,20 @@ void runFlatGroundFSM(struct act_s *actx) {
         case STATE_LATE_STANCE_POWER:
             if (isTransitioning) {
                 actx->samplesInLSP = 0.0;
-                //actx->lsp_entry_tq = actx->jointTorque;
-               // actx->pff_lumped_gain = actx->pff_gain * powf(1.0/(PCI - actx->lsp_entry_tq), actx->pff_exponent);
+                actx->lsp_entry_tq = actx->jointTorque;
+                actx->pff_lumped_gain = actx->pff_gain * powf(1.0/(PCI - actx->lsp_entry_tq), actx->pff_exponent);
             }
             if (actx->samplesInLSP < lstPGDelTics){
             	actx->samplesInLSP = actx->samplesInLSP + 1.0;
             }
             updateVirtualHardstopTorque(actx);
+
+            //Linear ramp push off
             actx->tauDes = (actx->samplesInLSP/lstPGDelTics) * calcJointTorque(lstPowerGains, actx);
+
+
+            //Exponetioal push off
+            //actx->tauDes = updatePffTorque(actx);
 
             //Late Stance Power transition vectors
             // VECTOR (1): Late Stance Power -> Early Swing - Condition 1
@@ -254,7 +279,7 @@ void runFlatGroundFSM(struct act_s *actx) {
 
     rigid1.mn.genVar[6] =  (int16_t) ( estGains.k1 * 1000.0 );
     rigid1.mn.genVar[7] = (int16_t) (estGains.thetaDes * 1000.0);
-//    rigid1.mn.genVar[8] = stateMachine.current_state;
+    rigid1.mn.genVar[8] = stateMachine.current_state;
 
 }
 
@@ -276,19 +301,25 @@ static float calcJointTorque(GainParams gainParams, struct act_s *actx) {
 
 static void updateImpedanceParams(struct act_s *actx) {
     actx->scaleFactor = actx->scaleFactor*EARLYSTANCE_DECAY_CONSTANT;
-    estGains.k1 = K_ES_FINAL_NM_P_DEG + actx->scaleFactor * DELTA_K_DEG;
+    //estGains.k1 = K_ES_FINAL_NM_P_DEG + actx->scaleFactor * DELTA_K_DEG;
+    estGains.k1 = est_k_final + actx->scaleFactor * DELTA_K_DEG;
     if (actx->jointVelDegrees < 0.0){
         estGains.thetaDes = actx->jointAngleDegrees;
     }
 }
 
-static float updatePffTorque(struct act_s *actx){
+static float updatePffTorque(struct act_s *actx) {
 
-    if (actx->samplesInLSP < PFF_DELAY_SAMPLES){
+	float pfTorque = 0;
+
+    if (actx->samplesInLSP < PFF_DELAY_SAMPLES) {
         actx->samplesInLSP = actx->samplesInLSP + 1.0;
     }
 
-    return  (actx->samplesInLSP/PFF_DELAY_SAMPLES) * actx->pff_lumped_gain * powf(actx->jointTorque - LSTPWR_HS_TORQ_TRIGGER_THRESH, actx->pff_exponent);
+    pfTorque = (actx->samplesInLSP/PFF_DELAY_SAMPLES) * pff_lumped_gain_const * powf(actx->jointTorque - LSTPWR_HS_TORQ_TRIGGER_THRESH, pff_exponent_const);
+    rigid1.mn.genVar[9] = pfTorque;
+    return pfTorque;
+
 }
 
 //reset virtual joint to robot joint state
@@ -300,7 +331,8 @@ static void updatePFDFState(struct act_s *actx) {
 
 static void updateVirtualHardstopTorque(struct act_s *actx){
 	if (JNT_ORIENT * actx->jointAngleDegrees > ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG){
-		actx->virtual_hardstop_tq = K_VIRTUAL_HARDSTOP_NM_P_DEG * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
+		//actx->virtual_hardstop_tq = K_VIRTUAL_HARDSTOP_NM_P_DEG * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
+		actx->virtual_hardstop_tq = virtual_spring_k * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
 	}
 	else{
 		actx->virtual_hardstop_tq = 0.0;

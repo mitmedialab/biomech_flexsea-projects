@@ -21,20 +21,20 @@ extern "C" {
 //      THRESHOLD / LIMIT NAME                    VALUE          	UNITS           BRIEF DESCRIPTION                             TRANSITION(S)
 #define JNT_ORIENT								-JOINT_ANGLE_DIR	// 				JOINT_ANGLE_DIR is defined in user-mn-MIT-DLeg-2dof
 
-#define K_VIRTUAL_HARDSTOP_NM_P_DEG				7.14 // Stiffness of virtual hardstop mimicking BiOM physical hardstop
+#define K_VIRTUAL_HARDSTOP_NM_P_DEG				 7.13// Stiffness of virtual hardstop mimicking BiOM physical hardstop
 #define HARD_HEELSTRIKE_TORQUE_THRESH             -5 * JNT_ORIENT				// -80 Nm      - Foot-strike detector
-#define HARD_HEELSTRIKE_TORQ_RATE_THRESH         -180 * JNT_ORIENT				// Nm/sec      - Foot-strike detector                          3->4
-#define HARD_TOESTRIKE_ANGLE_THRESH              45/K_VIRTUAL_HARDSTOP_NM_P_DEG * JNT_ORIENT                           // Degree          - Toe-strike detector
-#define	GENTLE_HEALSTRIKE_TORQ_RATE_THRESH       -50  * JNT_ORIENT                          // Nm/sec      - Gentle foot-strike detector 
-#define LSTPWR_HS_TORQ_TRIGGER_THRESH               5/K_VIRTUAL_HARDSTOP_NM_P_DEG * JNT_ORIENT	// Nm          - The ONLY entry to Late Stance Power           4->5
+#define HARD_HEELSTRIKE_TORQ_RATE_THRESH         -600 * JNT_ORIENT				// Nm/sec      - Foot-strike detector                          3->4
+#define HARD_TOESTRIKE_ANGLE_THRESH              140/K_VIRTUAL_HARDSTOP_NM_P_DEG * JNT_ORIENT                           // Degree          - Toe-strike detector
+#define	GENTLE_HEALSTRIKE_TORQ_RATE_THRESH       -300  * JNT_ORIENT                          // Nm/sec      - Gentle foot-strike detector
+#define LSTPWR_HS_TORQ_TRIGGER_THRESH               45/K_VIRTUAL_HARDSTOP_NM_P_DEG * JNT_ORIENT	// Nm          - The ONLY entry to Late Stance Power           4->5
 #define ANKLE_UNLOADED_TORQUE_THRESH                3.0            	// Nm          - Foot unloaded threshold                       5->2
 #define EST_TO_LST_FOOT_FLAT_TORQ_RATE            0        // Nm/sec
 #define EST_TO_LST_FOOT_FLAT_HS_ANGLE_LIMIT        15/K_VIRTUAL_HARDSTOP_NM_P_DEG * JNT_ORIENT       // Nm
 
-#define EARLYSTANCE_DECAY_CONSTANT                0.99   //                                    Decay constant for early stance
+#define EARLYSTANCE_DECAY_CONSTANT                0.995   //                                    Decay constant for early stance
 #define K_ES_INITIAL_NM_P_RAD                      300 // Nm/rad                              Early stance initial k (stiffness) value
 #define K_ES_INITIAL_NM_P_DEG                      K_ES_INITIAL_NM_P_RAD / DEG_PER_RAD // Nm/deg                              Early stance initial k (stiffness) value
-#define K_ES_FINAL_NM_P_RAD                          3 // Nm/rad                                Early stance final k value
+#define K_ES_FINAL_NM_P_RAD                          10 // Nm/rad                                Early stance final k value
 #define K_ES_FINAL_NM_P_DEG                          K_ES_FINAL_NM_P_RAD / DEG_PER_RAD // Nm/deg                                Early stance final k value
 #define DELTA_K                                (K_ES_INITIAL_NM_P_RAD - K_ES_FINAL_NM_P_RAD )  
 #define DELTA_K_DEG                                (K_ES_INITIAL_NM_P_DEG - K_ES_FINAL_NM_P_DEG )
