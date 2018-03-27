@@ -17,8 +17,8 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {0.2, 0.0, 0.001, -10.0};	// goldfarb setpt = 23
-GainParams lswGains = {0.2, 0.0, 0.02, 0.0}; // goldfarb setpt = 2
+GainParams eswGains = {0.6, 0.0, 0.05, -10.0};	// goldfarb setpt = 23
+GainParams lswGains = {0.6, 0.0, 0.05, 0.0}; // goldfarb setpt = 2
 GainParams estGains = {0.0, 0.0, B_ES_NM_S_P_DEG, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 
@@ -127,25 +127,25 @@ void runFlatGroundFSM(struct act_s *actx) {
             actx->tauDes = calcJointTorque(lswGains, actx);
 
             //---------------------- LATE SWING TRANSITION VECTORS ----------------------//
+            if(time_in_state > 200){
 
-            // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-//            if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
-//                stateMachine.current_state = STATE_EARLY_STANCE;
-//                actx->transition_id = 1;
-//            }
-//            // VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
-//            else if(actx->jointTorqueRate > GENTLE_HEALSTRIKE_TORQ_RATE_THRESH){
-//                stateMachine.current_state = STATE_EARLY_STANCE;
-//                actx->transition_id = 2;
-//            }
-//            // VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
-//            else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){
-//                stateMachine.current_state = STATE_EARLY_STANCE;
-//                actx->transition_id = 3;
-//            }
-            if (time_in_state >= 5000) {
-                    stateMachine.current_state = STATE_EARLY_STANCE;      //Transition occurs even if the early swing motion is not finished
+				// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+				if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+					stateMachine.current_state = STATE_EARLY_STANCE;
+					actx->transition_id = 1;
+				}
+				// VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
+				else if(actx->jointTorqueRate > GENTLE_HEALSTRIKE_TORQ_RATE_THRESH){
+					stateMachine.current_state = STATE_EARLY_STANCE;
+					actx->transition_id = 2;
+				}
+				// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
+				else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){
+					stateMachine.current_state = STATE_EARLY_STANCE;
+					actx->transition_id = 3;
+				}
             }
+
             //------------------------- END OF TRANSITION VECTORS ------------------------//
             break;
 
