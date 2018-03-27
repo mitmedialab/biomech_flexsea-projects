@@ -38,9 +38,11 @@ float pff_lumped_gain_const = 35;
 float est_k_final = K_ES_FINAL_NM_P_DEG;
 float virtual_spring_k = K_VIRTUAL_HARDSTOP_NM_P_DEG;
 float engagement_angle_virtual_hardstop = ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG;
+float lstpwr_hs_torq_trigger_thresh = LSTPWR_HS_TORQ_TRIGGER_THRESH;
 
 int16_t hardHSThresh = HARD_HEELSTRIKE_TORQ_RATE_THRESH;
 int16_t gentleHSThresh = GENTLE_HEALSTRIKE_TORQ_RATE_THRESH;
+
 
 
 #ifndef BOARD_TYPE_FLEXSEA_PLAN
@@ -70,6 +72,7 @@ void runFlatGroundFSM(struct act_s *actx) {
     lstPGDelTics = ((float) user_data_1.w[1])/10.0;				//10, late stance power ramp tics
     lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;			// 55,  late stance Power Gain K1
     engagement_angle_virtual_hardstop = ((float) user_data_1.w[3])/10.0;       //0, virtual hardstop engagement angle in degrees
+//    lstpwr_hs_torq_trigger_thresh = ((float) user_data_1.w[3])/10.0; // adjust parallel spring trigger
 
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
@@ -203,8 +206,9 @@ void runFlatGroundFSM(struct act_s *actx) {
             //---------------------- LATE STANCE TRANSITION VECTORS ----------------------//
 
             // VECTOR (1): Late Stance -> Late Stance POWER
-            if (actx->jointAngleDegrees < LSTPWR_HS_TORQ_TRIGGER_THRESH ) {
-                stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+//            if (actx->jointAngleDegrees < LSTPWR_HS_ANGLE_TRIGGER_THRESH ) {
+            if (actx->jointTorque > lstpwr_hs_torq_trigger_thresh) {
+            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
             }
 
             //------------------------- END OF TRANSITION VECTORS ------------------------//     
@@ -328,7 +332,7 @@ static void updatePFDFState(struct act_s *actx) {
 }
 
 static void updateVirtualHardstopTorque(struct act_s *actx){
-	if (JNT_ORIENT * actx->jointAngleDegrees > ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG){
+	if (JNT_ORIENT * actx->jointAngleDegrees > engagement_angle_virtual_hardstop){
 		//actx->virtual_hardstop_tq = K_VIRTUAL_HARDSTOP_NM_P_DEG * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
 		actx->virtual_hardstop_tq = virtual_spring_k * ((JNT_ORIENT * actx->jointAngleDegrees) - engagement_angle_virtual_hardstop);
 	}
