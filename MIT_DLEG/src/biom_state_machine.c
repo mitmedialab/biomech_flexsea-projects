@@ -17,14 +17,14 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {0.2, 0, 0.001, -15};	// goldfarb setpt = 23
-GainParams lswGains = {0.2, 0, 0.02, 0}; // goldfarb setpt = 2
-GainParams estGains = {0, 0, B_ES_NM_S_P_DEG, 0};
-GainParams lstGains = {0, 0, 0, 0}; //currently unused in simple implementation
+GainParams eswGains = {0.2, 0.0, 0.001, -10.0};	// goldfarb setpt = 23
+GainParams lswGains = {0.2, 0.0, 0.02, 0.0}; // goldfarb setpt = 2
+GainParams estGains = {0.0, 0.0, B_ES_NM_S_P_DEG, 0.0};
+GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 
-GainParams lstPowerGains = {4.5, 0, 0.1, JNT_ORIENT * -14};
-GainParams emgStandGains = {0, 0, 0, 0}; //currently unused
-GainParams emgFreeGains = {2, 0, 0.005, 0};
+GainParams lstPowerGains = {4.5, 0.0, 0.1, JNT_ORIENT * -14};
+GainParams emgStandGains = {0.0, 0.0, 0.0, 0.0}; //currently unused
+GainParams emgFreeGains = {2.0, 0.0, 0.005, 0.0};
 
 float lspEngAng = 10.0;
 float lstPGK1 = 4.5;
@@ -66,18 +66,10 @@ void runFlatGroundFSM(struct act_s *actx) {
 
 //    lstPowerGains.thetaDes = lstPGTheta;
 
-    est_k_final = (user_data_1.w[0])/10.0;            //3 in GUI (will be divided by 10)
-    virtual_spring_k = (user_data_1.w[1])/10.0;       //70
-    lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;						// 55,  late stance Power Gain K1
-
-
-    //gentleHSThresh = user_data_1.w[1];
-
-
-    lstPGDelTics = 50;
-
-
-//    rigid1.mn.genVar[8] = lstPGDelTics;
+    lstPowerGains.thetaDes = ((float) user_data_1.w[0])/10.0;   //140, in GUI (will be divided by 10)
+    lstPGDelTics = ((float) user_data_1.w[1])/10.0;				//10, late stance power ramp tics
+    lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;			// 55,  late stance Power Gain K1
+    virtual_spring_k = ((float) user_data_1.w[3])/10.0;       //70, virtual spring stiffness
 
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
@@ -110,10 +102,11 @@ void runFlatGroundFSM(struct act_s *actx) {
 
             break;
 					
-        case STATE_EARLY_SWING:
+        case STATE_EARLY_SWING: //2
             //Put anything you want to run ONCE during state entry.
 			if (isTransitioning) {
 				actx->virtual_hardstop_tq = 0.0;
+				actx->transition_id = 0;
 			}
 
             actx->tauDes = calcJointTorque(eswGains, actx);
@@ -128,7 +121,7 @@ void runFlatGroundFSM(struct act_s *actx) {
 
             break; // case STATE_EARLY_SWING
 
-        case STATE_LATE_SWING:
+        case STATE_LATE_SWING: //3
 
             updateVirtualHardstopTorque(actx);
             actx->tauDes = calcJointTorque(lswGains, actx);
@@ -136,22 +129,27 @@ void runFlatGroundFSM(struct act_s *actx) {
             //---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 
             // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-            if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
-                stateMachine.current_state = STATE_EARLY_STANCE;
+//            if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+//                stateMachine.current_state = STATE_EARLY_STANCE;
+//                actx->transition_id = 1;
+//            }
+//            // VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
+//            else if(actx->jointTorqueRate > GENTLE_HEALSTRIKE_TORQ_RATE_THRESH){
+//                stateMachine.current_state = STATE_EARLY_STANCE;
+//                actx->transition_id = 2;
+//            }
+//            // VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
+//            else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){
+//                stateMachine.current_state = STATE_EARLY_STANCE;
+//                actx->transition_id = 3;
+//            }
+            if (time_in_state >= 5000) {
+                    stateMachine.current_state = STATE_EARLY_STANCE;      //Transition occurs even if the early swing motion is not finished
             }
-            // VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
-            else if(actx->jointTorqueRate > GENTLE_HEALSTRIKE_TORQ_RATE_THRESH){
-                stateMachine.current_state = STATE_EARLY_STANCE;
-            }
-            // VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
-            else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){
-                stateMachine.current_state = STATE_EARLY_STANCE;
-            }
-
             //------------------------- END OF TRANSITION VECTORS ------------------------//
             break;
 
-        case STATE_EARLY_STANCE:
+        case STATE_EARLY_STANCE: //4
           if (isTransitioning) {
                 actx->scaleFactor = 1.0;
                 estGains.k1 = K_ES_INITIAL_NM_P_DEG;
@@ -188,10 +186,13 @@ void runFlatGroundFSM(struct act_s *actx) {
                 stateMachine.current_state = STATE_LATE_STANCE;
             }
 
+//            if (time_in_state > 2000){
+//            	stateMachine.current_state = STATE_EARLY_SWING;
+//            }
             //------------------------- END OF TRANSITION VECTORS ------------------------//        
             break;
 
-        case STATE_LATE_STANCE:
+        case STATE_LATE_STANCE: //5
             if (isTransitioning) {
                 lstGains.k1 = K_ES_FINAL_NM_P_DEG;
                 lstGains.thetaDes = actx->jointAngleDegrees;
@@ -209,7 +210,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             //------------------------- END OF TRANSITION VECTORS ------------------------//     
             break;
 
-        case STATE_LATE_STANCE_POWER:
+        case STATE_LATE_STANCE_POWER: //6
             if (isTransitioning) {
                 actx->samplesInLSP = 0.0;
                 actx->lsp_entry_tq = actx->jointTorque;
@@ -221,7 +222,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             updateVirtualHardstopTorque(actx);
 
             //Linear ramp push off
-            actx->tauDes = (actx->samplesInLSP/lstPGDelTics) * calcJointTorque(lstPowerGains, actx);
+            actx->tauDes = -1.0*actx->jointTorque + (actx->samplesInLSP/lstPGDelTics) * calcJointTorque(lstPowerGains, actx);
 
 
             //Exponetioal push off
@@ -277,9 +278,7 @@ void runFlatGroundFSM(struct act_s *actx) {
     //update last state in preparation for next loop
     stateMachine.last_sm_state = stateMachine.on_entry_sm_state;
 
-    rigid1.mn.genVar[6] =  (int16_t) ( estGains.k1 * 1000.0 );
-    rigid1.mn.genVar[7] = (int16_t) (estGains.thetaDes * 1000.0);
-    rigid1.mn.genVar[8] = stateMachine.current_state;
+
 
 }
 
@@ -291,18 +290,18 @@ void runFlatGroundFSM(struct act_s *actx) {
 */
 static float calcJointTorque(GainParams gainParams, struct act_s *actx) {
 
-	if (fabs(actx->jointAngleDegrees) > 5){
+//	if (fabs(actx->jointVelDegrees) > 6){
 		return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
          - gainParams.b * actx->jointVelDegrees  + actx->virtual_hardstop_tq;
-	}else{
-    	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) + actx->virtual_hardstop_tq;
-	}
+//	}else{
+//    	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) + actx->virtual_hardstop_tq;
+//	}
 }
 
 static void updateImpedanceParams(struct act_s *actx) {
     actx->scaleFactor = actx->scaleFactor*EARLYSTANCE_DECAY_CONSTANT;
     //estGains.k1 = K_ES_FINAL_NM_P_DEG + actx->scaleFactor * DELTA_K_DEG;
-    estGains.k1 = est_k_final + actx->scaleFactor * DELTA_K_DEG;
+    estGains.k1 = K_ES_FINAL_NM_P_DEG + actx->scaleFactor * DELTA_K_DEG;
     if (actx->jointVelDegrees < 0.0){
         estGains.thetaDes = actx->jointAngleDegrees;
     }
@@ -317,7 +316,6 @@ static float updatePffTorque(struct act_s *actx) {
     }
 
     pfTorque = (actx->samplesInLSP/PFF_DELAY_SAMPLES) * pff_lumped_gain_const * powf(actx->jointTorque - LSTPWR_HS_TORQ_TRIGGER_THRESH, pff_exponent_const);
-    rigid1.mn.genVar[9] = pfTorque;
     return pfTorque;
 
 }

@@ -78,6 +78,7 @@ int16_t getMotorTempSensor(void);
 void    updateSensorValues(struct act_s *actx);
 float 	signalFilterSlope(float value, float a, float limit);
 float 	kalmanFilter(float vel, float a, float r);	// NOT WORKING
+void updateJointTorqueRate(struct act_s *actx);
 
 //Control outputs
 float biomCalcImpedance(float k1, float k2, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
@@ -235,7 +236,7 @@ void torqueSweepTest(struct act_s *actx);
 
 //Joint software limits [Degrees]
 #ifdef IS_ANKLE
-#define JOINT_MIN_SOFT		-20	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
+#define JOINT_MIN_SOFT		-25	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
 #define JOINT_MAX_SOFT		60	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
 #endif
 

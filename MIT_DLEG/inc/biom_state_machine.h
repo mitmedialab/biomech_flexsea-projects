@@ -15,7 +15,7 @@ extern "C" {
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
-#define ESW_TO_LSW_DELAY              			  100   // Transition time: 2->3 in ms
+#define ESW_TO_LSW_DELAY              			  200   // Transition time: 2->3 in ms
 #define EST_TO_ESW_DELAY              			  20000   // FOR TESTING
 
 //      THRESHOLD / LIMIT NAME                    VALUE          	UNITS           BRIEF DESCRIPTION                             TRANSITION(S)
@@ -31,7 +31,7 @@ extern "C" {
 #define EST_TO_LST_FOOT_FLAT_TORQ_RATE            0        // Nm/sec
 #define EST_TO_LST_FOOT_FLAT_HS_ANGLE_LIMIT        15/K_VIRTUAL_HARDSTOP_NM_P_DEG * JNT_ORIENT       // Nm
 
-#define EARLYSTANCE_DECAY_CONSTANT                0.995   //                                    Decay constant for early stance
+#define EARLYSTANCE_DECAY_CONSTANT                0.99   //                                    Decay constant for early stance
 #define K_ES_INITIAL_NM_P_RAD                      300 // Nm/rad                              Early stance initial k (stiffness) value
 #define K_ES_INITIAL_NM_P_DEG                      K_ES_INITIAL_NM_P_RAD / DEG_PER_RAD // Nm/deg                              Early stance initial k (stiffness) value
 #define K_ES_FINAL_NM_P_RAD                          10 // Nm/rad                                Early stance final k value

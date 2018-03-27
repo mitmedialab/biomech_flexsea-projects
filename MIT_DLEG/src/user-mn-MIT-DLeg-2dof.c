@@ -207,24 +207,21 @@ void MIT_DLeg_fsm_1(void)
 			    	//act1.tauDes = biomCalcImpedance(user_data_1.w[0]/1000. , user_data_1.w[1]/1000., user_data_1.w[2]/1000., user_data_1.w[3]);
 
 			    	runFlatGroundFSM(&act1);
-			    	if (user_data_1.w[3] > 0) {
 						setMotorTorque(&act1, act1.tauDes);
-			    	}
 
 
 			    }
 
 				rigid1.mn.genVar[0] = isSafetyFlag;
 				rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*10.0); //deg
-				rigid1.mn.genVar[2] = (int16_t) (act1.jointTorque*1000.0);  //mNm
-				rigid1.mn.genVar[3] = (int16_t) act1.jointTorqueRate;
-				rigid1.mn.genVar[4] = (int16_t) (act1.jointAngle*1000.0);
-				rigid1.mn.genVar[5] = (int16_t) (act1.jointVelDegrees*10.0); //deg
-				rigid1.mn.genVar[6] = estGains.k1;
-//				rigid1.mn.genVar[7] = act1.desiredCurrent;
-//				rigid1.mn.genVar[8] = current state
-//				rigid1.mn.genVar[9] = (int16_t) (act1.tauDes*1000.);
-
+				rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
+				rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle*1000.0); //rad
+				rigid1.mn.genVar[4] = (int16_t) (act1.jointVel*1000.0); //rad/s
+				rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
+				rigid1.mn.genVar[6] = (int16_t) (act1.jointTorqueRate*100.0); //Nm/s
+				rigid1.mn.genVar[7] = (int16_t) (lstPowerGains.k1*1000.0); //Nm/deg
+				rigid1.mn.genVar[8] = stateMachine.current_state;
+				rigid1.mn.genVar[9] = act1.transition_id; //deg
 
 
 
@@ -327,9 +324,12 @@ void updateSensorValues(struct act_s *actx)
 	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
 	//actx->jointAcc = joint[2]; //*(pjointKinematic + 2);
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
-	actx->axialForce = getAxialForce();
-	actx->jointTorque = getJointTorque(&act1);
-	actx->jointTorqueRate = getJointTorqueRate(&act1);
+	actx->axialForce = 0.8*actx->axialForce + 0.2*getAxialForce();
+
+	actx->jointTorque = getJointTorque(actx);
+
+	updateJointTorqueRate(actx);
+	//actx->jointTorqueRate = getJointTorqueRate(actx);
 
 	actx->motorVel =  *rigid1.ex.enc_ang_vel / 16.384 * angleUnit;	// rad/s
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
@@ -374,8 +374,8 @@ int16_t getMotorTempSensor(void)
 void getJointAngleKinematic(struct act_s *actx)
 {
 	static int32_t jointAngleCnts = 0;
-	static float last_jointAngle = 0, last_jointVel = 0;
 	static int32_t jointAngleCntsAbsolute = 0;
+	static float last_jointVel;
 	static float jointAngleAbsolute = 0;
 	//int32_t jointVel = 0;
 
@@ -589,25 +589,31 @@ float getJointTorque(struct act_s *actx)
  *  input:	struct act_s
  *  return: joint torque rate [Nm/s]
  */
-float getJointTorqueRate(struct act_s *actx) {
-	#define TR_WINDOW_SIZE 3
+//float getJointTorqueRate(struct act_s *actx) {
+//	#define TR_WINDOW_SIZE 3
+//
+//	static int8_t index = -1;
+//	static float window[TR_WINDOW_SIZE];
+//	static float average = 0;
+//	static float previousTorque = 0;
+//	float currentRate = 0;
+//
+//	index = (index + 1) % TR_WINDOW_SIZE;
+//	currentRate = (actx->jointTorque - previousTorque)*SECONDS;
+//	average -= window[index]/TR_WINDOW_SIZE;
+//	window[index] = currentRate;
+//	average += window[index]/TR_WINDOW_SIZE;
+//
+//	previousTorque = actx->jointTorque;
+//
+//	return average;
+//
+//}
 
-	static int8_t index = -1;
-	static float window[TR_WINDOW_SIZE];
-	static float average = 0;
-	static float previousTorque = 0;
-	float currentRate = 0;
+void updateJointTorqueRate(struct act_s *actx){
 
-	index = (index + 1) % TR_WINDOW_SIZE;
-	currentRate = (actx->jointTorque - previousTorque)*SECONDS;
-	average -= window[index]/TR_WINDOW_SIZE;
-	window[index] = currentRate;
-	average += window[index]/TR_WINDOW_SIZE;
-
-	previousTorque = actx->jointTorque;
-
-	return average;
-
+    actx->jointTorqueRate = 0.8 * actx->jointTorqueRate + 0.2 *(1000.0*(actx->jointTorque - actx->lastJointTorque));
+    actx->lastJointTorque = actx->jointTorque;
 }
 
 /*
