@@ -127,7 +127,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             actx->tauDes = calcJointTorque(lswGains, actx);
 
             //---------------------- LATE SWING TRANSITION VECTORS ----------------------//
-            if(time_in_state > 200){
+            if(time_in_state > 100){
 
 				// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
 				if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
@@ -214,7 +214,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             if (isTransitioning) {
                 actx->samplesInLSP = 0.0;
                 actx->lsp_entry_tq = actx->jointTorque;
-                actx->pff_lumped_gain = actx->pff_gain * powf(1.0/(PCI - actx->lsp_entry_tq), actx->pff_exponent);
+//                actx->pff_lumped_gain = actx->pff_gain * powf(1.0/(PCI - actx->lsp_entry_tq), actx->pff_exponent);
             }
             if (actx->samplesInLSP < lstPGDelTics){
             	actx->samplesInLSP = actx->samplesInLSP + 1.0;

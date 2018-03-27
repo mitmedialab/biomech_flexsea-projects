@@ -15,7 +15,7 @@ extern "C" {
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
-#define ESW_TO_LSW_DELAY              			  200   // Transition time: 2->3 in ms
+#define ESW_TO_LSW_DELAY              			  100    // Transition time: 2->3 in ms (orig 200)
 #define EST_TO_ESW_DELAY              			  20000   // FOR TESTING
 
 //      THRESHOLD / LIMIT NAME                    VALUE          	UNITS           BRIEF DESCRIPTION                             TRANSITION(S)
