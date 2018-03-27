@@ -37,7 +37,7 @@ float pff_lumped_gain_const = 35;
 
 float est_k_final = K_ES_FINAL_NM_P_DEG;
 float virtual_spring_k = K_VIRTUAL_HARDSTOP_NM_P_DEG;
-
+float engagement_angle_virtual_hardstop = ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG;
 
 int16_t hardHSThresh = HARD_HEELSTRIKE_TORQ_RATE_THRESH;
 int16_t gentleHSThresh = GENTLE_HEALSTRIKE_TORQ_RATE_THRESH;
@@ -69,7 +69,7 @@ void runFlatGroundFSM(struct act_s *actx) {
     lstPowerGains.thetaDes = ((float) user_data_1.w[0])/10.0;   //140, in GUI (will be divided by 10)
     lstPGDelTics = ((float) user_data_1.w[1])/10.0;				//10, late stance power ramp tics
     lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;			// 55,  late stance Power Gain K1
-    virtual_spring_k = ((float) user_data_1.w[3])/10.0;       //70, virtual spring stiffness
+    engagement_angle_virtual_hardstop = ((float) user_data_1.w[3])/10.0;       //0, virtual hardstop engagement angle in degrees
 
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
@@ -330,7 +330,7 @@ static void updatePFDFState(struct act_s *actx) {
 static void updateVirtualHardstopTorque(struct act_s *actx){
 	if (JNT_ORIENT * actx->jointAngleDegrees > ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG){
 		//actx->virtual_hardstop_tq = K_VIRTUAL_HARDSTOP_NM_P_DEG * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
-		actx->virtual_hardstop_tq = virtual_spring_k * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
+		actx->virtual_hardstop_tq = virtual_spring_k * ((JNT_ORIENT * actx->jointAngleDegrees) - engagement_angle_virtual_hardstop);
 	}
 	else{
 		actx->virtual_hardstop_tq = 0.0;
