@@ -205,7 +205,7 @@ void torqueSweepTest(struct act_s *actx);
 //Torque Control PID gains
 #define TORQ_KP_INIT			1.2 //10.
 #define TORQ_KI_INIT			0.
-#define TORQ_KD_INIT			5 //2.
+#define TORQ_KD_INIT			2 //5, 2.
 
 
 // Motor Parameters

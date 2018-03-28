@@ -69,14 +69,31 @@ void runFlatGroundFSM(struct act_s *actx) {
 //    lstPowerGains.thetaDes = lstPGTheta;
 
   //  lstPowerGains.thetaDes = ((float) user_data_1.w[0])/10.0;   //140, in GUI (will be divided by 10)
-    lstpwr_hs_torq_trigger_thresh = ((float) user_data_1.w[0])/100.0;   //45, in GUI (will be divided by 100)
-    actx->earlyStanceK0 = ((float) user_data_1.w[1])/100.0;				//5.23, late stance power ramp tics (div by 100)
-    actx->earlyStanceKF = ((float) user_data_1.w[2])/100.0;			// .17,  late stance Power Gain K1 (div by 100)
-    estGains.b = ((float) user_data_1.w[3])/100.0;                 // 0.17 (a little high for damping controller, could be 0.1),  early stance damping b (div by 100)
-//lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;				//45, LSP stiffness (div by 10)
-    //    engagement_angle_virtual_hardstop = ((float) user_data_1.w[3])/10.0;       //0, virtual hardstop engagement angle in degrees
-   // lstpwr_hs_torq_trigger_thresh = ((float) user_data_1.w[3])/10.0; // 45 adjust parallel spring trigger
+    //45, in GUI (will be divided by 100)
+	//5.23, late stance power ramp tics (div by 100)
+	// .17,  late stance Power Gain K1 (div by 100)
+    // 0.17 (a little high for damping controller, could be 0.1),  early stance damping b (div by 100)
+    //45, in GUI (will be divided by 100)
+	//5.23, late stance power ramp tics (div by 100)
+	// .17,  late stance Power Gain K1 (div by 100)
+    //45, in GUI (will be divided by 100)
+	//5.23, late stance power ramp tics (div by 100)
 
+    eswGains.thetaDes  = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;   					//-10 x 1
+    actx->earlyStanceK0 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
+    actx->earlyStanceKF = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;					//0.05 x 100
+    actx->earlyStanceDecayConstant = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
+    estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
+    actx->virtualHardstopK = ((float) user_data_1.w[5])/OUTPUT_DIVISOR5;				//70 x 100
+    actx->virtualHardstopEngagementAngle = ((float) user_data_1.w[6])/OUTPUT_DIVISOR6;	//0.0 x 1
+    lstPowerGains.thetaDes = ((float) user_data_1.w[7])/OUTPUT_DIVISOR7;				//18.0 x 1
+    lstPowerGains.k1 = ((float) user_data_1.w[8])/OUTPUT_DIVISOR8; 						//4.5 x 100
+    actx->lspEngagementTorque = ((float) user_data_1.w[9])/OUTPUT_DIVISOR9;				//45 x 1
+
+
+    if (!actx->initializedStateMachineVariables){
+    	initializeStateMachineVariables(actx);
+    }
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
     actx->tauDes = 0;
@@ -133,7 +150,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             actx->tauDes = calcJointTorque(lswGains, actx);
 
             //---------------------- LATE SWING TRANSITION VECTORS ----------------------//
-            if(time_in_state > 100){
+            if(time_in_state > ESW_TO_LSW_DELAY){
 
 				// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
 				if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
@@ -306,6 +323,34 @@ static float calcJointTorque(GainParams gainParams, struct act_s *actx) {
 //	}
 }
 
+
+static void initializeStateMachineVariables(struct act_s *actx){
+//	eswGains.thetaDes  = -10.0;
+//	actx->earlyStanceK0 = 5.23;
+//	actx->earlyStanceKF = 0.05;
+//	actx->earlyStanceDecayConstant = 0.995;
+//	estGains.b = 0.1;
+//	actx->virtualHardstopK = 70;
+//	actx->virtualHardstopEngagementAngle = 0.0;
+//	lstPowerGains.thetaDes = 14.0;
+//	lstPowerGains.k1 = 4.5;
+//	actx->lspEngagementTorque = 45;
+
+
+	user_data_1.w[0] = -10;
+	user_data_1.w[1] = 523;
+	user_data_1.w[2] = 5;
+	user_data_1.w[3] = 9950;
+	user_data_1.w[4] = 10;
+	user_data_1.w[5] = 7000;
+	user_data_1.w[6] = 0;
+	user_data_1.w[7] = 14;
+	user_data_1.w[8] = 450;
+	user_data_1.w[9] = 45;
+
+	actx->initializedStateMachineVariables = 1;
+}
+
 static void updateImpedanceParams(struct act_s *actx) {
     actx->scaleFactor = actx->scaleFactor*EARLYSTANCE_DECAY_CONSTANT;
     //actx->scaleFactor = actx->scaleFactor*actx->earlyStanceDecayConstant;
@@ -318,18 +363,18 @@ static void updateImpedanceParams(struct act_s *actx) {
     }
 }
 
-static float updatePffTorque(struct act_s *actx) {
-
-	float pfTorque = 0;
-
-    if (actx->samplesInLSP < PFF_DELAY_SAMPLES) {
-        actx->samplesInLSP = actx->samplesInLSP + 1.0;
-    }
-
-    pfTorque = (actx->samplesInLSP/PFF_DELAY_SAMPLES) * pff_lumped_gain_const * powf(actx->jointTorque - LSTPWR_HS_TORQ_TRIGGER_THRESH, pff_exponent_const);
-    return pfTorque;
-
-}
+//static float updatePffTorque(struct act_s *actx) {
+//
+//	float pfTorque = 0;
+//
+//    if (actx->samplesInLSP < PFF_DELAY_SAMPLES) {
+//        actx->samplesInLSP = actx->samplesInLSP + 1.0;
+//    }
+//
+//    pfTorque = (actx->samplesInLSP/PFF_DELAY_SAMPLES) * pff_lumped_gain_const * powf(actx->jointTorque - LSTPWR_HS_TORQ_TRIGGER_THRESH, pff_exponent_const);
+//    return pfTorque;
+//
+//}
 
 //reset virtual joint to robot joint state
 static void updatePFDFState(struct act_s *actx) {

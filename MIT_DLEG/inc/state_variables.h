@@ -60,10 +60,27 @@ typedef struct act_s
     float lastJointTorque;
     float jointTorqueRate;  // Joint torque rate
 
+    //Early stance params
     float earlyStanceK0;
     float earlyStanceKF;
     float earlyStanceB;
     float earlyStanceDecayConstant;
+    float virtualHardstopK;
+    float virtualHardstopEngagementAngle;
+
+    int8_t initializedStateMachineVariables;
+
+    //LSP values
+    float lspEngagementTorque;
+     float samplesInLSP;
+        float pff_gain;
+        float pff_exponent;
+        float lsp_entry_tq;
+        float pff_lumped_gain;
+        float virtual_hardstop_tq;
+        float pff_ramp_tics;
+        int16_t transition_id;
+
     int32_t motorVel;		// motor velocity [rad/s]
     int32_t motorAcc;		// motor acceleration [rad/s/s]
     int16_t regTemp;		// regulate temperature
@@ -76,15 +93,7 @@ typedef struct act_s
     //biom early stance value
     float scaleFactor;
     
-    //LSP values
-    float samplesInLSP;
-    float pff_gain;
-    float pff_exponent;
-    float lsp_entry_tq;
-    float pff_lumped_gain;
-    float virtual_hardstop_tq;
-    float pff_ramp_tics;
-    int16_t transition_id;
+
 
     //biom late swing to early stance variables (may be optional)
     
