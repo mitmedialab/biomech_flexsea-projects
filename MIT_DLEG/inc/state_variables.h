@@ -60,6 +60,9 @@ typedef struct act_s
     float lastJointTorque;
     float jointTorqueRate;  // Joint torque rate
 
+    float earlyStanceK0;
+    float earlyStanceKF;
+    float earlyStanceDecayConstant;
     int32_t motorVel;		// motor velocity [rad/s]
     int32_t motorAcc;		// motor acceleration [rad/s/s]
     int16_t regTemp;		// regulate temperature

@@ -215,11 +215,11 @@ void MIT_DLeg_fsm_1(void)
 				rigid1.mn.genVar[0] = isSafetyFlag;
 				rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*10.0); //deg
 				rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
-				rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle*1000.0); //rad
+				rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
 				rigid1.mn.genVar[4] = (int16_t) (act1.jointVel*1000.0); //rad/s
 				rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
 				rigid1.mn.genVar[6] = (int16_t) (act1.jointTorqueRate*100.0); //Nm/s
-				rigid1.mn.genVar[7] = (int16_t) (lstPowerGains.k1*1000.0); //Nm/deg
+				rigid1.mn.genVar[7] = (int16_t) (estGains.k1*100.0); //Nm/deg
 				rigid1.mn.genVar[8] = stateMachine.current_state;
 				rigid1.mn.genVar[9] = act1.transition_id; //deg
 
