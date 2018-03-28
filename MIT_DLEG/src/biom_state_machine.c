@@ -71,8 +71,8 @@ void runFlatGroundFSM(struct act_s *actx) {
     lstPowerGains.thetaDes = ((float) user_data_1.w[0])/10.0;   //140, in GUI (will be divided by 10)
     lstPGDelTics = ((float) user_data_1.w[1])/10.0;				//10, late stance power ramp tics
     lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;			// 55,  late stance Power Gain K1
-    engagement_angle_virtual_hardstop = ((float) user_data_1.w[3])/10.0;       //0, virtual hardstop engagement angle in degrees
-//    lstpwr_hs_torq_trigger_thresh = ((float) user_data_1.w[3])/10.0; // adjust parallel spring trigger
+//    engagement_angle_virtual_hardstop = ((float) user_data_1.w[3])/10.0;       //0, virtual hardstop engagement angle in degrees
+    lstpwr_hs_torq_trigger_thresh = ((float) user_data_1.w[3])/10.0; // 45 adjust parallel spring trigger
 
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
