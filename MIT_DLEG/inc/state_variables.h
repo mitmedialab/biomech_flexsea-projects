@@ -62,6 +62,7 @@ typedef struct act_s
 
     float earlyStanceK0;
     float earlyStanceKF;
+    float earlyStanceB;
     float earlyStanceDecayConstant;
     int32_t motorVel;		// motor velocity [rad/s]
     int32_t motorAcc;		// motor acceleration [rad/s/s]

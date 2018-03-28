@@ -68,13 +68,14 @@ void runFlatGroundFSM(struct act_s *actx) {
 
 //    lstPowerGains.thetaDes = lstPGTheta;
 
-    lstPowerGains.thetaDes = ((float) user_data_1.w[0])/10.0;   //140, in GUI (will be divided by 10)
-  //  actx->earlyStanceDecayConstant = ((float) user_data_1.w[0])/10000.0;   //9999, in GUI (will be divided by 10000)
-    actx->earlyStanceK0 = ((float) user_data_1.w[1])/100.0;				//523, late stance power ramp tics (div by 100)
-    actx->earlyStanceKF = ((float) user_data_1.w[2])/100.0;			// 17,  late stance Power Gain K1 (div by 100)
+  //  lstPowerGains.thetaDes = ((float) user_data_1.w[0])/10.0;   //140, in GUI (will be divided by 10)
+    lstpwr_hs_torq_trigger_thresh = ((float) user_data_1.w[0])/100.0;   //45, in GUI (will be divided by 100)
+    actx->earlyStanceK0 = ((float) user_data_1.w[1])/100.0;				//5.23, late stance power ramp tics (div by 100)
+    actx->earlyStanceKF = ((float) user_data_1.w[2])/100.0;			// .17,  late stance Power Gain K1 (div by 100)
+    estGains.b = ((float) user_data_1.w[3])/100.0;                 // 0.17 (a little high for damping controller, could be 0.1),  early stance damping b (div by 100)
 //lstPowerGains.k1 = ((float) user_data_1.w[2])/10.0;				//45, LSP stiffness (div by 10)
     //    engagement_angle_virtual_hardstop = ((float) user_data_1.w[3])/10.0;       //0, virtual hardstop engagement angle in degrees
-    lstpwr_hs_torq_trigger_thresh = ((float) user_data_1.w[3])/10.0; // 45 adjust parallel spring trigger
+   // lstpwr_hs_torq_trigger_thresh = ((float) user_data_1.w[3])/10.0; // 45 adjust parallel spring trigger
 
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
@@ -312,7 +313,7 @@ static void updateImpedanceParams(struct act_s *actx) {
    // estGains.k1 = K_ES_FINAL_NM_P_DEG + actx->scaleFactor * DELTA_K_DEG;
     estGains.k1 = actx->earlyStanceKF + actx->scaleFactor*(actx->earlyStanceK0 - actx->earlyStanceKF);
    //estGains.thetaDes = 0.0;
-        if (actx->jointVelDegrees < 0.0){
+        if (actx->jointAngleDegrees < estGains.thetaDes){
         estGains.thetaDes = actx->jointAngleDegrees;
     }
 }
