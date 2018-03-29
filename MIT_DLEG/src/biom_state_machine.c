@@ -82,7 +82,7 @@ void runFlatGroundFSM(struct act_s *actx) {
     eswGains.thetaDes  = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;   					//-10 x 1
 //    actx->earlyStanceK0 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
 //    actx->earlyStanceKF = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;					//0.05 x 100
-    lswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
+    lstPGDelTics = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
     lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
     actx->earlyStanceDecayConstant = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
     estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
@@ -131,7 +131,6 @@ void runFlatGroundFSM(struct act_s *actx) {
             //Put anything you want to run ONCE during state entry.
 			if (isTransitioning) {
 				actx->virtual_hardstop_tq = 0.0;
-				actx->transition_id = 0;
 			}
 
             actx->tauDes = calcJointTorque(eswGains, actx);
@@ -147,8 +146,13 @@ void runFlatGroundFSM(struct act_s *actx) {
             break; // case STATE_EARLY_SWING
 
         case STATE_LATE_SWING: //3
+        	if (isTransitioning) {
+        		actx->transition_id = 0;
 
+        	}
+        	//actx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;
             updateVirtualHardstopTorque(actx);
+
             actx->tauDes = calcJointTorque(lswGains, actx);
 
             //---------------------- LATE SWING TRANSITION VECTORS ----------------------//
@@ -179,6 +183,7 @@ void runFlatGroundFSM(struct act_s *actx) {
                 actx->scaleFactor = 1.0;
                 estGains.k1 = actx->earlyStanceK0;
                 estGains.thetaDes = actx->jointAngleDegrees;
+
             }
 
           	updateVirtualHardstopTorque(actx);
@@ -342,7 +347,7 @@ static void initializeStateMachineVariables(struct act_s *actx){
 	user_data_1.w[0] = -10;
 //	user_data_1.w[1] = 523;
 //	user_data_1.w[2] = 5;
-	user_data_1.w[1] = 300;
+	user_data_1.w[1] = 100;
 	user_data_1.w[2] = 20;
 	user_data_1.w[3] = 9950;
 	user_data_1.w[4] = 10;
@@ -388,6 +393,12 @@ static void updatePFDFState(struct act_s *actx) {
 }
 
 static void updateVirtualHardstopTorque(struct act_s *actx){
+//		if (actx->jointAngleDegrees > actx->virtualHardstopEngagementAngle){
+//			if (actx->virtualHardstopEngagementAngle < 0.0){
+//				actx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;
+//			}
+//
+//		}
 	if (JNT_ORIENT * actx->jointAngleDegrees > actx->virtualHardstopEngagementAngle){
 		//actx->virtual_hardstop_tq = K_VIRTUAL_HARDSTOP_NM_P_DEG * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
 		actx->virtual_hardstop_tq = actx->virtualHardstopK * ((JNT_ORIENT * actx->jointAngleDegrees) - actx->virtualHardstopEngagementAngle);
