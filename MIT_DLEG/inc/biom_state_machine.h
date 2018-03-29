@@ -59,7 +59,9 @@ extern "C" {
 #define OUTPUT_DIVISOR7							1
 #define OUTPUT_DIVISOR8							100
 #define OUTPUT_DIVISOR9							1
-
+//#define OUTPUT_DIVISOR7							100
+//#define OUTPUT_DIVISOR8							100
+//#define OUTPUT_DIVISOR9							100
 
 
 //****************************************************************************
@@ -81,11 +83,12 @@ extern Act_s act1;
 
 void runFlatGroundFSM(struct act_s *actx);
 static void updateImpedanceParams(struct act_s *actx);
-static float updatePffTorque(struct act_s *actx);
+//static float updatePffTorque(struct act_s *actx);
+static void updateUserWrites(struct act_s *actx);
 static float calcJointTorque(GainParams gainParams, struct act_s *actx);
 static void updatePFDFState(struct act_s *actx);
 static void updateVirtualHardstopTorque(struct act_s *actx);
-static void initializeStateMachineVariables(struct act_s *actx);
+static void initializeUserWrites(struct act_s *actx);
 
 #endif //STATE_MACHINE
 #endif //(INCLUDE_UPROJ_MIT_DLEG && BOARD_TYPE_FLEXSEA_MANAGE) || BOARD_TYPE_FLEXSEA_PLAN
