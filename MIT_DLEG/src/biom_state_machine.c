@@ -228,7 +228,7 @@ void runFlatGroundFSM(struct act_s *actx) {
 
             // VECTOR (1): Late Stance -> Late Stance POWER
 //            if (actx->jointAngleDegrees < LSTPWR_HS_ANGLE_TRIGGER_THRESH ) {
-            if (actx->jointTorque > lstpwr_hs_torq_trigger_thresh) {
+            if (actx->jointTorque > actx->lspEngagementTorque) {
             	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
             }
 
@@ -384,9 +384,9 @@ static void updatePFDFState(struct act_s *actx) {
 }
 
 static void updateVirtualHardstopTorque(struct act_s *actx){
-	if (JNT_ORIENT * actx->jointAngleDegrees > engagement_angle_virtual_hardstop){
+	if (JNT_ORIENT * actx->jointAngleDegrees > actx->virtualHardstopEngagementAngle){
 		//actx->virtual_hardstop_tq = K_VIRTUAL_HARDSTOP_NM_P_DEG * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
-		actx->virtual_hardstop_tq = virtual_spring_k * ((JNT_ORIENT * actx->jointAngleDegrees) - engagement_angle_virtual_hardstop);
+		actx->virtual_hardstop_tq = actx->virtualHardstopK * ((JNT_ORIENT * actx->jointAngleDegrees) - actx->virtualHardstopEngagementAngle);
 	}
 	else{
 		actx->virtual_hardstop_tq = 0.0;
