@@ -17,8 +17,8 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {0.6, 0.0, 0.05, -10.0};	// goldfarb setpt = 23
-GainParams lswGains = {0.6, 0.0, 0.05, 0.0}; // goldfarb setpt = 2
+GainParams eswGains = {6.0, 0.0, 0.2, -10.0};	// goldfarb setpt = 23
+GainParams lswGains = {3.0, 0.0, 0.2, 0.0}; // goldfarb setpt = 2
 GainParams estGains = {0.0, 0.0, 0.05, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 
@@ -80,8 +80,10 @@ void runFlatGroundFSM(struct act_s *actx) {
 	//5.23, late stance power ramp tics (div by 100)
 
     eswGains.thetaDes  = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;   					//-10 x 1
-    actx->earlyStanceK0 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
-    actx->earlyStanceKF = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;					//0.05 x 100
+//    actx->earlyStanceK0 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
+//    actx->earlyStanceKF = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;					//0.05 x 100
+    lswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
+    lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
     actx->earlyStanceDecayConstant = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
     estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
     actx->virtualHardstopK = ((float) user_data_1.w[5])/OUTPUT_DIVISOR5;				//70 x 100
@@ -326,8 +328,8 @@ static float calcJointTorque(GainParams gainParams, struct act_s *actx) {
 
 static void initializeStateMachineVariables(struct act_s *actx){
 //	eswGains.thetaDes  = -10.0;
-//	actx->earlyStanceK0 = 5.23;
-//	actx->earlyStanceKF = 0.05;
+ 	actx->earlyStanceK0 = 5.23;
+ 	actx->earlyStanceKF = 0.05;
 //	actx->earlyStanceDecayConstant = 0.995;
 //	estGains.b = 0.1;
 //	actx->virtualHardstopK = 70;
@@ -338,11 +340,13 @@ static void initializeStateMachineVariables(struct act_s *actx){
 
 
 	user_data_1.w[0] = -10;
-	user_data_1.w[1] = 523;
-	user_data_1.w[2] = 5;
+//	user_data_1.w[1] = 523;
+//	user_data_1.w[2] = 5;
+	user_data_1.w[1] = 300;
+	user_data_1.w[2] = 20;
 	user_data_1.w[3] = 9950;
 	user_data_1.w[4] = 10;
-	user_data_1.w[5] = 7000;
+	user_data_1.w[5] = 700;
 	user_data_1.w[6] = 0;
 	user_data_1.w[7] = 14;
 	user_data_1.w[8] = 450;
