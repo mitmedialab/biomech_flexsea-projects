@@ -22,7 +22,7 @@ GainParams lswGains = {1.5, 0.0, 0.2, 0.0}; // goldfarb setpt = 2
 GainParams estGains = {0.0, 0.0, 0.05, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 
-GainParams lstPowerGains = {4.5, 0.0, 0.1, JNT_ORIENT * -14};
+GainParams lstPowerGains = {4.5, 0.0, 0.2, JNT_ORIENT * -14};
 GainParams emgStandGains = {0.0, 0.0, 0.0, 0.0}; //currently unused
 GainParams emgFreeGains = {2.0, 0.0, 0.005, 0.0};
 
@@ -217,6 +217,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             if (isTransitioning) {
                 actx->samplesInLSP = 0.0;
                 actx->lsp_entry_tq = actx->jointTorque;
+            //    actx->virtual_hardstop_tq = 0.0;
 //                actx->pff_lumped_gain = actx->pff_gain * powf(1.0/(PCI - actx->lsp_entry_tq), actx->pff_exponent);
             }
             if (actx->samplesInLSP < lstPGDelTics){
@@ -327,11 +328,11 @@ static void initializeUserWrites(struct act_s *actx){
 	user_data_1.w[2] = 20;
 	user_data_1.w[3] = 9950;
 	user_data_1.w[4] = 10;
-	user_data_1.w[5] = 700;
+	user_data_1.w[5] = 2000; //Jim's was defaulted to 700;
 	user_data_1.w[6] = 0;
 	user_data_1.w[7] = 14;
 	user_data_1.w[8] = 450;
-	user_data_1.w[9] = 45;
+	user_data_1.w[9] = 70; //Jim's default was 45
 //	user_data_1.w[7] = 300;
 //	user_data_1.w[8] = 600;
 //	user_data_1.w[9] = 20;
