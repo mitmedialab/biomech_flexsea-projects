@@ -134,7 +134,7 @@ void MIT_DLeg_fsm_1(void)
 		case -2:
 			stateMachine.current_state = STATE_IDLE;
 			//Same power-on delay as FSM2:
-			if(time >= AP_FSM2_POWER_ON_DELAY + 3*SECONDS) {
+			if(time >= AP_FSM2_POWER_ON_DELAY ) {
 				fsm1State = -1;
 				time = 0;
 			}
@@ -739,7 +739,7 @@ int8_t findPoles(void) {
 
 		case 2:
 
-			if(timer >= 50*SECONDS)
+			if(timer >= 44*SECONDS)
 			{
 				//Enable FSM2, position controller
 				enableActPackFSM2();
