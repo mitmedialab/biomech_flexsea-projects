@@ -17,12 +17,12 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {3.0, 0.0, 0.2, -10.0};	// goldfarb setpt = 23
-GainParams lswGains = {1.5, 0.0, 0.2, 0.0}; // goldfarb setpt = 2
+GainParams eswGains = {6.0, 0.0, 0.2, -10.0};	// goldfarb setpt = 23
+GainParams lswGains = {3.0, 0.0, 0.2, 0.0}; // goldfarb setpt = 2
 GainParams estGains = {0.0, 0.0, 0.05, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 
-GainParams lstPowerGains = {4.5, 0.0, 0.2, JNT_ORIENT * -14};
+GainParams lstPowerGains = {4.5, 0.0, 0.1, JNT_ORIENT * -14};
 GainParams emgStandGains = {0.0, 0.0, 0.0, 0.0}; //currently unused
 GainParams emgFreeGains = {2.0, 0.0, 0.005, 0.0};
 
@@ -62,11 +62,10 @@ void runFlatGroundFSM(struct act_s *actx) {
     static uint32_t time_in_state = 0;
 
 
+    writeVars(actx);
     if (!actx->initializedStateMachineVariables){
     	initializeUserWrites(actx);
     }
-    updateUserWrites(actx);
-
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
     actx->tauDes = 0;
@@ -217,7 +216,6 @@ void runFlatGroundFSM(struct act_s *actx) {
             if (isTransitioning) {
                 actx->samplesInLSP = 0.0;
                 actx->lsp_entry_tq = actx->jointTorque;
-            //    actx->virtual_hardstop_tq = 0.0;
 //                actx->pff_lumped_gain = actx->pff_gain * powf(1.0/(PCI - actx->lsp_entry_tq), actx->pff_exponent);
             }
             if (actx->samplesInLSP < lstPGDelTics){
@@ -294,77 +292,55 @@ void runFlatGroundFSM(struct act_s *actx) {
 */
 static float calcJointTorque(GainParams gainParams, struct act_s *actx) {
 
-//	if (fabs(actx->jointVelDegrees) > 6){
 		return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
          - gainParams.b * actx->jointVelDegrees  + actx->virtual_hardstop_tq;
-//	}else{
-//    	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) + actx->virtual_hardstop_tq;
-//	}
+
 }
 
-static void updateUserWrites(struct act_s *actx){
-    eswGains.thetaDes  = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;   					//-10 x 1
-    lstPGDelTics = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//1 x 100
-    lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;					//0.2 x 100
-    actx->earlyStanceDecayConstant = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
-    estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
-    actx->virtualHardstopK = ((float) user_data_1.w[5])/OUTPUT_DIVISOR5;				//70 x 100
-    actx->virtualHardstopEngagementAngle = ((float) user_data_1.w[6])/OUTPUT_DIVISOR6;	//0.0 x 1
-    lstPowerGains.thetaDes = ((float) user_data_1.w[7])/OUTPUT_DIVISOR7;				//18.0 x 1
-    lstPowerGains.k1 = ((float) user_data_1.w[8])/OUTPUT_DIVISOR8; 						//4.5 x 100
-    actx->lspEngagementTorque = ((float) user_data_1.w[9])/OUTPUT_DIVISOR9;				//45 x 1
-//    lswGains.k1 = ((float) user_data_1.w[7])/OUTPUT_DIVISOR7;				//6.0 x 100
-//    eswGains.k1 = ((float) user_data_1.w[8])/OUTPUT_DIVISOR8; 			//3.0 x 100
-//    eswGains.b = ((float) user_data_1.w[9])/OUTPUT_DIVISOR9;				//0.2 x 100
+static void writeVars(struct act_s *actx){
+	   //eswGains.thetaDes  = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;   					//-10 x 1				//0.05 x 100
+	actx->earlyStanceKF = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;
+		eswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
+	    lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
+	    lswGains.k2 = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
+	    estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
+	    actx->virtualHardstopK = ((float) user_data_1.w[5])/OUTPUT_DIVISOR5;				//7 x 100
+	    actx->virtualHardstopEngagementAngle = ((float) user_data_1.w[6])/OUTPUT_DIVISOR6;	//0.0 x 1
+	    lstPowerGains.thetaDes = ((float) user_data_1.w[7])/OUTPUT_DIVISOR7;				//18.0 x 1
+	    lstPowerGains.k1 = ((float) user_data_1.w[8])/OUTPUT_DIVISOR8; 						//4.5 x 100
+	    actx->lspEngagementTorque = ((float) user_data_1.w[9])/OUTPUT_DIVISOR9;				//45 x 1
 }
 
 static void initializeUserWrites(struct act_s *actx){
  	actx->earlyStanceK0 = 5.23;
- 	actx->earlyStanceKF = 0.05;
+ 	actx->earlyStanceKF = 0.1;
 
 
-	user_data_1.w[0] = -10;
-	user_data_1.w[1] = 100;
+
+	user_data_1.w[0] = 100;
+	user_data_1.w[1] = 150;
 	user_data_1.w[2] = 20;
-	user_data_1.w[3] = 9950;
+	user_data_1.w[3] = 100;
 	user_data_1.w[4] = 10;
-	user_data_1.w[5] = 2000; //Jim's was defaulted to 700;
+	user_data_1.w[5] = 700;
 	user_data_1.w[6] = 0;
 	user_data_1.w[7] = 14;
 	user_data_1.w[8] = 450;
-	user_data_1.w[9] = 70; //Jim's default was 45
-//	user_data_1.w[7] = 300;
-//	user_data_1.w[8] = 600;
-//	user_data_1.w[9] = 20;
+	user_data_1.w[9] = 45;
 
 	actx->initializedStateMachineVariables = 1;
 }
 
 static void updateImpedanceParams(struct act_s *actx) {
-    //actx->scaleFactor = actx->scaleFactor*EARLYSTANCE_DECAY_CONSTANT;
-    actx->scaleFactor = actx->scaleFactor*actx->earlyStanceDecayConstant;
+    actx->scaleFactor = actx->scaleFactor*EARLYSTANCE_DECAY_CONSTANT;
+    //actx->scaleFactor = actx->scaleFactor*actx->earlyStanceDecayConstant;
+    //estGains.k1 = K_ES_FINAL_NM_P_DEG + actx->scaleFactor * DELTA_K_DEG;
+   // estGains.k1 = K_ES_FINAL_NM_P_DEG + actx->scaleFactor * DELTA_K_DEG;
     estGains.k1 = actx->earlyStanceKF + actx->scaleFactor*(actx->earlyStanceK0 - actx->earlyStanceKF);
+   //estGains.thetaDes = 0.0;
         if (actx->jointAngleDegrees < estGains.thetaDes){
         estGains.thetaDes = actx->jointAngleDegrees;
     }
-}
-
-
-
-static void updateVirtualHardstopTorque(struct act_s *actx){
-//		if (actx->jointAngleDegrees > actx->virtualHardstopEngagementAngle){
-//			if (actx->virtualHardstopEngagementAngle < 0.0){
-//				actx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;
-//			}
-//
-//		}
-	if (JNT_ORIENT * actx->jointAngleDegrees > actx->virtualHardstopEngagementAngle){
-		//actx->virtual_hardstop_tq = K_VIRTUAL_HARDSTOP_NM_P_DEG * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
-		actx->virtual_hardstop_tq = actx->virtualHardstopK * ((JNT_ORIENT * actx->jointAngleDegrees) - actx->virtualHardstopEngagementAngle);
-	}
-	else{
-		actx->virtual_hardstop_tq = 0.0;
-	}
 }
 
 //static float updatePffTorque(struct act_s *actx) {
@@ -385,6 +361,22 @@ static void updatePFDFState(struct act_s *actx) {
 	PFDF_state[0] = actx->jointAngleDegrees;
 	PFDF_state[1] = actx->jointVelDegrees;
 	PFDF_state[2] = 0;
+}
+
+static void updateVirtualHardstopTorque(struct act_s *actx){
+//		if (actx->jointAngleDegrees > actx->virtualHardstopEngagementAngle){
+//			if (actx->virtualHardstopEngagementAngle < 0.0){
+//				actx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;
+//			}
+//
+//		}
+	if (JNT_ORIENT * actx->jointAngleDegrees > actx->virtualHardstopEngagementAngle){
+		//actx->virtual_hardstop_tq = K_VIRTUAL_HARDSTOP_NM_P_DEG * ((JNT_ORIENT * actx->jointAngleDegrees) - ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG);
+		actx->virtual_hardstop_tq = actx->virtualHardstopK * ((JNT_ORIENT * actx->jointAngleDegrees) - actx->virtualHardstopEngagementAngle);
+	}
+	else{
+		actx->virtual_hardstop_tq = 0.0;
+	}
 }
 
 #endif //BOARD_TYPE_FLEXSEA_PLAN

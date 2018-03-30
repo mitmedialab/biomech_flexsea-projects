@@ -49,10 +49,10 @@ extern "C" {
 #define PFF_DELAY_SAMPLES						300
 #define PFF_ANGLE_THRESH_DEG					5 //pff angle thresh
 
-#define OUTPUT_DIVISOR0							1
+#define OUTPUT_DIVISOR0							100
 #define OUTPUT_DIVISOR1							100
 #define OUTPUT_DIVISOR2							100
-#define OUTPUT_DIVISOR3							10000
+#define OUTPUT_DIVISOR3							100
 #define OUTPUT_DIVISOR4							100
 #define OUTPUT_DIVISOR5							100
 #define OUTPUT_DIVISOR6							1
@@ -84,12 +84,11 @@ extern Act_s act1;
 void runFlatGroundFSM(struct act_s *actx);
 static void updateImpedanceParams(struct act_s *actx);
 //static float updatePffTorque(struct act_s *actx);
-static void updateUserWrites(struct act_s *actx);
 static float calcJointTorque(GainParams gainParams, struct act_s *actx);
 static void updatePFDFState(struct act_s *actx);
 static void updateVirtualHardstopTorque(struct act_s *actx);
 static void initializeUserWrites(struct act_s *actx);
-
+static void writeVars(struct act_s *actx);
 #endif //STATE_MACHINE
 #endif //(INCLUDE_UPROJ_MIT_DLEG && BOARD_TYPE_FLEXSEA_MANAGE) || BOARD_TYPE_FLEXSEA_PLAN
 #ifdef __cplusplus
