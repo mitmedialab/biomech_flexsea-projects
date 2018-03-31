@@ -60,7 +60,21 @@ typedef struct act_s
     float lastJointTorque;
     float jointTorqueRate;  // Joint torque rate
 
-    //Early stance params
+    int32_t motorVel;		// motor velocity [rad/s]
+    int32_t motorAcc;		// motor acceleration [rad/s/s]
+    int16_t regTemp;		// regulate temperature
+    int16_t motTemp;		// motor temperature
+    int32_t motCurr;		// motor current
+    int32_t desiredCurrent; // desired current from getMotorCurrent()
+    int32_t currentOpLimit; // current throttling limit
+    int8_t safetyFlag;		// todo: consider if necessary
+
+} Act_s;
+
+
+typedef struct walkParams {
+
+	//Early stance params
     float earlyStanceK0;
     float earlyStanceKF;
     float earlyStanceB;
@@ -72,34 +86,20 @@ typedef struct act_s
 
     //LSP values
     float lspEngagementTorque;
-     float samplesInLSP;
-        float pff_gain;
-        float pff_exponent;
-        float lsp_entry_tq;
-        float pff_lumped_gain;
-        float virtual_hardstop_tq;
-        float pff_ramp_tics;
-        int16_t transition_id;
+    float samplesInLSP;
+	float pff_gain;
+	float pff_exponent;
+	float lsp_entry_tq;
+	float pff_lumped_gain;
+	float virtual_hardstop_tq;
+	float pff_ramp_tics;
+	int16_t transition_id;
+	float lstPGDelTics;
 
-    int32_t motorVel;		// motor velocity [rad/s]
-    int32_t motorAcc;		// motor acceleration [rad/s/s]
-    int16_t regTemp;		// regulate temperature
-    int16_t motTemp;		// motor temperature
-    int32_t motCurr;		// motor current
-    int32_t desiredCurrent; // desired current from getMotorCurrent()
-    int32_t currentOpLimit; // current throttling limit
-    int8_t safetyFlag;		// todo: consider if necessary
+	//biom early stance value
+	float scaleFactor;
 
-    //biom early stance value
-    float scaleFactor;
-    
-
-
-    //biom late swing to early stance variables (may be optional)
-    
-
-
-} Act_s;
+} WalkParams;
 
 
 

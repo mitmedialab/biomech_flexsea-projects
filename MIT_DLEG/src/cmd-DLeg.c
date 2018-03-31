@@ -13,7 +13,7 @@ extern "C" {
 #include <flexsea_cmd_user.h>
 #include "cmd-DLeg.h"
 #include "state_variables.h"
-#include "state_machine.h"
+#include "biom_state_machine.h"
 #include "user-mn.h"
 
 //****************************************************************************

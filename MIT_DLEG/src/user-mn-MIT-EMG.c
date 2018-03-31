@@ -38,9 +38,8 @@ volatile uint8_t emg_on_flag = 1;
 volatile uint8_t emg_state = EMG_STATE_DISABLE;
 volatile uint16_t emg_timer = 0; //1tick represent 1ms
 volatile uint16_t emg_prsc = 0;
-
+volatile uint16_t emg_reset_timer = 0;
 volatile uint8_t emg_ready_flag=0;
-volatile uint16_t emg_error_cnt=0;
 //volatile uint8_t emg_active_flag;
 uint16_t emg_timestamp = 0;
 
@@ -105,22 +104,21 @@ void MIT_EMG_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
 //Include this function in the I2C Return callback
 void MIT_EMG_I2C_RxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
-	/* Can use the JF prototype if he update this on his function
-	if(hi2c->Instance == I2C2)
-		{
-			//Indicate that it's done receiving:
-			i2c2FsmState = I2C_FSM_RX_DATA_DONE;
-		}
-	*/
-
 	if(hi2c->Instance == I2C2)
 	{
-		//Indicate that it's done receiving:
-		if(emg_state != EMG_STATE_READ)
+		if(emg_state == EMG_STATE_WAIT)
+		{
 			emg_state = EMG_STATE_READ;
+		}
 
-		emg_peripheral_state = EMG_PERIPH_RECEIVE_COMPLETE;
+		else if(emg_state == EMG_STATE_READ)
+		{
+			MIT_EMG_decode();
+			emg_peripheral_state = EMG_PERIPH_RECEIVE_COMPLETE;
+			emg_timer = 0;
+		}
 	}
+
 	return;
 }
 
@@ -128,12 +126,6 @@ void MIT_EMG_i2c2_fsm(void)
 {
 	MIT_EMG_update_status();
 
-	if(emg_peripheral_state == EMG_PERIPH_RECEIVE_COMPLETE)
-	{
-		MIT_EMG_decode();
-		emg_peripheral_state = EMG_PERIPH_READY;
-		emg_timer = 0;
-	}
 
 	switch(emg_state) //emg state machine
 	{
@@ -159,6 +151,15 @@ void MIT_EMG_i2c2_fsm(void)
 			break;
 
 		case EMG_STATE_WAIT:
+		// periodic reset
+			if(emg_reset_timer > EMG_I2C_RESET_PERIOD)
+			{
+				emg_state = EMG_STATE_DEINIT;
+				emg_timer = 0;
+				emg_reset_timer = 0;
+				break;
+			}
+
 			if(emg_on_flag!=1)
 			{
 				emg_state = EMG_STATE_DISABLE;
@@ -173,6 +174,7 @@ void MIT_EMG_i2c2_fsm(void)
 			if(emg_timer ==0)
 				MIT_EMG_read(); //try to read, 5Hz
 
+			emg_reset_timer++;
 			break;
 
 		case EMG_STATE_READ:
@@ -187,26 +189,14 @@ void MIT_EMG_i2c2_fsm(void)
 			{
 				if(emg_prsc ==0)
 				{
-					if(emg_error_cnt>3)
-						emg_peripheral_state = EMG_PERIPH_READY;
-
-					if( emg_peripheral_state == EMG_PERIPH_READY)
-					{
 						MIT_EMG_read();
 						emg_peripheral_state = EMG_PERIPH_RECEIVE_WAIT;
-						emg_error_cnt=0;
-					}
-					else if(emg_peripheral_state == EMG_PERIPH_RECEIVE_WAIT)
-					{
-
-						MIT_EMG_read();
-						emg_error_cnt++;
-					}
 				}
 
-				if(emg_timer>EMG_TIMER_PRESCALER*3)
+				if(emg_timer>EMG_TIMER_PRESCALER*5)
 				{
-					emg_state = EMG_STATE_WAIT;
+//					emg_state = EMG_STATE_WAIT; //just go back to wait state
+					emg_state = EMG_STATE_DEINIT; //Reboot I2C peripheral
 					emg_timer = 0;
 					emg_peripheral_state = EMG_PERIPH_READY;
 				}
@@ -224,10 +214,29 @@ void MIT_EMG_i2c2_fsm(void)
 				emg_peripheral_state == EMG_PERIPH_READY;
 			}
 			break;
+
+		case EMG_STATE_DEINIT:
+			if(emg_timer >=EMG_DEINIT_PERIOD )
+			{
+				emg_timer = 0;
+				disable_i2c2();
+				emg_state = EMG_STATE_RECOVER;
+			}
+			break;
+		case EMG_STATE_RECOVER:
+			if(emg_timer == EMG_DEINIT_PERIOD)
+			{
+				init_i2c2();
+			}
+			else if(emg_timer>= EMG_DEINIT_PERIOD*2)
+			{
+				emg_timer = 0;
+				emg_state = EMG_STATE_WAIT;
+			}
+			break;
 		default:
 			break;
 	}
-
 		emg_timer++;
 }
 

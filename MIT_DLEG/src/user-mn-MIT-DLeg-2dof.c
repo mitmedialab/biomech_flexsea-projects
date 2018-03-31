@@ -40,13 +40,12 @@
 #include "flexsea_system.h"
 #include "flexsea_cmd_calibration.h"
 #include "flexsea_user_structs.h"
+#include "arm_math.h"
+//#include "software_filter.h"
+#include "hardware_filter.h"
 #include <flexsea_comm.h>
 #include <math.h>
 
-
-
-#include "mit_filters.h"
-#include "arm_math.h"
 
 //****************************************************************************
 // Variable(s)
@@ -99,11 +98,7 @@ static const float nScrew = N_SCREW;
 
 static const float jointMinSoft = JOINT_MIN_SOFT;
 static const float jointMaxSoft = JOINT_MAX_SOFT;
-
-static float k1 = 0, k2 =0, b= 0, theta_input =0;
-
-//struct act_s act1;		//actuator sensor structure declared extern in flexsea_user_structs
-				//defined in state_machine.c
+static const float bLimit		= B_ANGLE_LIMIT;
 
 struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
 
@@ -149,8 +144,7 @@ void MIT_DLeg_fsm_1(void)
 				fsm1State = 0;
 				time = 0;
 			}
-
-			//testing purposes only
+			//for testing
 //			fsm1State = 0;
 
 			break;
@@ -161,7 +155,7 @@ void MIT_DLeg_fsm_1(void)
 
 			//reserve for additional initialization
 
-			// to use filter on data use this:
+			// to use hardware filter on data use this:
 			// init_LPF();
 			// filter_LPF(rigid1.mn.accel.x);
 			// lpf_result;  // this is the result value. Currently returning values with high offset
@@ -173,57 +167,43 @@ void MIT_DLeg_fsm_1(void)
 
 		case 1:
 			{
-				float torqueDes = 0;
 
 				//populate rigid1.mn.genVars to send to Plan
 				packRigidVars(&act1);
 
 				//begin safety check
 			    if (safetyShutoff()) {
-//			    	/*motor behavior changes based on failure mode.
-//			    	  Bypasses the switch statement if return true
-//			    	  but sensors check still runs and has a chance
-//			    	  to allow code to move past this block.
-//			    	  Only update the walking FSM, but don't output torque.
-//			    	*/
+			    	/*motor behavior changes based on failure mode.
+			    	  Bypasses the switch statement if return true
+			    	  but sensors check still runs and has a chance
+			    	  to allow code to move past this block.
+			    	  Only update the walking FSM, but don't output torque.
+			    	*/
 			    	stateMachine.current_state = STATE_LATE_SWING;
 			    	runFlatGroundFSM(&act1);
-//
+
 			    	return;
-//
+
 			    } else {
-//
 
-					//Testing functions
-//			    	k1 = user_data_1.w[0]/1000.;
-//			    	k2 = user_data_1.w[1]/1000.;
-//			    	b = user_data_1.w[2]/1000.;
-//			    	theta_input = user_data_1.w[3];
-
-			    	//important slowdown to get rid of high frequency noise
-
-			    	//K1, K2, B, Theta
-//			    	biomCalcImpedance( float k1, float k2, float b, float theta_set)
-			    	//act1.tauDes = biomCalcImpedance(user_data_1.w[0]/1000. , user_data_1.w[1]/1000., user_data_1.w[2]/1000., user_data_1.w[3]);
+			    	stateMachine.current_state = STATE_LATE_SWING;
 
 			    	runFlatGroundFSM(&act1);
-						setMotorTorque(&act1, act1.tauDes);
+					setMotorTorque(&act1, act1.tauDes);
 
+
+
+					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*10.0); //deg
+					rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
+					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
+					rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
+					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
+					rigid1.mn.genVar[6] = (int16_t) (act1.jointTorqueRate*100.0); //Nm/s
+					rigid1.mn.genVar[7] = (int16_t) (estGains.k1*100.0); //Nm/deg
+					rigid1.mn.genVar[8] = stateMachine.current_state;
+					rigid1.mn.genVar[9] = walkParams.transition_id; //deg
 
 			    }
-
-				rigid1.mn.genVar[0] = isSafetyFlag;
-				rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*10.0); //deg
-				rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
-				rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
-				rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
-				rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
-				rigid1.mn.genVar[6] = (int16_t) (act1.jointTorqueRate*100.0); //Nm/s
-				rigid1.mn.genVar[7] = (int16_t) (estGains.k1*100.0); //Nm/deg
-				rigid1.mn.genVar[8] = stateMachine.current_state;
-				rigid1.mn.genVar[9] = act1.transition_id; //deg
-
-
 
 
 				break;
@@ -270,10 +250,10 @@ int8_t safetyShutoff(void) {
 				isSafetyFlag = SAFETY_OK;
 				break;
 			} else {
-				setMotorCurrent(0); // turn off motor. might need something better than this.
+				// do nothing. Clamping is handled in setMotorTorque();
 			}
 
-			return 1;
+			return 0; //continue running FSM
 			
 		case SAFETY_TORQUE:
 
@@ -283,7 +263,7 @@ int8_t safetyShutoff(void) {
 				break;
 			} else {
 				// This could cause trouble, but seems more safe than an immediate drop in torque. Instead, reduce torque.
-				setMotorCurrent(0); // zero motor current, but still update FSM demanded torque in EST for the next period
+				setMotorTorque(&act1, act1.tauDes * 0.5); // reduce desired torque by 25%
 			}
 
 			return 1;
@@ -318,18 +298,15 @@ void updateSensorValues(struct act_s *actx)
 {
 	getJointAngleKinematic(actx);
 
-	//actx->jointAngle = joint[0]; //*(pjointKinematic + 0);
 	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
-	//actx->jointVel = joint[1];
 	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
-	//actx->jointAcc = joint[2]; //*(pjointKinematic + 2);
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
 	actx->axialForce = 0.8*actx->axialForce + 0.2*getAxialForce();
 
 	actx->jointTorque = getJointTorque(actx);
 
 	updateJointTorqueRate(actx);
-	//actx->jointTorqueRate = getJointTorqueRate(actx);
+	//actx->jointTorqueRate = windowJointTorqueRate(actx);
 
 	actx->motorVel =  *rigid1.ex.enc_ang_vel / 16.384 * angleUnit;	// rad/s
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
@@ -377,7 +354,6 @@ void getJointAngleKinematic(struct act_s *actx)
 	static int32_t jointAngleCntsAbsolute = 0;
 	static float last_jointVel;
 	static float jointAngleAbsolute = 0;
-	//int32_t jointVel = 0;
 
 	//ANGLE
 	//Configuration orientation
@@ -389,16 +365,8 @@ void getJointAngleKinematic(struct act_s *actx)
 	jointAngleCntsAbsolute = JOINT_ANGLE_DIR * ( jointZeroAbs + JOINT_ENC_DIR * (*(rigid1.ex.joint_ang)) );
 	jointAngleAbsolute = jointAngleCnts  * (angleUnit)/JOINT_CPR;
 
-	//Check angle limits, raise flag for safety check
-	if(jointAngleAbsolute <= jointMinSoft  || jointAngleAbsolute >= jointMaxSoft) {
-		isSafetyFlag = SAFETY_ANGLE;
-		isAngleLimit = 1;		//these are all redundant, choose if we want the struct thing.
-	} else {
-		isAngleLimit = 0;
-	}
-
 	//VELOCITY
-	//joint[1] = JOINT_ANGLE_DIR * JOINT_ENC_DIR * windowSmoothJoint(*(rigid1.ex.joint_ang_vel)) * (angleUnit)/JOINT_CPR * SECONDS;
+//	actx->jointVel = JOINT_ANGLE_DIR * JOINT_ENC_DIR * windowSmoothJoint(*(rigid1.ex.joint_ang_vel)) * (angleUnit)/JOINT_CPR * SECONDS;
 	actx->jointVel = 0.8*actx->jointVel + 0.2*(1000.0*(actx->jointAngle - actx->lastJointAngle));
 
 	//ACCEL  -- todo: check to see if this works
@@ -413,79 +381,7 @@ void getJointAngleKinematic(struct act_s *actx)
 }
 
 
-
-/* NOT WORKING!!
- * Simple Kalman Filter for Signals
- * http://home.wlu.edu/~levys/kalman_tutorial/
- * // a = update trust gain, r = noise
- * NOT WORKING!!! seems like it should, but it just drives to zero.
- */
-float kalmanFilter(float vel, float a, float r)
-{
-	static uint8_t init = 0;
-	static float xhat = 0., p = 1., g=0., z=0.;
-
-	// Observe
-	z = vel;
-
-	if (init == 0)
-	{
-		xhat = z;
-		p = 1.;
-		init = 1;
-	}
-
-    // Predict
-    xhat = a * xhat;
-    p    = a * p * a;
-
-    // Update
-    g    = p  / (p  + r);
-    xhat = xhat + g * (z - xhat);
-    p    = (1. - g) * p;
-
-	return xhat;
-}
-
-/*
- * Try filtering, with some sort of polynomial trust gain thing, a
- */
-float signalFilterSlope(float value, float a, float limit)
-{
-	const int8_t len = 5;
-	const int8_t end = len -1;
-	static float array[5];
-	static float slope[5-1];
-	static float slopeMean =0;
-
-	array[0] = value;
-
-	for (int8_t i = end; i > 0; i--)
-	{
-		slope[i] = array[i-1] - array[i];
-		slopeMean += slope[i]/len;
-	}
-
-
-	if (abs(slope[0] - slopeMean) >= limit )
-	{
-//		array[0] = a * array[0] + a*a* (array[1]) + a*a*a * array[2];
-		array[0] = (array[1]+array[len])/2;
-	}
-
-	//shift all the values to the end of the array
-	for (int8_t i = end; i > 0 ; i--)
-	{
-		array[i] = array[i-1];
-	}
-
-	return array[1];
-
-}
-
-
 // Output axial force on screw, Returns [Newtons]
-// todo: consider averaging samples during operation, may smooth torque control, also introduces delay, of course.
 float getAxialForce(void)
 {
 	static int8_t tareState = -1;
@@ -505,7 +401,7 @@ float getAxialForce(void)
 
 			if(timer <= numSamples) {
 				strainReading = (rigid1.ex.strain);
-				tareOffset += strainReading/numSamples;
+				tareOffset += ((float) strainReading)/numSamples;
 			} else {
 				tareState = 0;
 			}
@@ -589,26 +485,26 @@ float getJointTorque(struct act_s *actx)
  *  input:	struct act_s
  *  return: joint torque rate [Nm/s]
  */
-//float getJointTorqueRate(struct act_s *actx) {
-//	#define TR_WINDOW_SIZE 3
-//
-//	static int8_t index = -1;
-//	static float window[TR_WINDOW_SIZE];
-//	static float average = 0;
-//	static float previousTorque = 0;
-//	float currentRate = 0;
-//
-//	index = (index + 1) % TR_WINDOW_SIZE;
-//	currentRate = (actx->jointTorque - previousTorque)*SECONDS;
-//	average -= window[index]/TR_WINDOW_SIZE;
-//	window[index] = currentRate;
-//	average += window[index]/TR_WINDOW_SIZE;
-//
-//	previousTorque = actx->jointTorque;
-//
-//	return average;
-//
-//}
+float windowJointTorqueRate(struct act_s *actx) {
+	#define TR_WINDOW_SIZE 3
+
+	static int8_t index = -1;
+	static float window[TR_WINDOW_SIZE];
+	static float average = 0;
+	static float previousTorque = 0;
+	float currentRate = 0;
+
+	index = (index + 1) % TR_WINDOW_SIZE;
+	currentRate = (actx->jointTorque - previousTorque)*SECONDS;
+	average -= window[index]/TR_WINDOW_SIZE;
+	window[index] = currentRate;
+	average += window[index]/TR_WINDOW_SIZE;
+
+	previousTorque = actx->jointTorque;
+
+	return average;
+
+}
 
 void updateJointTorqueRate(struct act_s *actx){
 
@@ -664,8 +560,40 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 //		I += motSticPos;
 //	}
 
+	//Soft angle limits with virtual spring. Raise flag for safety check.
+	if (actx->jointAngleDegrees <= jointMinSoft  || actx->jointAngleDegrees >= jointMaxSoft) {
+
+		isSafetyFlag = SAFETY_ANGLE;
+		isAngleLimit = 1;		//these are all redundant
+
+		float angleDiff = actx->jointAngleDegrees - jointMinSoft;
+
+		//Oppose motion using linear spring with damping
+		if (actx->jointAngleDegrees - jointMinSoft < 0) {
+
+			if (abs(angleDiff) < 5) {
+				I = currentOpLimit*(abs(angleDiff)/5) - bLimit*actx->jointVelDegrees;
+			} else {
+				I = currentOpLimit - bLimit*actx->jointVelDegrees;
+			}
+
+		} else if (actx->jointAngleDegrees - jointMaxSoft > 0) {
+
+			if (abs(angleDiff) < 5) {
+				I = -currentOpLimit*(abs(angleDiff)/5) - bLimit*actx->jointVelDegrees;
+			} else {
+				I = -currentOpLimit - bLimit*actx->jointVelDegrees;
+			}
+		}
+
+	} else {
+
+		isAngleLimit = 0;
+
+	}
+
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
-	if(I > currentOpLimit )
+	if (I > currentOpLimit)
 	{
 		I = currentOpLimit;
 	} else if (I < -currentOpLimit)
@@ -689,7 +617,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
  * 			k1,k2,b, impedance parameters
  * return: 	tor_d, desired torque
  */
-float biomCalcImpedance( float k1, float k2, float b, float theta_set)
+float biomCalcImpedance(float k1, float k2, float b, float theta_set)
 {
 	float theta = 0, theta_d = 0;
 	float tor_d = 0;
@@ -770,31 +698,33 @@ void packRigidVars(struct act_s *actx) {
 }
 
 float windowSmoothJoint(int16_t val) {
-	const uint8_t windowSize = 5;
+	#define JOINT_WINDOW_SIZE 5
+
 	static int8_t index = -1;
-	float window[windowSize];
-	float average = 0;
+	static float window[JOINT_WINDOW_SIZE];
+	static float average = 0;
 
 
-	index = (index + 1) % windowSize;
-	average -= window[index]/windowSize;
+	index = (index + 1) % JOINT_WINDOW_SIZE;
+	average -= window[index]/JOINT_WINDOW_SIZE;
 	window[index] = (float) val;
-	average += window[index]/windowSize;
+	average += window[index]/JOINT_WINDOW_SIZE;
 
 	return average;
 }
 
 float windowSmoothAxial(float val) {
-	const uint8_t windowSize = 5;
+	#define AXIAL_WINDOW_SIZE 5
+
 	static int8_t index = -1;
-	float window[windowSize];
-	float average = 0;
+	static float window[AXIAL_WINDOW_SIZE];
+	static float average = 0;
 
 
-	index = (index + 1) % windowSize;
-	average -= window[index]/windowSize;
-	window[index] = (float) val;
-	average += window[index]/windowSize;
+	index = (index + 1) % AXIAL_WINDOW_SIZE;
+	average -= window[index]/AXIAL_WINDOW_SIZE;
+	window[index] = val;
+	average += window[index]/AXIAL_WINDOW_SIZE;
 
 	return average;
 }
