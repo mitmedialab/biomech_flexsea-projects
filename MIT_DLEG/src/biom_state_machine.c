@@ -62,10 +62,11 @@ void runFlatGroundFSM(struct act_s *actx) {
     static uint32_t time_in_state = 0;
 
 
-    writeVars(actx);
     if (!actx->initializedStateMachineVariables){
     	initializeUserWrites(actx);
     }
+    writeVars(actx);
+
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
     actx->tauDes = 0;
