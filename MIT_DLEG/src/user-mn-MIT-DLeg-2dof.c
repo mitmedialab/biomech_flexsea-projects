@@ -98,6 +98,8 @@ static const float nScrew = N_SCREW;
 
 static const float jointMinSoft = JOINT_MIN_SOFT;
 static const float jointMaxSoft = JOINT_MAX_SOFT;
+static const float jointMinSoftDeg = JOINT_MIN_SOFT * DEG_PER_RAD;
+static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
 static const float bLimit		= B_ANGLE_LIMIT;
 
 struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
@@ -179,21 +181,27 @@ void MIT_DLeg_fsm_1(void)
 			    	  to allow code to move past this block.
 			    	  Only update the walking FSM, but don't output torque.
 			    	*/
-			    	stateMachine.current_state = STATE_LATE_SWING;
-			    	runFlatGroundFSM(&act1);
+//			    	stateMachine.current_state = STATE_LATE_SWING;
+//			    	runFlatGroundFSM(&act1);
 
 			    	return;
 
 			    } else {
 
-			    	stateMachine.current_state = STATE_LATE_SWING;
+//			    	stateMachine.current_state = STATE_LATE_SWING;
+//
+//			    	runFlatGroundFSM(&act1);
 
-			    	runFlatGroundFSM(&act1);
-					setMotorTorque(&act1, act1.tauDes);
+			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
+
+			    	if (user_data_1.w[9] > 0) {
+			    		setMotorTorque(&act1, act1.tauDes);
+			    	}
 
 
 
-					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*10.0); //deg
+
+					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
 					rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
 					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
 					rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
@@ -358,16 +366,15 @@ void getJointAngleKinematic(struct act_s *actx)
 	//ANGLE
 	//Configuration orientation
 	jointAngleCnts = JOINT_ANGLE_DIR * ( jointZero + JOINT_ENC_DIR * (*(rigid1.ex.joint_ang)) );
-	actx->jointAngle = jointAngleCnts  * (angleUnit)/JOINT_CPR;
-
+	actx->jointAngle = 0.8*actx->jointAngle + 0.2*jointAngleCnts  * (angleUnit)/JOINT_CPR;
 
 	//Absolute orientation to evaluate against soft-limits
 	jointAngleCntsAbsolute = JOINT_ANGLE_DIR * ( jointZeroAbs + JOINT_ENC_DIR * (*(rigid1.ex.joint_ang)) );
 	jointAngleAbsolute = jointAngleCnts  * (angleUnit)/JOINT_CPR;
 
 	//VELOCITY
-//	actx->jointVel = JOINT_ANGLE_DIR * JOINT_ENC_DIR * windowSmoothJoint(*(rigid1.ex.joint_ang_vel)) * (angleUnit)/JOINT_CPR * SECONDS;
 	actx->jointVel = 0.8*actx->jointVel + 0.2*(1000.0*(actx->jointAngle - actx->lastJointAngle));
+
 
 	//ACCEL  -- todo: check to see if this works
 	actx->jointAcc = (( actx->jointVel - last_jointVel )) * (angleUnit)/JOINT_CPR * SECONDS;
@@ -561,26 +568,30 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 //	}
 
 	//Soft angle limits with virtual spring. Raise flag for safety check.
-	if (actx->jointAngleDegrees <= jointMinSoft  || actx->jointAngleDegrees >= jointMaxSoft) {
+	if (actx->jointAngleDegrees <= jointMinSoftDeg  || actx->jointAngleDegrees >= jointMaxSoftDeg) {
 
 		isSafetyFlag = SAFETY_ANGLE;
 		isAngleLimit = 1;		//these are all redundant
 
-		float angleDiff = actx->jointAngleDegrees - jointMinSoft;
+		float angleDiff = 0;
 
 		//Oppose motion using linear spring with damping
-		if (actx->jointAngleDegrees - jointMinSoft < 0) {
+		if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
 
-			if (abs(angleDiff) < 5) {
-				I = currentOpLimit*(abs(angleDiff)/5) - bLimit*actx->jointVelDegrees;
+			angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
+
+			if (abs(angleDiff) < 10) {
+				I = currentOpLimit*(abs(angleDiff)/10.) - bLimit*actx->jointVelDegrees;
 			} else {
 				I = currentOpLimit - bLimit*actx->jointVelDegrees;
 			}
 
-		} else if (actx->jointAngleDegrees - jointMaxSoft > 0) {
+		} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
 
-			if (abs(angleDiff) < 5) {
-				I = -currentOpLimit*(abs(angleDiff)/5) - bLimit*actx->jointVelDegrees;
+			angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
+
+			if (abs(angleDiff) < 10) {
+				I = -currentOpLimit*(abs(angleDiff)/10.) - bLimit*actx->jointVelDegrees;
 			} else {
 				I = -currentOpLimit - bLimit*actx->jointVelDegrees;
 			}
@@ -697,7 +708,7 @@ void packRigidVars(struct act_s *actx) {
     //userVar[6] = tauDes (impedance controller - spring contribution)
 }
 
-float windowSmoothJoint(int16_t val) {
+float windowSmoothJoint(int32_t val) {
 	#define JOINT_WINDOW_SIZE 5
 
 	static int8_t index = -1;

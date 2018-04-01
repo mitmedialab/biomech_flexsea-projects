@@ -26,7 +26,7 @@ GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple impleme
 GainParams lstPowerGains = {4.5, 0.0, 0.2, JNT_ORIENT * -14};
 
 GainParams emgStandGains = {2, 0.025, 0.04, 0};
-GainParams emgFreeGains  = {0.5, 0, 0.02, 0};
+GainParams emgFreeGains  = {1.2, 0, 0.02, 0};
 
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE

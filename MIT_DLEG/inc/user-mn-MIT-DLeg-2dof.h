@@ -85,7 +85,7 @@ void  setMotorTorque(struct act_s *actx, float tor_d);
 void  packRigidVars(struct act_s *actx);
 
 //Smoothing
-float windowSmoothJoint(int16_t val);
+float windowSmoothJoint(int32_t val);
 float windowSmoothAxial(float val);
 
 //Main FSMs
@@ -134,8 +134,8 @@ void torqueSweepTest(struct act_s *actx);
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
 #define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
 #define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
-#define JOINT_MIN_ABS		11790		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
-#define JOINT_MAX_ABS		6195		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
+#define JOINT_MIN_ABS		9800		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
+#define JOINT_MAX_ABS		4650		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
 #define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
 #define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
 
@@ -236,7 +236,7 @@ void torqueSweepTest(struct act_s *actx);
 //Joint software limits [Degrees]
 #ifdef IS_ANKLE
 #define JOINT_MIN_SOFT		-25	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
-#define JOINT_MAX_SOFT		65	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
+#define JOINT_MAX_SOFT		45	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
 #endif
 
 #ifdef IS_KNEE
@@ -249,7 +249,7 @@ void torqueSweepTest(struct act_s *actx);
 #define MOTOR_TEMP_LIMIT_INIT	70
 #define ABS_TORQUE_LIMIT_INIT	30	    // Joint torque [Nm]
 #define CURRENT_LIMIT_INIT		40000		// [mA] useful in this form, 40000 max
-#define B_ANGLE_LIMIT			CURRENT_LIMIT_INIT/5000.
+#define B_ANGLE_LIMIT			CURRENT_LIMIT_INIT/2000.
 
 // Motor Temp Sensor
 #define V25_TICKS		943		//760mV/3.3V * 4096 = 943
