@@ -67,6 +67,10 @@
 extern int32_t EMGavgs[2];
 extern float PFDF_state[3];
 extern float equilibriumAngle;
+extern float emgInMax;
+extern float dpOnThresh;
+extern float LGact;
+extern float TAact;
 
 //****************************************************************************
 // Public Function Prototype(s):

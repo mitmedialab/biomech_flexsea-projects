@@ -63,6 +63,9 @@ float gainLG = GAIN_LG;
 float gainTA = GAIN_TA;
 float emgInMax = EMG_IN_MAX;
 
+float LGact = 0;
+float TAact = 0;
+
 //Constants for tuning the controller
 float pfTorqueGain = PF_TORQUE_GAIN;
 float dfTorqueGain = DF_TORQUE_GAIN;
@@ -111,13 +114,13 @@ void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an inte
 {
 	//limit maximum emg_data in case something goes wrong
 	for (uint8_t i = 0; i < (sizeof(emg_data)/sizeof(emg_data[0])); i++) {
-		if (emg_data[i] > EMG_IN_MAX) {
+		if (emg_data[i] > emgInMax) {
 			emg_data[i] = emgInMax;
 		}
 	}
 
 	//5ms moving average
-	int16_t EMGin_LG = windowSmoothEMG0(emg_data[7]); //SEONGS BOARD LG_VAR gastroc, 0-10000
+	int16_t EMGin_LG = windowSmoothEMG0(emg_data[6]); //SEONGS BOARD LG_VAR gastroc, 0-10000. CHANGE FOR USER
 	int16_t EMGin_TA = windowSmoothEMG1(emg_data[0]); //SEONGS BOARD TA_VAR tibialis anterior, 0-10000
 
 	gainLG = user_data_1.w[0]/100.;
@@ -136,8 +139,6 @@ void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an inte
 //updates PFDF_state[] based on EMG activation
 void interpret_EMG (float k, float b, float J)
 {
-	float LGact = 0;
-	float TAact = 0;
 	float TALG_diff = 0;
 	float Torque_PFDF = 0;
 	float activationThresh = dpOnThresh * emgInMax;
@@ -152,12 +153,16 @@ void interpret_EMG (float k, float b, float J)
 	if (EMGavgs[0] > activationThresh)
 	{
 		LGact = ((float)EMGavgs[0] - activationThresh) / (emgInMax - activationThresh); //scaled activation 0-1
+	} else {
+		LGact = 0;
 	}
 
 	// Calculate TA activation
 	if (EMGavgs[1] > activationThresh)
 	{
 		TAact = ((float)EMGavgs[1] - activationThresh) / (emgInMax - activationThresh);
+	} else {
+		TAact = 0;
 	}
 
 	// PF/DF Calc

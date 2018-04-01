@@ -83,6 +83,7 @@ extern Act_s act1;
 //****************************************************************************
 
 void runFlatGroundFSM(Act_s *actx);
+float calcEMGPPF(Act_s *actx, WalkParams *wParam);
 
 #endif //BIOM_STATE_MACHINE
 #endif //(INCLUDE_UPROJ_MIT_DLEG && BOARD_TYPE_FLEXSEA_MANAGE) || BOARD_TYPE_FLEXSEA_PLAN

@@ -247,7 +247,7 @@ void torqueSweepTest(struct act_s *actx);
 //Safety limits
 #define PCB_TEMP_LIMIT_INIT		70
 #define MOTOR_TEMP_LIMIT_INIT	70
-#define ABS_TORQUE_LIMIT_INIT	30	    // Joint torque [Nm]
+#define ABS_TORQUE_LIMIT_INIT	70	    // Joint torque [Nm]
 #define CURRENT_LIMIT_INIT		40000		// [mA] useful in this form, 40000 max
 #define B_ANGLE_LIMIT			CURRENT_LIMIT_INIT/2000.
 

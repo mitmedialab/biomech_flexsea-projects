@@ -181,22 +181,20 @@ void MIT_DLeg_fsm_1(void)
 			    	  to allow code to move past this block.
 			    	  Only update the walking FSM, but don't output torque.
 			    	*/
-//			    	stateMachine.current_state = STATE_LATE_SWING;
-//			    	runFlatGroundFSM(&act1);
+			    	stateMachine.current_state = STATE_LATE_SWING;
+			    	runFlatGroundFSM(&act1);
 
 			    	return;
 
 			    } else {
 
-//			    	stateMachine.current_state = STATE_LATE_SWING;
-//
-//			    	runFlatGroundFSM(&act1);
+			    	runFlatGroundFSM(&act1);
 
-			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
+//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
-			    	if (user_data_1.w[9] > 0) {
+//			    	if (user_data_1.w[9] > 0) {
 			    		setMotorTorque(&act1, act1.tauDes);
-			    	}
+//			    	}
 
 
 
