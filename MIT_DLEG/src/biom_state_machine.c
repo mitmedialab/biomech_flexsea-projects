@@ -17,6 +17,7 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
+// {K1, K2, B, ThetaDesired}
 GainParams eswGains = {6.0, 0.0, 0.2, -10.0};	// goldfarb setpt = 23
 GainParams lswGains = {3.0, 0.0, 0.2, 0.0}; // goldfarb setpt = 2
 GainParams estGains = {0.0, 0.0, 0.05, 0.0};
@@ -69,7 +70,7 @@ void runFlatGroundFSM(struct act_s *actx) {
 
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
-    actx->tauDes = 0;
+    actx->tauDes = 0;	//todo: might want to pull this out reseting torque may be part of harder transitions.
 
     // Check for state change, then set isTransitioning flag
     if (stateMachine.current_state == stateMachine.last_sm_state) {
@@ -122,7 +123,7 @@ void runFlatGroundFSM(struct act_s *actx) {
 
         	}
         	//actx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;
-            updateVirtualHardstopTorque(actx);
+            updateVirtualHardstopTorque(actx);		//todo: could be needing to set gains higher if we are fighting this hardstop gain, consider moving the hardstop set point
 
             actx->tauDes = calcJointTorque(lswGains, actx);
 
@@ -140,7 +141,7 @@ void runFlatGroundFSM(struct act_s *actx) {
 					actx->transition_id = 2;
 				}
 				// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
-				else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){
+				else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){			//todo: adjust to JNT_ORIENT* angle > thresh
 					stateMachine.current_state = STATE_EARLY_STANCE;
 					actx->transition_id = 3;
 				}
@@ -183,7 +184,7 @@ void runFlatGroundFSM(struct act_s *actx) {
             	stateMachine.current_state = STATE_LATE_STANCE;      //Transition occurs even if the early swing motion is not finished
             }
             // VECTOR (A): Early Stance -> Late Stance (toe strike) - Condition 2
-            else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){
+            else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH){		// todo: maybe change this condition to allow leaning forward without PPF
                 stateMachine.current_state = STATE_LATE_STANCE;
             }
 
@@ -206,7 +207,7 @@ void runFlatGroundFSM(struct act_s *actx) {
 
             // VECTOR (1): Late Stance -> Late Stance POWER
 //            if (actx->jointAngleDegrees < LSTPWR_HS_ANGLE_TRIGGER_THRESH ) {
-            if (actx->jointTorque > actx->lspEngagementTorque) {
+            if (actx->jointTorque > actx->lspEngagementTorque) {		// todo: this might be where to include volitional signal to switch to PPF
             	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
             }
 
