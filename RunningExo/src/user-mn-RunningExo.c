@@ -26,7 +26,7 @@
 // Include(s)
 //****************************************************************************
 //#include "stdbool.h"
-#include <math.h>
+//#include <math.h>
 #include "user-mn.h"
 #include "user-mn-ActPack.h"
 #include "flexsea_sys_def.h"
