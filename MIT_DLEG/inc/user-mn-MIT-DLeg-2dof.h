@@ -109,8 +109,8 @@ void torqueSweepTest(struct act_s *actx);
 //#define IS_KNEE
 
 //2. Select device
-//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
+#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+//#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
 //#define DEVICE_TF08_K01		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_K02		// Define specific actuator configuration. Knee 02
 
@@ -135,8 +135,11 @@ void torqueSweepTest(struct act_s *actx);
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
 #define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
 #define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
-#define JOINT_MIN_ABS		11790		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
-#define JOINT_MAX_ABS		6195		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
+//#define JOINT_MIN_ABS		11790		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
+#define JOINT_MIN_ABS		9800		// Absolute encoder at MIN for TF08 A01(Max dorsiflexion, 30Deg)
+
+//#define JOINT_MAX_ABS		6195		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
+#define JOINT_MAX_ABS		4650		// Absolute encoder reading at MAX for TF08 A01 (Max Plantarflexion, 90Deg)
 #define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
 #define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
 
@@ -242,7 +245,8 @@ void torqueSweepTest(struct act_s *actx);
 
 #ifdef IS_KNEE
 #define JOINT_MIN_SOFT		-20	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg extension
-#define JOINT_MAX_SOFT		20	* (ANG_UNIT)/360	// [deg] Actuator physical limit max = +90deg flexion
+//#define JOINT_MAX_SOFT		20	* (ANG_UNIT)/360	// [deg] Actuator physical limit max = +90deg flexion
+#define JOINT_MAX_SOFT		45	* (ANG_UNIT)/360        //For TF08 A01
 #endif
 
 //Safety limits

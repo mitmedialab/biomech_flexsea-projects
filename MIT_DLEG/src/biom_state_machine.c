@@ -299,7 +299,7 @@ static float calcJointTorque(GainParams gainParams, struct act_s *actx) {
 
 static void writeVars(struct act_s *actx){
 	   //eswGains.thetaDes  = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;   					//-10 x 1				//0.05 x 100
-	actx->earlyStanceKF = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;
+		actx->earlyStanceKF = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;
 		eswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
 	    lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
 	    lswGains.k2 = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
