@@ -19,11 +19,11 @@ Act_s act1;
 WalkParams walkParams;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {3.0, 0.0, 0.2, -10.0};
-GainParams lswGains = {1.5, 0.0, 0.2, 0.0};
+GainParams eswGains = {6.0, 0.0, 0.2, -10.0};
+GainParams lswGains = {3.0, 0.0, 0.2, 0.0};
 GainParams estGains = {0.0, 0.0, 0.05, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
-GainParams lstPowerGains = {4.5, 0.0, 0.2, JNT_ORIENT * -14};
+GainParams lstPowerGains = {4.5, 0.0, 0.1, JNT_ORIENT * -14};
 
 GainParams emgStandGains = {2, 0.025, 0.04, 0};
 GainParams emgFreeGains  = {1.2, 0, 0.02, 0};
@@ -345,41 +345,35 @@ static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wPa
 
 static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 
-    eswGains.thetaDes  = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;   					//-10 x 1
-    wParams->lstPGDelTics = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//1 x 100
-    lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;					//0.2 x 100
-    wParams->earlyStanceDecayConstant = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
-    estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
-    wParams->virtualHardstopK = ((float) user_data_1.w[5])/OUTPUT_DIVISOR5;				//70 x 100
-    wParams->virtualHardstopEngagementAngle = ((float) user_data_1.w[6])/OUTPUT_DIVISOR6;	//0.0 x 1
-    lstPowerGains.thetaDes = ((float) user_data_1.w[7])/OUTPUT_DIVISOR7;				//18.0 x 1
-    lstPowerGains.k1 = ((float) user_data_1.w[8])/OUTPUT_DIVISOR8; 						//4.5 x 100
-    wParams->lspEngagementTorque = ((float) user_data_1.w[9])/OUTPUT_DIVISOR9;				//45 x 1
-
-//    lswGains.k1 = ((float) user_data_1.w[7])/OUTPUT_DIVISOR7;				//6.0 x 100
-//    eswGains.k1 = ((float) user_data_1.w[8])/OUTPUT_DIVISOR8; 			//3.0 x 100
-//    eswGains.b = ((float) user_data_1.w[9])/OUTPUT_DIVISOR9;				//0.2 x 100
+	wParams->earlyStanceKF = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;
+	eswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
+	lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
+	lswGains.k2 = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
+	estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
+	wParams->virtualHardstopK = ((float) user_data_1.w[5])/OUTPUT_DIVISOR5;				//7 x 100
+	wParams->virtualHardstopEngagementAngle = ((float) user_data_1.w[6])/OUTPUT_DIVISOR6;	//0.0 x 1
+	lstPowerGains.thetaDes = ((float) user_data_1.w[7])/OUTPUT_DIVISOR7;				//18.0 x 1
+	lstPowerGains.k1 = ((float) user_data_1.w[8])/OUTPUT_DIVISOR8; 						//4.5 x 100
+	wParams->lspEngagementTorque = ((float) user_data_1.w[9])/OUTPUT_DIVISOR9;				//45 x 1
 }
 
 static void initializeUserWrites(WalkParams *wParams){
 
 	wParams->earlyStanceK0 = 5.23;
 	wParams->earlyStanceKF = 0.05;
+	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
+	walkParams.lstPGDelTics = 1;
 
-
-	user_data_1.w[0] = -10;
-	user_data_1.w[1] = 100;
+	user_data_1.w[0] = 100;
+	user_data_1.w[1] = 150;
 	user_data_1.w[2] = 20;
-	user_data_1.w[3] = 9950;
+	user_data_1.w[3] = 100;
 	user_data_1.w[4] = 10;
-	user_data_1.w[5] = 2000; //Jim's was defaulted to 700;
+	user_data_1.w[5] = 700; //Jim's was defaulted to 700;
 	user_data_1.w[6] = 0;
 	user_data_1.w[7] = 14;
 	user_data_1.w[8] = 450;
-	user_data_1.w[9] = 70; //Jim's default was 45
-//	user_data_1.w[7] = 300;
-//	user_data_1.w[8] = 600;
-//	user_data_1.w[9] = 20;
+	user_data_1.w[9] = 45; //Jim's default was 45
 
 	wParams->initializedStateMachineVariables = 1;
 }

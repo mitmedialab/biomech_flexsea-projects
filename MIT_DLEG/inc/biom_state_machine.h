@@ -52,10 +52,10 @@ extern "C" {
 #define PFF_DELAY_SAMPLES				300
 #define PFF_ANGLE_THRESH_DEG			5 		//pff angle thresh
 
-#define OUTPUT_DIVISOR0			1
+#define OUTPUT_DIVISOR0			100
 #define OUTPUT_DIVISOR1			100
 #define OUTPUT_DIVISOR2			100
-#define OUTPUT_DIVISOR3			10000
+#define OUTPUT_DIVISOR3			100
 #define OUTPUT_DIVISOR4			100
 #define OUTPUT_DIVISOR5			100
 #define OUTPUT_DIVISOR6			1
