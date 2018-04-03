@@ -91,6 +91,59 @@ struct runningExoSystemState runningExoState =
 #endif	//(CONTROL_STRATEGY == RUN_TORQUE_TRACKING)
 
 
+
+// parameters to track sensor values, actuate the motors
+struct actuation_parameters
+	{
+	 //exoskeleton parameter
+	float ankleTorqueMeasured;
+	float ankleTorqueDesired;
+	float ankleVel;
+	float ankleAcc;
+	float cableTensionForce;
+	//motor parameters
+	float motorTorqueMeasured;
+	float motorTorqueDesired;
+	int32_t motorCurrentMeasured;
+	int32_t motorCurrentDesired;	//mA
+	int32_t lastMotorPosition;
+	int32_t motorPosition;			//motor position [rad]
+	int32_t motorAngularVel;		//motor angular velocity [rad/s]
+	int32_t motorAngularAcc;		// motor angular acceleration [rad/s/s]
+	//control related parameters
+	float tauMeasured;          // feedback torque
+	float tauDesired;           // desired torque
+	float tauError;				//tauMeasured - tauDesired
+	//safety parameters
+	int32_t boardTemperature;	//get from temperature sensor on the FlexSEA board
+	int32_t safetyFlag;		//identify various safety problems
+	};
+
+
+
+// initialize parameters to track sensor values, actuate the motors
+	struct actuation_parameters act_para =
+	{
+	.ankleTorqueMeasured=0,.ankleTorqueDesired=0,.ankleVel=0,.ankleAcc=0,\
+	.cableTensionForce=0,.motorTorqueMeasured=0,.motorTorqueDesired=0,\
+	.motorCurrentMeasured=0,.motorCurrentDesired=0,.lastMotorPosition=0,\
+	.motorPosition=0,.motorAngularVel=0,.motorAngularAcc=0,.tauMeasured=0,\
+	.tauDesired=0,.tauError=0,.boardTemperature=0,.safetyFlag=0
+	}; 	//zero initialization
+
+//SAFETY FLAGS - in addition to enum, so can be cleared but don't lose other flags that may exist.
+	static int8_t isSafetyFlag = 0;
+	static int8_t isPositionLimit = 0;
+	static int8_t isTorqueLimit = 0;
+	static int8_t isCurrentLimit = 0;
+	static int8_t isAngularVelLimit = 0;
+	static int8_t isTempLimit = 0;
+
+	int8_t isEnabledUpdateSensors = 0;
+	int32_t currentOpLimit = MOTOR_CURRENT_LIMIT; 	//operational limit for current.
+
+
+
 //****************************************************************************
 // Private Function Prototype(s):
 //****************************************************************************
@@ -376,6 +429,97 @@ void checkInvalidGait(void)
 	}
 
 }
+
+
+/*
+ * Check for safety flags, and act on them.
+ * todo: come up with correct strategies to deal with flags, include thermal limits also
+ */
+int8_t safetyShutoff(void) {
+
+	switch(isSafetyFlag)
+
+	{
+		case SAFETY_OK:
+
+			return 0;
+
+		case SAFETY_TEMPERATURE:
+			//check if flag is not still active to be released, else do something about problem.
+			if( !isTempLimit )
+			{
+				currentOpLimit = MOTOR_CURRENT_LIMIT;		// return to full power todo: may want to gradually increase
+				isSafetyFlag = SAFETY_OK;
+				break;
+			}
+			else
+			{
+				if (currentOpLimit > 0)
+				{
+					currentOpLimit--;	//reduce current limit every cycle until we cool down.
+				}
+			}
+
+			return 0; //continue running FSM
+
+		case SAFETY_MOTOR_VELOCITY:
+					//check if flag is not still active to be released, else do something about problem.
+			if(!isAngularVelLimit)
+			{
+				isSafetyFlag = SAFETY_OK;
+				break;
+			}
+			else
+			{
+				setMotorCurrent(0); // this might happen when no load under torque control mode. turn off motor. might need something better than this.
+			}
+
+			return 1;
+
+		case SAFETY_MOTOR_POSITION:
+			//check if flag is not still active to be released, else do something about problem.
+			if(!isPositionLimit)
+			{
+				isSafetyFlag = SAFETY_OK;
+				break;
+			}
+			else
+			{
+				setMotorCurrent(0); // turn off motor. might need something better than this.
+			}
+
+			return 1;
+
+		case SAFETY_ANKLE_TORQUE:
+
+			//check if flag is not still active to be released, else do something about problem.
+			if(!isTorqueLimit)
+			{
+				isSafetyFlag = SAFETY_OK;
+				break;
+			}
+			else
+			{
+				setMotorTorque(&act1, 0); //run this in order to update torque genVars sent to Plan
+			}
+
+			return 1;
+
+
+		default:
+			return 1;
+	}
+
+
+	return 0;
+}
+
+
+
+
+
+
+
 
 #endif 	//defined BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
 

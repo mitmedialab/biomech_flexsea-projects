@@ -218,6 +218,7 @@ void stateTransition(void);
 #define MOTOR_TORQUE_MARGIN_FACTOR	1.2
 #define MAX_MOTOR_TORQUE_REQUIRED	(MOTOR_TORQUE_MARGIN_FACTOR*MAX_CABLE_TENSION_FORCE/(MOT_OUTPUT_SHAFT_DIAMETER/2))
 #define MAX_MOTOR_CURRENT	(1000*MAX_MOTOR_TORQUE_REQUIRED/MOT_KT)		//mA, 33.95 A--2.08 N.m
+#define	MOTOR_CURRENT_LIMIT		10000 //mA
 #define ENCODER_RESOLUTION_BIT		14		//AS5047P encoder resolution in bits.
 #define ENCODER_RESOLUTION			((uint16)pow(2,ENCODER_RESOLUTION_BIT)) // 16384, AS5047P encoder resolution in decimal.
 #define	ENCODER_CPR		ENCODER_RESOLUTION //16384, Counts per revolution
@@ -234,10 +235,12 @@ enum {
 	SAFETY_OK				=	0,
 	SAFETY_TEMPERATURE		=	1,
 	SAFETY_MOTOR_CURRENT	=	2,
-	SAFETY_MOTOR_SPEED		=	3,
+	SAFETY_MOTOR_VELOCITY	=	3,
 	SAFETY_MOTOR_POSITION	=	4,
 	SAFETY_ANKLE_TORQUE		=	5,
 	};
+
+
 
 
 //****************************************************************************
