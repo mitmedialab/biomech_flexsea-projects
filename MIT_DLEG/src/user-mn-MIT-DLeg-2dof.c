@@ -199,13 +199,13 @@ void MIT_DLeg_fsm_1(void)
 
 
 
-					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
+//					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
 					rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
 					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
 					rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
 					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
 					rigid1.mn.genVar[6] = (int16_t) (act1.jointTorqueRate*100.0); //Nm/s
-					rigid1.mn.genVar[7] = (int16_t) (estGains.k1*100.0); //Nm/deg
+//					rigid1.mn.genVar[7] = (int16_t) (estGains.k1*100.0); //Nm/deg
 					rigid1.mn.genVar[8] = stateMachine.current_state;
 					rigid1.mn.genVar[9] = act1.tauDes*100;
 			    }
@@ -578,7 +578,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 			angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
 
 			if (abs(angleDiff) < 10) {
-				I = currentOpLimit*(abs(angleDiff)/10.) - bLimit*actx->jointVelDegrees;
+				I = currentOpLimit*(abs(angleDiff)/10.) + 3000 - bLimit*actx->jointVelDegrees;
 			} else {
 				I = currentOpLimit - bLimit*actx->jointVelDegrees;
 			}
@@ -588,7 +588,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 			angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
 
 			if (abs(angleDiff) < 10) {
-				I = -currentOpLimit*(abs(angleDiff)/10.) - bLimit*actx->jointVelDegrees;
+				I = -currentOpLimit*(abs(angleDiff)/10.) - 3000 - bLimit*actx->jointVelDegrees;
 			} else {
 				I = -currentOpLimit - bLimit*actx->jointVelDegrees;
 			}

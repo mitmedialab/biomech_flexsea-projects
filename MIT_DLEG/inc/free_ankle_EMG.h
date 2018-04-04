@@ -47,7 +47,7 @@
 #define PFDF_STIFF_GAIN			1.0
 #define DP_ON_THRESH			0.1
 
-#define COCON_THRESH			0.6 //co-contraction threshold (high for Hugh)
+#define COCON_THRESH			0.3 //co-contraction threshold (high for Hugh)
 
 
 //VIRTUAL DYNAMIC JOINT PARAMS
