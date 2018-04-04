@@ -92,10 +92,10 @@ struct runningExoSystemState runningExoState =
 
 
 
-// parameters to track sensor values, actuate the motors
+	// parameters to track sensor values, actuate the motors
 struct actuation_parameters
 	{
-	 //exoskeleton parameter
+	//exoskeleton parameter
 	float ankleTorqueMeasured;
 	float ankleTorqueDesired;
 	float ankleVel;
@@ -121,8 +121,11 @@ struct actuation_parameters
 
 
 
+
+
+
 // initialize parameters to track sensor values, actuate the motors
-	struct actuation_parameters act_para =
+struct actuation_parameters act_para =
 	{
 	.ankleTorqueMeasured=0,.ankleTorqueDesired=0,.ankleVel=0,.ankleAcc=0,\
 	.cableTensionForce=0,.motorTorqueMeasured=0,.motorTorqueDesired=0,\
@@ -500,7 +503,7 @@ int8_t safetyShutoff(void) {
 			}
 			else
 			{
-				setMotorTorque(&act1, 0); //run this in order to update torque genVars sent to Plan
+				setMotorTorque(&act_para, act_para.motorCurrentDesired*0.5); //run this in order to update torque genVars sent to Plan
 			}
 
 			return 1;
@@ -513,11 +516,6 @@ int8_t safetyShutoff(void) {
 
 	return 0;
 }
-
-
-
-
-
 
 
 

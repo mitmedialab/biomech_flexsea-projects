@@ -243,6 +243,14 @@ enum {
 
 
 
+
+// extern variables
+extern struct actuation_parameters act_para;
+extern int8_t isEnabledUpdateSensors;
+
+
+
+
 //****************************************************************************
 // Torque command trajectory lookup table(s)
 //****************************************************************************
