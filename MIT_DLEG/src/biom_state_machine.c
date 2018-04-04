@@ -355,7 +355,9 @@ static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 //	lswGains.k2 = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
 	lswGains.k2 = 100./OUTPUT_DIVISOR3;
 
-	estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
+//	estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
+	estGains.b = 10./OUTPUT_DIVISOR4;
+
 	wParams->virtualHardstopK = ((float) user_data_1.w[5])/OUTPUT_DIVISOR5;				//7 x 100
 	wParams->virtualHardstopEngagementAngle = ((float) user_data_1.w[6])/OUTPUT_DIVISOR6;	//0.0 x 1
 	lstPowerGains.thetaDes = ((float) user_data_1.w[7])/OUTPUT_DIVISOR7;				//18.0 x 1
@@ -376,13 +378,14 @@ static void initializeUserWrites(WalkParams *wParams){
 //	user_data_1.w[1] = 150;
 //	user_data_1.w[2] = 20;
 //	user_data_1.w[3] = 100;
+//	user_data_1.w[4] = 10;
 	user_data_1.w[1] = 0; //emg contr / 100
-	user_data_1.w[2] = 50; //imp scalar / 100
-	user_data_1.w[3] = 100; //power term /10
+	user_data_1.w[2] = 1400; //imp scalar / 100
+	user_data_1.w[3] = 200; //power term /10
+	user_data_1.w[4] = 30;
 
 
 
-	user_data_1.w[4] = 10;
 	user_data_1.w[5] = 700; //Jim's was defaulted to 700;
 	user_data_1.w[6] = 0;
 	user_data_1.w[7] = 14;
@@ -444,11 +447,13 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 
 	//torque output from the intrinsic controller
 //	impedanceContribution = impedanceScalar * calcJointTorque(lstPowerGains, actx, &walkParams);
-	impedanceContribution = user_data_1.w[2]/100. * calcJointTorque(lstPowerGains, actx, &walkParams);
+	impedanceContribution = user_data_1.w[1]/100.*user_data_1.w[2]/100.*(user_data_1.w[3]/10. - actx->jointAngleDegrees) \
+	         - user_data_1.w[4]/100.*actx->jointVelDegrees + wParam->virtual_hardstop_tq;
 
 	//torque output from the EMG controller
 //	emgContribution = scaledEMG * powf(actx->jointTorque, emgPower);
-	emgContribution = user_data_1.w[1]/100. * powf(actx->jointTorque, user_data_1.w[3]/100.);
+//	emgContribution = user_data_1.w[1]/100. * powf(actx->jointTorque, user_data_1.w[3]/100.);
+	emgContribution = 0;
 
 	//saturation of desired output torque
 	if (impedanceContribution + emgContribution > desiredTorqueThreshold ) {
