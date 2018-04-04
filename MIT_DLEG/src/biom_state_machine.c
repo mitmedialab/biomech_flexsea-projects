@@ -378,7 +378,7 @@ static void initializeUserWrites(WalkParams *wParams){
 //	user_data_1.w[3] = 100;
 	user_data_1.w[1] = 0; //emg contr / 100
 	user_data_1.w[2] = 50; //imp scalar / 100
-	user_data_1.w[3] = 10; //power term /10
+	user_data_1.w[3] = 100; //power term /10
 
 
 
@@ -421,9 +421,9 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	float emgContribution;
 
 	float impedanceScalar = 0.5; //scalar term for impedance control
-	float emgPower = 2; //exponent term of the emg contribution
+	float emgPower = 1; //exponent term of the emg contribution
 	float noiseThreshold = 0.2; //under this gastroc activation, emgContribution = 0
-	float desiredTorqueThreshold = 100; //max desired torque
+	float desiredTorqueThreshold = 150; //max desired torque
 
 
 	//limit maximum emg_data in case something goes wrong
@@ -448,10 +448,15 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 
 	//torque output from the EMG controller
 //	emgContribution = scaledEMG * powf(actx->jointTorque, emgPower);
-	emgContribution = user_data_1.w[1]/100. * powf(actx->jointTorque, user_data_1.w[3]/10.);
+	emgContribution = user_data_1.w[1]/100. * powf(actx->jointTorque, user_data_1.w[3]/100.);
 
+	//saturation of desired output torque
 	if (impedanceContribution + emgContribution > desiredTorqueThreshold ) {
 		return desiredTorqueThreshold;
+	//safety in case of tripping
+	} else if (impedanceContribution + emgContribution < 0) {
+		return calcJointTorque(lstPowerGains, actx, &walkParams);
+	//everything nominal. return combined contributions
 	} else {
 		return impedanceContribution + emgContribution;
 	}
