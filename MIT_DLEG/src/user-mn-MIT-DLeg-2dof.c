@@ -207,8 +207,7 @@ void MIT_DLeg_fsm_1(void)
 					rigid1.mn.genVar[6] = (int16_t) (act1.jointTorqueRate*100.0); //Nm/s
 					rigid1.mn.genVar[7] = (int16_t) (estGains.k1*100.0); //Nm/deg
 					rigid1.mn.genVar[8] = stateMachine.current_state;
-					rigid1.mn.genVar[9] = walkParams.transition_id; //deg
-
+					rigid1.mn.genVar[9] = act1.tauDes;
 			    }
 
 

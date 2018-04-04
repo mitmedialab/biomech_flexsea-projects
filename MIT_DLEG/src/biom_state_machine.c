@@ -211,7 +211,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
         	{
 				//turn this on or off to use EMG powered plantarflexion
-				static int8_t using_EMG_PPF = 0;
+				static int8_t using_EMG_PPF = 1;
 
 				if (isTransitioning) {
 					walkParams.samplesInLSP = 0.0;
@@ -226,19 +226,19 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				updateVirtualHardstopTorque(actx, &walkParams);
 
-				if (MIT_EMG_getState() == 1 && using_EMG_PPF) {
+//				if (MIT_EMG_getState() == 1 && using_EMG_PPF) {
 
 					actx->tauDes = calcEMGPPF(actx, &walkParams);
 
-				} else {
-					//Linear ramp push off
-					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
-				}
+//				} else {
+//					//Linear ramp push off
+//					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
+//				}
 
 
 				//Late Stance Power transition vectors
 				// VECTOR (1): Late Stance Power -> Early Swing - Condition 1
-				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 200) {
+				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 100) {
 					stateMachine.current_state = STATE_EARLY_SWING;
 				}
         	}
@@ -346,9 +346,15 @@ static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wPa
 static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 
 	wParams->earlyStanceKF = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;
-	eswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
-	lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
-	lswGains.k2 = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
+//	eswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
+	eswGains.k1 = 150./OUTPUT_DIVISOR1;
+
+//	lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
+	lswGains.b = 20./OUTPUT_DIVISOR2;
+
+//	lswGains.k2 = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
+	lswGains.k2 = 100./OUTPUT_DIVISOR3;
+
 	estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
 	wParams->virtualHardstopK = ((float) user_data_1.w[5])/OUTPUT_DIVISOR5;				//7 x 100
 	wParams->virtualHardstopEngagementAngle = ((float) user_data_1.w[6])/OUTPUT_DIVISOR6;	//0.0 x 1
@@ -365,9 +371,17 @@ static void initializeUserWrites(WalkParams *wParams){
 	walkParams.lstPGDelTics = 1;
 
 	user_data_1.w[0] = 100;
-	user_data_1.w[1] = 150;
-	user_data_1.w[2] = 20;
-	user_data_1.w[3] = 100;
+
+
+//	user_data_1.w[1] = 150;
+//	user_data_1.w[2] = 20;
+//	user_data_1.w[3] = 100;
+	user_data_1.w[1] = 0; //emg contr / 100
+	user_data_1.w[2] = 50; //imp scalar / 100
+	user_data_1.w[3] = 10; //power term /10
+
+
+
 	user_data_1.w[4] = 10;
 	user_data_1.w[5] = 700; //Jim's was defaulted to 700;
 	user_data_1.w[6] = 0;
@@ -409,7 +423,7 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	float impedanceScalar = 0.5; //scalar term for impedance control
 	float emgPower = 2; //exponent term of the emg contribution
 	float noiseThreshold = 0.2; //under this gastroc activation, emgContribution = 0
-	float desiredTorqueThreshold = 60; //max desired torque
+	float desiredTorqueThreshold = 100; //max desired torque
 
 
 	//limit maximum emg_data in case something goes wrong
@@ -429,10 +443,12 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	}
 
 	//torque output from the intrinsic controller
-	impedanceContribution = impedanceScalar * calcJointTorque(lstPowerGains, actx, &walkParams);
+//	impedanceContribution = impedanceScalar * calcJointTorque(lstPowerGains, actx, &walkParams);
+	impedanceContribution = user_data_1.w[2]/100. * calcJointTorque(lstPowerGains, actx, &walkParams);
 
 	//torque output from the EMG controller
-	emgContribution = scaledEMG * powf(actx->jointTorque, emgPower);
+//	emgContribution = scaledEMG * powf(actx->jointTorque, emgPower);
+	emgContribution = user_data_1.w[1]/100. * powf(actx->jointTorque, user_data_1.w[3]/10.);
 
 	if (impedanceContribution + emgContribution > desiredTorqueThreshold ) {
 		return desiredTorqueThreshold;
