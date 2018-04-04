@@ -153,6 +153,7 @@ struct actuation_parameters act_para =
 void stateTransition(void);
 void trackTorque(void);
 void checkInvalidGait(void);
+void setMotorTorque(struct actuation_parameters *actx, float tor_d);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -516,6 +517,49 @@ int8_t safetyShutoff(void) {
 
 	return 0;
 }
+
+
+void updateSensorValues(struct actuation_parameters *actx)
+{
+
+	/*
+//	static float* pjointKinematic;
+//	pjointKinematic = getJointAngleKinematic();
+	static float joint[3];
+	getJointAngleKinematic( joint );
+
+	actx->jointAngle = joint[0]; //*(pjointKinematic + 0);
+	actx->jointAngleDegrees = actx->jointAngle * 360/angleUnit;
+	actx->jointVel = joint[1]; // *(pjointKinematic + 1);
+	actx->jointVelDegrees = actx->jointVel * 360/angleUnit;
+	actx->jointAcc = joint[2]; //*(pjointKinematic + 2);
+	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
+	actx->axialForce = getAxialForce();
+	actx->jointTorque = getJointTorque(&act1);
+
+	actx->motorVel =  *rigid1.ex.enc_ang_vel / 16.384 * angleUnit;	// rad/s
+	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
+
+	actx->regTemp = rigid1.re.temp;
+	actx->motTemp = getMotorTempSensor();
+	actx->motCurr = rigid1.ex.mot_current;
+	actx->currentOpLimit = currentOpLimit; // throttled mA
+
+	actx->safetyFlag = isSafetyFlag;
+
+	if(actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT)
+	{
+		isSafetyFlag = SAFETY_TEMP;
+		isTempLimit = 1;
+	} else {
+		isTempLimit = 0;
+	}
+*/
+
+}
+
+
+
 
 
 
