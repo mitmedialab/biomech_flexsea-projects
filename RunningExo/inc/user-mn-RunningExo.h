@@ -216,20 +216,20 @@ void stateTransition(void);
 #define	MAX_CABLE_TENSION_FORCE	(MAX_ANKLE_TORQUE/MOMENT_ARM_ON_FOOT) //Newton
 #define MOT_OUTPUT_SHAFT_DIAMETER	0.0065			//m, motor output shaft
 #define MOTOR_TORQUE_MARGIN_FACTOR	1.2
-#define MAX_MOTOR_TORQUE_REQUIRED	(MOTOR_TORQUE_MARGIN_FACTOR*MAX_CABLE_TENSION_FORCE/(MOT_OUTPUT_SHAFT_DIAMETER/2))
+#define MAX_MOTOR_TORQUE_REQUIRED	(MOTOR_TORQUE_MARGIN_FACTOR*MAX_CABLE_TENSION_FORCE*(MOT_OUTPUT_SHAFT_DIAMETER/2))
 #define MAX_MOTOR_CURRENT	(1000*MAX_MOTOR_TORQUE_REQUIRED/MOT_KT)		//mA, 33.95 A--2.08 N.m
 #define	MOTOR_CURRENT_LIMIT		10000 //mA
 #define ENCODER_RESOLUTION_BIT		14		//AS5047P encoder resolution in bits.
-#define ENCODER_RESOLUTION			((uint16)pow(2,ENCODER_RESOLUTION_BIT)) // 16384, AS5047P encoder resolution in decimal.
+#define ENCODER_RESOLUTION			((uint16_t)pow(2,ENCODER_RESOLUTION_BIT)) // 16384, AS5047P encoder resolution in decimal.
 #define	ENCODER_CPR		ENCODER_RESOLUTION //16384, Counts per revolution
 #define MAX_FOOT_PULL_HEIGHT	0.3	//m, cable's maximum retraction length
 #define	MOT_OUTPUT_SHAFT_PERIMETER	(M_PI*MOT_OUTPUT_SHAFT_DIAMETER)	//0.02042 m, Motor output shaft perimeter
-#define MAX_MOTOR_POSITION	((MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER)*ENCODER_CPR) // 14.69*16384 ticks, read the encoder every time before operating the motor, and then compare the current position and the initial position to shut off the motor if arriving at the position limitation
-#define MIN_MOTOR_POSITION	-((MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER)*ENCODER_CPR) // -14.69*16384 ticks, read the encoder every time before operating the motor, and then compare the current position and the initial position to shut off the motor if arriving at the position limitation
+#define MAX_MOTOR_REVOLUTION	(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER) // 14.69 (rounds) *16384 ticks, read the encoder every time before operating the motor, and then compare the current position and the initial position to shut off the motor if arriving at the position limitation
+#define MIN_MOTOR_REVOLUTION	-(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER) // -14.69 (rounds) *16384 ticks, read the encoder every time before operating the motor, and then compare the current position and the initial position to shut off the motor if arriving at the position limitation
 #define	GAIT_CYCLE_PERIOD	0.41 //s, 0.41 s  when running at speed of 3.9 m/s
 #define STANCE_PERCENTAGE	0.4 // percentage of stance phase occupying the whole gait cycle period
 #define MOTOR_SPEED_MARGIN_FACTOR	0.6
-#define	MAX_MOTOR_SPEED		(MOTOR_SPEED_MARGIN_FACTOR*(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER/(GAIT_CYCLE_PERIOD*STANCE_PERCENTAGE))*ENCODER_CPR) // ticks/sec
+#define	MAX_MOTOR_SPEED		(MOTOR_SPEED_MARGIN_FACTOR*(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER/(GAIT_CYCLE_PERIOD*STANCE_PERCENTAGE))*2*M_PI) // rad/sec
 
 enum {
 	SAFETY_OK				=	0,

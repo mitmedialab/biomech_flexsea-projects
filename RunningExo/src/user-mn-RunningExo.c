@@ -92,47 +92,53 @@ struct runningExoSystemState runningExoState =
 
 
 
-	// parameters to track sensor values, actuate the motors
+// parameters to track sensor values, actuate the motors
 struct actuation_parameters
 	{
 	//exoskeleton parameter
-	float ankleTorqueMeasured;
-	float ankleTorqueDesired;
-	float ankleVel;
-	float ankleAcc;
-	float cableTensionForce;
+	float ankleTorqueMeasured;		//N.m
+	float ankleTorqueDesired;		//N.m
+	float ankleHeight;				//m
+	float ankleVel;					//m/s
+	float ankleAcc;					//m/s/s
+	float cableTensionForce;		//N
 	//motor parameters
-	float motorTorqueMeasured;
-	float motorTorqueDesired;
-	int32_t motorCurrentMeasured;
+	float motorTorqueMeasured;		//N.m
+	float motorTorqueDesired;		//N.m
+	int32_t motorCurrentMeasured;	//mA
 	int32_t motorCurrentDesired;	//mA
-	int32_t lastMotorPosition;
-	int32_t motorPosition;			//motor position [rad]
+	int32_t initialMotorPosition;		//rad
+	int32_t currentMotorPosition;	//motor position [rad]
+	int32_t motorRelativeRevolution; //motor revolutions relative to the the initial position after motion
+	int32_t motorRotationAngle;		 //rad, motor rotation angle relative to the initial position
 	int32_t motorAngularVel;		//motor angular velocity [rad/s]
 	int32_t motorAngularAcc;		// motor angular acceleration [rad/s/s]
 	//control related parameters
-	float tauMeasured;          // feedback torque
-	float tauDesired;           // desired torque
-	float tauError;				//tauMeasured - tauDesired
+	float tauMeasured;          // N.m, feedback torque
+	float tauDesired;           // N.m, desired torque
+	float tauError;				//N.m, tauMeasured - tauDesired
 	//safety parameters
-	int32_t boardTemperature;	//get from temperature sensor on the FlexSEA board
+	int32_t boardTemperature;	//centidegree, get from temperature sensor on the FlexSEA board
 	int32_t safetyFlag;		//identify various safety problems
+	int32_t currentOpLimit; // mA, current throttling limit
 	};
 
 
 
 
-
-
 // initialize parameters to track sensor values, actuate the motors
+
 struct actuation_parameters act_para =
 	{
-	.ankleTorqueMeasured=0,.ankleTorqueDesired=0,.ankleVel=0,.ankleAcc=0,\
-	.cableTensionForce=0,.motorTorqueMeasured=0,.motorTorqueDesired=0,\
-	.motorCurrentMeasured=0,.motorCurrentDesired=0,.lastMotorPosition=0,\
-	.motorPosition=0,.motorAngularVel=0,.motorAngularAcc=0,.tauMeasured=0,\
-	.tauDesired=0,.tauError=0,.boardTemperature=0,.safetyFlag=0
+	.ankleTorqueMeasured=0,.ankleTorqueDesired=0,.ankleHeight=0,.ankleVel=0,.ankleAcc=0,\
+	.cableTensionForce=0,.motorTorqueMeasured=0,.motorTorqueDesired=0,.motorCurrentMeasured=0,\
+	.motorCurrentDesired=0,.initialMotorPosition=0,.currentMotorPosition=0,\
+	.motorRelativeRevolution=0,.motorRotationAngle=0,.motorAngularVel=0,.motorAngularAcc=0,.tauMeasured=0,\
+	.tauDesired=0,.tauError=0,.boardTemperature=0,.safetyFlag=0,.currentOpLimit=0
 	}; 	//zero initialization
+
+
+
 
 //SAFETY FLAGS - in addition to enum, so can be cleared but don't lose other flags that may exist.
 	static int8_t isSafetyFlag = 0;
@@ -154,6 +160,10 @@ void stateTransition(void);
 void trackTorque(void);
 void checkInvalidGait(void);
 void setMotorTorque(struct actuation_parameters *actx, float tor_d);
+void getMortorKinematics(struct actuation_parameters *actx);
+void getAnkleKinematics(struct actuation_parameters *actx);
+void getAnkleTorque(struct actuation_parameters *actx);
+void getMotorTorque(struct actuation_parameters *actx);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -165,6 +175,8 @@ void init_runningExo(void)
 {
 	runningExoState.state = 1;					//Initialize state
 	controlAction = 0;			//clear control action
+	act_para.initialMotorPosition = *rigid1.ex.enc_ang; // test if it is correct using GUI
+	act_para.currentMotorPosition = *rigid1.ex.enc_ang;
 }
 
 //Running Exo state machine
@@ -519,47 +531,210 @@ int8_t safetyShutoff(void) {
 }
 
 
+
+/*
+ * Collect all sensor values and update the actuator structure.
+ * Throws safety flags on Joint Angle, Joint Torque, since these functions look at transformed values.
+ */
 void updateSensorValues(struct actuation_parameters *actx)
 {
+	getMortorKinematics(actx);
+	getAnkleKinematics(actx);
+	getAnkleTorque(actx);
+	getMotorTorque(actx);
 
-	/*
-//	static float* pjointKinematic;
-//	pjointKinematic = getJointAngleKinematic();
-	static float joint[3];
-	getJointAngleKinematic( joint );
-
-	actx->jointAngle = joint[0]; //*(pjointKinematic + 0);
-	actx->jointAngleDegrees = actx->jointAngle * 360/angleUnit;
-	actx->jointVel = joint[1]; // *(pjointKinematic + 1);
-	actx->jointVelDegrees = actx->jointVel * 360/angleUnit;
-	actx->jointAcc = joint[2]; //*(pjointKinematic + 2);
-	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
-	actx->axialForce = getAxialForce();
-	actx->jointTorque = getJointTorque(&act1);
-
-	actx->motorVel =  *rigid1.ex.enc_ang_vel / 16.384 * angleUnit;	// rad/s
-	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
-
-	actx->regTemp = rigid1.re.temp;
-	actx->motTemp = getMotorTempSensor();
-	actx->motCurr = rigid1.ex.mot_current;
-	actx->currentOpLimit = currentOpLimit; // throttled mA
+	actx->boardTemperature =  rigid1.re.temp;				//centidegree
+	actx->motorCurrentMeasured = rigid1.ex.mot_current; 	//mA
+	actx->currentOpLimit = currentOpLimit; 					// throttled mA
 
 	actx->safetyFlag = isSafetyFlag;
 
-	if(actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT)
+	if(actx->boardTemperature > MAX_BOARD_TEMP)
 	{
-		isSafetyFlag = SAFETY_TEMP;
+		isSafetyFlag = SAFETY_TEMPERATURE;
 		isTempLimit = 1;
 	} else {
 		isTempLimit = 0;
 	}
-*/
+
+}
+
+//get motor's kinematic parameters
+void getMortorKinematics(struct actuation_parameters *actx)
+{
+	actx->currentMotorPosition = *rigid1.ex.enc_ang;
+	actx->motorRelativeRevolution = (actx->currentMotorPosition - actx->initialMotorPosition) / ENCODER_CPR;
+	actx->motorRotationAngle = actx->motorRelativeRevolution * 2 * M_PI;		//rad
+	actx->motorAngularVel = (*rigid1.ex.enc_ang_vel/ENCODER_CPR) * 2 * M_PI;	//rad/s, need to times SECONDS?????
+	actx->motorAngularAcc = (rigid1.ex.mot_acc/ENCODER_CPR) * 2 * M_PI;			//rad/s/s, need to check if the gain factor is needed
+
+	 if(actx->motorRelativeRevolution >= MAX_MOTOR_REVOLUTION)
+	 {
+		isSafetyFlag = SAFETY_MOTOR_POSITION;
+		isPositionLimit = 1;
+	 }
+	 else
+	 {
+		 isPositionLimit = 0;
+	 }
+
+
+	 if(actx->motorAngularVel >= MAX_MOTOR_SPEED)
+	 {
+		isSafetyFlag = SAFETY_MOTOR_VELOCITY;
+		isAngularVelLimit = 1;
+	 }
+	 else
+	 {
+		isAngularVelLimit = 0;
+	 }
+
+}
+
+//get ankle's kinematic parameters
+void getAnkleKinematics(struct actuation_parameters *actx)
+{
+	actx->ankleHeight = actx->motorRelativeRevolution * MOT_OUTPUT_SHAFT_PERIMETER; // not so accurate, used for estimating, because the wrapping diameter will change after some revolutions.
+	actx->ankleVel = actx->motorAngularVel * (MOT_OUTPUT_SHAFT_PERIMETER/2);		//m/s
+	actx->ankleAcc = actx->motorAngularAcc * (MOT_OUTPUT_SHAFT_PERIMETER/2);		//m/s/s
+}
+
+
+//Determine torque at ankle
+void getAnkleTorque(struct actuation_parameters *actx)
+{
+	 actx->ankleTorqueMeasured = ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B; //N.m
+
+	 if(actx->ankleTorqueMeasured >= MAX_ANKLE_TORQUE)
+	 {
+		isSafetyFlag = SAFETY_ANKLE_TORQUE;
+		isTorqueLimit = 1;
+	 }
+	 else
+	 {
+		isTorqueLimit = 0;
+	 }
+
+}
+
+
+//Determine torque at motor
+void getMotorTorque(struct actuation_parameters *actx)
+{
+	actx->cableTensionForce = FORCE_CALIB_M * rigid1.ex.strain + FORCE_CALIB_B;
+	actx->motorTorqueMeasured = actx->cableTensionForce * (MOT_OUTPUT_SHAFT_DIAMETER/2);
+}
+
+
+
+
+
+
+/*
+
+void setMotorTorque(struct act_s *actx, float tau_des)
+{
+	float N = 1;					// moment arm [m]
+	float tau_meas = 0, tau_ff=0;  	//joint torque reflected to motor.
+	float tau_err = 0;
+	static float tau_err_last = 0, tau_err_int = 0;
+	float tau_PID = 0, tau_err_dot = 0, tau_motor_comp = 0;		// motor torque signal
+	int32_t dtheta_m = 0, ddtheta_m = 0;		//motor vel, accel
+	int32_t I = 0;								// motor current signal
+
+	N = actx->linkageMomentArm * nScrew;
+	dtheta_m = actx->motorVel;
+	ddtheta_m = actx->motorAcc;
+
+	actx->tauDes = tau_des;				// save in case need to modify in safetyFailure()
+
+	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
+	tau_meas =  actx->jointTorque / N;	// measured torque reflected to motor [Nm]
+	tau_des = tau_des / N;				// scale output torque back to the motor [Nm].
+	tau_ff = tau_des / (N_ETA) ;		// Feed forward term for desired joint torque, reflected to motor [Nm]
+
+	tau_motor_comp = (motJ + MOT_TRANS)*ddtheta_m + motB*dtheta_m;	// compensation for motor parameters. not stable right now.
+
+	// Error is done at the motor. todo: could be done at the joint, messes with our gains.
+	tau_err = tau_des - tau_meas;
+	tau_err_dot = (tau_err - tau_err_last);
+	tau_err_int = tau_err_int + tau_err;
+	tau_err_last = tau_err;
+
+	//PID around motor torque
+	tau_PID = tau_err*torqueKp + tau_err_dot*torqueKd + tau_err_int*torqueKi;
+
+	I = 1/MOT_KT * ( tau_ff + tau_PID + tau_motor_comp) * currentScalar;
+
+	//account for deadzone current (unused due to instability). Unsolved problem according to Russ Tedrake.
+//	if (abs(dtheta_m) < 3 && I < 0) {
+//		I -= motSticNeg; //in mA
+//	} else if (abs(dtheta_m) < 3 && I > 0) {
+//		I += motSticPos;
+//	}
+
+//	if ( I < 0) {
+//		I -= motSticNeg; //in mA
+//	} else if ( I > 0) {
+//		I += motSticPos;
+//	}
+
+	// add position, velocity, torque of the motor and ankle limit.
+
+
+	//Soft angle limits with virtual spring. Raise flag for safety check.
+	if (actx->jointAngleDegrees <= jointMinSoft  || actx->jointAngleDegrees >= jointMaxSoft) {
+
+		isSafetyFlag = SAFETY_ANGLE;
+		isAngleLimit = 1;		//these are all redundant, choose if we want the struct thing.
+
+		float angleDiff = actx->jointAngleDegrees - jointMinSoft;
+
+		//Oppose motion using linear spring with damping
+		if (actx->jointAngleDegrees - jointMinSoft < 0) {
+
+			if (abs(angleDiff) < 5) {
+				I -= currentOpLimit*(angleDiff/5) + bLimit*actx->jointVelDegrees;
+			} else {
+				I -= -currentOpLimit + bLimit*actx->jointVelDegrees;
+			}
+
+		} else if (actx->jointAngleDegrees - jointMaxSoft > 0) {
+
+			if (abs(angleDiff) < 5) {
+				I -= currentOpLimit*(angleDiff/5) + bLimit*actx->jointVelDegrees;
+			} else {
+				I -= currentOpLimit + bLimit*actx->jointVelDegrees;
+			}
+		}
+
+	} else {
+
+		isAngleLimit = 0;
+
+	}
+
+	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+	if (I > currentOpLimit)
+	{
+		I = currentOpLimit;
+	} else if (I < -currentOpLimit)
+	{
+		I = -currentOpLimit;
+	}
+
+	actx->desiredCurrent = (int32_t) I; 	// demanded mA
+	setMotorCurrent(actx->desiredCurrent);	// send current command to comm buffer to Execute
+
+	//variables used in cmd-rigid offset 5
+	rigid1.mn.userVar[5] = tau_meas*1000;
+	rigid1.mn.userVar[6] = tau_des*1000;
 
 }
 
 
 
+*/
 
 
 
