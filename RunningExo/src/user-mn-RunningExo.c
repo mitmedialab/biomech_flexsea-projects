@@ -49,25 +49,6 @@ float torqueProfileGain = DEFAULT_TORQUE_PROFILE_GAIN;
 int8_t bodyWeight = DEFAULT_BODY_WEIGHT;//user body weight (kg)
 float controlAction;
 
-struct runningExoSystemState
-{
-	//System state
-	int8_t state;
-	uint32_t timer;
-	uint32_t pedometer;
-	//Time stamps
-	int32_t heelStrikeTime;
-	int32_t footFlatTime;
-	int32_t toeOffTime;
-	uint32_t prevStanceDuration;
-	uint32_t prevGaitDuration;
-	_Bool running;
-	_Bool enableOutput;
-	uint32_t disabledPedometer;					//number of disabled steps AFTER all issues are cleared
-	#if (CONTROL_STRATEGY == TORQUE_TRACKING)
-	//add controller specific stuff here
-	#endif //CONTROL_STRATEGY == TORQUE_TRACKING
-};
 
 //initialize one instance
 struct runningExoSystemState runningExoState =
@@ -92,39 +73,6 @@ struct runningExoSystemState runningExoState =
 
 
 
-// parameters to track sensor values, actuate the motors
-struct actuation_parameters
-	{
-	//exoskeleton parameter
-	float ankleTorqueMeasured;		//N.m
-	float ankleTorqueDesired;		//N.m
-	float ankleHeight;				//m
-	float ankleVel;					//m/s
-	float ankleAcc;					//m/s/s
-	float cableTensionForce;		//N
-	//motor parameters
-	float motorTorqueMeasured;		//N.m
-	float motorTorqueDesired;		//N.m
-	int32_t motorCurrentMeasured;	//mA
-	int32_t motorCurrentDesired;	//mA
-	int32_t initialMotorPosition;		//rad
-	int32_t currentMotorPosition;	//motor position [rad]
-	int32_t motorRelativeRevolution; //motor revolutions relative to the the initial position after motion
-	int32_t motorRotationAngle;		 //rad, motor rotation angle relative to the initial position
-	int32_t motorAngularVel;		//motor angular velocity [rad/s]
-	int32_t motorAngularAcc;		// motor angular acceleration [rad/s/s]
-	//control related parameters
-	float tauMeasured;          // N.m, feedback torque
-	float tauDesired;           // N.m, desired torque
-	float tauError;				//N.m, tauMeasured - tauDesired
-	//safety parameters
-	int32_t boardTemperature;	//centidegree, get from temperature sensor on the FlexSEA board
-	int32_t safetyFlag;		//identify various safety problems
-	int32_t currentOpLimit; // mA, current throttling limit
-	};
-
-
-
 
 // initialize parameters to track sensor values, actuate the motors
 
@@ -133,8 +81,8 @@ struct actuation_parameters act_para =
 	.ankleTorqueMeasured=0,.ankleTorqueDesired=0,.ankleHeight=0,.ankleVel=0,.ankleAcc=0,\
 	.cableTensionForce=0,.motorTorqueMeasured=0,.motorTorqueDesired=0,.motorCurrentMeasured=0,\
 	.motorCurrentDesired=0,.initialMotorPosition=0,.currentMotorPosition=0,\
-	.motorRelativeRevolution=0,.motorRotationAngle=0,.motorAngularVel=0,.motorAngularAcc=0,.tauMeasured=0,\
-	.tauDesired=0,.tauError=0,.boardTemperature=0,.safetyFlag=0,.currentOpLimit=0
+	.motorRelativeRevolution=0,.motorRotationAngle=0,.motorAngularVel=0,.motorAngularAcc=0,\
+	.boardTemperature=0,.safetyFlag=0,.currentOpLimit=0
 	}; 	//zero initialization
 
 
@@ -151,6 +99,17 @@ struct actuation_parameters act_para =
 	int8_t isEnabledUpdateSensors = 0;
 	int32_t currentOpLimit = MOTOR_CURRENT_LIMIT; 	//operational limit for current.
 
+//torque gain values
+	float torqueKp = TORQ_KP_INIT;
+	float torqueKi = TORQ_KI_INIT;
+	float torqueKd = TORQ_KD_INIT;
+	_Bool isClearErrorIntegral = 0;
+
+//current gain values
+	int16_t currentKp = ACTRL_I_KP_INIT;
+	int16_t currentKi = ACTRL_I_KI_INIT;
+	int16_t currentKd = ACTRL_I_KD_INIT;
+
 
 
 //****************************************************************************
@@ -159,11 +118,11 @@ struct actuation_parameters act_para =
 void stateTransition(void);
 void trackTorque(void);
 void checkInvalidGait(void);
-void setMotorTorque(struct actuation_parameters *actx, float tor_d);
 void getMortorKinematics(struct actuation_parameters *actx);
 void getAnkleKinematics(struct actuation_parameters *actx);
 void getAnkleTorque(struct actuation_parameters *actx);
 void getMotorTorque(struct actuation_parameters *actx);
+void setAnkleTorque(struct actuation_parameters *actx, float tau_desired);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -216,7 +175,7 @@ void RunningExo_fsm_1(void)
 	rigid1.mn.genVar[3]=controlAction;
 	//Time stamps
 	rigid1.mn.genVar[4]= runningExoState.heelStrikeTime;
-	rigid1.mn.genVar[5]= runningExoState.toeOffTime;
+	rigid1.mn.genVar[5]= act_para.initialMotorPosition;
 	rigid1.mn.genVar[6]= runningExoState.prevStanceDuration;
 	rigid1.mn.genVar[7]= runningExoState.prevGaitDuration;
 	rigid1.mn.genVar[8]= runningExoState.enableOutput;
@@ -414,18 +373,35 @@ void stateTransition(void)
 void trackTorque(void)
 //sets control output based on trajectory tracking
 {
-	float percentStance = (float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration>1 ? 1:(float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration;//range=[0,1]
+	static float percentStance = 0;
+	static float lastPercentageStance = 0;
+	uint16_t lastIndex = 0;
+	uint16_t currentIndex = 0;
+	lastPercentageStance = percentStance;
+	lastIndex = (int)(lastPercentageStance*(float)TABLE_SIZE);
+	percentStance = (float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration>1 ? 1:(float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration;//range=[0,1]
+	currentIndex = (int)(percentStance*(float)TABLE_SIZE);
 	float torqueValue = 0;
+
+	if(currentIndex != lastIndex)
+	{
+		isClearErrorIntegral = 1;
+	}
+	else
+	{
+		isClearErrorIntegral = 0;
+	}
+
 	if (runningExoState.running)
 	{
 		#ifdef RUNNING_TORQUE_TRACKING
-			torqueValue = unitRunningTorque[(int)(percentStance*(float)TABLE_SIZE)]*bodyWeight*torqueProfileGain;
+			torqueValue = unitRunningTorque[currentIndex]*bodyWeight*torqueProfileGain;
 		#endif
 	}
 	else
 	{
 		#ifdef WALKING_TORQUE_TRACKING
-			torqueValue = unitWalkingTorque[(int)(percentStance*(float)TABLE_SIZE)]*bodyWeight*torqueProfileGain;
+			torqueValue = unitWalkingTorque[currentIndex]*bodyWeight*torqueProfileGain;
 		#endif
 	}
 
@@ -516,7 +492,7 @@ int8_t safetyShutoff(void) {
 			}
 			else
 			{
-				setMotorTorque(&act_para, act_para.motorCurrentDesired*0.5); //run this in order to update torque genVars sent to Plan
+				setAnkleTorque(&act_para, act_para.ankleTorqueDesired*0.5); //run this in order to update torque genVars sent to Plan
 			}
 
 			return 1;
@@ -627,42 +603,43 @@ void getMotorTorque(struct actuation_parameters *actx)
 
 
 
-
-
-
-/*
-
-void setMotorTorque(struct act_s *actx, float tau_des)
+void setAnkleTorque(struct actuation_parameters *actx, float tau_desired_ankle)
 {
-	float N = 1;					// moment arm [m]
-	float tau_meas = 0, tau_ff=0;  	//joint torque reflected to motor.
-	float tau_err = 0;
-	static float tau_err_last = 0, tau_err_int = 0;
-	float tau_PID = 0, tau_err_dot = 0, tau_motor_comp = 0;		// motor torque signal
-	int32_t dtheta_m = 0, ddtheta_m = 0;		//motor vel, accel
+	float tau_measured = 0, tau_desired = 0, tau_ff = 0;  	//joint torque reflected to motor. Feed forward term for desired joint torque, reflected to motor [Nm]
+	float tau_error = 0;
+	static float tau_error_last = 0, tau_error_integral = 0;
+	float tau_PID = 0, tau_error_diff = 0, tau_motor_compensation = 0;		// motor torque signal
+	int32_t dtheta_m = 0, ddtheta_m = 0;		//motor angular velocity and acceleration
 	int32_t I = 0;								// motor current signal
 
-	N = actx->linkageMomentArm * nScrew;
-	dtheta_m = actx->motorVel;
-	ddtheta_m = actx->motorAcc;
+	dtheta_m = actx->motorAngularVel;  	//rad/s
+	ddtheta_m = actx->motorAngularAcc;	//rad/s/s
 
-	actx->tauDes = tau_des;				// save in case need to modify in safetyFailure()
+	actx->ankleTorqueDesired = tau_desired_ankle;		// save in case need to modify in safetyFailure()
+	actx->motorTorqueDesired = (actx->ankleTorqueDesired/MOMENT_ARM_ON_FOOT) * (MOT_OUTPUT_SHAFT_DIAMETER/2);
 
 	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
-	tau_meas =  actx->jointTorque / N;	// measured torque reflected to motor [Nm]
-	tau_des = tau_des / N;				// scale output torque back to the motor [Nm].
-	tau_ff = tau_des / (N_ETA) ;		// Feed forward term for desired joint torque, reflected to motor [Nm]
+	tau_measured = actx->motorTorqueMeasured;	// measured torque reflected to motor [Nm]
+	tau_desired = actx->motorTorqueDesired;		// output torque back to the motor [Nm].
+	tau_ff = tau_desired / (N_ETA) ;		// Feed forward term for desired joint torque, reflected to motor [Nm]
 
-	tau_motor_comp = (motJ + MOT_TRANS)*ddtheta_m + motB*dtheta_m;	// compensation for motor parameters. not stable right now.
+	tau_motor_compensation = (MOT_J + MOT_TRANS)*ddtheta_m + MOT_B*dtheta_m;	// compensation for motor parameters. not stable right now.
 
-	// Error is done at the motor. todo: could be done at the joint, messes with our gains.
-	tau_err = tau_des - tau_meas;
-	tau_err_dot = (tau_err - tau_err_last);
-	tau_err_int = tau_err_int + tau_err;
-	tau_err_last = tau_err;
-
+	// Error is done at the motor. todo: could be done at the ankle, messes with our gains.
+	tau_error = tau_desired - tau_measured;
+	tau_error_diff = tau_error - tau_error_last;
+	if (!isClearErrorIntegral)
+	{
+		tau_error_integral = tau_error_integral + tau_error;  // check if this method is correct
+	}
+	else
+	{
+		tau_error_integral = 0;
+	}
+	tau_error_last = tau_error;
+/*
 	//PID around motor torque
-	tau_PID = tau_err*torqueKp + tau_err_dot*torqueKd + tau_err_int*torqueKi;
+	tau_PID = tau_error*torqueKp + tau_error_diff*torqueKd + tau_error_integral*torqueKi;
 
 	I = 1/MOT_KT * ( tau_ff + tau_PID + tau_motor_comp) * currentScalar;
 
@@ -718,7 +695,8 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	if (I > currentOpLimit)
 	{
 		I = currentOpLimit;
-	} else if (I < -currentOpLimit)
+	}
+	else if (I < -currentOpLimit)
 	{
 		I = -currentOpLimit;
 	}
@@ -729,12 +707,21 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	//variables used in cmd-rigid offset 5
 	rigid1.mn.userVar[5] = tau_meas*1000;
 	rigid1.mn.userVar[6] = tau_des*1000;
-
+*/
 }
 
 
 
-*/
+
+void mit_init_current_controller(void)
+{
+
+	setControlMode(CTRL_CURRENT);
+	writeEx.setpoint = 0;			// wasn't included in setControlMode, could be safe for init
+	setControlGains(currentKp, currentKi, currentKd, 0);
+
+}
+
 
 
 

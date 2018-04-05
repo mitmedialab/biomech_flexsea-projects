@@ -63,6 +63,9 @@ void init_rigid(void);
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
+extern struct actuation_parameters act_para;
+extern struct runningExoSystemState runningExoState;
+
 
 #ifdef __cplusplus
 }

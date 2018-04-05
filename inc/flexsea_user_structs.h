@@ -98,6 +98,7 @@ struct fx_rigid_mn_s
 	uint16_t status;
 
 	int16_t genVar[20];
+	int16_t userVar[20];
 	int8_t mot_temp;
 
 	//Decoded:

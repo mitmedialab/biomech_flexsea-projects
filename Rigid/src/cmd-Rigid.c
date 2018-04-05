@@ -32,6 +32,7 @@ extern "C" {
 #include "../inc/cmd-Rigid.h"
 #include "flexsea_user_structs.h"
 #include "user-mn.h"
+#include "user-mn-RunningExo.h"
 
 #ifdef DEPHY
 #include "dephy-mn.h"
@@ -52,7 +53,6 @@ extern "C" {
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
-
 uint8_t newRigidRRpacketAvailableFlag = 0;
 //Rigid1
 int32_t cri_enc_ang = 0, cri_enc_ang_vel = 0;
@@ -257,6 +257,39 @@ void tx_cmd_rigid_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 			shBuf[index++] = (uint8_t)rigid2.ctrl.gaitState;
 			//(30 bytes)
 		}
+		else if (offset == 5)
+		{
+
+			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[1], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[2], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[3], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[4], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[5], shBuf, &index);
+			SPLIT_32((uint32_t) ri->mn.userVar[6], shBuf, &index);
+
+			//(28 bytes)
+
+			// set userVars to send back to Plan
+			//rigid1.mn.userVar[0] = actx->cableTensionForce;
+			//rigid1.mn.userVar[1] = actx->motorRelativeRevolution;
+			//rigid1.mn.userVar[2] = actx->ankleHeight;
+			//rigid1.mn.userVar[3] = actx->ankleTorqueMeasured;
+			//rigid1.mn.userVar[4] = actx->ankleTorqueDesired;
+			//rigid1.mn.userVar[5] = motorTorqueMeasured;
+			//rigid1.mn.userVar[6] = motorTorqueDesired; (impedance controller - spring contribution)
+		}
+		else if (offset == 6)
+		{
+			SPLIT_32((uint32_t) ri->mn.userVar[0], shBuf, &index);
+			shBuf[index++] = runningExoState.state;
+			shBuf[index++] = act_para.safetyFlag;
+			SPLIT_32((uint32_t) act_para.motorCurrentDesired, shBuf, &index);
+			SPLIT_32((uint32_t) act_para.currentOpLimit, shBuf, &index);
+
+			//(14 bytes)
+		}
+
 
 	#endif	//BOARD_TYPE_FLEXSEA_MANAGE
 
@@ -288,6 +321,7 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 	uint16_t index = 0;
 	uint8_t offset = 0;
 	struct rigid_s *ri = &rigid1;
+	struct actuation_parameters *act = &act_para;
 	(void)info;
 
 	#ifdef BOARD_TYPE_FLEXSEA_EXECUTE
@@ -420,10 +454,38 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 			rigid1.mn.genVar[genVindex++] = rigid2.ctrl.walkingState;
 			rigid1.mn.genVar[genVindex++] = rigid2.ctrl.gaitState;
 		}
-		else
+		else if (offset == 5)
 		{
-			//...
+			ri->ctrl.timestamp = REBUILD_UINT32(buf, &index);
+
+			act->motorRelativeRevolution = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->ankleHeight = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->ankleTorqueMeasured = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->ankleTorqueDesired = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->motorTorqueMeasured = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			act->motorTorqueDesired = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+
+			//(28 bytes)
+
+			//rigid1.mn.userVar[1] = actx->motorRelativeRevolution;
+			//rigid1.mn.userVar[2] = actx->ankleHeight;
+			//rigid1.mn.userVar[3] = actx->ankleTorqueMeasured;
+			//rigid1.mn.userVar[4] = actx->ankleTorqueDesired;
+			//rigid1.mn.userVar[5] = motorTorqueMeasured;
+			//rigid1.mn.userVar[6] = motorTorqueDesired; (impedance controller - spring contribution)
 		}
+		else if (offset == 6)
+		{
+			act->cableTensionForce = (int32_t) REBUILD_UINT32(buf, &index)/1000.;
+			runningExoState.state = (int8_t)buf[index++];
+			act->safetyFlag = (int8_t)buf[index++];
+			act->motorCurrentDesired = (int32_t) REBUILD_UINT32(buf, &index);
+			act->currentOpLimit = (int32_t) REBUILD_UINT32(buf, &index);
+
+			//(10 bytes)
+		}
+
+
 
 	#endif	//BOARD_TYPE_FLEXSEA_PLAN
 

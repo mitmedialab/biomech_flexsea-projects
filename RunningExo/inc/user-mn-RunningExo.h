@@ -208,7 +208,8 @@ void stateTransition(void);
 #define MOT_L			0.068	// mH, not yet be measured, refer to Matt's data
 #define MOT_J			0 // 0.000322951 kgm^2, rotor inertia, not yet be measured, refer to Matt's data
 #define MOT_B			0 //0.000131, damping term for motor, not yet be measured, refer to Matt's data
-
+#define MOT_TRANS		0 // lumped mass inertia todo: consider MotorMass on Spring inertia contribution. refer to Matt's data
+#define N_ETA			0.9		// Transmission efficiency
 
 // Limitation and safety parameters
 #define MAX_BOARD_TEMP		70						//centidegree, avoid the FlexSEA board overheating
@@ -241,12 +242,78 @@ enum {
 	};
 
 
+//running state structure
+struct runningExoSystemState
+{
+	//System state
+	int8_t state;
+	uint32_t timer;
+	uint32_t pedometer;
+	//Time stamps
+	int32_t heelStrikeTime;
+	int32_t footFlatTime;
+	int32_t toeOffTime;
+	uint32_t prevStanceDuration;
+	uint32_t prevGaitDuration;
+	_Bool running;
+	_Bool enableOutput;
+	uint32_t disabledPedometer;					//number of disabled steps AFTER all issues are cleared
+	#if (CONTROL_STRATEGY == TORQUE_TRACKING)
+	//add controller specific stuff here
+	#endif //CONTROL_STRATEGY == TORQUE_TRACKING
+};
+
+
+
+// parameters to track sensor values, actuate the motors
+struct actuation_parameters
+	{
+	//exoskeleton parameter
+	float ankleTorqueMeasured;		//N.m
+	float ankleTorqueDesired;		//N.m
+	float ankleHeight;				//m
+	float ankleVel;					//m/s
+	float ankleAcc;					//m/s/s
+	float cableTensionForce;		//N
+	//motor parameters
+	float motorTorqueMeasured;		//N.m
+	float motorTorqueDesired;		//N.m
+	int32_t motorCurrentMeasured;	//mA
+	int32_t motorCurrentDesired;	//mA
+	int32_t initialMotorPosition;		//rad
+	int32_t currentMotorPosition;	//motor position [rad]
+	float motorRelativeRevolution; //motor revolutions relative to the the initial position after motion
+	int32_t motorRotationAngle;		 //rad, motor rotation angle relative to the initial position
+	int32_t motorAngularVel;		//motor angular velocity [rad/s]
+	int32_t motorAngularAcc;		// motor angular acceleration [rad/s/s]
+
+	//control related parameters
+	//float tauMeasuredAnkle;          // N.m, feedback ankle torque
+	//float tauDesiredAnkle;           // N.m, desired ankle torque
+	//float tauErrorMotor;				//N.m, reflected to motor, tauMeasured - tauDesired
+
+	//safety parameters
+	int16_t boardTemperature;	//centidegree, get from temperature sensor on the FlexSEA board
+	int8_t safetyFlag;		//identify various safety problems
+	int32_t currentOpLimit; // mA, current throttling limit
+	};
+
+
+//Torque Control PID gains
+#define TORQ_KP_INIT			1.2 //10.
+#define TORQ_KI_INIT			0.
+#define TORQ_KD_INIT			5 //2.
+
+// Current Control Parameters  -- Test these on a motor test stand first
+#define ACTRL_I_KP_INIT		15
+#define ACTRL_I_KI_INIT		15
+#define ACTRL_I_KD_INIT		0
+
 
 
 
 // extern variables
-extern struct actuation_parameters act_para;
-extern int8_t isEnabledUpdateSensors;
+
 
 
 
