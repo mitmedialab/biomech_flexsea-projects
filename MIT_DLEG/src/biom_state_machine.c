@@ -291,8 +291,8 @@ void runFlatGroundFSM(Act_s *actx) {
         	//If activation is below a certain threshold, these become active
         	//Tune thresholds based on user
 
-			// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-			if (actx->jointTorque > 4) {
+			// VECTOR (1): Late Swing -> Early Stance (hard heel strike) - Condition 1
+			if (actx->jointTorque > 3.5) {
 				stateMachine.current_state = STATE_EARLY_STANCE;
 				walkParams.transition_id = 1;
 			}
