@@ -155,7 +155,7 @@ void torqueSweepTest(struct act_s *actx);
 //Torque Control PID gains
 #define TORQ_KP_INIT			1.2 // good for step response, for zero torque 3 is good
 #define TORQ_KI_INIT			0.
-#define TORQ_KD_INIT			5. // good for step response, for zero torque 15 is good
+#define TORQ_KD_INIT			2. // good for step response, for zero torque 15 is good
 
 // Motor Parameters
 #define MOT_KT 			0.055	// Phase Kt value = linearKt/(3^0.5)
@@ -248,7 +248,7 @@ void torqueSweepTest(struct act_s *actx);
 #define PCB_TEMP_LIMIT_INIT		70
 #define MOTOR_TEMP_LIMIT_INIT	70
 #define ABS_TORQUE_LIMIT_INIT	150	    // Joint torque [Nm]
-#define CURRENT_LIMIT_INIT		65000		// [mA] useful in this form, 40000 max
+#define CURRENT_LIMIT_INIT		40000		// [mA] useful in this form, 40000 max
 #define B_ANGLE_LIMIT			CURRENT_LIMIT_INIT/2000.
 
 // Motor Temp Sensor

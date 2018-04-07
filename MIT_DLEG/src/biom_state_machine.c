@@ -19,8 +19,8 @@ Act_s act1;
 WalkParams walkParams;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {6.0, 0.0, 0.2, -10.0};
-GainParams lswGains = {3.0, 0.0, 0.2, 0.0};
+GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
+GainParams lswGains = {3.0, 0.0, 0.3, 0.0};
 GainParams estGains = {0.0, 0.0, 0.05, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 GainParams lstPowerGains = {4.5, 0.0, 0.1, JNT_ORIENT * -14};
@@ -170,38 +170,34 @@ void runFlatGroundFSM(Act_s *actx) {
 				//---------------------- EARLY STANCE TRANSITION VECTORS ----------------------//
 
 				// VECTOR (A): Early Stance -> Late Stance (foot flat) - Condition 1
-				if (actx->jointAngleDegrees < EST_TO_LST_FOOT_FLAT_HS_ANGLE_LIMIT && actx->jointTorqueRate < EST_TO_LST_FOOT_FLAT_TORQ_RATE) {
-					stateMachine.current_state = STATE_LATE_STANCE;      //Transition occurs even if the early swing motion is not finished
-				}
-				// VECTOR (A): Early Stance -> Late Stance (toe strike) - Condition 2
-				else if(actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH) {
-					stateMachine.current_state = STATE_LATE_STANCE;
-				}
+				if (actx->jointTorque > walkParams.lspEngagementTorque) {
+		            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+		        }
 
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 				break;
         	}
 
-        case STATE_LATE_STANCE: //5
-
-            if (isTransitioning) {
-//               lstGains.k1 = walkParams.earlyStanceKF;
-//               lstGains.thetaDes = actx->jointAngleDegrees;
-            }
-
-            updateVirtualHardstopTorque(actx, &walkParams);
-            updateImpedanceParams(actx, &walkParams);
-            actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
-
-            //---------------------- LATE STANCE TRANSITION VECTORS ----------------------//
-
-            // VECTOR (1): Late Stance -> Late Stance POWER
-            if (actx->jointTorque > walkParams.lspEngagementTorque) {
-            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
-            }
-
-            //------------------------- END OF TRANSITION VECTORS ------------------------//     
-            break;
+//        case STATE_LATE_STANCE: //5
+//
+//            if (isTransitioning) {
+////               lstGains.k1 = walkParams.earlyStanceKF;
+////               lstGains.thetaDes = actx->jointAngleDegrees;
+//            }
+//
+//            updateVirtualHardstopTorque(actx, &walkParams);
+//            updateImpedanceParams(actx, &walkParams);
+//            actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
+//
+//            //---------------------- LATE STANCE TRANSITION VECTORS ----------------------//
+//
+//            // VECTOR (1): Late Stance -> Late Stance POWER
+//            if (actx->jointTorque > walkParams.lspEngagementTorque) {
+//            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+//            }
+//
+//            //------------------------- END OF TRANSITION VECTORS ------------------------//
+//            break;
 
         case STATE_LATE_STANCE_POWER: //6
 
@@ -339,7 +335,7 @@ static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 
 	wParams->earlyStanceKF = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;
 //	eswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
-	eswGains.k1 = 150./OUTPUT_DIVISOR1;
+//	eswGains.k1 = 50./OUTPUT_DIVISOR1;
 
 //	lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
 	lswGains.b = 20./OUTPUT_DIVISOR2;
@@ -372,7 +368,7 @@ static void initializeUserWrites(WalkParams *wParams){
 //	user_data_1.w[3] = 100;
 //	user_data_1.w[4] = 10;
 	user_data_1.w[1] = 0; //emg contr / 100
-	user_data_1.w[2] = 1400; //imp scalar / 100
+	user_data_1.w[2] = 1400; //emg theta desired / 100
 	user_data_1.w[3] = 200; //power term /10
 	user_data_1.w[4] = 30;
 
