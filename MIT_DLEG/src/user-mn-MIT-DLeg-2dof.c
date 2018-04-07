@@ -192,13 +192,13 @@ void MIT_DLeg_fsm_1(void)
 
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
-//			    	if (user_data_1.w[9] > 0) {
+			    	if (user_data_1.w[9] > 0) {
 			    		setMotorTorque(&act1, act1.tauDes);
-//			    	}
+			    	}
 
 
 
-
+//			        rigid1.mn.genVar[0] =
 //					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
 					rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
 					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg

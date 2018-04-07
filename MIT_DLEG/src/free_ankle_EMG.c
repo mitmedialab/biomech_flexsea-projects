@@ -120,8 +120,8 @@ void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an inte
 	}
 
 	//5ms moving average
-	int16_t EMGin_LG = windowSmoothEMG0(emg_data[6]); //SEONGS BOARD LG_VAR gastroc, 0-10000. CHANGE FOR USER
-	int16_t EMGin_TA = windowSmoothEMG1(emg_data[0]); //SEONGS BOARD TA_VAR tibialis anterior, 0-10000
+	int16_t EMGin_LG = windowSmoothEMG0(emg_data[0]); //SEONGS BOARD LG_VAR gastroc, 0-10000. CHANGE FOR USER
+	int16_t EMGin_TA = windowSmoothEMG1(emg_data[3]); //SEONGS BOARD TA_VAR tibialis anterior, 0-10000
 
 	gainLG = user_data_1.w[0]/100.;
 	gainTA = user_data_1.w[1]/100.;

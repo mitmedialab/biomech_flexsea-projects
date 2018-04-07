@@ -145,7 +145,7 @@ void runFlatGroundFSM(Act_s *actx) {
         case STATE_EARLY_STANCE: //4
 
         	{
-				static int8_t using_EMG_free_space = 1;
+				static int8_t using_EMG_free_space = 0;
 
 				if (isTransitioning) {
 					walkParams.scaleFactor = 1.0;
@@ -429,7 +429,7 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	}
 
 	//5ms moving average for gastroc only
-	EMGin_LG = windowSmoothEMG0(emg_data[6]); //SEONGS BOARD LG_VAR gastroc, 0-10000. Changed channel to match Jim's gastroc.
+	EMGin_LG = windowSmoothEMG0(emg_data[0]); //SEONGS BOARD LG_VAR gastroc, 0-10000. Changed channel to match Jim's gastroc.
 	scaledEMG = EMGin_LG/emgInMax;
 
 	//ignore EMG contribution if below a certain activation
