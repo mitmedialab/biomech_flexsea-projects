@@ -114,7 +114,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			}
 
-			updateVirtualHardstopTorque(actx, &walkParams);
+//			updateVirtualHardstopTorque(actx, &walkParams);
 
 			actx->tauDes = calcJointTorque(lswGains, actx, &walkParams);
 
@@ -149,6 +149,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				if (isTransitioning) {
 					walkParams.scaleFactor = 1.0;
+
 					estGains.k1 = walkParams.earlyStanceK0;
 					estGains.thetaDes = actx->jointAngleDegrees;
 				}
@@ -203,7 +204,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
         	{
 				//turn this on or off to use EMG powered plantarflexion
-				static int8_t using_EMG_PPF = 1;
+				static int8_t using_EMG_PPF = 0;
 
 				if (isTransitioning) {
 					walkParams.samplesInLSP = 0.0;
@@ -335,7 +336,7 @@ static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 
 	wParams->earlyStanceKF = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;
 //	eswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
-//	eswGains.k1 = 50./OUTPUT_DIVISOR1;
+	eswGains.k1 = 150./OUTPUT_DIVISOR1;
 
 //	lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
 	lswGains.b = 20./OUTPUT_DIVISOR2;
@@ -378,7 +379,7 @@ static void initializeUserWrites(WalkParams *wParams){
 	user_data_1.w[6] = 0;
 	user_data_1.w[7] = 14;
 	user_data_1.w[8] = 450;
-	user_data_1.w[9] = 45; //Jim's default was 45
+	user_data_1.w[9] = 80; //Jim's default was 80
 
 	wParams->initializedStateMachineVariables = 1;
 }
