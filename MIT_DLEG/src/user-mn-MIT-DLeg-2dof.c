@@ -203,8 +203,8 @@ void MIT_DLeg_fsm_1(void)
 					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
 					rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
 					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
-					rigid1.mn.genVar[6] = (int16_t) (emg_data[0]); //
-//					rigid1.mn.genVar[7] = (int16_t) (estGains.k1*100.0); //Nm/deg
+					rigid1.mn.genVar[6] = (int16_t) (emg_data[5]); // LG
+					rigid1.mn.genVar[7] = (int16_t) (emg_data[3]); // TA
 					rigid1.mn.genVar[8] = stateMachine.current_state;
 					rigid1.mn.genVar[9] = act1.tauDes*100;
 			    }

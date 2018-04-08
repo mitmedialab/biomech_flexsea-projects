@@ -414,8 +414,7 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 
 	float impedanceScalar = 0.5; //scalar term for impedance control
 	float emgPower = 1; //exponent term of the emg contribution
-	float noiseThreshold = 0.2; //under this gastroc activation, emgContribution = 0
-	float desiredTorqueThreshold = 150; //max desired torque
+	float desiredTorqueThreshold = 120; //max desired torque
 
 
 	//limit maximum emg_data in case something goes wrong
@@ -428,11 +427,6 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	//5ms moving average for gastroc only
 	EMGin_LG = windowSmoothEMG0(emg_data[0]); //SEONGS BOARD LG_VAR gastroc, 0-10000. Changed channel to match Jim's gastroc.
 	scaledEMG = EMGin_LG/emgInMax;
-
-	//ignore EMG contribution if below a certain activation
-	if (scaledEMG <= noiseThreshold) {
-		scaledEMG = 0;
-	}
 
 	//torque output from the intrinsic controller
 //	impedanceContribution = impedanceScalar * calcJointTorque(lstPowerGains, actx, &walkParams);
