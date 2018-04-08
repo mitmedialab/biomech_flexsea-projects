@@ -188,7 +188,7 @@ void MIT_DLeg_fsm_1(void)
 			    	return;
 
 			    } else {
-
+			    	stateMachine.current_state = STATE_LSW_EMG;
 			    	runFlatGroundFSM(&act1);
 
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);

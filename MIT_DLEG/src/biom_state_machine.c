@@ -145,7 +145,7 @@ void runFlatGroundFSM(Act_s *actx) {
         case STATE_EARLY_STANCE: //4
 
         	{
-				static int8_t using_EMG_free_space = 0;
+				static int8_t using_EMG_free_space = 1;
 
 				if (isTransitioning) {
 					walkParams.scaleFactor = 1.0;
@@ -279,20 +279,21 @@ void runFlatGroundFSM(Act_s *actx) {
         	if (MIT_EMG_getState() == 1) {
 				updateVirtualJoint(&emgFreeGains);
 				actx->tauDes = calcJointTorque(emgFreeGains, actx, &walkParams);
-        	} else {
-        		actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
-        		stateMachine.current_state = STATE_EARLY_STANCE;
         	}
+//        	else {
+//        		actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
+//        		stateMachine.current_state = STATE_EARLY_STANCE;
+//        	}
 
         	//Late Swing EMG transition vectors to Early Stance
         	//If activation is below a certain threshold, these become active
         	//Tune thresholds based on user
 
 			// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-			if (actx->jointTorque > 4) {
-				stateMachine.current_state = STATE_EARLY_STANCE;
-				walkParams.transition_id = 1;
-			}
+//			if (actx->jointTorque > 4) {
+//				stateMachine.current_state = STATE_EARLY_STANCE;
+//				walkParams.transition_id = 1;
+//			}
 
 
         	break;
@@ -361,25 +362,25 @@ static void initializeUserWrites(WalkParams *wParams){
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 	walkParams.lstPGDelTics = 1;
 
-	user_data_1.w[0] = 100;
+//	user_data_1.w[0] = 100;
 
 
 //	user_data_1.w[1] = 150;
 //	user_data_1.w[2] = 20;
 //	user_data_1.w[3] = 100;
 //	user_data_1.w[4] = 10;
-	user_data_1.w[1] = 0; //emg contr / 100
-	user_data_1.w[2] = 1400; //emg theta desired / 100
-	user_data_1.w[3] = 200; //power term /10
-	user_data_1.w[4] = 30;
-
-
-
-	user_data_1.w[5] = 700; //Jim's was defaulted to 700;
-	user_data_1.w[6] = 0;
-	user_data_1.w[7] = 14;
-	user_data_1.w[8] = 450;
-	user_data_1.w[9] = 80; //Jim's default was 80
+//	user_data_1.w[1] = 0; //emg contr / 100
+//	user_data_1.w[2] = 1400; //emg theta desired / 100
+//	user_data_1.w[3] = 200; //power term /10
+//	user_data_1.w[4] = 30;
+//
+//
+//
+//	user_data_1.w[5] = 700; //Jim's was defaulted to 700;
+//	user_data_1.w[6] = 0;
+//	user_data_1.w[7] = 14;
+//	user_data_1.w[8] = 450;
+//	user_data_1.w[9] = 80; //Jim's default was 80
 
 	wParams->initializedStateMachineVariables = 1;
 }

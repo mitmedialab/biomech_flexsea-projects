@@ -51,7 +51,7 @@
 // joint limits
 float max_DFangle = -20 * -JOINT_ANGLE_DIR; // In terms of robot limits. Convention inside here is opposite robot.
 float max_PFangle = 40 * -JOINT_ANGLE_DIR;
-float equilibriumAngle = 10 * -JOINT_ANGLE_DIR; // 30 degrees plantarflexion
+float equilibriumAngle = 0 * -JOINT_ANGLE_DIR; // 30 degrees plantarflexion
 
 int32_t EMGavgs[2] = {0, 0}; // Initialize the EMG signals to 0;
 float PFDF_state[3] = {0, 0, 0};
@@ -101,7 +101,8 @@ void updateVirtualJoint(GainParams* pgains)
 {
 	get_EMG();
 	interpret_EMG(virtualK, virtualB, virtualJ);
-	pgains->k1 = 0.5 + pgains->k1*PFDF_state[2];
+	pgains->k1 = 0.5 + user_data_1.w[5]/10.*PFDF_state[2];
+	pgains->b = user_data_1.w[6]/100.;
 	pgains->thetaDes = PFDF_state[0] * -JOINT_ANGLE_DIR; //flip the convention
 	rigid1.mn.genVar[6] = pgains->k1*10;
 }
@@ -120,7 +121,7 @@ void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an inte
 	}
 
 	//5ms moving average
-	int16_t EMGin_LG = windowSmoothEMG0(emg_data[0]); //SEONGS BOARD LG_VAR gastroc, 0-10000. CHANGE FOR USER
+	int16_t EMGin_LG = windowSmoothEMG0(emg_data[5]); //SEONGS BOARD LG_VAR gastroc, 0-10000. CHANGE FOR USER
 	int16_t EMGin_TA = windowSmoothEMG1(emg_data[3]); //SEONGS BOARD TA_VAR tibialis anterior, 0-10000
 
 	gainLG = user_data_1.w[0]/100.;
@@ -145,8 +146,8 @@ void interpret_EMG (float k, float b, float J)
 
 	//user inputs
 	cocontractThresh = user_data_1.w[2]/100.;
-	pfTorqueGain = user_data_1.w[3];
-	dfTorqueGain = user_data_1.w[4];
+	pfTorqueGain =  user_data_1.w[3];
+	dfTorqueGain =  user_data_1.w[4];
 
 
 	// Calculate LG activation
