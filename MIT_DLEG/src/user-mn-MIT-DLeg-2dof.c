@@ -184,17 +184,12 @@ void MIT_DLeg_fsm_1(void)
 			    	*/
 			    	stateMachine.current_state = STATE_LATE_SWING;
 
-			    	return;
-
 			    } else {
-//			    	stateMachine.current_state = STATE_LSW_EMG;
-//			    	runFlatGroundFSM(&act1);
-
-//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
+			    	runFlatGroundFSM(&act1);
 
 					setMotorTorque(&act1, act1.tauDes);
 
-
+//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
 			        rigid1.mn.genVar[0] = startedOverLimit;
 					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
@@ -569,9 +564,10 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	if (!isAngleLimit) {
 		I = 1/MOT_KT * (tau_ff + tau_PID + tau_motor_comp) * currentScalar;
 
-	//joint velocity must not be 0 (could be symptom of joint position signal error)
+	//joint velocity must not be 0 (could be symptom of joint position signal outage)
 	} else if (actx->jointVel != 0 && !startedOverLimit) {
 		I = calcRestoringCurrent(actx, N);
+	//if we started beyond soft limits after finding poles, or joint position is out
 	} else {
 		I = 0;
 	}
