@@ -45,10 +45,11 @@
 //----------------------------------------------------------------------------
 // Local Variable(s) and Struct
 //----------------------------------------------------------------------------
+int16_t fsm1State;
 float torqueProfileGain = DEFAULT_TORQUE_PROFILE_GAIN;
 int8_t bodyWeight = DEFAULT_BODY_WEIGHT;//user body weight (kg)
 float controlAction;
-
+float currentScalar = CURRENT_SCALAR_INIT;
 
 //initialize one instance
 struct runningExoSystemState runningExoState =
@@ -98,6 +99,7 @@ struct actuation_parameters act_para =
 
 	int8_t isEnabledUpdateSensors = 0;
 	int32_t currentOpLimit = MOTOR_CURRENT_LIMIT; 	//operational limit for current.
+	static const float bLimit		= B_ANGLE_LIMIT;
 
 //torque gain values
 	float torqueKp = TORQ_KP_INIT;
@@ -132,6 +134,7 @@ void setAnkleTorque(struct actuation_parameters *actx, float tau_desired);
 void init_runningExo(void)
 //TODO
 {
+	fsm1State = 0;
 	runningExoState.state = 1;					//Initialize state
 	controlAction = 0;			//clear control action
 	act_para.initialMotorPosition = *rigid1.ex.enc_ang; // test if it is correct using GUI
@@ -637,11 +640,11 @@ void setAnkleTorque(struct actuation_parameters *actx, float tau_desired_ankle)
 		tau_error_integral = 0;
 	}
 	tau_error_last = tau_error;
-/*
+
 	//PID around motor torque
 	tau_PID = tau_error*torqueKp + tau_error_diff*torqueKd + tau_error_integral*torqueKi;
 
-	I = 1/MOT_KT * ( tau_ff + tau_PID + tau_motor_comp) * currentScalar;
+	I = 1/MOT_KT * ( tau_ff + tau_PID + tau_motor_compensation) * currentScalar;
 
 	//account for deadzone current (unused due to instability). Unsolved problem according to Russ Tedrake.
 //	if (abs(dtheta_m) < 3 && I < 0) {
@@ -660,34 +663,43 @@ void setAnkleTorque(struct actuation_parameters *actx, float tau_desired_ankle)
 
 
 	//Soft angle limits with virtual spring. Raise flag for safety check.
-	if (actx->jointAngleDegrees <= jointMinSoft  || actx->jointAngleDegrees >= jointMaxSoft) {
+	if (actx->motorRelativeRevolution <= 0  || actx->motorRelativeRevolution >= MAX_MOTOR_REVOLUTION)
+	{
+		isSafetyFlag = SAFETY_MOTOR_POSITION;
+		isPositionLimit = 1;		//these are all redundant, choose if we want the struct thing.
 
-		isSafetyFlag = SAFETY_ANGLE;
-		isAngleLimit = 1;		//these are all redundant, choose if we want the struct thing.
-
-		float angleDiff = actx->jointAngleDegrees - jointMinSoft;
+		float angleDiff1 = actx->motorRelativeRevolution;
+		float angleDiff2 = actx->motorRelativeRevolution - MAX_MOTOR_REVOLUTION;
 
 		//Oppose motion using linear spring with damping
-		if (actx->jointAngleDegrees - jointMinSoft < 0) {
-
-			if (abs(angleDiff) < 5) {
-				I -= currentOpLimit*(angleDiff/5) + bLimit*actx->jointVelDegrees;
-			} else {
-				I -= -currentOpLimit + bLimit*actx->jointVelDegrees;
+		if (actx->motorRelativeRevolution < 0)
+		{
+			if (abs(angleDiff1) < 3)
+			{
+				I -= currentOpLimit*(angleDiff1/3) + bLimit*actx->motorAngularVel;
+			}
+			else
+			{
+				I -= -currentOpLimit + bLimit*actx->motorAngularVel;
 			}
 
-		} else if (actx->jointAngleDegrees - jointMaxSoft > 0) {
-
-			if (abs(angleDiff) < 5) {
-				I -= currentOpLimit*(angleDiff/5) + bLimit*actx->jointVelDegrees;
-			} else {
-				I -= currentOpLimit + bLimit*actx->jointVelDegrees;
+		} else if (actx->motorRelativeRevolution - MAX_MOTOR_REVOLUTION > 0)
+		{
+			if (abs(angleDiff2) < 3)
+			{
+				I -= currentOpLimit*(angleDiff2/3) + bLimit*actx->motorAngularVel;
+			}
+			else
+			{
+				I -= currentOpLimit + bLimit*actx->motorAngularVel;
 			}
 		}
 
-	} else {
+	}
+	else
+	{
 
-		isAngleLimit = 0;
+		isPositionLimit = 0;
 
 	}
 
@@ -701,16 +713,36 @@ void setAnkleTorque(struct actuation_parameters *actx, float tau_desired_ankle)
 		I = -currentOpLimit;
 	}
 
-	actx->desiredCurrent = (int32_t) I; 	// demanded mA
-	setMotorCurrent(actx->desiredCurrent);	// send current command to comm buffer to Execute
+	actx->motorCurrentDesired = (int32_t) I; 	// demanded mA
+	setMotorCurrent(actx->motorCurrentDesired);	// send current command to comm buffer to Execute
 
 	//variables used in cmd-rigid offset 5
-	rigid1.mn.userVar[5] = tau_meas*1000;
-	rigid1.mn.userVar[6] = tau_des*1000;
-*/
+	rigid1.mn.userVar[5] = tau_measured*1000;
+	rigid1.mn.userVar[6] = tau_desired*1000;
+
 }
 
 
+
+/*
+ * Simple impedance controller
+ * input:	theta_set, desired theta (degrees)
+ * 			m,b,k impedance parameters
+ * return: 	tor_d, desired torque
+ */
+float calcImpedanceTorque(float m, float b, float k, float ddthetad_set, float dtheta_set, float theta_set)
+{
+	float theta = 0, dtheta = 0, ddtheta = 0;
+	float tor_d = 0;
+
+	theta = act_para.currentMotorPosition;
+	dtheta = act_para.motorAngularVel;
+	ddtheta = act_para.motorAngularAcc;
+	tor_d = m * (ddthetad_set - ddtheta) + b * (dtheta_set - dtheta) + k * (theta_set - theta);
+//Todo, need to modify according to human running acceleration and velocity at foot
+	return tor_d;
+
+}
 
 
 void mit_init_current_controller(void)
@@ -723,6 +755,19 @@ void mit_init_current_controller(void)
 }
 
 
+void packRigidVars(struct actuation_parameters  *actx)
+{
+
+	// set float userVars to send back to Plan
+	rigid1.mn.userVar[0] = actx->cableTensionForce*1000;
+	rigid1.mn.userVar[1] = actx->motorRelativeRevolution*1000;
+	rigid1.mn.userVar[2] = actx->ankleHeight*1000;
+	rigid1.mn.userVar[3] = actx->ankleTorqueMeasured*1000;
+	rigid1.mn.userVar[4] = actx->ankleTorqueDesired*1000;
+
+	//rigid1.mn.userVar[5] = tau_measured*1000;
+	//rigid1.mn.userVar[6] = tau_desired*1000; (impedance controller - spring contribution)
+}
 
 
 #endif 	//defined BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN

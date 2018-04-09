@@ -220,6 +220,7 @@ void stateTransition(void);
 #define MAX_MOTOR_TORQUE_REQUIRED	(MOTOR_TORQUE_MARGIN_FACTOR*MAX_CABLE_TENSION_FORCE*(MOT_OUTPUT_SHAFT_DIAMETER/2))
 #define MAX_MOTOR_CURRENT	(1000*MAX_MOTOR_TORQUE_REQUIRED/MOT_KT)		//mA, 33.95 A--2.08 N.m
 #define	MOTOR_CURRENT_LIMIT		10000 //mA
+#define B_ANGLE_LIMIT			MOTOR_CURRENT_LIMIT/1000.
 #define ENCODER_RESOLUTION_BIT		14		//AS5047P encoder resolution in bits.
 #define ENCODER_RESOLUTION			((uint16_t)pow(2,ENCODER_RESOLUTION_BIT)) // 16384, AS5047P encoder resolution in decimal.
 #define	ENCODER_CPR		ENCODER_RESOLUTION //16384, Counts per revolution
@@ -299,6 +300,17 @@ struct actuation_parameters
 	};
 
 
+//impedance control structure
+typedef struct{
+
+	float m;
+	float b;
+	float k;
+	float thetaDes;
+
+} GainParams;
+
+
 //Torque Control PID gains
 #define TORQ_KP_INIT			1.2 //10.
 #define TORQ_KI_INIT			0.
@@ -323,6 +335,7 @@ struct actuation_parameters
 //****************************************************************************
 
 
+#define CURRENT_SCALAR_INIT		1000	// Scale Amps to mAmps
 #define SECONDS			1000
 
 

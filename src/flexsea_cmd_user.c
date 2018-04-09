@@ -40,6 +40,7 @@ extern "C" {
 #include <flexsea.h>
 #include <flexsea_cmd_user.h>
 #include <dynamic_user_structs.h>
+#include <cmd-RunningExo.h>
 
 #ifdef BOARD_TYPE_FLEXSEA_EXECUTE
 	#if(!defined BOARD_SUBTYPE_RIGID && !defined BOARD_SUBTYPE_POCKET)
@@ -110,6 +111,13 @@ void init_flexsea_payload_ptr_user(void)
 	//flexsea_payload_ptr[CMD_ACTPACK][RX_PTYPE_WRITE] = &rx_cmd_actpack_w;
 	flexsea_payload_ptr[CMD_ACTPACK][RX_PTYPE_REPLY] = &rx_cmd_actpack_rr;
 	#endif
+
+	//RunExo gain adjustments
+	#if(ACTIVE_PROJECT == PROJECT_RUNNING_EXO)
+	flexsea_payload_ptr[CMD_RUNEXO][RX_PTYPE_READ] = &rx_cmd_runexo_rw;
+	flexsea_payload_ptr[CMD_RUNEXO][RX_PTYPE_REPLY] = &rx_cmd_runexo_rr;
+	#endif
+
 
 	//Rigid:
 	flexsea_payload_ptr[CMD_READ_ALL_RIGID][RX_PTYPE_READ] = &rx_cmd_rigid_rw;

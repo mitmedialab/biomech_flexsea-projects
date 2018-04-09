@@ -62,6 +62,7 @@ void init_flexsea_payload_ptr_user(void);
 
 #define CMD_READ_ALL_RIGID			120
 #define CMD_ACTPACK					121
+#define CMD_RUNEXO					122
 #define CMD_BILATERAL				125
 #define CMD_USER_DYNAMIC 			126
 
