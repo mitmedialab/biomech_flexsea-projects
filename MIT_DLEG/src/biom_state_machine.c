@@ -123,7 +123,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			actx->tauDes = calcJointTorque(lswGains, actx, &walkParams);
 
-			windowSmoothEMG0(emg_data[5]); //emg signal for Jim's LG
+			if (MIT_EMG_getState() == 1) windowSmoothEMG0(emg_data[5]); //emg signal for Jim's LG
 
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 			if(time_in_state > ESW_TO_LSW_DELAY) {
@@ -164,15 +164,19 @@ void runFlatGroundFSM(Act_s *actx) {
 					emgInputPPF = 0;
 				}
 
-				emgVal = windowSmoothEMG0(emg_data[5]); //emg signal for Jim's LG
+				if (MIT_EMG_getState() == 1) {
 
-				//only consider last 200 ms for emgInputPPF
-				if (time_in_state % 200 == 199) {
-					emgInputPPF = 0;
-				}
-				//store max value of EMG during early stance
-				if (emgVal > emgInputPPF) {
-					emgInputPPF = emgVal;
+					emgVal = windowSmoothEMG0(emg_data[5]); //emg signal for Jim's LG
+
+					//only consider last 200 ms for emgInputPPF
+					if (time_in_state % 200 == 199) {
+						emgInputPPF = 0;
+					}
+					//store max value of EMG during early stance
+					if (emgVal > emgInputPPF) {
+						emgInputPPF = emgVal;
+					}
+
 				}
 
 
