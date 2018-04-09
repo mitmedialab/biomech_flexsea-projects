@@ -20,10 +20,10 @@ WalkParams walkParams;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
-GainParams lswGains = {3.0, 0.0, 0.3, 0.0};
-GainParams estGains = {0.0, 0.0, 0.05, 0.0};
+GainParams lswGains = {3.0, 1, 0.2, 0.0};
+GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
-GainParams lstPowerGains = {4.5, 0.0, 0.1, JNT_ORIENT * -14};
+GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
 
 GainParams emgStandGains = {2, 0.025, 0.04, 0};
 GainParams emgFreeGains  = {1.2, 0, 0.02, 0};
@@ -348,16 +348,10 @@ static void initializeUserWrites(WalkParams *wParams){
 	wParams->earlyStanceK0 = 5.23;
 	wParams->earlyStanceKF = 0.05;
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
-	walkParams.lstPGDelTics = 1;
+	wParams->lstPGDelTics = 1;
 	wParams->earlyStanceKF = 1;
-	eswGains.k1 = 1.5;
-	lswGains.b = 0.2;
-	lswGains.k2 = 1;
-	estGains.b = 0.1;
 	wParams->virtualHardstopK = 7;				//7 x 100
 	wParams->virtualHardstopEngagementAngle = 0;	//0.0 x 1
-	lstPowerGains.thetaDes = 14;				//18.0 x 1
-	lstPowerGains.k1 = 4.5; 						//4.5 x 100
 	wParams->lspEngagementTorque = 80;				//45 x 1
 
 	wParams->initializedStateMachineVariables = 1;
