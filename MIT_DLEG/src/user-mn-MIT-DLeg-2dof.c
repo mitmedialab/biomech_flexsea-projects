@@ -61,6 +61,7 @@ static int8_t isSafetyFlag = 0;
 static int8_t isAngleLimit = 0;
 static int8_t isTorqueLimit = 0;
 static int8_t isTempLimit = 0;
+static int8_t startedOverLimit = 1;
 
 int8_t isEnabledUpdateSensors = 0;
 int8_t fsm1State = -2;
@@ -101,7 +102,6 @@ static const float jointMinSoft = JOINT_MIN_SOFT;
 static const float jointMaxSoft = JOINT_MAX_SOFT;
 static const float jointMinSoftDeg = JOINT_MIN_SOFT * DEG_PER_RAD;
 static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
-static const float bLimit		= B_ANGLE_LIMIT;
 
 struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
 
@@ -183,13 +183,12 @@ void MIT_DLeg_fsm_1(void)
 			    	  Only update the walking FSM, but don't output torque.
 			    	*/
 			    	stateMachine.current_state = STATE_LATE_SWING;
-			    	runFlatGroundFSM(&act1);
 
 			    	return;
 
 			    } else {
-			    	stateMachine.current_state = STATE_LSW_EMG;
-			    	runFlatGroundFSM(&act1);
+//			    	stateMachine.current_state = STATE_LSW_EMG;
+//			    	runFlatGroundFSM(&act1);
 
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
@@ -197,8 +196,8 @@ void MIT_DLeg_fsm_1(void)
 
 
 
-//			        rigid1.mn.genVar[0] =
-//					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
+			        rigid1.mn.genVar[0] = startedOverLimit;
+					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
 					rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
 					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
 					rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
@@ -254,7 +253,7 @@ int8_t safetyShutoff(void) {
 				isSafetyFlag = SAFETY_OK;
 				break;
 			} else {
-				// do nothing. Clamping is handled in setMotorTorque();
+				// do nothing. Clamping is handled in calcRestoringCurrent();
 			}
 
 			return 0; //continue running FSM
@@ -362,7 +361,20 @@ void getJointAngleKinematic(struct act_s *actx)
 	//ANGLE
 	//Configuration orientation
 	jointAngleCnts = JOINT_ANGLE_DIR * ( jointZero + JOINT_ENC_DIR * (*(rigid1.ex.joint_ang)) );
+
+	//if we start over soft limits after findPoles(), only turn on motor after getting within limits
+	if (startedOverLimit && jointAngleCnts*(angleUnit)/JOINT_CPR < jointMaxSoft && jointAngleCnts*(angleUnit)/JOINT_CPR > jointMinSoft) {
+		startedOverLimit = 0;
+	}
+
 	actx->jointAngle = 0.8*actx->jointAngle + 0.2*jointAngleCnts  * (angleUnit)/JOINT_CPR;
+
+	if (actx->jointAngle > JOINT_MAX_SOFT || actx->jointAngle < JOINT_MIN_SOFT) {
+		isSafetyFlag = SAFETY_ANGLE;
+		isAngleLimit = 1;
+	} else {
+		isAngleLimit = 0;
+	}
 
 	//Absolute orientation to evaluate against soft-limits
 	jointAngleCntsAbsolute = JOINT_ANGLE_DIR * ( jointZeroAbs + JOINT_ENC_DIR * (*(rigid1.ex.joint_ang)) );
@@ -554,7 +566,15 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	//PID around motor torque
 	tau_PID = tau_err*torqueKp + tau_err_dot*torqueKd + tau_err_int*torqueKi;
 
-	I = 1/MOT_KT * ( tau_ff + tau_PID + tau_motor_comp) * currentScalar;
+	if (!isAngleLimit) {
+		I = 1/MOT_KT * (tau_ff + tau_PID + tau_motor_comp) * currentScalar;
+
+	//joint velocity must not be 0 (could be symptom of joint position signal error)
+	} else if (actx->jointVel != 0 && !startedOverLimit) {
+		I = calcRestoringCurrent(actx, N);
+	} else {
+		I = 0;
+	}
 
 	//account for deadzone current (unused due to instability). Unsolved problem according to Russ Tedrake.
 //	if (abs(dtheta_m) < 3 && I < 0) {
@@ -562,42 +582,6 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 //	} else if (abs(dtheta_m) < 3 && I > 0) {
 //		I += motSticPos;
 //	}
-
-	//Soft angle limits with virtual spring. Raise flag for safety check.
-	if (actx->jointAngleDegrees <= jointMinSoftDeg  || actx->jointAngleDegrees >= jointMaxSoftDeg) {
-
-		isSafetyFlag = SAFETY_ANGLE;
-		isAngleLimit = 1;		//these are all redundant
-
-		float angleDiff = 0;
-
-		//Oppose motion using linear spring with damping
-		if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
-
-			angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
-
-			if (abs(angleDiff) < 10) {
-				I = currentOpLimit*(abs(angleDiff)/10.) + 3000 - bLimit*actx->jointVelDegrees;
-			} else {
-				I = currentOpLimit - bLimit*actx->jointVelDegrees;
-			}
-
-		} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
-
-			angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
-
-			if (abs(angleDiff) < 10) {
-				I = -currentOpLimit*(abs(angleDiff)/10.) - 3000 - bLimit*actx->jointVelDegrees;
-			} else {
-				I = -currentOpLimit - bLimit*actx->jointVelDegrees;
-			}
-		}
-
-	} else {
-
-		isAngleLimit = 0;
-
-	}
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > currentOpLimit)
@@ -614,6 +598,40 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	//variables used in cmd-rigid offset 5
 	rigid1.mn.userVar[5] = tau_meas*1000;
 	rigid1.mn.userVar[6] = tau_des*1000;
+
+}
+
+float calcRestoringCurrent(struct act_s *actx, float N) {
+	//Soft angle limits with virtual spring. Raise flag for safety check.
+
+	float angleDiff = 0;
+	float tauDes = 0;
+	float k = 7; // N/m
+	float b = 0.3; // Ns/m
+
+	//Oppose motion using linear spring with damping
+	if (actx->jointAngleDegrees - jointMinSoftDeg < -1) {
+
+		angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
+
+		if (abs(angleDiff) < 2) {
+			tauDes = -0.5*k*angleDiff - b*actx->jointVelDegrees;
+		} else {
+			tauDes = -k*angleDiff - b*actx->jointVelDegrees;
+		}
+
+	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 1) {
+
+		angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
+
+		if (abs(angleDiff) < 2) {
+			tauDes = -0.5*k*angleDiff - b*actx->jointVelDegrees;
+		} else {
+			tauDes = -k*angleDiff - b*actx->jointVelDegrees;
+		}
+	}
+
+	return (tauDes/(N*N_ETA)) * currentScalar/MOT_KT;
 
 }
 

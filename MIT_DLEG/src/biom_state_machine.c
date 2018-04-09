@@ -58,6 +58,12 @@ void runFlatGroundFSM(Act_s *actx) {
 
     if (!walkParams.initializedStateMachineVariables){
     	initializeUserWrites(&walkParams);
+
+    	//USER WRITE INITIALIZATION GOES HERE//////////////
+    	user_data_1.w[2] = 1400; // k term/100
+    	user_data_1.w[3] = 200; // theta desired/10
+    	user_data_1.w[4] = 30; // damping/100
+    	///////////////////////////////////////////////////
     }
 
     updateUserWrites(actx, &walkParams);
@@ -156,7 +162,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				if (MIT_EMG_getState() == 1 && using_EMG_free_space) {
 
-					if(time_in_state > 300 && abs(actx->jointTorque) < 3) {
+					if(time_in_state > 400 && abs(actx->jointTorque) < 3) {
 						stateMachine.current_state = STATE_LSW_EMG;
 					}
 				}
@@ -290,7 +296,7 @@ void runFlatGroundFSM(Act_s *actx) {
         	//Tune thresholds based on user
 
 			// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-//			if (actx->jointTorque > 4) {
+//			if (actx->jointTorque > 3.5) {
 //				stateMachine.current_state = STATE_EARLY_STANCE;
 //				walkParams.transition_id = 1;
 //			}
@@ -335,24 +341,6 @@ static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wPa
 
 static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 
-	wParams->earlyStanceKF = ((float) user_data_1.w[0])/OUTPUT_DIVISOR0;
-//	eswGains.k1 = ((float) user_data_1.w[1])/OUTPUT_DIVISOR1;					//5.23 x 100
-	eswGains.k1 = 150./OUTPUT_DIVISOR1;
-
-//	lswGains.b = ((float) user_data_1.w[2])/OUTPUT_DIVISOR2;
-	lswGains.b = 20./OUTPUT_DIVISOR2;
-
-//	lswGains.k2 = ((float) user_data_1.w[3])/OUTPUT_DIVISOR3;    	//0.995 x 10000
-	lswGains.k2 = 100./OUTPUT_DIVISOR3;
-
-//	estGains.b = ((float) user_data_1.w[4])/OUTPUT_DIVISOR4;  							//0.1 x 100
-	estGains.b = 10./OUTPUT_DIVISOR4;
-
-	wParams->virtualHardstopK = ((float) user_data_1.w[5])/OUTPUT_DIVISOR5;				//7 x 100
-	wParams->virtualHardstopEngagementAngle = ((float) user_data_1.w[6])/OUTPUT_DIVISOR6;	//0.0 x 1
-	lstPowerGains.thetaDes = ((float) user_data_1.w[7])/OUTPUT_DIVISOR7;				//18.0 x 1
-	lstPowerGains.k1 = ((float) user_data_1.w[8])/OUTPUT_DIVISOR8; 						//4.5 x 100
-	wParams->lspEngagementTorque = ((float) user_data_1.w[9])/OUTPUT_DIVISOR9;				//45 x 1
 }
 
 static void initializeUserWrites(WalkParams *wParams){
@@ -361,26 +349,16 @@ static void initializeUserWrites(WalkParams *wParams){
 	wParams->earlyStanceKF = 0.05;
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 	walkParams.lstPGDelTics = 1;
-
-//	user_data_1.w[0] = 100;
-
-
-//	user_data_1.w[1] = 150;
-//	user_data_1.w[2] = 20;
-//	user_data_1.w[3] = 100;
-//	user_data_1.w[4] = 10;
-//	user_data_1.w[1] = 0; //emg contr / 100
-//	user_data_1.w[2] = 1400; //emg theta desired / 100
-//	user_data_1.w[3] = 200; //power term /10
-//	user_data_1.w[4] = 30;
-//
-//
-//
-//	user_data_1.w[5] = 700; //Jim's was defaulted to 700;
-//	user_data_1.w[6] = 0;
-//	user_data_1.w[7] = 14;
-//	user_data_1.w[8] = 450;
-//	user_data_1.w[9] = 80; //Jim's default was 80
+	wParams->earlyStanceKF = 1;
+	eswGains.k1 = 1.5;
+	lswGains.b = 0.2;
+	lswGains.k2 = 1;
+	estGains.b = 0.1;
+	wParams->virtualHardstopK = 7;				//7 x 100
+	wParams->virtualHardstopEngagementAngle = 0;	//0.0 x 1
+	lstPowerGains.thetaDes = 14;				//18.0 x 1
+	lstPowerGains.k1 = 4.5; 						//4.5 x 100
+	wParams->lspEngagementTorque = 80;				//45 x 1
 
 	wParams->initializedStateMachineVariables = 1;
 }
