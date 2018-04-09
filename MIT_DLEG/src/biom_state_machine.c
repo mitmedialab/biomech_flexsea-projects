@@ -164,12 +164,13 @@ void runFlatGroundFSM(Act_s *actx) {
 					emgInputPPF = 0;
 				}
 
+				//update emgVal for EMG PPF
 				if (MIT_EMG_getState() == 1) {
 
 					emgVal = windowSmoothEMG0(emg_data[5]); //emg signal for Jim's LG
 
-					//only consider last 200 ms for emgInputPPF
-					if (time_in_state % 200 == 199) {
+					//only consider last 500 ms for emgInputPPF
+					if (time_in_state % 500 == 499) {
 						emgInputPPF = 0;
 					}
 					//store max value of EMG during early stance
@@ -190,7 +191,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				if (MIT_EMG_getState() == 1 && using_EMG_free_space) {
 
-					if(time_in_state > 400 && abs(actx->jointTorque) < 3) {
+					if(time_in_state > 400 && abs(actx->jointTorque) < 3.5) {
 						stateMachine.current_state = STATE_LSW_EMG;
 					}
 				}
@@ -233,7 +234,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
         	{
 				//turn this on or off to use EMG powered plantarflexion
-				static int8_t using_EMG_PPF = 0;
+				static int8_t using_EMG_PPF = 1;
 
 				if (isTransitioning) {
 					walkParams.samplesInLSP = 0.0;
