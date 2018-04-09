@@ -54,6 +54,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
     static int8_t isTransitioning = 0;
     static uint32_t time_in_state = 0;
+    static int32_t emgInputPPF = 0; //used to keep track of EMG PPF input
 
 
     if (!walkParams.initializedStateMachineVariables){
@@ -122,6 +123,8 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			actx->tauDes = calcJointTorque(lswGains, actx, &walkParams);
 
+			windowSmoothEMG0(emg_data[5]); //emg signal for Jim's LG
+
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 			if(time_in_state > ESW_TO_LSW_DELAY) {
 
@@ -150,13 +153,28 @@ void runFlatGroundFSM(Act_s *actx) {
 
         	{
 				static int8_t using_EMG_free_space = 1;
+				int16_t emgVal = 0;
 
 				if (isTransitioning) {
 					walkParams.scaleFactor = 1.0;
 
 					estGains.k1 = walkParams.earlyStanceK0;
 					estGains.thetaDes = actx->jointAngleDegrees;
+
+					emgInputPPF = 0;
 				}
+
+				emgVal = windowSmoothEMG0(emg_data[5]); //emg signal for Jim's LG
+
+				//only consider last 200 ms for emgInputPPF
+				if (time_in_state % 200 == 199) {
+					emgInputPPF = 0;
+				}
+				//store max value of EMG during early stance
+				if (emgVal > emgInputPPF) {
+					emgInputPPF = emgVal;
+				}
+
 
 				updateVirtualHardstopTorque(actx, &walkParams);
 				updateImpedanceParams(actx, &walkParams);
@@ -398,7 +416,7 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	}
 
 	//5ms moving average for gastroc only
-	EMGin_LG = windowSmoothEMG0(emg_data[0]); //SEONGS BOARD LG_VAR gastroc, 0-10000. Changed channel to match Jim's gastroc.
+	EMGin_LG = windowSmoothEMG0(emg_data[5]); //SEONGS BOARD LG_VAR gastroc, 0-10000. Changed channel to match Jim's gastroc.
 	scaledEMG = EMGin_LG/emgInMax;
 
 	//torque output from the intrinsic controller
