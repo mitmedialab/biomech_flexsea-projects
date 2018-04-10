@@ -28,6 +28,8 @@ GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
 GainParams emgStandGains = {2, 0.025, 0.04, 0};
 GainParams emgFreeGains  = {1.2, 0, 0.02, 0};
 
+int32_t emgInputPPF = 0; //used to keep track of EMG PPF input
+
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
@@ -54,7 +56,6 @@ void runFlatGroundFSM(Act_s *actx) {
 
     static int8_t isTransitioning = 0;
     static uint32_t time_in_state = 0;
-    static int32_t emgInputPPF = 0; //used to keep track of EMG PPF input
 
 
     if (!walkParams.initializedStateMachineVariables){
@@ -234,7 +235,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
         	{
 				//turn this on or off to use EMG powered plantarflexion
-				static int8_t using_EMG_PPF = 0;
+				static int8_t using_EMG_PPF = 1;
 
 				if (isTransitioning) {
 					walkParams.samplesInLSP = 0.0;
@@ -261,7 +262,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				//Late Stance Power transition vectors
 				// VECTOR (1): Late Stance Power -> Early Swing - Condition 1
-				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 100) {
+				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 200) {
 					stateMachine.current_state = STATE_EARLY_SWING;
 				}
         	}
@@ -424,12 +425,14 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	EMGin_LG = JIM_LG; //SEONGS BOARD LG_VAR gastroc, 0-20000. Changed channel to match Jim's gastroc.
 	scaledEMG = EMGin_LG/emgInMax;
 
-	rigid1.mn.genVar[4] = scaledEMG;
+
 
 	//torque output from the intrinsic controller
-	impedanceContribution = scaledEMG*user_data_1.w[0]*(user_data_1.w[2]/10. - actx->jointAngleDegrees) - user_data_1.w[1]/100.*actx->jointVelDegrees + wParam->virtual_hardstop_tq;
+	impedanceContribution = (emgInputPPF/emgInMax)*user_data_1.w[0]*(user_data_1.w[2]/10. - actx->jointAngleDegrees) - user_data_1.w[1]/100.*actx->jointVelDegrees + wParam->virtual_hardstop_tq;
 
-	rigid1.mn.genVar[0] = impedanceContribution;
+	rigid1.mn.genVar[4] = emgInputPPF;
+	rigid1.mn.genVar[0] = impedanceContribution*100;
+
 	//saturation of desired output torque
 	if (impedanceContribution > desiredTorqueThreshold ) {
 		return desiredTorqueThreshold;
