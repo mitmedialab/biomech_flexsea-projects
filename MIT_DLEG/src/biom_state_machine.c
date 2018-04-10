@@ -123,7 +123,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			actx->tauDes = calcJointTorque(lswGains, actx, &walkParams);
 
-			if (MIT_EMG_getState() == 1) windowSmoothEMG0(emg_data[5]); //emg signal for Jim's LG
+			if (MIT_EMG_getState() == 1) windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
 
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 			if(time_in_state > ESW_TO_LSW_DELAY) {
@@ -167,7 +167,7 @@ void runFlatGroundFSM(Act_s *actx) {
 				//update emgVal for EMG PPF
 				if (MIT_EMG_getState() == 1) {
 
-					emgVal = windowSmoothEMG0(emg_data[5]); //emg signal for Jim's LG
+					emgVal = windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
 
 					//only consider last 500 ms for emgInputPPF
 					if (time_in_state % 500 == 499) {
@@ -421,7 +421,7 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	}
 
 	//5ms moving average for gastroc only
-	EMGin_LG = windowSmoothEMG0(emg_data[5]); //SEONGS BOARD LG_VAR gastroc, 0-10000. Changed channel to match Jim's gastroc.
+	EMGin_LG = windowSmoothEMG0(JIM_LG); //SEONGS BOARD LG_VAR gastroc, 0-10000. Changed channel to match Jim's gastroc.
 	scaledEMG = EMGin_LG/emgInMax;
 
 	//torque output from the intrinsic controller

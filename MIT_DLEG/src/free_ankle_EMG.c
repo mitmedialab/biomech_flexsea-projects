@@ -101,10 +101,10 @@ void updateVirtualJoint(GainParams* pgains)
 {
 	get_EMG();
 	interpret_EMG(virtualK, virtualB, virtualJ);
-	pgains->k1 = 0.5 + user_data_1.w[5]/10.*PFDF_state[2];
-	pgains->b = user_data_1.w[6]/100.;
+	pgains->k1 = 1 + ROBOT_K*PFDF_state[2];
+	pgains->b = ROBOT_B;
 	pgains->thetaDes = PFDF_state[0] * -JOINT_ANGLE_DIR; //flip the convention
-	rigid1.mn.genVar[6] = pgains->k1*10;
+//	rigid1.mn.genVar[6] = pgains->k1*10;
 }
 
 //****************************************************************************
@@ -121,19 +121,19 @@ void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an inte
 	}
 
 	//5ms moving average
-	int16_t EMGin_LG = windowSmoothEMG0(emg_data[5]); //SEONGS BOARD LG_VAR gastroc, 0-10000. CHANGE FOR USER
-	int16_t EMGin_TA = windowSmoothEMG1(emg_data[3]); //SEONGS BOARD TA_VAR tibialis anterior, 0-10000
+	int16_t EMGin_LG = JIM_LG; //SEONGS BOARD LG_VAR gastroc, 0-10000. CHANGE FOR USER
+	int16_t EMGin_TA = JIM_TA; //SEONGS BOARD TA_VAR tibialis anterior, 0-10000
 
-	gainLG = user_data_1.w[0]/100.;
-	gainTA = user_data_1.w[1]/100.;
+	gainLG = GAIN_LG;
+	gainTA = GAIN_TA;
 
 	//Apply gains
 	EMGavgs[0] = EMGin_LG * gainLG;
 	EMGavgs[1] = EMGin_TA * gainTA;
 
 	//pack for Plan
-	rigid1.mn.genVar[0] = EMGavgs[0];
-	rigid1.mn.genVar[1] = EMGavgs[1];
+//	rigid1.mn.genVar[0] = EMGavgs[0];
+//	rigid1.mn.genVar[1] = EMGavgs[1];
 
 }
 
@@ -145,9 +145,9 @@ void interpret_EMG (float k, float b, float J)
 	float activationThresh = dpOnThresh * emgInMax;
 
 	//user inputs
-	cocontractThresh = user_data_1.w[2]/100.;
-	pfTorqueGain =  user_data_1.w[3];
-	dfTorqueGain =  user_data_1.w[4];
+	cocontractThresh = COCON_THRESH;
+	pfTorqueGain =  PF_TORQUE_GAIN;
+	dfTorqueGain =  DF_TORQUE_GAIN;
 
 
 	// Calculate LG activation
@@ -175,7 +175,7 @@ void interpret_EMG (float k, float b, float J)
 	}
 
 	//pack for Plan
-	rigid1.mn.genVar[2] = TALG_diff*1000;
+//	rigid1.mn.genVar[2] = TALG_diff*1000;
 
 	// JOINT MODEL
 	//first, we apply extra damping in co-contraction
@@ -186,7 +186,7 @@ void interpret_EMG (float k, float b, float J)
 	}
 
 	//pack for Plan
-	rigid1.mn.genVar[3] = b*1000;
+//	rigid1.mn.genVar[3] = b*1000;
 
 //	// scaling restoring force based on loose ankle at 30 degrees plantarflexion (Tony's idea. Test first)
 	if (PFDF_state[0] > equilibriumAngle) {
@@ -196,7 +196,7 @@ void interpret_EMG (float k, float b, float J)
 	}
 
 	//pack for Plan
-	rigid1.mn.genVar[4] = k*1000;
+//	rigid1.mn.genVar[4] = k*1000;
 
 	// forward dynamics equation
 	float dtheta = PFDF_state[1];
@@ -213,14 +213,14 @@ void interpret_EMG (float k, float b, float J)
 	}
 
 	//pack for Plan
-	rigid1.mn.genVar[5] = dtheta*1000;
+//	rigid1.mn.genVar[5] = dtheta*1000;
 
 	// Integration station.
 	RK4_SIMPLE(dtheta, domega, PFDF_state);
 	PFDF_state[2] = (TAact + LGact)/2.0 * pfdfStiffGain; // stiffness comes from the common signal
 
 	//pack for Plan
-	rigid1.mn.genVar[7] = PFDF_state[0]*100;
+//	rigid1.mn.genVar[7] = PFDF_state[0]*100;
 }
 
 void RK4_SIMPLE(float d1_dt,float d2_dt, float* cur_state)

@@ -109,7 +109,7 @@ void torqueSweepTest(struct act_s *actx);
 //#define IS_KNEE
 
 //2. Select device
-//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
 //#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
 //#define DEVICE_TF08_K01		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_K02		// Define specific actuator configuration. Knee 02
@@ -389,6 +389,10 @@ enum {
 #define CURRENT_SCALAR_INIT		1000		// Scale Amps to mAmps
 #define ANG_UNIT				2*M_PI 		// Use Radians 2*M_PI
 #define DEG_PER_RAD 			57.2957795 // degree to rad conversion
+
+// EMG channels
+#define JIM_LG					emg_data[5]
+#define JIM_TA					emg_data[3]
 
 
 #endif	//INC_MIT_DLEG

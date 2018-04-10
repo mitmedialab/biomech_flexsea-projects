@@ -198,8 +198,8 @@ void MIT_DLeg_fsm_1(void)
 //					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
 //					rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
 //					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
-//					rigid1.mn.genVar[6] = (int16_t) (emg_data[5]); // LG
-//					rigid1.mn.genVar[7] = (int16_t) (emg_data[3]); // TA
+//					rigid1.mn.genVar[6] = (int16_t) (JIM_LG); // LG
+//					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
 					rigid1.mn.genVar[8] = stateMachine.current_state;
 					rigid1.mn.genVar[9] = act1.tauDes*100;
 			    }
@@ -607,22 +607,22 @@ float calcRestoringCurrent(struct act_s *actx, float N) {
 	float b = 0.3; // Ns/m
 
 	//Oppose motion using linear spring with damping
-	if (actx->jointAngleDegrees - jointMinSoftDeg < -1) {
+	if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
 
 		angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
 
 		if (abs(angleDiff) < 2) {
-			tauDes = -0.5*k*angleDiff - b*actx->jointVelDegrees;
+			tauDes = -k*angleDiff - b*actx->jointVelDegrees + 2;
 		} else {
 			tauDes = -k*angleDiff - b*actx->jointVelDegrees;
 		}
 
-	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 1) {
+	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
 
 		angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
 
 		if (abs(angleDiff) < 2) {
-			tauDes = -0.5*k*angleDiff - b*actx->jointVelDegrees;
+			tauDes = -k*angleDiff - b*actx->jointVelDegrees - 2;
 		} else {
 			tauDes = -k*angleDiff - b*actx->jointVelDegrees;
 		}

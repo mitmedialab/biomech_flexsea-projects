@@ -42,12 +42,12 @@
 #define EMG_IN_MAX				10000
 
 //Constants for tuning the controller
-#define PF_TORQUE_GAIN			100
-#define DF_TORQUE_GAIN			30
+#define PF_TORQUE_GAIN			40
+#define DF_TORQUE_GAIN			80
 #define PFDF_STIFF_GAIN			1.0
 #define DP_ON_THRESH			0.1
 
-#define COCON_THRESH			0.3 //co-contraction threshold (high for Hugh)
+#define COCON_THRESH			0.2 //co-contraction threshold (high for Hugh)
 
 
 //VIRTUAL DYNAMIC JOINT PARAMS
@@ -55,7 +55,8 @@
 #define VIRTUAL_B				0.085
 #define VIRTUAL_J				0.0025
 
-#define ROBOT_K					1.2
+#define ROBOT_K					0.7
+#define ROBOT_B					0.05
 
 
 //****************************************************************************
