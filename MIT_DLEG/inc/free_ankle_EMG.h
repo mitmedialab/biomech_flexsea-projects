@@ -40,6 +40,7 @@
 #define GAIN_LG					1.0
 #define GAIN_TA					1.0
 #define EMG_IN_MAX				10000
+#define EMG_IN_MAX_CONTACT		20000
 
 //Constants for tuning the controller
 #define PF_TORQUE_GAIN			40

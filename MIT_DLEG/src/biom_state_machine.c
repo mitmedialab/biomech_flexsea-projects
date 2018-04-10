@@ -234,7 +234,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
         	{
 				//turn this on or off to use EMG powered plantarflexion
-				static int8_t using_EMG_PPF = 1;
+				static int8_t using_EMG_PPF = 0;
 
 				if (isTransitioning) {
 					walkParams.samplesInLSP = 0.0;
@@ -368,8 +368,8 @@ static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 
 static void initializeUserWrites(WalkParams *wParams){
 
-	wParams->earlyStanceK0 = 5.23;
-	wParams->earlyStanceKF = 0.05;
+	wParams->earlyStanceK0 = 6.23;
+	wParams->earlyStanceKF = 0.1;
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 	wParams->lstPGDelTics = 1;
 	wParams->earlyStanceKF = 1;
@@ -413,7 +413,7 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	float desiredTorqueThreshold = 150; //max desired torque
 
 
-	//limit maximum emg_data in case something goes wrong
+	//limit maximum emg_data in case something goes wrong (to 20000)
 	for (uint8_t i = 0; i < (sizeof(emg_data)/sizeof(emg_data[0])); i++) {
 		if (emg_data[i] > emgInMax) {
 			emg_data[i] = emgInMax;
@@ -421,12 +421,15 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	}
 
 	//5ms moving average for gastroc only
-	EMGin_LG = windowSmoothEMG0(JIM_LG); //SEONGS BOARD LG_VAR gastroc, 0-10000. Changed channel to match Jim's gastroc.
+	EMGin_LG = JIM_LG; //SEONGS BOARD LG_VAR gastroc, 0-20000. Changed channel to match Jim's gastroc.
 	scaledEMG = EMGin_LG/emgInMax;
 
-	//torque output from the intrinsic controller
-	impedanceContribution = scaledEMG*k*(thetaDes - actx->jointAngleDegrees) - b*actx->jointVelDegrees + wParam->virtual_hardstop_tq;
+	rigid1.mn.genVar[4] = scaledEMG;
 
+	//torque output from the intrinsic controller
+	impedanceContribution = scaledEMG*user_data_1.w[0]*(user_data_1.w[2]/10. - actx->jointAngleDegrees) - user_data_1.w[1]/100.*actx->jointVelDegrees + wParam->virtual_hardstop_tq;
+
+	rigid1.mn.genVar[0] = impedanceContribution;
 	//saturation of desired output torque
 	if (impedanceContribution > desiredTorqueThreshold ) {
 		return desiredTorqueThreshold;
