@@ -173,7 +173,7 @@ void RunningExo_fsm_1(void)
 	controlAction *= (int)runningExoState.enableOutput;			//safety check
 	#endif //CONTROL_STRATEGY == TORQUE_TRACKING
 	rigid1.mn.genVar[0]=runningExoState.state;
-	rigid1.mn.genVar[1]=runningExoState.footFlatTime;
+	rigid1.mn.genVar[1]=rigid1.ex.strain;
 	rigid1.mn.genVar[2]=runningExoState.pedometer;
 	rigid1.mn.genVar[3]=controlAction;
 	//Time stamps
