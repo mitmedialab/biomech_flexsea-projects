@@ -115,6 +115,12 @@ void stateTransition(void);
 
 #endif //(CONTROL_STRATEGY == TORQUE_TRACKING)
 
+
+//RunningExo_fsm_1 state variable
+#define STATE_IDLE	-2
+#define	STATE_INIT	-1
+#define STATE_ENABLE_SENSOR_UPDATE	0
+#define STATE_TORQUE_TRACKING	1
 //****************************************************************************
 // Structure(s)
 //****************************************************************************

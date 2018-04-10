@@ -45,7 +45,11 @@
 //----------------------------------------------------------------------------
 // Local Variable(s) and Struct
 //----------------------------------------------------------------------------
-int16_t fsm1State;
+
+
+uint8_t mitRunningExoInfo[2] = {PORT_RS485_2, PORT_RS485_2};
+
+int16_t fsm1State = -2;
 float torqueProfileGain = DEFAULT_TORQUE_PROFILE_GAIN;
 int8_t bodyWeight = DEFAULT_BODY_WEIGHT;//user body weight (kg)
 float controlAction;
@@ -125,6 +129,9 @@ void getAnkleKinematics(struct actuation_parameters *actx);
 void getAnkleTorque(struct actuation_parameters *actx);
 void getMotorTorque(struct actuation_parameters *actx);
 void setAnkleTorque(struct actuation_parameters *actx, float tau_desired);
+int8_t findPolesRunningExo(void);
+float calcImpedanceTorque(float m, float b, float k, float ddthetad_set, float dtheta_set, float theta_set);
+int8_t safetyShutoff(void);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -141,6 +148,160 @@ void init_runningExo(void)
 	act_para.currentMotorPosition = *rigid1.ex.enc_ang;
 }
 
+
+//MIT RunExo Finite State Machine.
+//Call this function in one of the main while time slots.
+void RunningExo_fsm_1(void)
+{
+	#if(ACTIVE_PROJECT == PROJECT_RUNNING_EXO)
+
+    static uint32_t time = 0;
+
+    //Increment time (1 tick = 1ms nominally; need to confirm)
+    time++;
+
+    //begin main FSM
+	switch(fsm1State)
+	{
+		case STATE_IDLE:
+			//Same power-on delay as FSM2:
+			if(time >= AP_FSM2_POWER_ON_DELAY + 3*SECONDS)
+			{
+				fsm1State = -1;
+				time = 0;
+			}
+
+			break;
+
+		case STATE_INIT:
+			//turned off for testing without Motor usage
+			if(findPolesRunningExo())
+			{
+				mit_init_current_controller();		//initialize Current Controller with gains
+				fsm1State = 0;
+				time = 0;
+			}
+			//for testing
+//			fsm1State = 0;
+
+			break;
+
+		case STATE_ENABLE_SENSOR_UPDATE:
+			//sensor update happens in mainFSM3(void) in main_fsm.c
+			isEnabledUpdateSensors = 1;
+//			init_LPF(); //initialize hardware LPF
+
+			fsm1State = 1;
+			time = 0;
+
+			break;
+
+		case STATE_TORQUE_TRACKING:
+			{
+				float torqueDes = 0;
+
+				//populate rigid1.mn.genVars to send to Plan
+				packRigidVars(&act_para);
+
+				//begin safety check
+			    if (safetyShutoff())
+			    {
+			    	/*motor behavior changes based on failure mode.
+			    	  Bypasses the switch statement if return true
+			    	  but sensors check still runs and has a chance
+			    	  to allow code to move past this block.
+			    	  Only update the walking FSM, but don't output torque.
+			    	*/
+
+			    	stateTransition(); //for testing only
+
+			    	return;
+
+			    }
+			    else
+			    {
+					#if (CONTROL_STRATEGY == TORQUE_TRACKING)
+			    	//Torque Trajectory Tracking
+			    	//Update states
+			    	stateTransition();
+			    	//check for impossible gaits
+			    	checkInvalidGait();
+			    	//Perform actions
+			    	switch (runningExoState.state)
+			    	{
+			    		case HEEL_STRIKE:
+			    			//Gait cycle is between heel strike and toe off
+			    			trackTorque();
+			    			break;
+
+			    		case FOOT_FLAT:
+			    			//Foot flat is irrelevant in trajectory tracking
+			    			trackTorque();
+			    			break;
+
+			    		case SWING_PHASE:
+			    			//Swing phase
+			    			controlAction = 0;					//no force output
+			    			break;
+			    	}
+			    	runningExoState.timer+=1;					//increase timer
+			    	controlAction *= (int)runningExoState.enableOutput;			//safety check
+					#endif //CONTROL_STRATEGY == TORQUE_TRACKING
+
+			    	rigid1.mn.genVar[0]=runningExoState.state;
+			    	rigid1.mn.genVar[1]=rigid1.ex.strain;
+			    	rigid1.mn.genVar[2]=runningExoState.pedometer;
+			    	rigid1.mn.genVar[3]=controlAction;
+			    	//Time stamps
+			    	rigid1.mn.genVar[4]= runningExoState.heelStrikeTime;
+			    	rigid1.mn.genVar[5]= act_para.initialMotorPosition;
+			    	rigid1.mn.genVar[6]= runningExoState.prevStanceDuration;
+			    	rigid1.mn.genVar[7]= runningExoState.prevGaitDuration;
+			    	rigid1.mn.genVar[8]= runningExoState.enableOutput;
+			    	rigid1.mn.genVar[9]= runningExoState.disabledPedometer;
+
+
+			    	torqueDes = controlAction;
+
+			    	if (user_data_1.w[9] > 0)
+			    	{
+			    		setAnkleTorque(&act_para, torqueDes);
+			    	}
+
+//					rigid1.mn.genVar[8] = filter_LPF((float) *rigid1.ex.joint_ang_vel);
+
+			    	//m, b, k, Theta
+//			    	torqueDes = float calcImpedanceTorque(float m, float b, float k, float ddthetad_set, float dtheta_set, float theta_set);
+
+//			    	setMotorTorque(&act_para, torqueDes);
+
+			    }
+
+//				rigid1.mn.genVar[0] = isSafetyFlag;
+//				rigid1.mn.genVar[1] = act1.jointAngleDegrees; //deg
+//				rigid1.mn.genVar[2] = act1.jointTorque*1000;  //mNm
+//				rigid1.mn.genVar[3] = act1.linkageMomentArm*1000; //mm
+//				rigid1.mn.genVar[4] = act1.jointAngle*1000;
+//				rigid1.mn.genVar[5] = act1.jointVelDegrees; //deg
+//
+//				rigid1.mn.genVar[7] = act1.desiredCurrent;
+
+				break;
+			}
+
+        	default:
+			//Handle exceptions here
+			break;
+	}
+
+	#endif	//ACTIVE_PROJECT == PROJECT_RUNNING_EXO
+}
+
+
+
+
+
+/*
 //Running Exo state machine
 void RunningExo_fsm_1(void)
 //TODO
@@ -184,6 +345,9 @@ void RunningExo_fsm_1(void)
 	rigid1.mn.genVar[8]= runningExoState.enableOutput;
 	rigid1.mn.genVar[9]= runningExoState.disabledPedometer;
 }
+
+*/
+
 
 //Second state machine for the Running Exo
 void RunningExo_fsm_2(void)
@@ -430,7 +594,8 @@ void checkInvalidGait(void)
  * Check for safety flags, and act on them.
  * todo: come up with correct strategies to deal with flags, include thermal limits also
  */
-int8_t safetyShutoff(void) {
+int8_t safetyShutoff(void)
+{
 
 	switch(isSafetyFlag)
 
@@ -752,6 +917,56 @@ void mit_init_current_controller(void)
 	writeEx.setpoint = 0;			// wasn't included in setControlMode, could be safe for init
 	setControlGains(currentKp, currentKi, currentKd, 0);
 
+}
+
+
+int8_t findPolesRunningExo(void)
+{
+	static uint32_t timer = 0;
+	static int8_t polesState = 0;
+
+	timer++;
+
+	switch(polesState)
+	{
+		case 0:
+			//Disable FSM2:
+			disableActPackFSM2();
+			if(timer > 100)
+			{
+				polesState = 1;
+			}
+
+			return 0;
+
+		case 1:
+			//Send Find Poles command:
+
+			tx_cmd_calibration_mode_rw(TX_N_DEFAULT, CALIBRATION_FIND_POLES);
+			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitRunningExoInfo, SEND_TO_SLAVE);
+			polesState = 2;
+			timer = 0;
+
+			return 0;
+
+		case 2:
+
+			if(timer >= 50*SECONDS)
+			{
+				//Enable FSM2, position controller
+				enableActPackFSM2();
+				return 1;
+			}
+			return 0;
+
+
+		default:
+
+			return 0;
+
+	}
+
+	return 0;
 }
 
 
