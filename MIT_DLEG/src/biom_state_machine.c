@@ -20,7 +20,7 @@ WalkParams walkParams;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
-GainParams lswGains = {3.0, 1, 0.2, 0.0};
+GainParams lswGains = {1.5, 0.0, 0.3, 0.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
@@ -56,6 +56,8 @@ void runFlatGroundFSM(Act_s *actx) {
     static uint32_t time_in_state = 0;
     static int32_t emgInputPPF = 0; //used to keep track of EMG PPF input
 
+	static float u0 = 0, du0 = 0, uf = 0, duf = 0, tf = 0, u = 0;
+	static float a0 = 0, a1 = 0, a2 = 0, a3 = 0;
 
     if (!walkParams.initializedStateMachineVariables){
     	initializeUserWrites(&walkParams);
@@ -94,7 +96,8 @@ void runFlatGroundFSM(Act_s *actx) {
             stateMachine.current_state = STATE_LATE_SWING;
 
             break;
-					
+
+
         case STATE_EARLY_SWING: //2
 
             //Put anything you want to run ONCE during state entry.
@@ -191,7 +194,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				if (MIT_EMG_getState() == 1 && using_EMG_free_space) {
 
-					if(time_in_state > 400 && abs(actx->jointTorque) < 3.5) {
+					if(time_in_state > 400 && abs(actx->jointTorque) < 3.5 && actx->jointAngleDegrees >= 0) {	// included jointAngleDeg limit so can't trigger if dorsiflex
 						stateMachine.current_state = STATE_LSW_EMG;
 					}
 				}
@@ -296,7 +299,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
             break;
 		
-        case STATE_LSW_EMG:
+        case STATE_LSW_EMG: //8
         	//upon entering, make sure virtual joint and robot joint match
         	if (isTransitioning) {
         		updatePFDFState(actx);
@@ -326,6 +329,77 @@ void runFlatGroundFSM(Act_s *actx) {
 
 
         	break;
+
+        case STATE_EARLY_SWING_TRAJ: // 9
+
+			if (isTransitioning) {
+				walkParams.virtual_hardstop_tq = 0.0;
+				u0 = actx->jointAngleDegrees;
+				du0 = actx->jointVelDegrees;
+				uf = eswGains.thetaDes;
+				tf = ESW_TO_LSW_DELAY;
+
+					a0 = u0;
+				a1 = du0;
+				a2 = 3/powf(tf,2) * (uf-u0) - 2/tf * du0 - 1/tf*duf;
+				a3 = -2/powf(tf, 3)*(uf-u0) + 1/powf(tf,2) * ( duf + du0);
+			}
+
+			u = a0 + a1*time_in_state + a2 * powf(time_in_state, 2) + a3*powf(time_in_state, 3);
+
+			eswGains.thetaDes = u;
+			   actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
+
+			   //Early Swing transition vectors
+			   // VECTOR(1): Early Swing -> Late Swing
+			   if (time_in_state >= ESW_TO_LSW_DELAY) {
+				   stateMachine.current_state = STATE_LATE_SWING_TRAJ;      //Transition occurs even if the early swing motion is not finished
+			   }
+			break;
+
+        case STATE_LATE_SWING_TRAJ: // 10
+
+			if (isTransitioning) {
+				walkParams.transition_id = 0;
+
+				u0 = actx->jointAngleDegrees;
+				du0 = actx->jointVelDegrees;
+				uf = lswGains.thetaDes;
+				tf = ESW_TO_LSW_DELAY;
+
+				a0 = u0;
+				a1 = du0;
+				a2 = 3/powf(tf,2) * (uf-u0) - 2/tf * du0 - 1/tf*duf;
+				a3 = -2/powf(tf, 3)*(uf-u0) + 1/powf(tf,2) * ( duf + du0);
+			}
+
+			u = a0 + a1*time_in_state + a2 * powf(time_in_state, 2) + a3*powf(time_in_state, 3);
+
+			eswGains.thetaDes = u;
+			actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
+
+			if (MIT_EMG_getState() == 1) windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
+
+			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
+			if(time_in_state > ESW_TO_LSW_DELAY) {
+
+				// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+				if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+					stateMachine.current_state = STATE_EARLY_STANCE;
+					walkParams.transition_id = 1;
+				}
+				// VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
+				else if (actx->jointTorqueRate > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH) {
+					stateMachine.current_state = STATE_EARLY_STANCE;
+					walkParams.transition_id = 2;
+				}
+				// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
+				else if (actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH) {
+					stateMachine.current_state = STATE_EARLY_STANCE;
+					walkParams.transition_id = 3;
+				}
+			}
+			break;
 		
         default:
 
