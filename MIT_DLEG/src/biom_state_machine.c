@@ -20,7 +20,7 @@ WalkParams walkParams;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
-GainParams lswGains = {3.0, 1, 0.2, 0.0};
+GainParams lswGains = {1.5, 1, 0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
