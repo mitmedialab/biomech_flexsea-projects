@@ -323,15 +323,15 @@ typedef struct{
 #define TORQ_KD_INIT			5 //2.
 
 // Current Control Parameters  -- Test these on a motor test stand first
-#define ACTRL_I_KP_INIT		15
-#define ACTRL_I_KI_INIT		15
+#define ACTRL_I_KP_INIT		48
+#define ACTRL_I_KI_INIT		32
 #define ACTRL_I_KD_INIT		0
 
 
 
 
 // extern variables
-
+extern struct actuation_parameters act_para;
 
 
 

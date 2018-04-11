@@ -102,6 +102,7 @@ struct actuation_parameters act_para =
 	static int8_t isTempLimit = 0;
 
 	int8_t isEnabledUpdateSensors = 0;
+	int8_t isIntialMotorPosition = 0;
 	int32_t currentOpLimit = MOTOR_CURRENT_LIMIT; 	//operational limit for current.
 	static const float bLimit		= B_ANGLE_LIMIT;
 
@@ -115,7 +116,6 @@ struct actuation_parameters act_para =
 	int16_t currentKp = ACTRL_I_KP_INIT;
 	int16_t currentKi = ACTRL_I_KI_INIT;
 	int16_t currentKd = ACTRL_I_KD_INIT;
-
 
 
 //****************************************************************************
@@ -132,6 +132,8 @@ void setAnkleTorque(struct actuation_parameters *actx, float tau_desired);
 int8_t findPolesRunningExo(void);
 float calcImpedanceTorque(float m, float b, float k, float ddthetad_set, float dtheta_set, float theta_set);
 int8_t safetyShutoff(void);
+void mit_init_current_controller(void);
+void packRigidVars(struct actuation_parameters  *actx);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -144,8 +146,6 @@ void init_runningExo(void)
 	fsm1State = 0;
 	runningExoState.state = 1;					//Initialize state
 	controlAction = 0;			//clear control action
-	act_para.initialMotorPosition = *rigid1.ex.enc_ang; // test if it is correct using GUI
-	act_para.currentMotorPosition = *rigid1.ex.enc_ang;
 }
 
 
@@ -189,6 +189,7 @@ void RunningExo_fsm_1(void)
 		case STATE_ENABLE_SENSOR_UPDATE:
 			//sensor update happens in mainFSM3(void) in main_fsm.c
 			isEnabledUpdateSensors = 1;
+			isIntialMotorPosition = 1;
 //			init_LPF(); //initialize hardware LPF
 
 			fsm1State = 1;
@@ -248,10 +249,10 @@ void RunningExo_fsm_1(void)
 			    	controlAction *= (int)runningExoState.enableOutput;			//safety check
 					#endif //CONTROL_STRATEGY == TORQUE_TRACKING
 
-			    	rigid1.mn.genVar[0]=runningExoState.state;
-			    	rigid1.mn.genVar[1]=rigid1.ex.strain;
-			    	rigid1.mn.genVar[2]=runningExoState.pedometer;
-			    	rigid1.mn.genVar[3]=controlAction;
+			    	//rigid1.mn.genVar[0]=runningExoState.state;
+			    	//rigid1.mn.genVar[1]=act_para.currentMotorPosition;
+			    	//rigid1.mn.genVar[2]=runningExoState.pedometer;
+			    	rigid1.mn.genVar[3]=act_para.currentMotorPosition;
 			    	//Time stamps
 			    	rigid1.mn.genVar[4]= runningExoState.heelStrikeTime;
 			    	rigid1.mn.genVar[5]= act_para.initialMotorPosition;
@@ -334,16 +335,17 @@ void RunningExo_fsm_1(void)
 	controlAction *= (int)runningExoState.enableOutput;			//safety check
 	#endif //CONTROL_STRATEGY == TORQUE_TRACKING
 	rigid1.mn.genVar[0]=runningExoState.state;
-	rigid1.mn.genVar[1]=rigid1.ex.strain;
+	rigid1.mn.genVar[1]=runningExoState.toeOffTime;
 	rigid1.mn.genVar[2]=runningExoState.pedometer;
-	rigid1.mn.genVar[3]=controlAction;
+	rigid1.mn.genVar[3]=controlAction*1000;
 	//Time stamps
 	rigid1.mn.genVar[4]= runningExoState.heelStrikeTime;
-	rigid1.mn.genVar[5]= act_para.initialMotorPosition;
+	rigid1.mn.genVar[5]= runningExoState.footFlatTime;
 	rigid1.mn.genVar[6]= runningExoState.prevStanceDuration;
 	rigid1.mn.genVar[7]= runningExoState.prevGaitDuration;
 	rigid1.mn.genVar[8]= runningExoState.enableOutput;
 	rigid1.mn.genVar[9]= runningExoState.disabledPedometer;
+
 }
 
 */
