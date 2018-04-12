@@ -152,7 +152,7 @@ void runFlatGroundFSM(Act_s *actx) {
         case STATE_EARLY_STANCE: //4
 
         	{
-				static int8_t using_EMG_free_space = 1;
+				static int8_t using_EMG_free_space = 0;
 				int16_t emgVal = 0;
 
 				if (isTransitioning) {
@@ -424,7 +424,7 @@ float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
 	EMGin_LG = JIM_LG; //SEONGS BOARD LG_VAR gastroc, 0-20000. Changed channel to match Jim's gastroc.
 	scaledEMG = EMGin_LG/emgInMax;
 
-	rigid1.mn.genVar[4] = scaledEMG;
+//	rigid1.mn.genVar[4] = scaledEMG;
 
 	//torque output from the intrinsic controller
 	impedanceContribution = scaledEMG*user_data_1.w[0]*(user_data_1.w[2]/10. - actx->jointAngleDegrees) - user_data_1.w[1]/100.*actx->jointVelDegrees + wParam->virtual_hardstop_tq;
