@@ -56,6 +56,9 @@ void runFlatGroundFSM(Act_s *actx) {
     static uint32_t time_in_state = 0;
     static int32_t emgInputPPF = 0; //used to keep track of EMG PPF input
 
+	static int8_t using_EMG_free_space = 0;
+	int16_t emgVal = 0;
+	float tauDiff = 0;
 
     if (!walkParams.initializedStateMachineVariables){
     	initializeUserWrites(&walkParams);
@@ -118,18 +121,22 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			if (isTransitioning) {
 				walkParams.transition_id = 0;
-
 			}
 
 			actx->tauDes = calcJointTorque(lswGains, actx, &walkParams);
 
-			if (MIT_EMG_getState() == 1) windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
+//			if (MIT_EMG_getState() == 1) windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
 
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
-			if(time_in_state > ESW_TO_LSW_DELAY) {
+			if(time_in_state > LSW_TO_EST_DELAY) {
 
-				// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-				if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+				if (time_in_state >= LSW_TO_EMG_DELAY && MIT_EMG_getState() == 1 && using_EMG_free_space){
+					//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
+					stateMachine.current_state = STATE_LSW_EMG;
+					walkParams.transition_id = 4;
+
+				} // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+				else if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
 					stateMachine.current_state = STATE_EARLY_STANCE;
 					walkParams.transition_id = 1;
 				}
@@ -151,9 +158,8 @@ void runFlatGroundFSM(Act_s *actx) {
 
         case STATE_EARLY_STANCE: //4
 
-        	{
-				static int8_t using_EMG_free_space = 0;
-				int16_t emgVal = 0;
+//				static int8_t using_EMG_free_space = 0;
+//				int16_t emgVal = 0;
 
 				if (isTransitioning) {
 					walkParams.scaleFactor = 1.0;
@@ -162,22 +168,6 @@ void runFlatGroundFSM(Act_s *actx) {
 					estGains.thetaDes = actx->jointAngleDegrees;
 
 					emgInputPPF = 0;
-				}
-
-				//update emgVal for EMG PPF
-				if (MIT_EMG_getState() == 1) {
-
-					emgVal = windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
-
-					//only consider last 500 ms for emgInputPPF
-					if (time_in_state % 500 == 499) {
-						emgInputPPF = 0;
-					}
-					//store max value of EMG during early stance
-					if (emgVal > emgInputPPF) {
-						emgInputPPF = emgVal;
-					}
-
 				}
 
 
@@ -189,12 +179,26 @@ void runFlatGroundFSM(Act_s *actx) {
 				// VECTOR (1): Early Stance -> Free space EMG
 				//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
 
-				if (MIT_EMG_getState() == 1 && using_EMG_free_space) {
-
-					if(time_in_state > 400 && abs(actx->jointTorque) < 3.5) {
-						stateMachine.current_state = STATE_LSW_EMG;
-					}
-				}
+//				if (MIT_EMG_getState() == 1 && using_EMG_free_space) {
+//
+////					emgVal = windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
+//
+//					//update emgVal for EMG PPF
+//
+//					//only consider last 500 ms for emgInputPPF
+//					if (time_in_state % 500 == 499) {
+//						emgInputPPF = 0;
+//					}
+//					//store max value of EMG during early stance
+//					if (emgVal > emgInputPPF) {
+//						emgInputPPF = emgVal;
+//					}
+//
+//
+////					if(time_in_state > 400 && abs(actx->jointTorque) < 3.5) {
+////						stateMachine.current_state = STATE_LSW_EMG;
+////					}
+//				}
 
 				//Early Stance transition vectors
 				// VECTOR (2): Early Stance -> Late Stance POWER!
@@ -207,7 +211,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 				break;
-        	}
+
 
 //        case STATE_LATE_STANCE: //5
 //
@@ -317,9 +321,11 @@ void runFlatGroundFSM(Act_s *actx) {
         	//Late Swing EMG transition vectors to Early Stance
         	//If activation is below a certain threshold, these become active
         	//Tune thresholds based on user
+        	tauDiff = actx->jointTorque - actx->tauDes;
+        	rigid1.mn.genVar[0] = tauDiff;
 
 			// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-			if (actx->jointTorque > 3.5) {
+			if ( abs(actx->tauDes) > 3.5) {
 				stateMachine.current_state = STATE_EARLY_STANCE;
 				walkParams.transition_id = 1;
 			}

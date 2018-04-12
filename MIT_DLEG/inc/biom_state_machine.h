@@ -20,6 +20,8 @@ extern "C" {
 
 #define ESW_TO_LSW_DELAY              			 100    // Transition time: 2->3 in ms (orig 200)
 #define EST_TO_ESW_DELAY              			 20000  // FOR TESTING
+#define LSW_TO_EST_DELAY						 100	// transition to early stance
+#define LSW_TO_EMG_DELAY						 1000	// transition into EMG freespace
 
 //      THRESHOLD / LIMIT NAME                    VALUE          	UNITS           BRIEF DESCRIPTION                             			TRANSITION(S)
 #define JNT_ORIENT								-JOINT_ANGLE_DIR	// 				JOINT_ANGLE_DIR is defined in user-mn-MIT-DLeg-2dof
