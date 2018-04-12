@@ -293,7 +293,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
         	//check to make sure EMG is active
         	if (MIT_EMG_getState() == 1) {
-				updateVirtualJoint(&emgFreeGains);
+//				updateVirtualJoint(&emgFreeGains);
 				actx->tauDes = calcJointTorque(emgFreeGains, actx, &walkParams);
         	}
         	else {

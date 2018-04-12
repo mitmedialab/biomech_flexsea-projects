@@ -104,7 +104,7 @@ void updateVirtualJoint(GainParams* pgains)
 	float k_baseline = ( (float)  user_data_1.w[6] ) / 1000.0; // 150
 	get_EMG();
 	interpret_EMG(virtualK, virtualB, virtualJ);
-	pgains->k1 = k_baseline + robot_k*PFDF_state[2];
+	pgains->k1 = k_baseline + robot_k; //*PFDF_state[2];
 	pgains->b = robot_b;
 	pgains->thetaDes = PFDF_state[0] * -JOINT_ANGLE_DIR; //flip the convention
 //	rigid1.mn.genVar[6] = pgains->k1*10;
