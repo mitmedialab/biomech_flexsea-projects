@@ -49,7 +49,7 @@
 
 uint8_t mitRunningExoInfo[2] = {PORT_RS485_2, PORT_RS485_2};
 
-int16_t fsm1State = -2;
+int16_t fsm1State;
 float torqueProfileGain = DEFAULT_TORQUE_PROFILE_GAIN;
 int8_t bodyWeight = DEFAULT_BODY_WEIGHT;//user body weight (kg)
 float controlAction;
@@ -134,6 +134,7 @@ float calcImpedanceTorque(float m, float b, float k, float ddthetad_set, float d
 int8_t safetyShutoff(void);
 void mit_init_current_controller(void);
 void packRigidVars(struct actuation_parameters  *actx);
+void setCableTensionForce(struct actuation_parameters *actx, float force_desired_cable);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -143,7 +144,7 @@ void packRigidVars(struct actuation_parameters  *actx);
 void init_runningExo(void)
 //TODO
 {
-	fsm1State = 0;
+	fsm1State = -2;
 	runningExoState.state = 1;					//Initialize state
 	controlAction = 0;			//clear control action
 }
@@ -169,6 +170,7 @@ void RunningExo_fsm_1(void)
 			{
 				fsm1State = -1;
 				time = 0;
+				rigid1.mn.genVar[0]=fsm1State;
 			}
 
 			break;
@@ -180,6 +182,8 @@ void RunningExo_fsm_1(void)
 				mit_init_current_controller();		//initialize Current Controller with gains
 				fsm1State = 0;
 				time = 0;
+				rigid1.mn.genVar[1]=fsm1State;
+
 			}
 			//for testing
 //			fsm1State = 0;
@@ -254,21 +258,25 @@ void RunningExo_fsm_1(void)
 			    	//rigid1.mn.genVar[2]=runningExoState.pedometer;
 			    	rigid1.mn.genVar[3]=act_para.currentMotorPosition;
 			    	//Time stamps
-			    	rigid1.mn.genVar[4]= runningExoState.heelStrikeTime;
-			    	rigid1.mn.genVar[5]= act_para.initialMotorPosition;
-			    	rigid1.mn.genVar[6]= runningExoState.prevStanceDuration;
-			    	rigid1.mn.genVar[7]= runningExoState.prevGaitDuration;
-			    	rigid1.mn.genVar[8]= runningExoState.enableOutput;
-			    	rigid1.mn.genVar[9]= runningExoState.disabledPedometer;
+			    	rigid1.mn.genVar[4]= act_para.initialMotorPosition;
+			    	rigid1.mn.genVar[5]= act_para.motorCurrentDesired;
+			    	//rigid1.mn.genVar[6]= torqueDes;
+			    	rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
+			    	rigid1.mn.genVar[8]= act_para.motorTorqueDesired*1000;
+			    	rigid1.mn.genVar[9]= act_para.motorTorqueMeasured*1000;
 
 
-			    	torqueDes = controlAction;
+			    	//torqueDes = controlAction;
+			    	torqueDes = user_data_1.w[0];
+			    	rigid1.mn.genVar[6]= torqueDes*100;
+			    	setCableTensionForce(&act_para, torqueDes);
 
-			    	if (user_data_1.w[9] > 0)
+			    	/*
+			    	if (user_data_1.w[1] > 0)
 			    	{
 			    		setAnkleTorque(&act_para, torqueDes);
 			    	}
-
+			    	 */
 //					rigid1.mn.genVar[8] = filter_LPF((float) *rigid1.ex.joint_ang_vel);
 
 			    	//m, b, k, Theta
@@ -884,11 +892,130 @@ void setAnkleTorque(struct actuation_parameters *actx, float tau_desired_ankle)
 	setMotorCurrent(actx->motorCurrentDesired);	// send current command to comm buffer to Execute
 
 	//variables used in cmd-rigid offset 5
-	rigid1.mn.userVar[5] = tau_measured*1000;
-	rigid1.mn.userVar[6] = tau_desired*1000;
+	//rigid1.mn.userVar[5] = tau_measured*1000;
+	//rigid1.mn.userVar[6] = tau_desired*1000;
 
 }
 
+
+
+void setCableTensionForce(struct actuation_parameters *actx, float force_desired_cable)
+{
+	float tau_measured = 0, tau_desired = 0, tau_ff = 0;  	//cable force reflected to motor. Feed forward term for desired joint torque, reflected to motor [Nm]
+	float tau_error = 0;
+	static float tau_error_last = 0, tau_error_integral = 0;
+	float tau_PID = 0, tau_error_diff = 0, tau_motor_compensation = 0;		// motor torque signal
+	int32_t dtheta_m = 0, ddtheta_m = 0;		//motor angular velocity and acceleration
+	int32_t I = 0;								// motor current signal
+
+	dtheta_m = actx->motorAngularVel;  	//rad/s
+	ddtheta_m = actx->motorAngularAcc;	//rad/s/s
+
+	actx->motorTorqueDesired = force_desired_cable * (ROPE_DIAMETER + MOT_OUTPUT_SHAFT_DIAMETER/2);
+
+	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
+	tau_measured = actx->motorTorqueMeasured;	// measured torque reflected to motor [Nm]
+	tau_desired = actx->motorTorqueDesired;		// output torque back to the motor [Nm].
+	tau_ff = tau_desired / (N_ETA) ;		// Feed forward term for desired joint torque, reflected to motor [Nm]
+
+	tau_motor_compensation = (MOT_J + MOT_TRANS)*ddtheta_m + MOT_B*dtheta_m;	// compensation for motor parameters. not stable right now.
+
+	// Error is done at the motor. todo: could be done at the ankle, messes with our gains.
+	tau_error = tau_desired - tau_measured;
+	tau_error_diff = tau_error - tau_error_last;
+	if (!isClearErrorIntegral)
+	{
+		tau_error_integral = tau_error_integral + tau_error;  // check if this method is correct
+	}
+	else
+	{
+		tau_error_integral = 0;
+	}
+	tau_error_last = tau_error;
+
+	//PID around motor torque
+	torqueKp = user_data_1.w[2];
+	torqueKi = user_data_1.w[3];
+	torqueKd = user_data_1.w[4];
+	tau_PID = tau_error*torqueKp + tau_error_diff*torqueKd + tau_error_integral*torqueKi;
+
+	I = 1/MOT_KT * ( tau_ff + tau_PID + tau_motor_compensation) * currentScalar;
+
+	//account for deadzone current (unused due to instability). Unsolved problem according to Russ Tedrake.
+//	if (abs(dtheta_m) < 3 && I < 0) {
+//		I -= motSticNeg; //in mA
+//	} else if (abs(dtheta_m) < 3 && I > 0) {
+//		I += motSticPos;
+//	}
+
+//	if ( I < 0) {
+//		I -= motSticNeg; //in mA
+//	} else if ( I > 0) {
+//		I += motSticPos;
+//	}
+
+	// add position, velocity, torque of the motor and ankle limit.
+
+
+	//Soft angle limits with virtual spring. Raise flag for safety check.
+	if (actx->motorRelativeRevolution <= 0  || actx->motorRelativeRevolution >= MAX_MOTOR_REVOLUTION)
+	{
+		isSafetyFlag = SAFETY_MOTOR_POSITION;
+		isPositionLimit = 1;		//these are all redundant, choose if we want the struct thing.
+
+		float angleDiff1 = actx->motorRelativeRevolution;
+		float angleDiff2 = actx->motorRelativeRevolution - MAX_MOTOR_REVOLUTION;
+
+		//Oppose motion using linear spring with damping
+		if (actx->motorRelativeRevolution < 0)
+		{
+			if (abs(angleDiff1) < 3)
+			{
+				I -= currentOpLimit*(angleDiff1/3) + bLimit*actx->motorAngularVel;
+			}
+			else
+			{
+				I -= -currentOpLimit + bLimit*actx->motorAngularVel;
+			}
+
+		} else if (actx->motorRelativeRevolution - MAX_MOTOR_REVOLUTION > 0)
+		{
+			if (abs(angleDiff2) < 3)
+			{
+				I -= currentOpLimit*(angleDiff2/3) + bLimit*actx->motorAngularVel;
+			}
+			else
+			{
+				I -= currentOpLimit + bLimit*actx->motorAngularVel;
+			}
+		}
+
+	}
+	else
+	{
+
+		isPositionLimit = 0;
+
+	}
+
+	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+	if (I > currentOpLimit)
+	{
+		I = currentOpLimit;
+	}
+	else if (I < -currentOpLimit)
+	{
+		I = -currentOpLimit;
+	}
+
+	actx->motorCurrentDesired = (int32_t) I; 	// demanded mA
+	setMotorCurrent(actx->motorCurrentDesired);	// send current command to comm buffer to Execute
+
+	//variables used in cmd-rigid offset 5
+	//rigid1.mn.userVar[5] = tau_measured*1000;
+	//rigid1.mn.userVar[6] = tau_desired*1000;
+
+}
 
 
 /*
@@ -948,6 +1075,7 @@ int8_t findPolesRunningExo(void)
 			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitRunningExoInfo, SEND_TO_SLAVE);
 			polesState = 2;
 			timer = 0;
+			rigid1.mn.genVar[2]=polesState;
 
 			return 0;
 
@@ -957,6 +1085,7 @@ int8_t findPolesRunningExo(void)
 			{
 				//Enable FSM2, position controller
 				enableActPackFSM2();
+				//rigid1.mn.genVar[4]=polesState;
 				return 1;
 			}
 			return 0;

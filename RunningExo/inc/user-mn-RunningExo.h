@@ -215,13 +215,14 @@ void stateTransition(void);
 #define MOT_J			0 // 0.000322951 kgm^2, rotor inertia, not yet be measured, refer to Matt's data
 #define MOT_B			0 //0.000131, damping term for motor, not yet be measured, refer to Matt's data
 #define MOT_TRANS		0 // lumped mass inertia todo: consider MotorMass on Spring inertia contribution. refer to Matt's data
-#define N_ETA			0.9		// Transmission efficiency
+#define N_ETA			0.75		// Transmission efficiency
 
 // Limitation and safety parameters
 #define MAX_BOARD_TEMP		70						//centidegree, avoid the FlexSEA board overheating
 #define MAX_ANKLE_TORQUE	(DEFAULT_TORQUE_PROFILE_GAIN*DEFAULT_BODY_WEIGHT*MAX_UNIT_RUNNING_TORQUE) // N.m, applied torque on the human ankle
 #define	MAX_CABLE_TENSION_FORCE	(MAX_ANKLE_TORQUE/MOMENT_ARM_ON_FOOT) //Newton
 #define MOT_OUTPUT_SHAFT_DIAMETER	0.0065			//m, motor output shaft
+#define ROPE_DIAMETER		0.001	//m, diameter of ropes
 #define MOTOR_TORQUE_MARGIN_FACTOR	1.2
 #define MAX_MOTOR_TORQUE_REQUIRED	(MOTOR_TORQUE_MARGIN_FACTOR*MAX_CABLE_TENSION_FORCE*(MOT_OUTPUT_SHAFT_DIAMETER/2))
 #define MAX_MOTOR_CURRENT	(1000*MAX_MOTOR_TORQUE_REQUIRED/MOT_KT)		//mA, 33.95 A--2.08 N.m
