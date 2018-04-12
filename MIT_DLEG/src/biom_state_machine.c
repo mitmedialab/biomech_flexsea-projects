@@ -64,9 +64,11 @@ void runFlatGroundFSM(Act_s *actx) {
     	initializeUserWrites(&walkParams);
 
     	//USER WRITE INITIALIZATION GOES HERE//////////////
-//    	user_data_1.w[2] = ; // k term/100
-//    	user_data_1.w[3] = ; // theta desired/10
-//    	user_data_1.w[4] = ; // damping/100
+//    	user_data_1.w[2] = PF_TORQUE_GAIN; //pfTorqueGain;
+//    	user_data_1.w[3] = DF_TORQUE_GAIN; //dfTorqueGain;
+//    	user_data_1.w[4] = ROBOT_K; //
+//    	user_data_1.w[5] = ROBOT_B; // damping/100
+//    	user_data_1.w[6] = BASELINE_K; // damping/100
     	///////////////////////////////////////////////////
     }
 
@@ -152,6 +154,8 @@ void runFlatGroundFSM(Act_s *actx) {
 				}
 			}
 
+			//REMOVE LATER JUST FOR TESTING
+			stateMachine.current_state = STATE_LSW_EMG;
 
             //------------------------- END OF TRANSITION VECTORS ------------------------//
             break;
@@ -211,28 +215,6 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 				break;
-
-
-//        case STATE_LATE_STANCE: //5
-//
-//            if (isTransitioning) {
-////               lstGains.k1 = walkParams.earlyStanceKF;
-////               lstGains.thetaDes = actx->jointAngleDegrees;
-//            }
-//
-//            updateVirtualHardstopTorque(actx, &walkParams);
-//            updateImpedanceParams(actx, &walkParams);
-//            actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
-//
-//            //---------------------- LATE STANCE TRANSITION VECTORS ----------------------//
-//
-//            // VECTOR (1): Late Stance -> Late Stance POWER
-//            if (actx->jointTorque > walkParams.lspEngagementTorque) {
-//            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
-//            }
-//
-//            //------------------------- END OF TRANSITION VECTORS ------------------------//
-//            break;
 
         case STATE_LATE_STANCE_POWER: //6
 
@@ -330,6 +312,8 @@ void runFlatGroundFSM(Act_s *actx) {
 				walkParams.transition_id = 1;
 			}
 
+			//REMOVE LATER JUST FOR TESTING
+			stateMachine.current_state = STATE_LSW_EMG;
 
         	break;
 		

@@ -43,8 +43,8 @@
 #define EMG_IN_MAX_CONTACT		20000
 
 //Constants for tuning the controller
-#define PF_TORQUE_GAIN			40
-#define DF_TORQUE_GAIN			80
+#define PF_TORQUE_GAIN			120 	//40
+#define DF_TORQUE_GAIN			60		//40
 #define PFDF_STIFF_GAIN			1.0
 #define DP_ON_THRESH			0.1
 
@@ -52,12 +52,13 @@
 
 
 //VIRTUAL DYNAMIC JOINT PARAMS
-#define VIRTUAL_K				1.0
-#define VIRTUAL_B				0.085
+#define VIRTUAL_K				0.85
+#define VIRTUAL_B				0.1
 #define VIRTUAL_J				0.0025
 
-#define ROBOT_K					0.7
-#define ROBOT_B					0.05
+#define ROBOT_K					0.500
+#define ROBOT_B					0.01
+#define BASELINE_K				0.150
 
 
 //****************************************************************************

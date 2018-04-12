@@ -99,12 +99,16 @@ float virtualJ = VIRTUAL_J;
 
 void updateVirtualJoint(GainParams* pgains)
 {
+	float robot_k = ( (float) user_data_1.w[4] ) /1000.0 ; // 7000
+	float robot_b = ( (float)  user_data_1.w[5] ) /1000.0 ; // 200
+	float k_baseline = ( (float)  user_data_1.w[6] ) / 1000.0; // 150
 	get_EMG();
 	interpret_EMG(virtualK, virtualB, virtualJ);
-	pgains->k1 = 1 + ROBOT_K*PFDF_state[2];
-	pgains->b = ROBOT_B;
+	pgains->k1 = k_baseline + robot_k*PFDF_state[2];
+	pgains->b = robot_b;
 	pgains->thetaDes = PFDF_state[0] * -JOINT_ANGLE_DIR; //flip the convention
 //	rigid1.mn.genVar[6] = pgains->k1*10;
+	rigid1.mn.genVar[3] = (int16_t) PFDF_state[0];
 }
 
 //****************************************************************************
@@ -121,8 +125,8 @@ void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an inte
 	}
 
 	//5ms moving average
-	int16_t EMGin_LG = windowSmoothEMG0(JIM_LG); //SEONGS BOARD LG_VAR gastroc, 0-10000. CHANGE FOR USER
-	int16_t EMGin_TA = windowSmoothEMG1(JIM_TA); //SEONGS BOARD TA_VAR tibialis anterior, 0-10000
+	int16_t EMGin_LG = (JIM_LG); //SEONGS BOARD LG_VAR gastroc, 0-10000. CHANGE FOR USER
+	int16_t EMGin_TA = (JIM_TA); //SEONGS BOARD TA_VAR tibialis anterior, 0-10000
 
 	gainLG = GAIN_LG;
 	gainTA = GAIN_TA;
@@ -146,8 +150,8 @@ void interpret_EMG (float k, float b, float J)
 
 	//user inputs
 	cocontractThresh = COCON_THRESH;
-	pfTorqueGain =  PF_TORQUE_GAIN;
-	dfTorqueGain =  DF_TORQUE_GAIN;
+	pfTorqueGain =  (float) user_data_1.w[2]; //PF_TORQUE_GAIN;
+	dfTorqueGain =  (float) user_data_1.w[3]; //DF_TORQUE_GAIN;
 
 
 	// Calculate LG activation
@@ -189,12 +193,13 @@ void interpret_EMG (float k, float b, float J)
 //	rigid1.mn.genVar[3] = b*1000;
 
 //	// scaling restoring force based on loose ankle at 30 degrees plantarflexion (Tony's idea. Test first)
+/*
 	if (PFDF_state[0] > equilibriumAngle) {
 		k = 0.8*k*(PFDF_state[0] - equilibriumAngle)/(max_DFangle - equilibriumAngle) + 0.5*k;
 	} else {
 		k = 0.8*k*(PFDF_state[0] - equilibriumAngle)/(max_PFangle - equilibriumAngle) + 0.5*k;
 	}
-
+*/
 	//pack for Plan
 //	rigid1.mn.genVar[4] = k*1000;
 
