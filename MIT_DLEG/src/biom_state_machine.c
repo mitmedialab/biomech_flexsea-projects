@@ -55,10 +55,11 @@ void runFlatGroundFSM(Act_s *actx) {
     static int8_t isTransitioning = 0;
     static uint32_t time_in_state = 0;
     static int32_t emgInputPPF = 0; //used to keep track of EMG PPF input
+    static int8_t passedStanceThresh = 0;
 
 	static int8_t using_EMG_free_space = 0;
 	int16_t emgVal = 0;
-	float tauDiff = 0;
+	float torq_thresh = 0;
 
     if (!walkParams.initializedStateMachineVariables){
     	initializeUserWrites(&walkParams);
@@ -69,6 +70,8 @@ void runFlatGroundFSM(Act_s *actx) {
 //    	user_data_1.w[4] = ROBOT_K; //
 //    	user_data_1.w[5] = ROBOT_B; // damping/100
 //    	user_data_1.w[6] = BASELINE_K; // damping/100
+//    	user_data_1.w[7] = torq_thresh;
+    	user_data_1.w[7] = 35;
     	///////////////////////////////////////////////////
     }
 
@@ -132,7 +135,7 @@ void runFlatGroundFSM(Act_s *actx) {
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 			if(time_in_state > LSW_TO_EST_DELAY) {
 
-				if (time_in_state >= LSW_TO_EMG_DELAY && MIT_EMG_getState() == 1 && using_EMG_free_space){
+				if (time_in_state >= LSW_TO_EMG_DELAY && MIT_EMG_getState() == 1){
 					//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
 					stateMachine.current_state = STATE_LSW_EMG;
 					walkParams.transition_id = 4;
@@ -154,8 +157,6 @@ void runFlatGroundFSM(Act_s *actx) {
 				}
 			}
 
-			//REMOVE LATER JUST FOR TESTING
-			stateMachine.current_state = STATE_LSW_EMG;
 
             //------------------------- END OF TRANSITION VECTORS ------------------------//
             break;
@@ -172,6 +173,7 @@ void runFlatGroundFSM(Act_s *actx) {
 					estGains.thetaDes = actx->jointAngleDegrees;
 
 					emgInputPPF = 0;
+					passedStanceThresh = 0;
 				}
 
 
@@ -209,9 +211,17 @@ void runFlatGroundFSM(Act_s *actx) {
 				//---------------------- EARLY STANCE TRANSITION VECTORS ----------------------//
 
 				// VECTOR (A): Early Stance -> Late Stance (foot flat) - Condition 1
+				if (abs(actx->jointTorque) > 20.0){
+					passedStanceThresh = 1;
+				}
+
 				if (actx->jointTorque > walkParams.lspEngagementTorque) {
 		            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
 		        }
+
+				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 100) {
+					stateMachine.current_state = STATE_LATE_SWING;
+				}
 
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 				break;
@@ -288,11 +298,15 @@ void runFlatGroundFSM(Act_s *actx) {
         		updatePFDFState(actx);
 
         	}
+        	torq_thresh = ( (float) user_data_1.w[7] ) / 10.0;
+
         	//disable hardstop
         	walkParams.virtual_hardstop_tq = 0;
 
         	//check to make sure EMG is active
-        	if (MIT_EMG_getState() == 1) {
+        	//UNCOMMENT FOR TESTING TRANSITIONS
+//        	if (MIT_EMG_getState() == 1) {
+        	if(1){
 //				updateVirtualJoint(&emgFreeGains);
 				actx->tauDes = calcJointTorque(emgFreeGains, actx, &walkParams);
         	}
@@ -303,17 +317,12 @@ void runFlatGroundFSM(Act_s *actx) {
         	//Late Swing EMG transition vectors to Early Stance
         	//If activation is below a certain threshold, these become active
         	//Tune thresholds based on user
-        	tauDiff = actx->jointTorque - actx->tauDes;
-        	rigid1.mn.genVar[0] = tauDiff;
 
 			// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-			if ( abs(actx->jointTorque) > 3.5) {
+			if ( abs(actx->jointTorque) > torq_thresh ) {
 				stateMachine.current_state = STATE_EARLY_STANCE;
-				walkParams.transition_id = 1;
+				walkParams.transition_id = 7;
 			}
-
-			//REMOVE LATER JUST FOR TESTING
-			stateMachine.current_state = STATE_LSW_EMG;
 
         	break;
 		
