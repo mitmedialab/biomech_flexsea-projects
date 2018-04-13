@@ -57,6 +57,7 @@ int32_t EMGavgs[2] = {0, 0}; // Initialize the EMG signals to 0;
 float PFDF_state[3] = {0, 0, 0};
 
 float stepsize = .001; //dt, if running at 1kHz
+//static int16_t trajectory_delay = 0;
 
 //HANDLE EMG FROM SEONG
 float gainLG = GAIN_LG;
@@ -99,21 +100,27 @@ float virtualJ = VIRTUAL_J;
 
 void updateVirtualJoint(GainParams* pgains)
 {
-	float robot_k = ( (float) user_data_1.w[4] ) /1000.0 ; // 7000
-	float robot_b = ( (float)  user_data_1.w[5] ) /1000.0 ; // 200
-	float k_baseline = ( (float)  user_data_1.w[6] ) / 1000.0; // 150
+	float robot_k = ( (float) user_data_1.w[4] ) /1000.0 ; // 7000/1000
+	float robot_b = ( (float)  user_data_1.w[5] ) /1000.0 ; // 200/1000
+	float k_baseline = ( (float)  user_data_1.w[6] ) / 1000.0; // 800/1000
+	static int16_t trajectory_delay = 0;
+
 	get_EMG();
 	interpret_EMG(virtualK, virtualB, virtualJ);
-	pgains->k1 = k_baseline + robot_k; //*PFDF_state[2];
+//	interpret_EMG(virtualK, 0.000001, 0.000001);
+
+	pgains->k1 = k_baseline + robot_k*PFDF_state[2];
 	pgains->b = robot_b;
 	pgains->thetaDes = PFDF_state[0] * -JOINT_ANGLE_DIR; //flip the convention
-//	rigid1.mn.genVar[6] = pgains->k1*10;
+	//	rigid1.mn.genVar[6] = pgains->k1*10;
 	rigid1.mn.genVar[3] = (int16_t) PFDF_state[0];
 }
 
 //****************************************************************************
 // Private Function(s)
 //****************************************************************************
+
+int fakeEmgIter = 0;
 
 void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an integrated signal.
 {
@@ -135,10 +142,6 @@ void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an inte
 	EMGavgs[0] = EMGin_LG * gainLG;
 	EMGavgs[1] = EMGin_TA * gainTA;
 
-	//pack for Plan
-//	rigid1.mn.genVar[0] = EMGavgs[0];
-//	rigid1.mn.genVar[1] = EMGavgs[1];
-
 }
 
 //updates PFDF_state[] based on EMG activation
@@ -150,8 +153,8 @@ void interpret_EMG (float k, float b, float J)
 
 	//user inputs
 	cocontractThresh = COCON_THRESH;
-	pfTorqueGain =  (float) user_data_1.w[2]; //PF_TORQUE_GAIN;
-	dfTorqueGain =  (float) user_data_1.w[3]; //DF_TORQUE_GAIN;
+	pfTorqueGain =  120; //(float) user_data_1.w[2]; //PF_TORQUE_GAIN;
+	dfTorqueGain =  60; //(float) user_data_1.w[3]; //DF_TORQUE_GAIN;
 
 
 	// Calculate LG activation

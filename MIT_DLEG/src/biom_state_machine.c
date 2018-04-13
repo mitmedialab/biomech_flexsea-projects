@@ -286,8 +286,8 @@ void runFlatGroundFSM(Act_s *actx) {
         	//upon entering, make sure virtual joint and robot joint match
         	if (isTransitioning) {
         		updatePFDFState(actx);
-        	}
 
+        	}
         	//disable hardstop
         	walkParams.virtual_hardstop_tq = 0;
 
@@ -307,7 +307,7 @@ void runFlatGroundFSM(Act_s *actx) {
         	rigid1.mn.genVar[0] = tauDiff;
 
 			// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-			if ( abs(actx->tauDes) > 3.5) {
+			if ( abs(actx->jointTorque) > 3.5) {
 				stateMachine.current_state = STATE_EARLY_STANCE;
 				walkParams.transition_id = 1;
 			}

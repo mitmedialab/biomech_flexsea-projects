@@ -310,7 +310,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
 
 	actx->regTemp = rigid1.re.temp;
-	actx->motTemp = getMotorTempSensor();
+	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
 	actx->motCurr = rigid1.ex.mot_current;
 	actx->currentOpLimit = currentOpLimit; // throttled mA
 
