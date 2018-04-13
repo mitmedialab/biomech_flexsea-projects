@@ -135,6 +135,8 @@ int8_t safetyShutoff(void);
 void mit_init_current_controller(void);
 void packRigidVars(struct actuation_parameters  *actx);
 void setCableTensionForce(struct actuation_parameters *actx, float force_desired_cable);
+void setCableTensionForceOpenLoop(struct actuation_parameters *actx, float force_desired_cable);
+void torqueSweepTestOpenLoop(struct actuation_parameters *actx);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -261,17 +263,28 @@ void RunningExo_fsm_1(void)
 			    	rigid1.mn.genVar[4]= act_para.initialMotorPosition;
 			    	rigid1.mn.genVar[5]= act_para.motorCurrentDesired;
 			    	//rigid1.mn.genVar[6]= torqueDes;
-			    	rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
+			    	//rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
 			    	rigid1.mn.genVar[8]= act_para.motorTorqueDesired*1000;
 			    	rigid1.mn.genVar[9]= act_para.motorTorqueMeasured*1000;
 
+			    	//test open loop
+			    	torqueDes = user_data_1.w[0];
+			    	setCableTensionForceOpenLoop(&act_para, torqueDes);
+			    	rigid1.mn.genVar[6]= torqueDes*100;
+			    	rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
 
+
+
+			    	/* set cable force
 			    	//torqueDes = controlAction;
 			    	torqueDes = user_data_1.w[0];
 			    	rigid1.mn.genVar[6]= torqueDes*100;
+			    	rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
 			    	setCableTensionForce(&act_para, torqueDes);
+			    	 */
 
-			    	/*
+
+			    	/*// set ankle torque
 			    	if (user_data_1.w[1] > 0)
 			    	{
 			    		setAnkleTorque(&act_para, torqueDes);
@@ -905,18 +918,19 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 	float tau_error = 0;
 	static float tau_error_last = 0, tau_error_integral = 0;
 	float tau_PID = 0, tau_error_diff = 0, tau_motor_compensation = 0;		// motor torque signal
+	float forceOffset = FORCE_OFFSET_CLOSED;
 	int32_t dtheta_m = 0, ddtheta_m = 0;		//motor angular velocity and acceleration
 	int32_t I = 0;								// motor current signal
 
 	dtheta_m = actx->motorAngularVel;  	//rad/s
 	ddtheta_m = actx->motorAngularAcc;	//rad/s/s
 
-	actx->motorTorqueDesired = force_desired_cable * (ROPE_DIAMETER + MOT_OUTPUT_SHAFT_DIAMETER/2);
+	actx->motorTorqueDesired = (force_desired_cable + forceOffset) * (ROPE_DIAMETER + MOT_OUTPUT_SHAFT_DIAMETER/2);
 
 	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
 	tau_measured = actx->motorTorqueMeasured;	// measured torque reflected to motor [Nm]
 	tau_desired = actx->motorTorqueDesired;		// output torque back to the motor [Nm].
-	tau_ff = tau_desired / (N_ETA) ;		// Feed forward term for desired joint torque, reflected to motor [Nm]
+	tau_ff = tau_desired / (N_ETA);		// Feed forward term for desired joint torque, reflected to motor [Nm]
 
 	tau_motor_compensation = (MOT_J + MOT_TRANS)*ddtheta_m + MOT_B*dtheta_m;	// compensation for motor parameters. not stable right now.
 
@@ -1017,6 +1031,106 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 
 }
 
+void setCableTensionForceOpenLoop(struct actuation_parameters *actx, float force_desired_cable)
+{
+	float tau_measured = 0, tau_desired = 0, tau_ff = 0;  	//cable force reflected to motor. Feed forward term for desired joint torque, reflected to motor [Nm]
+	float tau_motor_compensation = 0;
+	float forceOffset = FORCE_OFFSET_OPEN;
+	int32_t dtheta_m = 0, ddtheta_m = 0;		//motor angular velocity and acceleration
+	int32_t I = 0;								// motor current signal
+
+	dtheta_m = actx->motorAngularVel;  	//rad/s
+	ddtheta_m = actx->motorAngularAcc;	//rad/s/s
+
+	actx->motorTorqueDesired = (force_desired_cable + forceOffset) * (ROPE_DIAMETER + MOT_OUTPUT_SHAFT_DIAMETER/2);
+
+	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
+	tau_measured = actx->motorTorqueMeasured;	// measured torque reflected to motor [Nm]
+	tau_desired = actx->motorTorqueDesired;		// output torque back to the motor [Nm].
+	tau_ff = tau_desired / (N_ETA);		// Feed forward term for desired joint torque, reflected to motor [Nm]
+
+	tau_motor_compensation = (MOT_J + MOT_TRANS)*ddtheta_m + MOT_B*dtheta_m;	// compensation for motor parameters. not stable right now.
+
+
+	I = 1/MOT_KT * ( tau_desired) * currentScalar;
+
+	//account for deadzone current (unused due to instability). Unsolved problem according to Russ Tedrake.
+//	if (abs(dtheta_m) < 3 && I < 0) {
+//		I -= motSticNeg; //in mA
+//	} else if (abs(dtheta_m) < 3 && I > 0) {
+//		I += motSticPos;
+//	}
+
+//	if ( I < 0) {
+//		I -= motSticNeg; //in mA
+//	} else if ( I > 0) {
+//		I += motSticPos;
+//	}
+
+	// add position, velocity, torque of the motor and ankle limit.
+
+
+	//Soft angle limits with virtual spring. Raise flag for safety check.
+	if (actx->motorRelativeRevolution <= 0  || actx->motorRelativeRevolution >= MAX_MOTOR_REVOLUTION)
+	{
+		isSafetyFlag = SAFETY_MOTOR_POSITION;
+		isPositionLimit = 1;		//these are all redundant, choose if we want the struct thing.
+
+		float angleDiff1 = actx->motorRelativeRevolution;
+		float angleDiff2 = actx->motorRelativeRevolution - MAX_MOTOR_REVOLUTION;
+
+		//Oppose motion using linear spring with damping
+		if (actx->motorRelativeRevolution < 0)
+		{
+			if (abs(angleDiff1) < 3)
+			{
+				I -= currentOpLimit*(angleDiff1/3) + bLimit*actx->motorAngularVel;
+			}
+			else
+			{
+				I -= -currentOpLimit + bLimit*actx->motorAngularVel;
+			}
+
+		} else if (actx->motorRelativeRevolution - MAX_MOTOR_REVOLUTION > 0)
+		{
+			if (abs(angleDiff2) < 3)
+			{
+				I -= currentOpLimit*(angleDiff2/3) + bLimit*actx->motorAngularVel;
+			}
+			else
+			{
+				I -= currentOpLimit + bLimit*actx->motorAngularVel;
+			}
+		}
+
+	}
+	else
+	{
+
+		isPositionLimit = 0;
+
+	}
+
+	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+	if (I > currentOpLimit)
+	{
+		I = currentOpLimit;
+	}
+	else if (I < -currentOpLimit)
+	{
+		I = -currentOpLimit;
+	}
+
+	actx->motorCurrentDesired = (int32_t) I; 	// demanded mA
+	setMotorCurrent(actx->motorCurrentDesired);	// send current command to comm buffer to Execute
+
+	//variables used in cmd-rigid offset 5
+	//rigid1.mn.userVar[5] = tau_measured*1000;
+	//rigid1.mn.userVar[6] = tau_desired*1000;
+
+}
+
+
 
 /*
  * Simple impedance controller
@@ -1114,6 +1228,101 @@ void packRigidVars(struct actuation_parameters  *actx)
 	//rigid1.mn.userVar[5] = tau_measured*1000;
 	//rigid1.mn.userVar[6] = tau_desired*1000; (impedance controller - spring contribution)
 }
+
+
+//control ankle torque by through user_data_1[2] as amplitude and user_data_1[3] as frequency
+void torqueSweepTestOpenLoop(struct actuation_parameters *actx)
+{
+	static int32_t timer = 0;
+	static int32_t stepTimer = 0;
+	static float currentFrequency = 0;
+
+	float torqueAmp = user_data_1.w[0]/10.;
+	float frequency = user_data_1.w[1]/10.;
+	float frequencyEnd = user_data_1.w[2]/10.;
+	float numSteps = user_data_1.w[3];
+
+	timer++;
+
+	// if torqueAmp is ever set to 0, reset sweep test params
+	if (torqueAmp == 0)
+	{
+		stepTimer = 0;
+		currentFrequency = 0;
+	}
+
+	// start check to see what type of sweep desired
+	if (frequency > 0)
+	{
+		float torqueDes = 0;
+
+		//just want to sweep at one frequency
+		if (frequencyEnd == 0 || numSteps == 0)
+		{
+			torqueDes = torqueAmp * sin(frequency*timer*2*M_PI/1000);
+			setCableTensionForceOpenLoop(actx, torqueDes);
+
+		}
+		else
+		{
+			// 2 seconds per intermediate frequency step
+			if (stepTimer <= 2*SECONDS)
+			{
+				torqueDes = torqueAmp * sin(currentFrequency*stepTimer*2*M_PI/1000);
+				setCableTensionForceOpenLoop(actx, torqueDes);
+
+				stepTimer++;
+				user_data_1.r[0] = 1; //1 if testing
+
+			}
+			else
+			{
+				stepTimer = 0;
+				currentFrequency += (frequencyEnd-frequency)/numSteps; //increment frequency step
+				//stop test
+				if (currentFrequency > frequencyEnd)
+				{
+					torqueAmp = 0;
+					frequency = 0;
+					frequencyEnd = 0;
+					numSteps = 0;
+					user_data_1.r[0] = 0; //0 if not sweep testing
+
+				}
+			}
+		}
+
+		//pass back for plotting purposes
+		user_data_1.r[2] = torqueDes;
+
+	}
+	else if (frequency == 0)
+	{
+		timer = 0;
+		setCableTensionForceOpenLoop(actx, torqueAmp);
+
+		stepTimer = 0;
+		currentFrequency = 0;
+		user_data_1.r[2] = torqueAmp;
+	}
+	else
+	{
+		timer = 0;
+		setCableTensionForceOpenLoop(actx, 0);
+
+		stepTimer = 0;
+		currentFrequency = 0;
+		user_data_1.r[2] = 0;
+	}
+
+	user_data_1.r[3] = frequency;
+
+	rigid1.mn.genVar[6] = frequency; //hz
+
+	rigid1.mn.genVar[7] = user_data_1.r[2]*1000; //mNm
+
+}
+
 
 
 #endif 	//defined BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
