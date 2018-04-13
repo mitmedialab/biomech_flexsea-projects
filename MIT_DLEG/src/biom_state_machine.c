@@ -65,13 +65,12 @@ void runFlatGroundFSM(Act_s *actx) {
     	initializeUserWrites(&walkParams);
 
     	//USER WRITE INITIALIZATION GOES HERE//////////////
-//    	user_data_1.w[2] = PF_TORQUE_GAIN; //pfTorqueGain;
-//    	user_data_1.w[3] = DF_TORQUE_GAIN; //dfTorqueGain;
-//    	user_data_1.w[4] = ROBOT_K; //
-//    	user_data_1.w[5] = ROBOT_B; // damping/100
-//    	user_data_1.w[6] = BASELINE_K; // damping/100
-//    	user_data_1.w[7] = torq_thresh;
-    	user_data_1.w[7] = 35;
+    	user_data_1.w[2] = PF_TORQUE_GAIN; //pfTorqueGain;
+    	user_data_1.w[3] = DF_TORQUE_GAIN; //dfTorqueGain;
+    	user_data_1.w[4] = 7000; //ROBOT_K; //
+    	user_data_1.w[5] = 200; //ROBOT_B; // damping/100
+    	user_data_1.w[6] = 800; //BASELINE_K; // damping/100
+    	user_data_1.w[7] = 35;	// torq_thresh/10
     	///////////////////////////////////////////////////
     }
 
@@ -304,10 +303,8 @@ void runFlatGroundFSM(Act_s *actx) {
         	walkParams.virtual_hardstop_tq = 0;
 
         	//check to make sure EMG is active
-        	//UNCOMMENT FOR TESTING TRANSITIONS
-//        	if (MIT_EMG_getState() == 1) {
-        	if(1){
-//				updateVirtualJoint(&emgFreeGains);
+        	if (MIT_EMG_getState() == 1) {
+//				updateVirtualJoint(&emgFreeGains);	// was moved to main_fsm
 				actx->tauDes = calcJointTorque(emgFreeGains, actx, &walkParams);
         	}
         	else {
