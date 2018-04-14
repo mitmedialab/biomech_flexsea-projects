@@ -264,15 +264,18 @@ void RunningExo_fsm_1(void)
 			    	rigid1.mn.genVar[5]= act_para.motorCurrentDesired;
 			    	//rigid1.mn.genVar[6]= torqueDes;
 			    	//rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
-			    	rigid1.mn.genVar[8]= act_para.motorTorqueDesired*1000;
+			    	//rigid1.mn.genVar[8]= act_para.motorTorqueDesired*1000;
 			    	rigid1.mn.genVar[9]= act_para.motorTorqueMeasured*1000;
 
+
+			    	torqueSweepTestOpenLoop(&act_para);
+			    	/*
 			    	//test open loop
 			    	torqueDes = user_data_1.w[0];
 			    	setCableTensionForceOpenLoop(&act_para, torqueDes);
 			    	rigid1.mn.genVar[6]= torqueDes*100;
 			    	rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
-
+					*/
 
 
 			    	/* set cable force
@@ -1241,85 +1244,116 @@ void torqueSweepTestOpenLoop(struct actuation_parameters *actx)
 	float frequency = user_data_1.w[1]/10.;
 	float frequencyEnd = user_data_1.w[2]/10.;
 	float numSteps = user_data_1.w[3];
+	static _Bool sweptFlag = 1;
 
-	timer++;
-
-	// if torqueAmp is ever set to 0, reset sweep test params
-	if (torqueAmp == 0)
+	if (sweptFlag == 1)
 	{
-		stepTimer = 0;
-		currentFrequency = 0;
-	}
+		timer++;
 
-	// start check to see what type of sweep desired
-	if (frequency > 0)
-	{
-		float torqueDes = 0;
-
-		//just want to sweep at one frequency
-		if (frequencyEnd == 0 || numSteps == 0)
+		// if torqueAmp is ever set to 0, reset sweep test params
+		if (torqueAmp == 0)
 		{
-			torqueDes = torqueAmp * sin(frequency*timer*2*M_PI/1000);
-			setCableTensionForceOpenLoop(actx, torqueDes);
-
+			stepTimer = 0;
+			currentFrequency = 0;
 		}
-		else
-		{
-			// 2 seconds per intermediate frequency step
-			if (stepTimer <= 2*SECONDS)
-			{
-				torqueDes = torqueAmp * sin(currentFrequency*stepTimer*2*M_PI/1000);
-				setCableTensionForceOpenLoop(actx, torqueDes);
 
-				stepTimer++;
-				user_data_1.r[0] = 1; //1 if testing
+		// start check to see what type of sweep desired
+		if (frequency > 0)
+		{
+			float torqueDes = 0;
+
+			//just want to sweep at one frequency
+			if (frequencyEnd == 0 || numSteps == 0)
+			{
+				torqueDes = torqueAmp * sin(frequency*timer*2*M_PI/1000);
+				setCableTensionForceOpenLoop(actx, abs(torqueDes));
 
 			}
 			else
 			{
-				stepTimer = 0;
-				currentFrequency += (frequencyEnd-frequency)/numSteps; //increment frequency step
-				//stop test
-				if (currentFrequency > frequencyEnd)
+				// 2 seconds per intermediate frequency step
+				if (stepTimer <= 2*SECONDS)
 				{
-					torqueAmp = 0;
-					frequency = 0;
-					frequencyEnd = 0;
-					numSteps = 0;
-					user_data_1.r[0] = 0; //0 if not sweep testing
+					torqueDes = torqueAmp * sin(currentFrequency*stepTimer*2*M_PI/1000);
+					setCableTensionForceOpenLoop(actx, abs(torqueDes));
+
+					stepTimer++;
+					user_data_1.r[0] = 1; //1 if testing
 
 				}
+				else
+				{
+					stepTimer = 0;
+					currentFrequency += (frequencyEnd-frequency)/numSteps; //increment frequency step
+					//stop test
+					if (currentFrequency > frequencyEnd)
+					{
+						torqueAmp = 0;
+						frequency = 0;
+						frequencyEnd = 0;
+						numSteps = 0;
+						user_data_1.r[0] = 0; //0 if not sweep testing
+						sweptFlag = 0;
+
+
+					}
+				}
 			}
+
+			//pass back for plotting purposes
+			user_data_1.r[2] = torqueDes;
+
+		}
+		else if (frequency == 0)
+		{
+			timer = 0;
+			setCableTensionForceOpenLoop(actx, abs(torqueAmp));
+
+			stepTimer = 0;
+			currentFrequency = 0;
+			user_data_1.r[2] = torqueAmp;
+		}
+		else
+		{
+			timer = 0;
+			setCableTensionForceOpenLoop(actx, 0);
+
+			stepTimer = 0;
+			currentFrequency = 0;
+			user_data_1.r[2] = 0;
 		}
 
-		//pass back for plotting purposes
-		user_data_1.r[2] = torqueDes;
-
-	}
-	else if (frequency == 0)
-	{
-		timer = 0;
-		setCableTensionForceOpenLoop(actx, torqueAmp);
-
-		stepTimer = 0;
-		currentFrequency = 0;
-		user_data_1.r[2] = torqueAmp;
 	}
 	else
 	{
+		//input 0 to the four variable to restart the swept process
+		if (torqueAmp == 0 && frequency == 0 && frequencyEnd == 0 && numSteps == 0)
+		{
+			sweptFlag = 1;
+		}
+
+		torqueAmp = 0;
+		frequency = 0;
+		frequencyEnd = 0;
+		numSteps = 0;
+
 		timer = 0;
 		setCableTensionForceOpenLoop(actx, 0);
 
 		stepTimer = 0;
 		currentFrequency = 0;
 		user_data_1.r[2] = 0;
+
 	}
+
 
 	user_data_1.r[3] = frequency;
 
-	rigid1.mn.genVar[6] = frequency; //hz
+	rigid1.mn.genVar[6] = currentFrequency*10; //hz
 
-	rigid1.mn.genVar[7] = user_data_1.r[2]*1000; //mNm
+	rigid1.mn.genVar[7] = user_data_1.r[2]*100; //mNm
+
+	rigid1.mn.genVar[8] = act_para.cableTensionForce*100; //mNm
 
 }
 
