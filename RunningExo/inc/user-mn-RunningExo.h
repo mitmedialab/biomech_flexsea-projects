@@ -226,14 +226,14 @@ void stateTransition(void);
 #define MOTOR_TORQUE_MARGIN_FACTOR	1.2
 #define MAX_MOTOR_TORQUE_REQUIRED	(MOTOR_TORQUE_MARGIN_FACTOR*MAX_CABLE_TENSION_FORCE*(MOT_OUTPUT_SHAFT_DIAMETER/2))
 #define MAX_MOTOR_CURRENT	(1000*MAX_MOTOR_TORQUE_REQUIRED/MOT_KT)		//mA, 33.95 A--2.08 N.m
-#define	MOTOR_CURRENT_LIMIT		10000 //mA
+#define	MOTOR_CURRENT_LIMIT		18000 //mA
 #define B_ANGLE_LIMIT			MOTOR_CURRENT_LIMIT/1000.
 #define ENCODER_RESOLUTION_BIT		14		//AS5047P encoder resolution in bits.
 #define ENCODER_RESOLUTION			((uint16_t)pow(2,ENCODER_RESOLUTION_BIT)) // 16384, AS5047P encoder resolution in decimal.
 #define	ENCODER_CPR		ENCODER_RESOLUTION //16384, Counts per revolution
 #define MAX_FOOT_PULL_HEIGHT	0.3	//m, cable's maximum retraction length
 #define	MOT_OUTPUT_SHAFT_PERIMETER	(M_PI*MOT_OUTPUT_SHAFT_DIAMETER)	//0.02042 m, Motor output shaft perimeter
-#define MAX_MOTOR_REVOLUTION	(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER) // 14.69 (rounds) *16384 ticks, read the encoder every time before operating the motor, and then compare the current position and the initial position to shut off the motor if arriving at the position limitation
+#define MAX_MOTOR_ENC_REVOLUTION	(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER) // 14.69 (rounds) *16384 ticks, read the encoder every time before operating the motor, and then compare the current position and the initial position to shut off the motor if arriving at the position limitation
 #define MIN_MOTOR_REVOLUTION	-(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER) // -14.69 (rounds) *16384 ticks, read the encoder every time before operating the motor, and then compare the current position and the initial position to shut off the motor if arriving at the position limitation
 #define	GAIT_CYCLE_PERIOD	0.41 //s, 0.41 s  when running at speed of 3.9 m/s
 #define STANCE_PERCENTAGE	0.4 // percentage of stance phase occupying the whole gait cycle period
@@ -246,7 +246,7 @@ enum {
 	SAFETY_MOTOR_CURRENT	=	2,
 	SAFETY_MOTOR_VELOCITY	=	3,
 	SAFETY_MOTOR_POSITION	=	4,
-	SAFETY_ANKLE_TORQUE		=	5,
+	SAFETY_CABLE_TENSION		=	5,
 	};
 
 
@@ -288,12 +288,12 @@ struct actuation_parameters
 	float motorTorqueDesired;		//N.m
 	int32_t motorCurrentMeasured;	//mA
 	int32_t motorCurrentDesired;	//mA
-	int32_t initialMotorPosition;		//rad
-	int32_t currentMotorPosition;	//motor position [rad]
-	float motorRelativeRevolution; //motor revolutions relative to the the initial position after motion
-	int32_t motorRotationAngle;		 //rad, motor rotation angle relative to the initial position
-	int32_t motorAngularVel;		//motor angular velocity [rad/s]
-	int32_t motorAngularAcc;		// motor angular acceleration [rad/s/s]
+	int32_t initialMotorEncPosition;		//rad
+	int32_t currentMotorEncPosition;	//motor position [rad]
+	float motorRelativeEncRevolution; //motor revolutions relative to the the initial position after motion
+	float motorRotationAngle;		 //rad, motor rotation angle relative to the initial position
+	float motorAngularVel;		//motor angular velocity [rad/s]
+	float motorAngularAcc;		// motor angular acceleration [rad/s/s]
 
 	//control related parameters
 	//float tauMeasuredAnkle;          // N.m, feedback ankle torque
@@ -319,10 +319,10 @@ typedef struct{
 
 
 //Torque Control PID gains
-#define TORQ_KP_INIT			1.2 //10.
+#define TORQ_KP_INIT			6 //10.
 #define TORQ_KI_INIT			0.
 #define TORQ_KD_INIT			5 //2.
-
+#define MAX_TORQ_I_ERROR				0.05	//prevent wind-up
 // Current Control Parameters  -- Test these on a motor test stand first
 #define ACTRL_I_KP_INIT		48
 #define ACTRL_I_KI_INIT		32
@@ -343,7 +343,7 @@ extern struct actuation_parameters act_para;
 
 
 #define CURRENT_SCALAR_INIT		1000	// Scale Amps to mAmps
-#define SECONDS			1000
+#define TIMESTEPS_PER_SECOND			1000
 #define FORCE_OFFSET_CLOSED	0 //N, cable preload of close loop
 #define FORCE_OFFSET_OPEN	25 //N, cable preload of open loop. Todo, currently, roughly use this, should program to initialize the cable preload according to the force sensor reader
 
