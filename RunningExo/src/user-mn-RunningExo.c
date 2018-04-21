@@ -164,6 +164,9 @@ void RunningExo_fsm_1(void)
     //Increment time (1 tick = 1ms nominally; need to confirm)
     time++;
 
+    //rigid1.mn.genVar[0]=time;
+
+
     //begin main FSM
 	switch(fsm1State)
 	{
@@ -173,7 +176,7 @@ void RunningExo_fsm_1(void)
 			{
 				fsm1State = -1;
 				time = 0;
-				rigid1.mn.genVar[0]=fsm1State;
+				//rigid1.mn.genVar[0]=fsm1State;
 			}
 
 			break;
@@ -185,7 +188,7 @@ void RunningExo_fsm_1(void)
 				mit_init_current_controller();		//initialize Current Controller with gains
 				fsm1State = 0;
 				time = 0;
-				rigid1.mn.genVar[1]=fsm1State;
+				//rigid1.mn.genVar[1]=fsm1State;
 
 			}
 			//for testing
@@ -280,15 +283,15 @@ void RunningExo_fsm_1(void)
 					*/
 
 
-			    	//set cable force
+			    	//set cable force, torque profile
 			    	//torqueDes = controlAction;
 			    	//torqueDes = user_data_1.w[0]/100;
 			    	int8_t controlEnable = user_data_1.w[0];
 			    	if (controlEnable == 1)
 			    	{
-			    		static uint32_t index = 0;
-			    		torqueDes = 8+unitRunningTorque[index++%TABLE_SIZE]*bodyWeight*torqueProfileGain*4;
-			    		index++;
+
+			    		torqueDes = 8 + user_data_1.w[1]/100;;
+
 
 			    	}
 			    	else
@@ -299,6 +302,29 @@ void RunningExo_fsm_1(void)
 		    		rigid1.mn.genVar[6]= torqueDes*100;
 		    		rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
 		    		setCableTensionForce(&act_para, torqueDes);
+
+
+
+			    	//set cable force, torque profile
+			    	//torqueDes = controlAction;
+			    	//torqueDes = user_data_1.w[0]/100;
+//			    	int8_t controlEnable = user_data_1.w[0];
+//			    	if (controlEnable == 1)
+//			    	{
+//			    		static uint32_t index = 0;
+//			    		torqueDes = 8+unitRunningTorque[index++%TABLE_SIZE]*bodyWeight*torqueProfileGain*4;
+//			    		index++;
+//
+//			    	}
+//			    	else
+//			    	{
+//			    		torqueDes = 8;
+//			    	}
+
+		    		//rigid1.mn.genVar[6]= torqueDes*100;
+		    		//rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
+		    		//setCableTensionForce(&act_para, torqueDes);
+
 
 			    	/*// set ankle torque
 			    	if (user_data_1.w[1] > 0)
@@ -805,7 +831,35 @@ void getAnkleTorque(struct actuation_parameters *actx)
 //Determine torque at motor
 void getMotorTorque(struct actuation_parameters *actx)
 {
-	actx->cableTensionForce = FORCE_CALIB_M * rigid1.ex.strain + FORCE_CALIB_B;
+
+	uint16_t currentStrainTick = rigid1.ex.strain;
+
+	//LPF
+	//Temporary code
+	#define window_size 4
+	static float prev_strain_tick[window_size];
+	float beta = 0.25; //beta in [0,1]
+	float running_sum = 0; //sum = (1-beta)*previous+beta*current
+	//update values stored in memory
+	for(int i = 0; i < window_size-1; i++)
+	{
+		prev_strain_tick[i]=prev_strain_tick[i+1];
+		running_sum+=prev_strain_tick[i];
+	}
+	//calculate sum
+	running_sum = running_sum + prev_strain_tick[window_size-1];
+	running_sum = running_sum/((float)window_size);
+
+	running_sum=(1-beta)*running_sum+beta*((float)currentStrainTick);
+	//store current strain tick
+	prev_strain_tick[window_size-1]=(float)currentStrainTick;
+
+	//store weighted running sum
+	currentStrainTick=(int)running_sum;
+
+	//End of LPF
+
+	actx->cableTensionForce = FORCE_CALIB_M * currentStrainTick + FORCE_CALIB_B;
 	actx->motorTorqueMeasured = actx->cableTensionForce * (MOT_OUTPUT_SHAFT_DIAMETER/2);
 }
 
@@ -953,28 +1007,42 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 
 	// Error is done at the motor. todo: could be done at the ankle, messes with our gains.
 	tau_error = tau_desired - tau_measured;
+
+
+	//differential
 	tau_error_diff = (tau_error - tau_error_last)*TIMESTEPS_PER_SECOND;//todo add a low pass filter
 
 	//LPF
 	//Temporary code
-	#define window_size 5
-	static float prev_tau_diff[window_size];
+	#define window_size_1 10
+	static float prev_tau_diff[window_size_1];
 	float beta = 0.25; //beta in [0,1]
 	float running_sum = 0; //sum = (1-beta)*previous+beta*current
 	//update values stored in memory
-	for(int i = 0; i < window_size-1; i++)
+	for(int i = 0; i < window_size_1-1; i++)
 	{
 		prev_tau_diff[i]=prev_tau_diff[i+1];
 		running_sum+=prev_tau_diff[i];
 	}
 	//calculate sum
+	running_sum = running_sum + prev_tau_diff[window_size_1-1];
+	running_sum = running_sum/((float)window_size_1);
 	running_sum=(1-beta)*running_sum+beta*tau_error_diff;
 	//store current tau error diff
-	prev_tau_diff[window_size-1]=tau_error_diff;
+	prev_tau_diff[window_size_1-1]=tau_error_diff;
 
 	//store weighted running sum
 	tau_error_diff=running_sum;
 	//End of LPF
+
+	//one order inertial element collaborating with differential
+	static float tau_error_inertial_prev = 0;
+	float N = user_data_1.w[4]*10.;
+	float T = 1.0/N;
+	float tau_error_inertial = 0;
+	tau_error_inertial = (T*tau_error_inertial_prev + tau_error_diff)/(T + 1);
+	tau_error_inertial_prev = tau_error_inertial;
+	//End of one order inertial element
 
 	if (!isClearErrorIntegral)
 	{
@@ -983,7 +1051,7 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 		tau_error_integral = (MAX_TORQ_I_ERROR<tau_error_integral)?MAX_TORQ_I_ERROR:tau_error_integral;	//cap error to prevent wind-up
 		tau_error_integral = (-MAX_TORQ_I_ERROR>tau_error_integral)?-MAX_TORQ_I_ERROR:tau_error_integral;	//cap error to prevent wind-up
 
-		rigid1.mn.genVar[5]=tau_error/((float)(TIMESTEPS_PER_SECOND))*100000.;
+		//rigid1.mn.genVar[5]=tau_error/((float)(TIMESTEPS_PER_SECOND))*100000.;
 
 
 	}
@@ -997,11 +1065,13 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 	//PID around motor torque
 	//Reads from FlexSEA GUI
 	//Enter values as x*100. Ex. Enter 125 for K = 1.25
+
+	torqueKp = user_data_1.w[2]/1000.;
+	torqueKi = user_data_1.w[3]/100.;
+	torqueKd = user_data_1.w[4]/10000.;
+	rigid1.mn.genVar[5] = torqueKd*10000;
+
 	/*
-	torqueKp = user_data_1.w[1]/100.;
-	torqueKi = user_data_1.w[2]/100.;
-	torqueKd = user_data_1.w[3]/10000.;
-	*/
 	if (force_desired_cable > 0 && force_desired_cable <= 40)
 		{
 			torqueKp = 6;
@@ -1039,8 +1109,9 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 		torqueKd = 0;
 	}
 
+*/
 
-	tau_PID = tau_error*torqueKp + tau_error_diff*torqueKd + tau_error_integral*torqueKi;
+	tau_PID = tau_error*torqueKp + tau_error_inertial*torqueKd + tau_error_integral*torqueKi;
 	rigid1.mn.genVar[8]=tau_error_integral*1000;
 	rigid1.mn.genVar[9]=torqueKi*1000;
 	I = 1/MOT_KT * ( tau_ff + tau_PID + tau_motor_compensation) * currentScalar;
@@ -1326,7 +1397,8 @@ void torqueSweepTestOpenLoop1(struct actuation_parameters *actx)
 	static int32_t timer = 0;
 	static int32_t stepTimer = 0;
 	static float currentFrequency = 0;
-	float waveNumber = 4;
+	float waveNumber_1 = 2;
+	float waveNumber_2 = 8;
 
 	float torqueAmp = user_data_1.w[0]/10.;
 	float frequency = user_data_1.w[1]/10.;
@@ -1360,9 +1432,15 @@ void torqueSweepTestOpenLoop1(struct actuation_parameters *actx)
 			else
 			{
 				// 2 seconds per intermediate frequency step when <= 1 Hz
-				if (currentFrequency <= 1)
+				if (currentFrequency >= 0 && currentFrequency <= 1)
 				{
-					if (stepTimer <= 2*TIMESTEPS_PER_SECOND)
+					if (currentFrequency == 0)
+					{
+						stepTimer = 0;
+						currentFrequency += (frequencyEnd-frequency)/(numSteps); //increment frequency step
+					}
+
+					else if (stepTimer <= floor(waveNumber_1/currentFrequency*TIMESTEPS_PER_SECOND))
 					{
 						torqueDes = torqueAmp * sin(currentFrequency*stepTimer*2*M_PI/1000);
 						setCableTensionForceOpenLoop(actx, abs(torqueDes));
@@ -1401,7 +1479,7 @@ void torqueSweepTestOpenLoop1(struct actuation_parameters *actx)
 				//waveNumber cycles signal
 				else if (currentFrequency > 1 && currentFrequency <= frequencyEnd)
 				{
-					if (stepTimer <= floor(waveNumber/currentFrequency*TIMESTEPS_PER_SECOND))
+					if (stepTimer <= floor(waveNumber_2/currentFrequency*TIMESTEPS_PER_SECOND))
 					{
 						if (currentFrequency > 5.7 && currentFrequency <= 9.5)
 						{
@@ -1459,7 +1537,7 @@ void torqueSweepTestOpenLoop1(struct actuation_parameters *actx)
 
 			//pass back for plotting purposes
 			user_data_1.r[2] = torqueDes*100;
-
+			rigid1.mn.genVar[9] = user_data_1.r[2];
 
 		}
 		else if (frequency == 0)
