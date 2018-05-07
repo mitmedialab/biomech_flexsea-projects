@@ -183,11 +183,14 @@ void MIT_DLeg_fsm_1(void)
 			    	  Only update the walking FSM, but don't output torque.
 			    	*/
 			    } else {
-#ifdef IS_ANKLE
-			    	sineDemo(M_PI/2, 0.3, 30, -23);
-#endif
+//#ifdef IS_ANKLE
+//			    	sineDemo(3/2*M_PI+0.563, 0.15, 15, 8);
+//#endif
 #ifdef IS_KNEE
-			    	sineDemo(M_PI/2, 0.3, 60, -60);
+//			    	sineDemo(3/2*M_PI, 0.15, 30, 30);
+//			    	sineDemo(3/2*M_PI+0.563, 0.05, 15, 8);
+			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0, user_data_1.w[1]/100., user_data_1.w[2]);
+			    	setMotorTorque(&act1, act1.tauDes);
 #endif
 
 
@@ -199,8 +202,8 @@ void MIT_DLeg_fsm_1(void)
 					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
 					rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
 					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
-//					rigid1.mn.genVar[6] = (int16_t) (emg_data[5]); // LG
-//					rigid1.mn.genVar[7] = (int16_t) (emg_data[3]); // TA
+//					rigid1.mn.genVar[6] = angleDes from sineDemo;
+//					rigid1.mn.genVar[7] = torqueDes from sineDemo;
 					rigid1.mn.genVar[8] = stateMachine.current_state;
 					rigid1.mn.genVar[9] = act1.tauDes*100;
 			    }
@@ -765,9 +768,12 @@ void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOff
 	thetaSet = amplitude*sin(frequency*timer*2*M_PI/1000 + phaseDelay) + thetaOffset;
 	torqueDes = biomCalcImpedance(1, 0, 0.1, thetaSet);
 
+	rigid1.mn.genVar[6] = thetaSet;
+	rigid1.mn.genVar[7] = torqueDes;
+
 	timer++;
 
-	setMotorTorque(&act1, torqueDes);
+//	setMotorTorque(&act1, torqueDes);
 }
 
 void openSpeedFSM(void)

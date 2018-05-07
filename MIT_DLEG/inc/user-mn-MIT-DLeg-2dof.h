@@ -106,14 +106,14 @@ void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOff
 //measured from nominal joint configuration, in degrees
 
 //1. Select joint type
-#define IS_ANKLE
-//#define IS_KNEE
+//#define IS_ANKLE
+#define IS_KNEE
 
 //2. Select device
-#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
 //#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
-//#define DEVICE_TF08_K01		// Define specific actuator configuration. Knee 01
-//#define DEVICE_TF08_K02		// Define specific actuator configuration. Knee 02
+//#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
+#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
 
 
 //Begin device specific configurations
@@ -125,6 +125,7 @@ void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOff
 #endif
 #ifdef IS_KNEE
 #define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
+#define N_ETA			0.9		// Transmission efficiency
 #endif
 
 #ifdef DEVICE_TF08_A01
@@ -136,8 +137,8 @@ void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOff
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
 #define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
 #define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
-#define JOINT_MIN_ABS		9800		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
-#define JOINT_MAX_ABS		4650		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
+#define JOINT_MIN_ABS		9636		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
+#define JOINT_MAX_ABS		4020		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
 #define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
 #define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
 
@@ -185,8 +186,8 @@ void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOff
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
 #define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
 #define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
-#define JOINT_MIN_ABS		15020		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
-#define JOINT_MAX_ABS		9441		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
+#define JOINT_MIN_ABS		14570		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
+#define JOINT_MAX_ABS		8999		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
 #define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
 #define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
 
@@ -223,17 +224,111 @@ void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOff
 #define ACTRL_I_KI_INIT		15
 #define ACTRL_I_KD_INIT		0
 
-//Transmission
-#ifdef IS_ANKLE					//UPDATE THIS WITH NEW SCREWs ankle = 0.002
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
-#define N_ETA			0.9		// Transmission efficiency
-#endif
-#ifdef IS_KNEE
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
-#endif
-
 
 #endif // DEFINED DEVICE_TF08_A02
+
+
+#ifdef DEVICE_TF08_A03
+// copy from above and update, when ready.
+//Encoder
+#define JOINT_ZERO_OFFSET 	20		// [deg] Joint Angle offset, CW rotation, based on Setup, ie. TEDtalk flexfoot angle = 20, fittings, etc.
+#define JOINT_ENC_DIR 		-1		// Encoder orientation. CW = 1 (knee orientation), CCW = -1
+#define JOINT_ANGLE_DIR 	1		// Joint angle direction. RHR convention is Ankle: Dorsiflexion (-), Plantarflexion (+) with value == 1
+#define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
+#define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
+#define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
+#define JOINT_MIN_ABS		16448		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
+#define JOINT_MAX_ABS		10828		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
+#define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
+#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
+
+//Force Sensor
+#define FORCE_DIR			-1		// Direction of positive force, Dorsiflexion (-), Plantarflex (+) with value == -1
+#define FORCE_STRAIN_GAIN 	202.6	// Defined by R23 on Execute, better would be G=250 to max range of ADC
+#define FORCE_STRAIN_BIAS	2.5		// Strain measurement Bias
+#define FORCE_EXCIT			5		// Excitation Voltage
+#define FORCE_RATED_OUTPUT	0.002	// 2mV/V, Rated Output
+#define FORCE_MAX			4448	// Newtons, for LCM300 load cell
+#define FORCE_MAX_TICKS		( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
+#define FORCE_MIN_TICKS		( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
+#define FORCE_PER_TICK		( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
+#define TORQ_CALIB_M		1.0978	// y=Mx+b, from collected data set, applied load
+#define TORQ_CALIB_B		0.0656	// y=Mx+b, from collected data set, applied load
+
+//Torque Control PID gains
+#define TORQ_KP_INIT			1.2 //10.
+#define TORQ_KI_INIT			0.
+#define TORQ_KD_INIT			2. //5, 2. 1 is also a good number
+
+
+// Motor Parameters
+#define MOT_KT 			0.055	// Phase Kt value = linearKt/(3^0.5)
+#define MOT_L			0.068	// mH
+#define MOT_J			0//0.000120 //0.000322951		//0.000322951	// rotor inertia, [kgm^2]
+#define MOT_B			0//0.000200 //0.000131		// damping term for motor and screw combined, drag from rolling elements
+#define MOT_TRANS		0		// lumped mass inertia todo: consider MotorMass on Spring inertia contribution.
+#define MOT_STIC_POS	1400	// stiction current, 1800
+#define MOT_STIC_NEG	1600	// stiction current, 1800
+
+// Current Control Parameters  -- Test these on a motor test stand first
+#define ACTRL_I_KP_INIT		15
+#define ACTRL_I_KI_INIT		15
+#define ACTRL_I_KD_INIT		0
+
+
+#endif // DEFINED DEVICE_TF08_A03
+
+
+#ifdef DEVICE_TF08_A04
+// copy from above and update, when ready.
+//Encoder
+#define JOINT_ZERO_OFFSET 	0		// [deg] Joint Angle offset, CW rotation, based on Setup, ie. TEDtalk flexfoot angle = 20, fittings, etc.
+#define JOINT_ENC_DIR 		-1		// Encoder orientation. CW = 1 (knee orientation), CCW = -1
+#define JOINT_ANGLE_DIR 	1		// Joint angle direction. RHR convention is Ankle: Dorsiflexion (-), Plantarflexion (+) with value == 1
+#define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
+#define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
+#define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
+#define JOINT_MIN_ABS		14569		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
+#define JOINT_MAX_ABS		9007		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
+#define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
+#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
+
+//Force Sensor
+#define FORCE_DIR			-1		// Direction of positive force, Dorsiflexion (-), Plantarflex (+) with value == -1
+#define FORCE_STRAIN_GAIN 	202.6	// Defined by R23 on Execute, better would be G=250 to max range of ADC
+#define FORCE_STRAIN_BIAS	2.5		// Strain measurement Bias
+#define FORCE_EXCIT			5		// Excitation Voltage
+#define FORCE_RATED_OUTPUT	0.002	// 2mV/V, Rated Output
+#define FORCE_MAX			4448	// Newtons, for LCM300 load cell
+#define FORCE_MAX_TICKS		( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
+#define FORCE_MIN_TICKS		( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
+#define FORCE_PER_TICK		( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
+#define TORQ_CALIB_M		1.0978	// y=Mx+b, from collected data set, applied load
+#define TORQ_CALIB_B		0.0656	// y=Mx+b, from collected data set, applied load
+
+//Torque Control PID gains
+#define TORQ_KP_INIT			1.2 //10.
+#define TORQ_KI_INIT			0.
+#define TORQ_KD_INIT			2. //5, 2. 1 is also a good number
+
+
+// Motor Parameters
+#define MOT_KT 			0.055	// Phase Kt value = linearKt/(3^0.5)
+#define MOT_L			0.068	// mH
+#define MOT_J			0//0.000120 //0.000322951		//0.000322951	// rotor inertia, [kgm^2]
+#define MOT_B			0//0.000200 //0.000131		// damping term for motor and screw combined, drag from rolling elements
+#define MOT_TRANS		0		// lumped mass inertia todo: consider MotorMass on Spring inertia contribution.
+#define MOT_STIC_POS	1400	// stiction current, 1800
+#define MOT_STIC_NEG	1600	// stiction current, 1800
+
+// Current Control Parameters  -- Test these on a motor test stand first
+#define ACTRL_I_KP_INIT		15
+#define ACTRL_I_KI_INIT		15
+#define ACTRL_I_KD_INIT		0
+
+#endif // DEFINED DEVICE_TF08_A04
+
+
 
 //Joint software limits [Degrees]
 #ifdef IS_ANKLE
@@ -242,14 +337,14 @@ void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOff
 #endif
 
 #ifdef IS_KNEE
-#define JOINT_MIN_SOFT		-20	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg extension
-#define JOINT_MAX_SOFT		 70 * (ANG_UNIT)/360	// [deg] Actuator physical limit max = +90deg flexion
+#define JOINT_MIN_SOFT		-15	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg extension
+#define JOINT_MAX_SOFT		70	* (ANG_UNIT)/360	// [deg] Actuator physical limit max = +90deg flexion
 #endif
 
 //Safety limits
 #define PCB_TEMP_LIMIT_INIT		70
 #define MOTOR_TEMP_LIMIT_INIT	70
-#define ABS_TORQUE_LIMIT_INIT	40	    // Joint torque [Nm]
+#define ABS_TORQUE_LIMIT_INIT	30	    // Joint torque [Nm]
 #define CURRENT_LIMIT_INIT		20000		// [mA] useful in this form, 40000 max
 
 // Motor Temp Sensor
@@ -270,6 +365,10 @@ enum {
 #define CURRENT_SCALAR_INIT		1000		// Scale Amps to mAmps
 #define ANG_UNIT				2*M_PI 		// Use Radians 2*M_PI
 #define DEG_PER_RAD 			57.2957795 // degree to rad conversion
+
+// EMG channels
+#define JIM_LG					emg_data[5]
+#define JIM_TA					emg_data[3]
 
 
 #endif	//INC_MIT_DLEG
