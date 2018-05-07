@@ -182,22 +182,23 @@ void MIT_DLeg_fsm_1(void)
 			    	  to allow code to move past this block.
 			    	  Only update the walking FSM, but don't output torque.
 			    	*/
-			    	stateMachine.current_state = STATE_EARLY_STANCE;
-
 			    } else {
-			    	stateMachine.current_state = STATE_LSW_EMG;
-			    	runFlatGroundFSM(&act1);
+#ifdef IS_ANKLE
+			    	sineDemo(M_PI/2, 0.3, 30, -23);
+#endif
+#ifdef IS_KNEE
+			    	sineDemo(M_PI/2, 0.3, 60, -60);
+#endif
 
-					setMotorTorque(&act1, act1.tauDes);
 
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
 //			        rigid1.mn.genVar[0] = startedOverLimit;
-//					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
-//					rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
-//					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
-//					rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
-//					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
+					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
+					rigid1.mn.genVar[2] = (int16_t) (act1.jointVelDegrees*10.0); //deg/s
+					rigid1.mn.genVar[3] = (int16_t) (estGains.thetaDes*100.0); //deg
+					rigid1.mn.genVar[4] = (int16_t) (estGains.b*100.0);
+					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
 //					rigid1.mn.genVar[6] = (int16_t) (emg_data[5]); // LG
 //					rigid1.mn.genVar[7] = (int16_t) (emg_data[3]); // TA
 					rigid1.mn.genVar[8] = stateMachine.current_state;
@@ -751,6 +752,23 @@ float windowSmoothAxial(float val) {
 	return average;
 }
 
+
+void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOffset) {
+	static int32_t timer = 0;
+	float thetaSet;
+	float torqueDes;
+
+	if (frequency*timer/1000 > 1) {
+		timer = 0;
+	}
+
+	thetaSet = amplitude*sin(frequency*timer*2*M_PI/1000 + phaseDelay) + thetaOffset;
+	torqueDes = biomCalcImpedance(1, 0, 0.1, thetaSet);
+
+	timer++;
+
+	setMotorTorque(&act1, torqueDes);
+}
 
 void openSpeedFSM(void)
 {

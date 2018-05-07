@@ -95,6 +95,7 @@ void twoPositionFSM(void);
 void oneTorqueFSM(struct act_s *actx);
 void twoTorqueFSM(struct act_s *actx);
 void torqueSweepTest(struct act_s *actx);
+void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOffset);
 
 
 //****************************************************************************
@@ -109,7 +110,7 @@ void torqueSweepTest(struct act_s *actx);
 //#define IS_KNEE
 
 //2. Select device
-//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
 //#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
 //#define DEVICE_TF08_K01		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_K02		// Define specific actuator configuration. Knee 02
@@ -242,14 +243,14 @@ void torqueSweepTest(struct act_s *actx);
 
 #ifdef IS_KNEE
 #define JOINT_MIN_SOFT		-20	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg extension
-#define JOINT_MAX_SOFT		20	* (ANG_UNIT)/360	// [deg] Actuator physical limit max = +90deg flexion
+#define JOINT_MAX_SOFT		 70 * (ANG_UNIT)/360	// [deg] Actuator physical limit max = +90deg flexion
 #endif
 
 //Safety limits
 #define PCB_TEMP_LIMIT_INIT		70
 #define MOTOR_TEMP_LIMIT_INIT	70
-#define ABS_TORQUE_LIMIT_INIT	150	    // Joint torque [Nm]
-#define CURRENT_LIMIT_INIT		50000		// [mA] useful in this form, 40000 max
+#define ABS_TORQUE_LIMIT_INIT	40	    // Joint torque [Nm]
+#define CURRENT_LIMIT_INIT		20000		// [mA] useful in this form, 40000 max
 
 // Motor Temp Sensor
 #define V25_TICKS		943		//760mV/3.3V * 4096 = 943
