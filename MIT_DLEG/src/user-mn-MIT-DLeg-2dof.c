@@ -183,9 +183,13 @@ void MIT_DLeg_fsm_1(void)
 			    	  Only update the walking FSM, but don't output torque.
 			    	*/
 			    } else {
-//#ifdef IS_ANKLE
-//			    	sineDemo(3/2*M_PI+0.563, 0.15, 15, 8);
-//#endif
+#ifdef IS_ANKLE
+			    	sineDemo(3/2*M_PI+0.563, 0.25, 15, 8);
+//			    	act1.tauDes = biomCalcImpedance(1, 0, 0.05, 0);
+//					setMotorTorque(&act1, act1.tauDes);
+
+//			    	setMotorTorque(&act1, 2);
+#endif
 #ifdef IS_KNEE
 //			    	sineDemo(3/2*M_PI, 0.15, 30, 30);
 //			    	sineDemo(3/2*M_PI+0.563, 0.05, 15, 8);
@@ -606,33 +610,33 @@ float calcRestoringCurrent(struct act_s *actx, float N) {
 	//Soft angle limits with virtual spring. Raise flag for safety check.
 
 	float angleDiff = 0;
-	float tauDes = 0;
-	float k = 7; // N/m
-	float b = 0.3; // Ns/m
+		float tauDes = 0;
+		float k = 7; // N/m
+		float b = 0.3; // Ns/m
 
-	//Oppose motion using linear spring with damping
-	if (actx->jointAngleDegrees - jointMinSoftDeg < -1) {
+		//Oppose motion using linear spring with damping
+		if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
 
-		angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
+			angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
 
-		if (abs(angleDiff) < 2) {
-			tauDes = -0.5*k*angleDiff - b*actx->jointVelDegrees;
-		} else {
-			tauDes = -k*angleDiff - b*actx->jointVelDegrees;
+			if (abs(angleDiff) < 2) {
+				tauDes = -k*angleDiff - b*actx->jointVelDegrees + 2;
+			} else {
+				tauDes = -k*angleDiff - b*actx->jointVelDegrees;
+			}
+
+		} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
+
+			angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
+
+			if (abs(angleDiff) < 2) {
+				tauDes = -k*angleDiff - b*actx->jointVelDegrees - 2;
+			} else {
+				tauDes = -k*angleDiff - b*actx->jointVelDegrees;
+			}
 		}
 
-	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 1) {
-
-		angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
-
-		if (abs(angleDiff) < 2) {
-			tauDes = -0.5*k*angleDiff - b*actx->jointVelDegrees;
-		} else {
-			tauDes = -k*angleDiff - b*actx->jointVelDegrees;
-		}
-	}
-
-	return (tauDes/(N*N_ETA)) * currentScalar/MOT_KT;
+		return (tauDes/(N*N_ETA)) * currentScalar/MOT_KT;
 
 }
 
@@ -761,19 +765,19 @@ void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOff
 	float thetaSet;
 	float torqueDes;
 
-	if (frequency*timer/1000 > 1) {
+	if (frequency*timer/1000 >= 1) {
 		timer = 0;
 	}
 
 	thetaSet = amplitude*sin(frequency*timer*2*M_PI/1000 + phaseDelay) + thetaOffset;
-	torqueDes = biomCalcImpedance(1, 0, 0.1, thetaSet);
+	torqueDes = biomCalcImpedance(2, 0, 0.1, thetaSet);
 
 	rigid1.mn.genVar[6] = thetaSet;
 	rigid1.mn.genVar[7] = torqueDes;
 
 	timer++;
 
-//	setMotorTorque(&act1, torqueDes);
+	setMotorTorque(&act1, torqueDes);
 }
 
 void openSpeedFSM(void)
