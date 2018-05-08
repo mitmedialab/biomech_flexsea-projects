@@ -163,6 +163,16 @@ void MIT_DLeg_fsm_1(void)
 			// filter_LPF(rigid1.mn.accel.x);
 			// lpf_result;  // this is the result value. Currently returning values with high offset
 
+			/////////// USER WRITE INITIALIZE	//////////////////////
+			user_data_1.w[0] = 0; //k; //
+			user_data_1.w[1] = 0; //b; // damping/100
+			user_data_1.w[2] = 0; //Theta
+			user_data_1.w[3] = 0;	//
+			/////////////////////////////////////////////////////////
+
+
+
+
 			fsm1State = 1;
 			time = 0;
 
@@ -185,11 +195,11 @@ void MIT_DLeg_fsm_1(void)
 			    	stateMachine.current_state = STATE_EARLY_STANCE;
 
 			    } else {
-			    	runFlatGroundFSM(&act1);
+//			    	runFlatGroundFSM(&act1);
+			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0.0, user_data_1.w[1]/100., user_data_1.w[2]);
 
 					setMotorTorque(&act1, act1.tauDes);
 
-//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
 //			        rigid1.mn.genVar[0] = startedOverLimit;
 					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
