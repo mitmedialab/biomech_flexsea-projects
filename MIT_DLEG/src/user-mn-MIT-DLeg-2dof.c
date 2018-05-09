@@ -164,9 +164,9 @@ void MIT_DLeg_fsm_1(void)
 			// lpf_result;  // this is the result value. Currently returning values with high offset
 
 			/////////// USER WRITE INITIALIZE	//////////////////////
-			user_data_1.w[0] = 0; //k; //
-			user_data_1.w[1] = 0; //b; // damping/100
-			user_data_1.w[2] = 0; //Theta
+			user_data_1.w[0] = 50; //k; //
+			user_data_1.w[1] = 20; //b; // damping/100
+			user_data_1.w[2] = 8; //Theta
 			user_data_1.w[3] = 0;	//
 			/////////////////////////////////////////////////////////
 
@@ -196,7 +196,10 @@ void MIT_DLeg_fsm_1(void)
 
 			    } else {
 //			    	runFlatGroundFSM(&act1);
-			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0.0, user_data_1.w[1]/100., user_data_1.w[2]);
+                    act1.tauDes = sineDemo(3/2*M_PI+0.563, user_data_1.w[0]/100., user_data_1.w[1]/1., user_data_1.w[2]/1.);
+
+//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0.0, user_data_1.w[1]/100., user_data_1.w[2]);
+
 
 					setMotorTorque(&act1, act1.tauDes);
 
@@ -758,6 +761,24 @@ float windowSmoothAxial(float val) {
 	average += window[index]/AXIAL_WINDOW_SIZE;
 
 	return average;
+}
+
+float sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOffset) {
+    static int32_t timer = 0;
+    float thetaSet;
+    float torqueDes;
+
+    if (frequency*timer/1000 > 1) {
+        timer = 0;
+    }
+
+    thetaSet = amplitude*sin(frequency*timer*2*M_PI/1000 + phaseDelay) + thetaOffset;
+    torqueDes = biomCalcImpedance(0.5, 0, 0.05, thetaSet);
+    timer++;
+
+    return torqueDes;
+
+//    setMotorTorque(&act1, torqueDes);
 }
 
 

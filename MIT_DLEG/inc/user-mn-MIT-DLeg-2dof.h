@@ -82,6 +82,7 @@ void 	updateJointTorqueRate(struct act_s *actx);
 
 //Control outputs
 float biomCalcImpedance(float k1, float k2, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
+float sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOffset);
 void  setMotorTorque(struct act_s *actx, float tor_d);
 void  packRigidVars(struct act_s *actx);
 
