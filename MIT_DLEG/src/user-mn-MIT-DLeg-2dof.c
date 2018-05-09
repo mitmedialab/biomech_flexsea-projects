@@ -198,7 +198,7 @@ void MIT_DLeg_fsm_1(void)
 //			    	runFlatGroundFSM(&act1);
 			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0.0, user_data_1.w[1]/100., user_data_1.w[2]);
 
-					setMotorTorque(&act1, act1.tauDes);
+//					setMotorTorque(&act1, act1.tauDes);
 
 
 //			        rigid1.mn.genVar[0] = startedOverLimit;
