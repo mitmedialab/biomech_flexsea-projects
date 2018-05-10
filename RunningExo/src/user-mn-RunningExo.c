@@ -138,6 +138,7 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 void setCableTensionForceOpenLoop(struct actuation_parameters *actx, float force_desired_cable);
 void torqueSweepTestOpenLoop1(struct actuation_parameters *actx);
 void torqueSweepTestOpenLoop2(struct actuation_parameters *actx);
+float mls_generator(float torqueAmp);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -274,6 +275,58 @@ void RunningExo_fsm_1(void)
 
 			    	//torqueSweepTestOpenLoop1(&act_para);
 
+/*
+			    	//step response system identification
+			    	uint8_t testEnable = user_data_1.w[0];
+
+			    	if (testEnable == 1)
+			    	{
+			    		torqueDes = 0;
+			    		setCableTensionForceOpenLoop(&act_para,torqueDes);
+			    		rigid1.mn.genVar[5] = 1;
+			    	}
+			    	else if (testEnable == 2)
+			    	{
+			    		torqueDes = user_data_1.w[1];
+			    		setCableTensionForceOpenLoop(&act_para, torqueDes);
+			    		rigid1.mn.genVar[5] = 2;
+
+			    	}
+			    	else
+			    	{
+			    		torqueDes = 0;
+			    		setCableTensionForceOpenLoop(&act_para, torqueDes);
+			    		rigid1.mn.genVar[5] = 3;
+
+			    	}
+
+				    rigid1.mn.genVar[6]= torqueDes*100;
+				    rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
+*/
+
+
+			    	//mls signal system identification
+			    	uint8_t testEnable = user_data_1.w[0];
+			    	uint8_t torqueAmp = user_data_1.w[1];
+			    	if (testEnable == 1)
+			    	{
+			    		torqueDes = mls_generator(torqueAmp);
+			    		setCableTensionForceOpenLoop(&act_para,torqueDes);
+			    		rigid1.mn.genVar[1] = 1;
+			    	}
+			    	else
+			    	{
+			    		torqueDes = 0;
+			    		setCableTensionForceOpenLoop(&act_para, torqueDes);
+			    		rigid1.mn.genVar[1] = 2;
+
+			    	}
+
+				    rigid1.mn.genVar[6]= torqueDes*100;
+				    rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
+
+
+
 			    	/*
 			    	//test open loop
 			    	torqueDes = user_data_1.w[0];
@@ -286,11 +339,13 @@ void RunningExo_fsm_1(void)
 			    	//set cable force, torque profile
 			    	//torqueDes = controlAction;
 			    	//torqueDes = user_data_1.w[0]/100;
-			    	int8_t controlEnable = user_data_1.w[0];
+			    	//int8_t controlEnable = user_data_1.w[0];
+/*
+			    	int8_t controlEnable = 1;
 			    	if (controlEnable == 1)
 			    	{
 
-			    		torqueDes = 8 + user_data_1.w[1]/100;;
+			    		torqueDes = 8 + user_data_1.w[0]/100;;
 
 
 			    	}
@@ -302,7 +357,7 @@ void RunningExo_fsm_1(void)
 		    		rigid1.mn.genVar[6]= torqueDes*100;
 		    		rigid1.mn.genVar[7]= act_para.cableTensionForce*100;
 		    		setCableTensionForce(&act_para, torqueDes);
-
+*/
 
 
 			    	//set cable force, torque profile
@@ -847,8 +902,8 @@ void getMotorTorque(struct actuation_parameters *actx)
 		running_sum+=prev_strain_tick[i];
 	}
 	//calculate sum
-	running_sum = running_sum + prev_strain_tick[window_size-1];
-	running_sum = running_sum/((float)window_size);
+
+	running_sum = running_sum/((float)window_size-1);
 
 	running_sum=(1-beta)*running_sum+beta*((float)currentStrainTick);
 	//store current strain tick
@@ -985,71 +1040,70 @@ void setAnkleTorque(struct actuation_parameters *actx, float tau_desired_ankle)
 
 void setCableTensionForce(struct actuation_parameters *actx, float force_desired_cable)
 {
-	float tau_measured = 0, tau_desired = 0, tau_ff = 0;  	//cable force reflected to motor. Feed forward term for desired joint torque, reflected to motor [Nm]
-	float tau_error = 0;
-	static float tau_error_last = 0, tau_error_integral = 0;
-	float tau_PID = 0, tau_error_diff = 0, tau_motor_compensation = 0;		// motor torque signal
-	float forceOffset = 0;
-	float dtheta_m = 0, ddtheta_m = 0;		//motor angular velocity and acceleration
-	int32_t I = 0;								// motor current signal
+	float force_measured = 0, force_desired = 0, force_ff = 0;
+	float force_error = 0;
+	static float force_error_last = 0, force_error_integral = 0;
+	float force_PID = 0, force_error_diff = 0, force_motor_compensation = 0;
+	float dtheta_m = 0, ddtheta_m = 0;
+	int32_t I = 0;
+	float feedForwardEfficient = user_data_1.w[1]/100;
 
 	dtheta_m = actx->motorAngularVel;  	//rad/s
 	ddtheta_m = actx->motorAngularAcc;	//rad/s/s
 
-	actx->motorTorqueDesired = (force_desired_cable + forceOffset) * (ROPE_DIAMETER + MOT_OUTPUT_SHAFT_DIAMETER/2);
+	force_measured = actx->cableTensionForce;	// measured force using force sensor
+	force_desired = force_desired_cable;		// output force back to the motor [Nm].
 
-	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
-	tau_measured = actx->motorTorqueMeasured;	// measured torque reflected to motor [Nm]
-	tau_desired = actx->motorTorqueDesired;		// output torque back to the motor [Nm].
-	//tau_ff = tau_desired / (N_ETA);		// Feed forward term for desired joint torque, reflected to motor [Nm]
-	tau_ff = 0;
-	tau_motor_compensation = (MOT_J + MOT_TRANS)*ddtheta_m + MOT_B*dtheta_m;	// compensation for motor parameters. not stable right now.
+	force_ff = force_desired * feedForwardEfficient;		// Feed forward term for desired force
+	rigid1.mn.genVar[9]=force_ff*100;
 
-	// Error is done at the motor. todo: could be done at the ankle, messes with our gains.
-	tau_error = tau_desired - tau_measured;
+	force_motor_compensation = (MOT_J + MOT_TRANS)*ddtheta_m + MOT_B*dtheta_m;	// compensation for motor parameters. not stable right now.
 
+	// Error is done at the cable tension force
+	force_error = force_desired - force_measured;
 
 	//differential
-	tau_error_diff = (tau_error - tau_error_last)*TIMESTEPS_PER_SECOND;//todo add a low pass filter
+	force_error_diff = (force_error - force_error_last)*TIMESTEPS_PER_SECOND;//todo add a low pass filter
 
 	//LPF
 	//Temporary code
 	#define window_size_1 10
-	static float prev_tau_diff[window_size_1];
+	static float prev_force_diff[window_size_1];
 	float beta = 0.25; //beta in [0,1]
 	float running_sum = 0; //sum = (1-beta)*previous+beta*current
 	//update values stored in memory
 	for(int i = 0; i < window_size_1-1; i++)
 	{
-		prev_tau_diff[i]=prev_tau_diff[i+1];
-		running_sum+=prev_tau_diff[i];
+		prev_force_diff[i]=prev_force_diff[i+1];
+		running_sum+=prev_force_diff[i];
 	}
 	//calculate sum
-	running_sum = running_sum + prev_tau_diff[window_size_1-1];
-	running_sum = running_sum/((float)window_size_1);
-	running_sum=(1-beta)*running_sum+beta*tau_error_diff;
-	//store current tau error diff
-	prev_tau_diff[window_size_1-1]=tau_error_diff;
+
+	running_sum = running_sum/((float)window_size_1-1.0);
+	running_sum=(1-beta)*running_sum+beta*force_error_diff;
+	//store current force error diff
+	prev_force_diff[window_size_1-1]=force_error_diff;
 
 	//store weighted running sum
-	tau_error_diff=running_sum;
+	force_error_diff = running_sum;
 	//End of LPF
 
 	//one order inertial element collaborating with differential
-	static float tau_error_inertial_prev = 0;
-	float N = user_data_1.w[4]*10.;
+	static float force_error_inertial_prev = 0;
+	//float N = user_data_1.w[3];
+	float N = 1369;
 	float T = 1.0/N;
-	float tau_error_inertial = 0;
-	tau_error_inertial = (T*tau_error_inertial_prev + tau_error_diff)/(T + 1);
-	tau_error_inertial_prev = tau_error_inertial;
+	float force_error_inertial = 0;
+	force_error_inertial = (T*force_error_inertial_prev + force_error_diff)/(T + 1);
+	force_error_inertial_prev = force_error_inertial;
 	//End of one order inertial element
 
 	if (!isClearErrorIntegral)
 	{
-		tau_error_integral = tau_error_integral + tau_error/((float)(TIMESTEPS_PER_SECOND));  // check if this method is correct
-		//Equivalent to: tau_error_integral = max(-MAX_TORQ_I_ERROR, min(MAX_TORQ_I_ERROR,tau_error_integral))
-		tau_error_integral = (MAX_TORQ_I_ERROR<tau_error_integral)?MAX_TORQ_I_ERROR:tau_error_integral;	//cap error to prevent wind-up
-		tau_error_integral = (-MAX_TORQ_I_ERROR>tau_error_integral)?-MAX_TORQ_I_ERROR:tau_error_integral;	//cap error to prevent wind-up
+		force_error_integral = force_error_integral + force_error/((float)(TIMESTEPS_PER_SECOND));  // check if this method is correct
+		//Equivalent to: force_error_integral = max(-MAX_TORQ_I_ERROR, min(MAX_TORQ_I_ERROR,force_error_integral))
+		force_error_integral = (MAX_TORQ_I_ERROR<force_error_integral)?MAX_TORQ_I_ERROR:force_error_integral;	//cap error to prevent wind-up
+		force_error_integral = (-MAX_TORQ_I_ERROR>force_error_integral)?-MAX_TORQ_I_ERROR:force_error_integral;	//cap error to prevent wind-up
 
 		//rigid1.mn.genVar[5]=tau_error/((float)(TIMESTEPS_PER_SECOND))*100000.;
 
@@ -1057,18 +1111,16 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 	}
 	else
 	{
-		tau_error_integral = 0;
+		force_error_integral = 0;
 		isClearErrorIntegral = 0;
 	}
-	tau_error_last = tau_error;
+	force_error_last = force_error;
 
-	//PID around motor torque
-	//Reads from FlexSEA GUI
-	//Enter values as x*100. Ex. Enter 125 for K = 1.25
-
+	//PID gain setup
 	torqueKp = user_data_1.w[2]/1000.;
-	torqueKi = user_data_1.w[3]/100.;
-	torqueKd = user_data_1.w[4]/10000.;
+	//torqueKi = user_data_1.w[5]/1000.;
+	torqueKi = 0;
+	torqueKd = user_data_1.w[3]/10000.;
 	rigid1.mn.genVar[5] = torqueKd*10000;
 
 	/*
@@ -1111,10 +1163,9 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 
 */
 
-	tau_PID = tau_error*torqueKp + tau_error_inertial*torqueKd + tau_error_integral*torqueKi;
-	rigid1.mn.genVar[8]=tau_error_integral*1000;
-	rigid1.mn.genVar[9]=torqueKi*1000;
-	I = 1/MOT_KT * ( tau_ff + tau_PID + tau_motor_compensation) * currentScalar;
+	force_PID = force_error*torqueKp + force_error_inertial*torqueKd + force_error_integral*torqueKi;
+
+	I = (force_ff + force_PID + force_motor_compensation) * currentScalar;
 
 	//account for deadzone current (unused due to instability). Unsolved problem according to Russ Tedrake.
 //	if (abs(dtheta_m) < 3 && I < 0) {
@@ -1185,7 +1236,8 @@ void setCableTensionForce(struct actuation_parameters *actx, float force_desired
 
 	actx->motorCurrentDesired = (int32_t) I; 	// demanded mA
 	setMotorCurrent(actx->motorCurrentDesired);	// send current command to comm buffer to Execute
-
+	rigid1.mn.genVar[8]= I;
+	//rigid1.mn.genVar[9]=torqueKi*1000;
 	//variables used in cmd-rigid offset 5
 	//rigid1.mn.userVar[5] = tau_measured*1000;
 	//rigid1.mn.userVar[6] = tau_desired*1000;
@@ -1762,6 +1814,92 @@ void torqueSweepTestOpenLoop2(struct actuation_parameters *actx)
 	rigid1.mn.genVar[8] = ((int)floor(act_para.cableTensionForce*1000))%1000;
 
 }
+
+//5 orders maximal length sequence generator for system identification signal input
+float mls_generator(float torqueAmp)
+{
+	float outputTorque;
+	#define orderNumber 5
+	uint8_t cyclingPeriodLength = pow(2,orderNumber) - 1;
+	float pulseShiftingPeriod = 1/60.;
+	static _Bool regist[5] = {0,0,0,0,1};
+	static uint32_t stepTimer = 0, timer = 0;
+	uint8_t cyclingNumber = user_data_1.w[2];
+	uint8_t reset = user_data_1.w[3];
+
+	if (reset == 0)
+	{
+		if (stepTimer <= cyclingNumber*cyclingPeriodLength)
+		{
+
+			rigid1.mn.genVar[0] = 1;
+			static _Bool output = 1;
+			if (timer <= pulseShiftingPeriod*TIMESTEPS_PER_SECOND)
+			{
+				if (((float)output) > 0.5)
+				{
+					outputTorque = -torqueAmp;
+				}
+				else
+				{
+					outputTorque = torqueAmp;
+				}
+
+				timer++;
+
+			}
+			else
+			{
+				timer = 0;
+				_Bool temp_0 = regist[orderNumber-1]^regist[orderNumber-3];
+				_Bool temp_4 = regist[orderNumber-1];
+
+				for(uint8_t i = orderNumber-1;i>0;i--)
+				{
+					regist[i] = regist[i-1] ;
+				}
+				output = temp_4;
+				regist[0] = temp_0;
+
+				if (((float)output) > 0.5)
+				{
+					outputTorque = -torqueAmp;
+				}
+				else
+				{
+					outputTorque = torqueAmp;
+				}
+
+				timer++;
+
+				stepTimer++;
+
+			}
+
+		}
+		else
+		{
+			outputTorque = 0;
+			rigid1.mn.genVar[0] = 2;
+
+
+		}
+
+	}
+	else
+	{
+		stepTimer = 0;
+		reset = 0;
+		rigid1.mn.genVar[0] = 3;
+
+	}
+
+
+
+
+	return outputTorque;
+}
+
 
 
 #endif 	//defined BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN

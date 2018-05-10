@@ -345,7 +345,7 @@ extern struct actuation_parameters act_para;
 #define CURRENT_SCALAR_INIT		1000	// Scale Amps to mAmps
 #define TIMESTEPS_PER_SECOND			1000
 #define FORCE_OFFSET_CLOSED	0 //N, cable preload of close loop
-#define FORCE_OFFSET_OPEN	25 //N, cable preload of open loop. Todo, currently, roughly use this, should program to initialize the cable preload according to the force sensor reader
+#define FORCE_OFFSET_OPEN	50 //N, cable preload of open loop. Todo, currently, roughly use this, should program to initialize the cable preload according to the force sensor reader
 
 
 #endif	//INC_RUNNINGEXO_MN_H
