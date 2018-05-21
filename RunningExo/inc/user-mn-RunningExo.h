@@ -226,7 +226,7 @@ void stateTransition(void);
 #define MOTOR_TORQUE_MARGIN_FACTOR	1.2
 #define MAX_MOTOR_TORQUE_REQUIRED	(MOTOR_TORQUE_MARGIN_FACTOR*MAX_CABLE_TENSION_FORCE*(MOT_OUTPUT_SHAFT_DIAMETER/2))
 #define MAX_MOTOR_CURRENT	(1000*MAX_MOTOR_TORQUE_REQUIRED/MOT_KT)		//mA, 33.95 A--2.08 N.m
-#define	MOTOR_CURRENT_LIMIT		18000 //mA
+#define	MOTOR_CURRENT_LIMIT		28000 //mA
 #define B_ANGLE_LIMIT			MOTOR_CURRENT_LIMIT/1000.
 #define ENCODER_RESOLUTION_BIT		14		//AS5047P encoder resolution in bits.
 #define ENCODER_RESOLUTION			((uint16_t)pow(2,ENCODER_RESOLUTION_BIT)) // 16384, AS5047P encoder resolution in decimal.
@@ -324,8 +324,8 @@ typedef struct{
 #define TORQ_KD_INIT			5 //2.
 #define MAX_TORQ_I_ERROR				0.05	//prevent wind-up
 // Current Control Parameters  -- Test these on a motor test stand first
-#define ACTRL_I_KP_INIT		48
-#define ACTRL_I_KI_INIT		32
+#define ACTRL_I_KP_INIT		25
+#define ACTRL_I_KI_INIT		5
 #define ACTRL_I_KD_INIT		0
 
 
@@ -345,7 +345,7 @@ extern struct actuation_parameters act_para;
 #define CURRENT_SCALAR_INIT		1000	// Scale Amps to mAmps
 #define TIMESTEPS_PER_SECOND			1000
 #define FORCE_OFFSET_CLOSED	0 //N, cable preload of close loop
-#define FORCE_OFFSET_OPEN	50 //N, cable preload of open loop. Todo, currently, roughly use this, should program to initialize the cable preload according to the force sensor reader
+#define FORCE_OFFSET_OPEN	30 //N, cable preload of open loop. Todo, currently, roughly use this, should program to initialize the cable preload according to the force sensor reader
 
 
 #endif	//INC_RUNNINGEXO_MN_H
