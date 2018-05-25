@@ -19,15 +19,13 @@ Act_s act1;
 WalkParams walkParams;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
+GainParams eswGains = {1.5, 0.0, 0.3, -5.0};
 GainParams lswGains = {1.5, 1, 0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
-GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
-
-GainParams emgStandGains = {2, 0.025, 0.04, 0};
-GainParams emgFreeGains  = {1.2, 0, 0.02, 0};
-
+GainParams lstPowerGains = {0.0, 0.0, 0.0, 0.0};
+GainParams emgStandGains = {0.0, 0.0, 0.0, 0.0}; //currently unused
+GainParams emgFreeGains = {0.0, 0.0, 0.0, 0.0};
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
@@ -40,6 +38,7 @@ static void updatePFDFState(Act_s *actx);
 static void updateImpedanceParams(Act_s *actx, WalkParams *wParams);
 static void updateUserWrites(Act_s *actx, WalkParams *wParams);
 static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams);
+static float biomCalcImpedanceOneState(float k1, float b, float theta_set);
 static void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
 static void initializeUserWrites(WalkParams *wParams);
 
@@ -54,31 +53,18 @@ void runFlatGroundFSM(Act_s *actx) {
 
     static int8_t isTransitioning = 0;
     static uint32_t time_in_state = 0;
-    static int32_t emgInputPPF = 0; //used to keep track of EMG PPF input
-    static int8_t passedStanceThresh = 0;
 
-	static int8_t using_EMG_free_space = 0;
-	int16_t emgVal = 0;
-	float torq_thresh = 0;
 
     if (!walkParams.initializedStateMachineVariables){
     	initializeUserWrites(&walkParams);
 
-    	//USER WRITE INITIALIZATION GOES HERE//////////////
-    	user_data_1.w[2] = PF_TORQUE_GAIN; //pfTorqueGain;
-    	user_data_1.w[3] = DF_TORQUE_GAIN; //dfTorqueGain;
-    	user_data_1.w[4] = 7000; //ROBOT_K; //
-    	user_data_1.w[5] = 200; //ROBOT_B; // damping/100
-    	user_data_1.w[6] = 800; //BASELINE_K; // damping/100
-    	user_data_1.w[7] = 35;	// torq_thresh/10
-    	///////////////////////////////////////////////////
+        actx->tauDes = 0;
     }
 
     updateUserWrites(actx, &walkParams);
 
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
-    actx->tauDes = 0;
 
     // Check for state change, then set isTransitioning flag
     if (stateMachine.current_state == stateMachine.last_sm_state) {
@@ -98,7 +84,8 @@ void runFlatGroundFSM(Act_s *actx) {
 
         case STATE_INIT: //1
 
-            stateMachine.current_state = STATE_LATE_SWING;
+//            stateMachine.current_state = STATE_LATE_SWING;
+            stateMachine.current_state = 48;
 
             break;
 					
@@ -129,18 +116,10 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			actx->tauDes = calcJointTorque(lswGains, actx, &walkParams);
 
-//			if (MIT_EMG_getState() == 1) windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
-
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 			if(time_in_state > LSW_TO_EST_DELAY) {
 
-				if (time_in_state >= LSW_TO_EMG_DELAY && MIT_EMG_getState() == 1){
-					//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
-					stateMachine.current_state = STATE_LSW_EMG;
-					walkParams.transition_id = 4;
-
-				} // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-				else if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+				if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
 					stateMachine.current_state = STATE_EARLY_STANCE;
 					walkParams.transition_id = 1;
 				}
@@ -162,164 +141,31 @@ void runFlatGroundFSM(Act_s *actx) {
 
         case STATE_EARLY_STANCE: //4
 
-//				static int8_t using_EMG_free_space = 0;
-//				int16_t emgVal = 0;
-
 				if (isTransitioning) {
 					walkParams.scaleFactor = 1.0;
 
 					estGains.k1 = walkParams.earlyStanceK0;
-					estGains.thetaDes = actx->jointAngleDegrees;
-
-					emgInputPPF = 0;
-					passedStanceThresh = 0;
+					estGains.thetaDes = 0.0;
 				}
 
 
-				updateVirtualHardstopTorque(actx, &walkParams);
+//				updateVirtualHardstopTorque(actx, &walkParams);
+
 				updateImpedanceParams(actx, &walkParams);
 
 				actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
 
-				// VECTOR (1): Early Stance -> Free space EMG
-				//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
-
-//				if (MIT_EMG_getState() == 1 && using_EMG_free_space) {
-//
-////					emgVal = windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
-//
-//					//update emgVal for EMG PPF
-//
-//					//only consider last 500 ms for emgInputPPF
-//					if (time_in_state % 500 == 499) {
-//						emgInputPPF = 0;
-//					}
-//					//store max value of EMG during early stance
-//					if (emgVal > emgInputPPF) {
-//						emgInputPPF = emgVal;
-//					}
-//
-//
-////					if(time_in_state > 400 && abs(actx->jointTorque) < 3.5) {
-////						stateMachine.current_state = STATE_LSW_EMG;
-////					}
-//				}
-
-				//Early Stance transition vectors
-				// VECTOR (2): Early Stance -> Late Stance POWER!
-				//---------------------- EARLY STANCE TRANSITION VECTORS ----------------------//
-
 				// VECTOR (A): Early Stance -> Late Stance (foot flat) - Condition 1
-				if (abs(actx->jointTorque) > 20.0){
-					passedStanceThresh = 1;
-				}
 
-				if (actx->jointTorque > walkParams.lspEngagementTorque) {
-		            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
-		        }
-
-				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 100) {
+				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 100) {
 					stateMachine.current_state = STATE_LATE_SWING;
 				}
 
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 				break;
+        case 48:
 
-        case STATE_LATE_STANCE_POWER: //6
-
-        	{
-				//turn this on or off to use EMG powered plantarflexion
-				static int8_t using_EMG_PPF = 0;
-
-				if (isTransitioning) {
-					walkParams.samplesInLSP = 0.0;
-					walkParams.lsp_entry_tq = actx->jointTorque;
-//	                walkParams.virtual_hardstop_tq = 0.0;
-//	                walkParams.pff_lumped_gain = walkParams.pff_gain * powf(1.0/(PCI - walkParams.lsp_entry_tq), walkParams.pff_exponent);
-				}
-
-				if (walkParams.samplesInLSP < walkParams.lstPGDelTics){
-					walkParams.samplesInLSP++;
-				}
-
-				updateVirtualHardstopTorque(actx, &walkParams);
-
-				if (MIT_EMG_getState() == 1 && using_EMG_PPF) {
-
-					actx->tauDes = calcEMGPPF(actx, &walkParams);
-
-				} else {
-					//Linear ramp push off
-					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
-				}
-
-
-				//Late Stance Power transition vectors
-				// VECTOR (1): Late Stance Power -> Early Swing - Condition 1
-				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 100) {
-					stateMachine.current_state = STATE_EARLY_SWING;
-				}
-        	}
-
-            break;
-
-        case STATE_EMG_STAND_ON_TOE:
-        	//untested and unused. If would like to use, need to check implementation on ts_projects
-
-        	//disable virtual hardstop while in EMG mode
-        	walkParams.virtual_hardstop_tq = 0;
-
-        	if (MIT_EMG_getState() == 1) {
-
-        		//this function can set the current_state
-				updateStandJoint(&emgStandGains);
-
-				//if we're still in EMG control even after updating EMG control vars
-				if (stateMachine.current_state == STATE_EMG_STAND_ON_TOE) {
-					actx->tauDes = calcJointTorque(emgStandGains, actx, &walkParams);
-
-				//actually in early stance (explicitly declared)
-				} else if (stateMachine.current_state == STATE_EARLY_STANCE) {
-					actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
-				}
-
-			} else {
-				stateMachine.current_state = STATE_EARLY_STANCE;
-				reset_EMG_stand(actx->jointAngleDegrees);
-				actx->tauDes = calcJointTorque(estGains, actx, &walkParams); //do early stance control if EMG disconnected
-			}
-
-            break;
-		
-        case STATE_LSW_EMG:
-        	//upon entering, make sure virtual joint and robot joint match
-        	if (isTransitioning) {
-        		updatePFDFState(actx);
-
-        	}
-        	torq_thresh = ( (float) user_data_1.w[7] ) / 10.0;
-
-        	//disable hardstop
-        	walkParams.virtual_hardstop_tq = 0;
-
-        	//check to make sure EMG is active
-        	if (MIT_EMG_getState() == 1) {
-//				updateVirtualJoint(&emgFreeGains);	// was moved to main_fsm
-				actx->tauDes = calcJointTorque(emgFreeGains, actx, &walkParams);
-        	}
-        	else {
-        		stateMachine.current_state = STATE_EARLY_STANCE;
-        	}
-
-        	//Late Swing EMG transition vectors to Early Stance
-        	//If activation is below a certain threshold, these become active
-        	//Tune thresholds based on user
-
-			// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-			if ( abs(actx->jointTorque) > torq_thresh ) {
-				stateMachine.current_state = STATE_EARLY_STANCE;
-				walkParams.transition_id = 7;
-			}
+        	actx->tauDes = biomCalcImpedanceOneState(walkParams.earlyStanceKF, walkParams.earlyStanceB, walkParams.earlyStanceTheta);
 
         	break;
 		
@@ -336,8 +182,6 @@ void runFlatGroundFSM(Act_s *actx) {
     //update last state in preparation for next loop
     stateMachine.last_sm_state = stateMachine.on_entry_sm_state;
 
-
-
 }
 
 /** Impedance Control Torque
@@ -349,31 +193,53 @@ void runFlatGroundFSM(Act_s *actx) {
     @return float desired torque at joint (Nm)
 */
 static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams) {
-
-//	if (fabs(actx->jointVelDegrees) > 6){
-		return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
+	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
          - gainParams.b * actx->jointVelDegrees  + wParams->virtual_hardstop_tq;
-//	}else{
-//    	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) + wParams->virtual_hardstop_tq;
-//	}
 }
 
 static void updateUserWrites(Act_s *actx, WalkParams *wParams){
+
+	//USER WRITE INITIALIZATION GOES HERE//////////////
+	wParams->earlyStanceK0 = ( (float)user_data_1.w[0] ) /100.0;
+	wParams->earlyStanceKF =( (float) user_data_1.w[1] ) /100.0 ;
+	wParams->earlyStanceB = ( (float) user_data_1.w[2] ) / 100.0 ;
+	wParams->thetaThreshDorsi = ( (float) user_data_1.w[3] );
+	wParams->thetaThreshPlant = (float)user_data_1.w[4] ;
+	wParams->earlyStanceTheta = (float) user_data_1.w[5] ;
+
+
+	///////////////////////////////////////////////////
 
 }
 
 static void initializeUserWrites(WalkParams *wParams){
 
 	wParams->earlyStanceK0 = 6.23;
-	wParams->earlyStanceKF = 0.1;
+	wParams->earlyStanceKF = 3.0;
+	wParams->earlyStanceB = 0.2;
+	wParams->earlyStanceTheta = 0;
+	wParams->thetaThreshDorsi = -10;
+	wParams->thetaThreshPlant = 10;
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 	wParams->lstPGDelTics = 1;
 	wParams->earlyStanceKF = 1;
 	wParams->virtualHardstopK = 7;				//7 x 100
 	wParams->virtualHardstopEngagementAngle = 0;	//0.0 x 1
 	wParams->lspEngagementTorque = 80;
+	wParams->virtual_hardstop_tq = 0.0;
 
 	wParams->initializedStateMachineVariables = 1;
+
+	//USER WRITE INITIALIZATION GOES HERE//////////////
+	user_data_1.w[0] = (int16_t) ( wParams->earlyStanceK0 * 100.0 );
+	user_data_1.w[1] = (int16_t) ( wParams->earlyStanceKF * 100.0 );
+	user_data_1.w[2] = (int16_t) ( wParams->earlyStanceB * 100.0 );
+	user_data_1.w[3] = (int16_t) wParams->thetaThreshDorsi;
+	user_data_1.w[4] = (int16_t) wParams->thetaThreshPlant;
+	user_data_1.w[5] = (int16_t) wParams->earlyStanceTheta;
+	///////////////////////////////////////////////////
+
+
 }
 
 static void updateImpedanceParams(Act_s *actx, WalkParams *wParams) {
@@ -382,11 +248,31 @@ static void updateImpedanceParams(Act_s *actx, WalkParams *wParams) {
 
     estGains.k1 = wParams->earlyStanceKF + wParams->scaleFactor * (wParams->earlyStanceK0 - wParams->earlyStanceKF);
 
-    if (actx->jointAngleDegrees < estGains.thetaDes) {
-    	estGains.thetaDes = actx->jointAngleDegrees;
-    }
+//    if (actx->jointAngleDegrees < estGains.thetaDes) {
+//    	estGains.thetaDes = actx->jointAngleDegrees;
+//    }
 }
 
+static float biomCalcImpedanceOneState(float k1, float b, float theta_set)
+{
+	float theta = 0, theta_d = 0;
+	float tor_d = 0;
+
+	theta = act1.jointAngleDegrees;
+	theta_d = act1.jointVelDegrees;
+
+	if (theta < walkParams.earlyStanceTheta + walkParams.thetaThreshDorsi){
+		theta = walkParams.earlyStanceTheta + walkParams.thetaThreshDorsi;
+	}
+	if (theta > walkParams.earlyStanceTheta + walkParams.thetaThreshPlant){
+			theta = walkParams.earlyStanceTheta + walkParams.thetaThreshPlant;
+	}
+
+	tor_d = k1 * (theta_set - theta ) - b*theta_d;
+
+	return tor_d;
+
+}
 
 static void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams) {
 
@@ -397,47 +283,6 @@ static void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams) {
 	}
 }
 
-float calcEMGPPF(Act_s *actx, WalkParams *wParam) {
-
-	int16_t EMGin_LG;
-	float scaledEMG;
-	float impedanceContribution;
-
-	float k = 14; //scalar term for impedance control
-	float b = 0.3;
-	float thetaDes = 20;
-	float desiredTorqueThreshold = 150; //max desired torque
-
-
-	//limit maximum emg_data in case something goes wrong (to 20000)
-	for (uint8_t i = 0; i < (sizeof(emg_data)/sizeof(emg_data[0])); i++) {
-		if (emg_data[i] > emgInMax) {
-			emg_data[i] = emgInMax;
-		}
-	}
-
-	//5ms moving average for gastroc only
-	EMGin_LG = JIM_LG; //SEONGS BOARD LG_VAR gastroc, 0-20000. Changed channel to match Jim's gastroc.
-	scaledEMG = EMGin_LG/emgInMax;
-
-//	rigid1.mn.genVar[4] = scaledEMG;
-
-	//torque output from the intrinsic controller
-	impedanceContribution = scaledEMG*user_data_1.w[0]*(user_data_1.w[2]/10. - actx->jointAngleDegrees) - user_data_1.w[1]/100.*actx->jointVelDegrees + wParam->virtual_hardstop_tq;
-
-	rigid1.mn.genVar[0] = impedanceContribution;
-	//saturation of desired output torque
-	if (impedanceContribution > desiredTorqueThreshold ) {
-		return desiredTorqueThreshold;
-	//safety in case of tripping
-	} else if (impedanceContribution < 0) {
-		return calcJointTorque(lstPowerGains, actx, &walkParams);
-	//everything nominal. return combined contributions
-	} else {
-		return impedanceContribution;
-	}
-
-}
 
 //reset virtual joint to robot joint state
 void updatePFDFState(struct act_s *actx) {

@@ -78,6 +78,9 @@ typedef struct walkParams {
     float earlyStanceK0;
     float earlyStanceKF;
     float earlyStanceB;
+    float earlyStanceTheta;
+    float thetaThreshDorsi;
+	float thetaThreshPlant;
     float earlyStanceDecayConstant;
     float virtualHardstopK;
     float virtualHardstopEngagementAngle;

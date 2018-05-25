@@ -90,11 +90,7 @@ float windowSmoothJoint(int32_t val);
 float windowSmoothAxial(float val);
 
 //Main FSMs
-void openSpeedFSM(void);
-void twoPositionFSM(void);
-void oneTorqueFSM(struct act_s *actx);
-void twoTorqueFSM(struct act_s *actx);
-void torqueSweepTest(struct act_s *actx);
+
 
 
 //****************************************************************************
@@ -356,7 +352,7 @@ void torqueSweepTest(struct act_s *actx);
 
 //Joint software limits [Degrees]
 #ifdef IS_ANKLE
-#define JOINT_MIN_SOFT		-25	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
+#define JOINT_MIN_SOFT		-28	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
 #define JOINT_MAX_SOFT		45	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
 #endif
 
