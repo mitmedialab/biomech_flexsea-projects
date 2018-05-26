@@ -105,6 +105,7 @@ static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
 
 struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
 
+
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -164,9 +165,9 @@ void MIT_DLeg_fsm_1(void)
 			// lpf_result;  // this is the result value. Currently returning values with high offset
 
 			/////////// USER WRITE INITIALIZE	//////////////////////
-			user_data_1.w[0] = 50; //k; //
-			user_data_1.w[1] = 20; //b; // damping/100
-			user_data_1.w[2] = 8; //Theta
+			user_data_1.w[0] = 0; // START
+			user_data_1.w[1] = 0; // AMPLITUDE OF TORQUE
+			user_data_1.w[2] = 0; // NUMBER OF CYCLES THROUGH
 			user_data_1.w[3] = 0;	//
 			/////////////////////////////////////////////////////////
 
@@ -195,13 +196,18 @@ void MIT_DLeg_fsm_1(void)
 			    	stateMachine.current_state = STATE_EARLY_STANCE;
 
 			    } else {
+
+			    	/*
+			    	 * Command Zone. this is where we determine what torques to do.
+			    	 */
 //			    	runFlatGroundFSM(&act1);
-                    act1.tauDes = sineDemo(3/2*M_PI+0.563, user_data_1.w[0]/100., user_data_1.w[1]/1., user_data_1.w[2]/1.);
-
+//                   act1.tauDes = sineDemo(3/2*M_PI+0.563, user_data_1.w[0]/100., user_data_1.w[1]/1., user_data_1.w[2]/1.);
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0.0, user_data_1.w[1]/100., user_data_1.w[2]);
+//					setMotorTorque(&act1, act1.tauDes);
 
 
-					setMotorTorque(&act1, act1.tauDes);
+			    	act1.tauDes = torqueSystemID();
+					setMotorTorqueOpenLoop(&act1, act1.tauDes);
 
 
 //			        rigid1.mn.genVar[0] = startedOverLimit;
@@ -211,7 +217,7 @@ void MIT_DLeg_fsm_1(void)
 					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
 					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
 					rigid1.mn.genVar[6] = (int16_t) (JIM_LG); // LG
-					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
+//					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
 					rigid1.mn.genVar[8] = stateMachine.current_state;
 					rigid1.mn.genVar[9] = act1.tauDes*100;
 			    }
@@ -396,10 +402,6 @@ void getJointAngleKinematic(struct act_s *actx)
 	actx->jointAcc = (( actx->jointVel - last_jointVel )) * (angleUnit)/JOINT_CPR * SECONDS;
 
 	actx->lastJointAngle = actx->jointAngle;
-	//last_jointAngle = joint[0];
-	//last_jointVel = joint[1];
-
-
 
 }
 
@@ -610,6 +612,51 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 
 }
 
+void setMotorTorqueOpenLoop(struct act_s *actx, float tau_des)
+{
+	float N = 1;					// moment arm [m]
+	float tau_meas = 0;	//joint torque reflected to motor.
+	int32_t I = 0;								// motor current signal
+
+	N = actx->linkageMomentArm * nScrew;
+
+	actx->tauDes = tau_des;				// save in case need to modify in safetyFailure()
+
+	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
+	tau_meas =  actx->jointTorque / N;	// measured torque reflected to motor [Nm]
+	tau_des = tau_des / N;				// scale output torque back to the motor [Nm].
+
+	//If we're within limits, scale torque to current.
+	if (!isAngleLimit) {
+		I = 1/MOT_KT * (tau_des) * currentScalar;
+
+	//joint velocity must not be 0 (could be symptom of joint position signal outage)
+	} else if (actx->jointVel != 0 && !startedOverLimit) {
+		I = calcRestoringCurrent(actx, N);
+	//if we started beyond soft limits after finding poles, or joint position is out
+	} else {
+		I = 0;
+	}
+
+	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+	if (I > currentOpLimit)
+	{
+		I = currentOpLimit;
+	} else if (I < -currentOpLimit)
+	{
+		I = -currentOpLimit;
+	}
+
+	actx->desiredCurrent = (int32_t) I; 	// demanded mA
+	setMotorCurrent(actx->desiredCurrent);	// send current command to comm buffer to Execute
+
+	//variables used in cmd-rigid offset 5
+	rigid1.mn.userVar[5] = tau_meas*1000;
+	rigid1.mn.userVar[6] = tau_des*1000;
+
+}
+
+
 float calcRestoringCurrent(struct act_s *actx, float N) {
 	//Soft angle limits with virtual spring. Raise flag for safety check.
 
@@ -782,176 +829,49 @@ float sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOf
 }
 
 
-void openSpeedFSM(void)
+//Step through series of data points to set torque
+// Pseudo Random Binary for systemID
+// Start when received signal
+float torqueSystemID(void)
 {
-	static uint32_t deltaT = 0;
-	static uint8_t fsm1State = 0;
+	// Pseudo Random Binary for systemID
+	static const int16_t inputDataSet[2047] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1};
 
-	switch(fsm1State)
+	int8_t start = user_data_1.w[0];				// Turn it on.
+	int16_t torqueAmplitude = user_data_1.w[1];		// amplitude of torque signal
+	int8_t cyclingNumber = user_data_1.w[2];		// number of times to run through data set
+
+	float torqueSetPoint = 0;
+
+	int16_t cyclingPeriodLength =  (int16_t) ( sizeof(inputDataSet) / sizeof(inputDataSet[0]) -1);
+	//	float pulseShiftingPeriod = 0.105;  // < 2*pi/(3*wc) = 2*pi/(3*20) = 0.105,unit of wc is Hz.
+	static int16_t stepTimer = 0, arrayStep = 0;
+
+
+	if (start == 1)
 	{
-		case 0:
-			setControlMode(CTRL_OPEN);
-			setMotorVoltage(0);
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 3000)
+		if (stepTimer <= cyclingNumber*cyclingPeriodLength)
+		{
+			if (arrayStep <= cyclingPeriodLength-1)
 			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-			setMotorVoltage(0);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 3000)
+				torqueSetPoint = (float) ( torqueAmplitude * inputDataSet[arrayStep] );
+				rigid1.mn.genVar[7] = (int16_t) (start); // record starting.
+				arrayStep++;
+			} else
 			{
-				deltaT = 0;
-				fsm1State = 1;
+				arrayStep = 0;
+				torqueSetPoint = 0.0;
 			}
-			setMotorVoltage(1000);
-			break;
+			stepTimer++;
+		}
 	}
-}
-
-void twoPositionFSM(void)
-{
-	static uint32_t timer = 0, deltaT = 0;
-	static int8_t fsm1State = -1;
-	static int32_t initPos = 0;
-
-	switch(fsm1State)
+	else
 	{
-		case -1:
-			//We give FSM2 some time to refresh values
-			timer++;
-			if(timer > 25)
-			{
-				initPos = *(rigid1.ex.enc_ang);
-				fsm1State = 0;
-			}
-			break;
-		case 0:
-			setControlMode(CTRL_POSITION);
-			setControlGains(20, 6, 0, 0);	//kp = 20, ki = 6
-			setMotorPosition(initPos);
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-			setMotorPosition(initPos + 10000);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 1;
-			}
-			setMotorPosition(initPos);
-			break;
-	}
-}
-
-void twoTorqueFSM(struct act_s *actx)
-{
-	static uint32_t timer = 0, deltaT = 0;
-	static int8_t fsm1State = -1;
-	static int32_t initPos = 0;
-
-
-	switch(fsm1State)
-	{
-		case -1:
-			//We give FSM2 some time to refresh values
-			timer++;
-			if(timer > 25)
-			{
-				initPos = actx->jointAngle;
-				fsm1State = 0;
-			}
-			break;
-		case 0:
-//			mit_init_current_controller();
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-			setMotorTorque( actx, 2);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 1;
-			}
-			setMotorTorque( actx, -2);
-			break;
-	}
-}
-
-void oneTorqueFSM(struct act_s *actx)
-{
-	static uint32_t timer = 0, deltaT = 0;
-	static int8_t fsm1State = -1;
-	static int32_t initPos = 0;
-	static int setPt = 0;
-
-
-
-
-	switch(fsm1State)
-	{
-		case -1:
-			//We give FSM2 some time to refresh values
-			timer++;
-			if(timer > 25)
-			{
-				initPos = actx->jointAngle;
-				fsm1State = 0;
-			}
-			break;
-		case 0:
-//			mit_init_current_controller();
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 3000)
-			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-
-			setMotorTorque( actx, setPt);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 3000)
-			{
-				deltaT = 0;
-				fsm1State = 1;
-			}
-			setMotorTorque( actx, 0);
-			break;
+		torqueSetPoint = 0.0;
+		stepTimer = 0;
 	}
 
+	return torqueSetPoint;
 }
 
 
