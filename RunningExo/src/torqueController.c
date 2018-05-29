@@ -32,7 +32,7 @@ void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool fee
 	float vFeedForward = 0.0;
 	float vFeedBack = 0.0;
 
-	float omega = act_para->motorAngularVel;
+	float omega = ((*(rigid1.ex.enc_ang_vel)*1.0)/ENCODER_CPR) * 2 * M_PI;
 
 	if(feedFoward)
     {
@@ -41,10 +41,16 @@ void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool fee
     }
     if(feedBack)
     {
+    	//TODO
     	targetV += vFeedBack;
     }
-	setControlMode(CTRL_OPEN);	//set to open loop voltage controller
+	//setControlMode(CTRL_OPEN);	//set to open loop voltage controller
 	setMotorVoltage(targetV*1000);
-	rigid1.mn.genVar[3] = targetV*1000;
+
+    //DEBUG
+//    setMotorCurrent(targetV*1000);
+
+    rigid1.mn.genVar[3] = targetV*1000;
+	rigid1.mn.genVar[4] = omega*1000.0;
 	return;
 }

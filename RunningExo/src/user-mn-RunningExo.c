@@ -177,6 +177,7 @@ void RunningExo_fsm_1(void)
     torqueCommand = 0;
     //Get sensor values into convenient structure if the system is ready
 	updateSensorValues(&act_para);	// updates all actuator sensors, will throw safety flags.
+	rigid1.mn.genVar[6]=fsm1State;//debug
 
     //begin main FSM
 	switch(fsm1State)
@@ -210,6 +211,8 @@ void RunningExo_fsm_1(void)
 			isEnabledUpdateSensors = 1;
 			isIntialMotorPosition = 1;
 //			init_LPF(); //initialize hardware LPF
+			setControlMode(CTRL_OPEN);	//set to open loop voltage controller
+//			setControlMode(CTRL_CURRENT);	//DEBUG
 
 			fsm1State = STATE_TORQUE_TRACKING;
 			time = 0;
@@ -231,6 +234,8 @@ void RunningExo_fsm_1(void)
 			    	  Only update the walking FSM, but don't output torque.
 			    	*/
 			    	//gaitStateTransition(); //for testing only
+			    	rigid1.mn.genVar[7] = 1;
+		    		setTorque(0, &act_para, 1,0);
 			    	return;
 			    }
 			    else
@@ -265,7 +270,7 @@ void RunningExo_fsm_1(void)
 
 			    	#if CONTROL_STRATEGY == USER_TORQUE_COMMAND
 			    		//User torque command input from GUI
-			    		torqueCommand = user_data_1.w[0]*1.0/100.0;
+						torqueCommand = user_data_1.w[0]*1.0/100.0;
 			    		//echo torque command
 			    		rigid1.mn.genVar[2] = torqueCommand*100.0;
 					#endif //CONTROL_STRATEGY == USER_TORQUE_COMMAND
@@ -1529,8 +1534,7 @@ int8_t findPolesRunningExo(void)
 			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitRunningExoInfo, SEND_TO_SLAVE);
 			polesState = 2;
 			timer = 0;
-			//rigid1.mn.genVar[0]=polesState;
-
+			rigid1.mn.genVar[7]=polesState; //debug
 			return 0;
 
 		case 2:
@@ -1539,9 +1543,11 @@ int8_t findPolesRunningExo(void)
 			{
 				//Enable FSM2, position controller
 				enableActPackFSM2();
-				//rigid1.mn.genVar[4]=polesState;
+				rigid1.mn.genVar[7]=4; //debug
 				return 1;
 			}
+			rigid1.mn.genVar[7]=3; //debug
+
 			return 0;
 
 
@@ -1557,14 +1563,12 @@ int8_t findPolesRunningExo(void)
 
 void packRigidVars(struct actuation_parameters  *actx)
 {
-
 	// set float userVars to send back to Plan
 	rigid1.mn.genVar[0] = actx->motorAngularVel*1000;
 	rigid1.mn.genVar[1] = actx->motorRelativeEncRevolution*1000;
 //	rigid1.mn.userVar[2] = actx->ankleHeight*1000;
 //	rigid1.mn.userVar[3] = actx->ankleTorqueMeasured*1000;
 //	rigid1.mn.userVar[4] = actx->ankleTorqueDesired*1000;
-
 	//rigid1.mn.userVar[5] = tau_measured*1000;
 	//rigid1.mn.userVar[6] = tau_desired*1000; (impedance controller - spring contribution)
 }
