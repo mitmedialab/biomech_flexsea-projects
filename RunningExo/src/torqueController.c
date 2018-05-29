@@ -32,7 +32,7 @@ void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool fee
 	float vFeedForward = 0.0;
 	float vFeedBack = 0.0;
 
-	float omega = ((*(rigid1.ex.enc_ang_vel)*1.0)/ENCODER_CPR) * 2 * M_PI;
+	float omega = ((*(rigid1.ex.enc_ang_vel)*1.0)/ENCODER_CPR) * 2 * M_PI*1000;
 
 	if(feedFoward)
     {

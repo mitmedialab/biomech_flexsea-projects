@@ -234,7 +234,7 @@ void RunningExo_fsm_1(void)
 			    	  Only update the walking FSM, but don't output torque.
 			    	*/
 			    	//gaitStateTransition(); //for testing only
-			    	rigid1.mn.genVar[7] = 1;
+			    	rigid1.mn.genVar[7] = -111;
 		    		setTorque(0, &act_para, 1,0);
 			    	return;
 			    }
@@ -766,6 +766,9 @@ int8_t safetyShutoff(void)
 
 		case SAFETY_MOTOR_POSITION:
 			//check if flag is not still active to be released, else do something about problem.
+			#ifdef DISABLE_SAFETY_POSITION
+				return 0;
+			#endif
 			if(!isPositionLimit)
 			{
 				isSafetyFlag = SAFETY_OK;
