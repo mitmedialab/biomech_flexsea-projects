@@ -208,6 +208,7 @@ void MIT_DLeg_fsm_1(void)
 
 			    	act1.tauDes = torqueSystemID();
 					setMotorTorqueOpenLoop(&act1, act1.tauDes);
+//					setMotorTorque(&act1, act1.tauDes);
 
 
 //			        rigid1.mn.genVar[0] = startedOverLimit;
