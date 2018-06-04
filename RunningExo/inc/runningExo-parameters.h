@@ -9,8 +9,7 @@
 #define RUNNING_EXO_PARAMETERS
 
 //Turn off safety check for testing purposes
-#define DISABLE_SAFETY_POSITION
-
+#define DISABLE_SAFETY
 //****************************************************************************
 // Constant Definition(s):
 //****************************************************************************
@@ -192,7 +191,14 @@
 #define MOT_TRANS		0 // lumped mass inertia todo: consider MotorMass on Spring inertia contribution. refer to Matt's data
 #define N_ETA			0.75		// Transmission efficiency
 #define MOT_R			0.0948		//Measured line-to-line resistance
-#define MOT_KT			0.1350		//Measured phase Kt
+//#define MOT_KT			0.1350		//Measured phase Kt
+#define MOT_KT			0.1		//Measured phase Kt
+//Hand Tuned Feedforward Parameters
+#define K1 0.051
+#define K2 0.1946
+#define OMEGA_THRESHOLD 0.2		//Prevent noise
+//#define DEADBAND 0.532	//volts
+#define DEADBAND 0.49
 
 // Limitation and safety parameters
 #define MAX_BOARD_TEMP		70						//centidegree, avoid the FlexSEA board overheating

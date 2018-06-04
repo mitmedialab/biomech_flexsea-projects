@@ -36,8 +36,21 @@ void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool fee
 
 	if(feedFoward)
     {
-		vFeedForward = torqueReference*MOT_R/MOT_KT+MOT_KT*omega;
+		//vFeedForward = torqueReference*MOT_R/MOT_KT+MOT_KT*omega;
+		vFeedForward = torqueReference*K1;
+		if(abs(omega)>OMEGA_THRESHOLD)
+		{
+			vFeedForward += omega*K2;
+		}
 		targetV += vFeedForward;
+		if (targetV>0)
+		{
+			targetV+=DEADBAND;
+		}
+		else if (targetV<0)
+		{
+			targetV-=DEADBAND;
+		}
     }
     if(feedBack)
     {

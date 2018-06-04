@@ -220,26 +220,26 @@ void RunningExo_fsm_1(void)
 			break;
 
 		case STATE_TORQUE_TRACKING:
-			{
 				//populate rigid1.mn.genVars to send to Plan
-				packRigidVars(&act_para);
+				//packRigidVars(&act_para);
 
-				//begin safety check
-			    if (safetyShutoff())
-			    {
-			    	/*motor behavior changes based on failure mode.
-			    	  Bypasses the switch statement if return true
-			    	  but sensors check still runs and has a chance
-			    	  to allow code to move past this block.
-			    	  Only update the walking FSM, but don't output torque.
-			    	*/
-			    	//gaitStateTransition(); //for testing only
-			    	rigid1.mn.genVar[7] = -111;
-		    		setTorque(0, &act_para, 1,0);
-			    	return;
-			    }
-			    else
-			    {
+//				//begin safety check
+//			    if (safetyShutoff())
+//			    {
+//			    	/*motor behavior changes based on failure mode.
+//			    	  Bypasses the switch statement if return true
+//			    	  but sensors check still runs and has a chance
+//			    	  to allow code to move past this block.
+//			    	  Only update the walking FSM, but don't output torque.
+//			    	*/
+//			    	//gaitStateTransition(); //for testing only
+//			    	rigid1.mn.genVar[7] = -111;
+//		    		setTorque(0, &act_para, 1,0);
+//			    	return;
+//			    }
+
+//			    else
+//			    {
 					#if (CONTROL_STRATEGY == GAIT_TORQUE_TRACKING)
 			    	//Torque Trajectory Tracking
 			    	//Update states
@@ -397,8 +397,7 @@ void RunningExo_fsm_1(void)
 //			    	torqueDes = float calcImpedanceTorque(float m, float b, float k, float ddthetad_set, float dtheta_set, float theta_set);
 
 //			    	setMotorTorque(&act_para, torqueDes);
-
-			    }
+					break;
 
 //				rigid1.mn.genVar[0] = isSafetyFlag;
 //				rigid1.mn.genVar[1] = act1.jointAngleDegrees; //deg
@@ -409,12 +408,11 @@ void RunningExo_fsm_1(void)
 //
 //				rigid1.mn.genVar[7] = act1.desiredCurrent;
 
-				break;
-			}
+			//}
 
         	default:
 			//Handle exceptions here
-			break;
+        		return;
 	}
 	#endif	//ACTIVE_PROJECT == PROJECT_RUNNING_EXO
 }
@@ -724,7 +722,8 @@ void checkInvalidGait(void)
  */
 int8_t safetyShutoff(void)
 {
-
+	#ifndef DISABLE_SAFETY
+	//TODO:Debug safety
 	switch(isSafetyFlag)
 
 	{
@@ -801,7 +800,7 @@ int8_t safetyShutoff(void)
 		default:
 			return 1;
 	}
-
+	#endif	//#ifndef DISABLE_SAFETY
 
 	return 0;
 }
