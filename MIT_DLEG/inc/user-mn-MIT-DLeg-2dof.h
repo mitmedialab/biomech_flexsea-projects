@@ -95,6 +95,7 @@ void twoPositionFSM(void);
 void oneTorqueFSM(struct act_s *actx);
 void twoTorqueFSM(struct act_s *actx);
 void torqueSweepTest(struct act_s *actx);
+void sineDemo(float phaseDelay, float frequency, float amplitude, float thetaOffset);
 
 
 //****************************************************************************
@@ -238,7 +239,7 @@ void torqueSweepTest(struct act_s *actx);
 #ifdef DEVICE_TF08_A03
 // copy from above and update, when ready.
 //Encoder
-#define JOINT_ZERO_OFFSET 	20		// [deg] Joint Angle offset, CW rotation, based on Setup, ie. TEDtalk flexfoot angle = 20, fittings, etc.
+#define JOINT_ZERO_OFFSET 	0		// [deg] Joint Angle offset, CW rotation, based on Setup, ie. TEDtalk flexfoot angle = 20, fittings, etc.
 #define JOINT_ENC_DIR 		-1		// Encoder orientation. CW = 1 (knee orientation), CCW = -1
 #define JOINT_ANGLE_DIR 	1		// Joint angle direction. RHR convention is Ankle: Dorsiflexion (-), Plantarflexion (+) with value == 1
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
@@ -361,7 +362,7 @@ void torqueSweepTest(struct act_s *actx);
 //Joint software limits [Degrees]
 #ifdef IS_ANKLE
 #define JOINT_MIN_SOFT		-25	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
-#define JOINT_MAX_SOFT		45	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
+#define JOINT_MAX_SOFT		55	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
 #endif
 
 #ifdef IS_KNEE
@@ -372,8 +373,8 @@ void torqueSweepTest(struct act_s *actx);
 //Safety limits
 #define PCB_TEMP_LIMIT_INIT		70
 #define MOTOR_TEMP_LIMIT_INIT	70
-#define ABS_TORQUE_LIMIT_INIT	150	    // Joint torque [Nm]
-#define CURRENT_LIMIT_INIT		50000		// [mA] useful in this form, 40000 max
+#define ABS_TORQUE_LIMIT_INIT	50	    // Joint torque [Nm]
+#define CURRENT_LIMIT_INIT		20000		// [mA] useful in this form, 40000 max
 
 // Motor Temp Sensor
 #define V25_TICKS		943		//760mV/3.3V * 4096 = 943

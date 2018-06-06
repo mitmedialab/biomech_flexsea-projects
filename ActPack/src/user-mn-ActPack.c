@@ -125,6 +125,7 @@ void ActPack_fsm_1(void)
 void ActPack_fsm_2(void)
 {
 	static uint32_t timer = 0;
+	static int8_t foundPoles = 0;
 
 	//Wait X seconds before communicating
 	if(timer < AP_FSM2_POWER_ON_DELAY)
@@ -135,6 +136,13 @@ void ActPack_fsm_2(void)
 	}
 
 	apFSM2ready = 1;
+
+	if (!foundPoles) {
+		if (findPolesActpack()) {
+			foundPoles = 1;
+		}
+		return;
+	}
 
 	//External controller can fully disable the comm:
 	if(ActPackSys == SYS_NORMAL && ActPackCoFSM == APC_FSM2_ENABLED){enableAPfsm2 = 1;}
@@ -236,6 +244,53 @@ void setControlGains(int16_t g0, int16_t g1, int16_t g2, int16_t g3)
 	writeEx.g[2] = g2;
 	writeEx.g[3] = g3;
 	writeEx.setGains = CHANGE;
+}
+
+int8_t findPolesActpack(void) {
+	static uint32_t timer = 0;
+	static int8_t polesState = 0;
+
+	timer++;
+
+	switch(polesState) {
+		case 0:
+			//Disable FSM2:
+			disableActPackFSM2();
+			if(timer > 100)
+			{
+				polesState = 1;
+			}
+
+			return 0;
+
+		case 1:
+			//Send Find Poles command:
+
+			tx_cmd_calibration_mode_rw(TX_N_DEFAULT, CALIBRATION_FIND_POLES);
+			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, apInfo, SEND_TO_SLAVE);
+			polesState = 2;
+			timer = 0;
+
+			return 0;
+
+		case 2:
+
+			if(timer >= 44*1000)
+			{
+				//Enable FSM2, position controller
+				enableActPackFSM2();
+				return 1;
+			}
+			return 0;
+
+
+		default:
+
+			return 0;
+
+	}
+
+	return 0;
 }
 
 void enableActPackFSM2(void){ActPackCoFSM = APC_FSM2_ENABLED;}

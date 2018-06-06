@@ -80,7 +80,7 @@ void user_fsm_2(void);
 //Step 1) Select active project (from list):
 //==========================================
 
-#define ACTIVE_PROJECT			PROJECT_MIT_DLEG
+#define ACTIVE_PROJECT			PROJECT_ACTPACK
 #define ACTIVE_SUBPROJECT		SUBPROJECT_A
 
 //Step 2) Customize the enabled/disabled sub-modules:
@@ -283,6 +283,8 @@ void user_fsm_2(void);
 		//Runtime finite state machine (FSM):
 		//#define RUNTIME_FSM1		ENABLED	//Enable only if you DO NOT use Plan
 		#define RUNTIME_FSM2		ENABLED	//Enable at all time, Mn <> Ex comm.
+
+		#define USE_MIT_EMG_I2C
 
 		#if(ACTIVE_SUBPROJECT == SUBPROJECT_A)
 
