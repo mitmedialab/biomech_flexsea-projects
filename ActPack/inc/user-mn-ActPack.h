@@ -42,6 +42,8 @@ void setControlMode(uint8_t m);
 void setControlGains(int16_t g0, int16_t g1, int16_t g2, int16_t g3);
 void setMotorPosition(int32_t i);
 
+int8_t findPolesActpack(void);
+
 void enableActPackFSM2(void);
 void disableActPackFSM2(void);
 
