@@ -154,7 +154,7 @@ void MIT_DLeg_fsm_1(void)
 
 		case 0:
 			//sensor update happens in mainFSM2(void) in main_fsm.c
-			isEnabledUpdateSensors = 1;
+//			isEnabledUpdateSensors = 1;
 
 			//reserve for additional initialization
 
@@ -181,37 +181,6 @@ void MIT_DLeg_fsm_1(void)
 		case 1:
 			{
 
-				//populate rigid1.mn.genVars to send to Plan
-				packRigidVars(&act1);
-
-				//begin safety check
-			    if (safetyShutoff()) {
-			    	/*motor behavior changes based on failure mode.
-			    	  Bypasses the switch statement if return true
-			    	  but sensors check still runs and has a chance
-			    	  to allow code to move past this block.
-			    	  Only update the walking FSM, but don't output torque.
-			    	*/
-			    	stateMachine.current_state = STATE_EARLY_STANCE;
-
-			    } else {
-//			    	runFlatGroundFSM(&act1);
-			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0.0, user_data_1.w[1]/100., user_data_1.w[2]);
-
-//					setMotorTorque(&act1, act1.tauDes);
-
-
-//			        rigid1.mn.genVar[0] = startedOverLimit;
-					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
-					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
-// 					rigid1.mn.genVar[3] = (int16_t) walkParams.transition_id;
-					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
-					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
-					rigid1.mn.genVar[6] = (int16_t) (JIM_LG); // LG
-					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
-					rigid1.mn.genVar[8] = stateMachine.current_state;
-					rigid1.mn.genVar[9] = act1.tauDes*100;
-			    }
 
 
 				break;
