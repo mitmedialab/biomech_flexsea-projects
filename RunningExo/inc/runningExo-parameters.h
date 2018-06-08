@@ -20,7 +20,8 @@
  */
 #define GAIT_TORQUE_TRACKING 1
 #define USER_TORQUE_COMMAND 2
-#define CONTROL_STRATEGY USER_TORQUE_COMMAND
+#define TRAJECTORY_TORQUE_TRACKING 3
+#define CONTROL_STRATEGY TRAJECTORY_TORQUE_TRACKING
 
 //Angle Limit
 //TODO:
@@ -78,16 +79,16 @@
 #endif //ACTIVE_LEG == LEFT_ANKLE
 
 //Lookup Table
-#if (CONTROL_STRATEGY == TORQUE_TRACKING)
-	#define TABLE_SIZE 1001
-	#define DEFAULT_TORQUE_PROFILE_GAIN 0.1    	//percentage of biological torque applied to the subject
-	//State Definition
-	#define DEACTIVATED 0
-	#define HEEL_STRIKE 1						//between heel strike and foot flat
-	#define FOOT_FLAT 2
-	#define SWING_PHASE 3
+//#if (CONTROL_STRATEGY == GAIT_TORQUE_TRACKING)
+#define TABLE_SIZE 1001
+#define DEFAULT_TORQUE_PROFILE_GAIN 0.1    	//percentage of biological torque applied to the subject
+//State Definition
+#define DEACTIVATED 0
+#define HEEL_STRIKE 1						//between heel strike and foot flat
+#define FOOT_FLAT 2
+#define SWING_PHASE 3
 
-#endif //(CONTROL_STRATEGY == TORQUE_TRACKING)
+//#endif //(CONTROL_STRATEGY == TORQUE_TRACKING)
 
 
 //RunningExo_fsm_1 state variable
@@ -193,12 +194,20 @@
 #define MOT_R			0.0948		//Measured line-to-line resistance
 //#define MOT_KT			0.1350		//Measured phase Kt
 #define MOT_KT			0.1		//Measured phase Kt
+#define TORQUE_EPSILON 0.01
 //Hand Tuned Feedforward Parameters
-#define K1 0.051
-#define K2 0.1946
+//Values for motor 1
+#define K1 0.493
+#define K2 0.1135
 #define OMEGA_THRESHOLD 0.2		//Prevent noise
-//#define DEADBAND 0.532	//volts
-#define DEADBAND 0.49
+//#define DEADBAND 0.523
+#define DEADBAND 0.489
+
+//Values for motor 2
+//#define K1 0.051
+//#define K2 0.03
+//#define OMEGA_THRESHOLD 0.2		//Prevent noise
+//#define DEADBAND 0.49
 
 // Limitation and safety parameters
 #define MAX_BOARD_TEMP		70						//centidegree, avoid the FlexSEA board overheating

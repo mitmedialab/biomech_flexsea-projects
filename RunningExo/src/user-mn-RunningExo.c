@@ -268,11 +268,16 @@ void RunningExo_fsm_1(void)
 			    	torqueCommand *= (int)runningExoState.enableOutput;			//safety check
 					#endif //CONTROL_STRATEGY == TORQUE_TRACKING
 
+					#if (CONTROL_STRATEGY == TRAJECTORY_TORQUE_TRACKING)
+
+			    	#endif
+
+
 			    	#if CONTROL_STRATEGY == USER_TORQUE_COMMAND
 			    		//User torque command input from GUI
-						torqueCommand = user_data_1.w[0]*1.0/100.0;
+						torqueCommand = user_data_1.w[0]*1.0/1000.0;
 			    		//echo torque command
-			    		rigid1.mn.genVar[2] = torqueCommand*100.0;
+			    		rigid1.mn.genVar[2] = torqueCommand*1000.0;
 					#endif //CONTROL_STRATEGY == USER_TORQUE_COMMAND
 			    	//Send torque command
 		    		setTorque(torqueCommand, &act_para, 1,0);
@@ -702,6 +707,23 @@ void trackTorque(void)
 }
 #endif //CONTROL_STRATEGY == GAIT_TORQUE_TRACKING
 
+#if(CONTROL_STRATEGY==TRAJECTORY_TORQUE_TRACKING)
+void trackTorque(void)
+//Tracks torque trajectory at 1 Hz
+{
+	static float percentStance = 0;
+	static float lastPercentageStance = 0;
+	uint16_t currentIndex = 0;
+	currentIndex = (int)(percentStance*(float)TABLE_SIZE);
+	float torqueValue = torqueTrajectory[currentIndex];
+	torqueCommand=torqueValue;
+	percentStance+=0.001;
+	if (percentStance>1)
+	{
+		percentStance = 0;
+	}
+}
+#endif //CONTROL_STRATEGY ==TRAJECTORY_TORQUE_TRACKING
 
 void checkInvalidGait(void)
 {

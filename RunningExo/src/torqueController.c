@@ -43,11 +43,16 @@ void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool fee
 			vFeedForward += omega*K2;
 		}
 		targetV += vFeedForward;
-		if (targetV>0)
+		//TODO:Fixed deadband when omega is opposite of torque
+//		if(torqueReference*omega<0)
+//		{
+//			//don't add dead band if motor is driven backwards
+//		}
+		if (torqueReference>TORQUE_EPSILON)
 		{
 			targetV+=DEADBAND;
 		}
-		else if (targetV<0)
+		else if (torqueReference<-TORQUE_EPSILON)
 		{
 			targetV-=DEADBAND;
 		}
@@ -58,7 +63,14 @@ void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool fee
     	targetV += vFeedBack;
     }
 	//setControlMode(CTRL_OPEN);	//set to open loop voltage controller
-	setMotorVoltage(targetV*1000);
+    if(user_data_1.w[1]!=0)	//estop
+    {
+    	setMotorVoltage(0);
+    }
+    else
+    {
+    	setMotorVoltage(targetV*1000);
+    }
 
     //DEBUG
 //    setMotorCurrent(targetV*1000);
