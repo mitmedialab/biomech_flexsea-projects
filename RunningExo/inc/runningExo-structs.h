@@ -63,11 +63,6 @@ typedef struct actuation_parameters
 	float motorAngularVel;		//motor angular velocity [rad/s]
 	float motorAngularAcc;		// motor angular acceleration [rad/s/s]
 
-	//control related parameters
-	//float tauMeasuredAnkle;          // N.m, feedback ankle torque
-	//float tauDesiredAnkle;           // N.m, desired ankle torque
-	//float tauErrorMotor;				//N.m, reflected to motor, tauMeasured - tauDesired
-
 	//safety parameters
 	int16_t boardTemperature;	//centidegree, get from temperature sensor on the FlexSEA board
 	int8_t safetyFlag;		//identify various safety problems

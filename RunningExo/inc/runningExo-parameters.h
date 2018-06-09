@@ -28,11 +28,6 @@
 #define ENC_POS_MAX 16384
 #define ENC_POS_MIN 0
 
-//Velocity Limit
-//TODO:
-#define ENC_VEL_MAX 1000
-#define ENC_VEL_MIN -1000
-
 //Human parameters
 #define LEFT_ANKLE 0
 #define Right_ANKLE 1
@@ -231,7 +226,7 @@
 #define STANCE_PERCENTAGE	0.4 // percentage of stance phase occupying the whole gait cycle period
 #define MOTOR_SPEED_MARGIN_FACTOR	0.6
 #define	MAX_MOTOR_SPEED		(MOTOR_SPEED_MARGIN_FACTOR*(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER/(GAIT_CYCLE_PERIOD*STANCE_PERCENTAGE))*2*M_PI) // rad/sec
-
+//#define	MAX_MOTOR_SPEED 10	//debug
 
 
 //Torque Control PID gains
