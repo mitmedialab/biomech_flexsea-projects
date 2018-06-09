@@ -216,9 +216,11 @@ void RunningExo_fsm_1(void)
 			//sensor update happens in mainFSM3(void) in main_fsm.c
 			isEnabledUpdateSensors = 1;
 			isIntialMotorPosition = 1;
-//			init_LPF(); //initialize hardware LPF
+			//init_LPF(); //initialize hardware LPF
 			setControlMode(CTRL_OPEN);	//set to open loop voltage controller
-//			setControlMode(CTRL_CURRENT);	//DEBUG
+
+			//zero encoder
+			act_para->initialMotorEncPosition=*(rigid1.ex.enc_ang)/ENCODER_CPR;
 
 			fsm1State = STATE_TORQUE_TRACKING;
 			time = 0;
@@ -229,23 +231,23 @@ void RunningExo_fsm_1(void)
 				//populate rigid1.mn.genVars to send to Plan
 				//packRigidVars(&act_para);
 
-//				//begin safety check
-//			    if (safetyShutoff())
-//			    {
-//			    	/*motor behavior changes based on failure mode.
-//			    	  Bypasses the switch statement if return true
-//			    	  but sensors check still runs and has a chance
-//			    	  to allow code to move past this block.
-//			    	  Only update the walking FSM, but don't output torque.
-//			    	*/
-//			    	//gaitStateTransition(); //for testing only
-//			    	rigid1.mn.genVar[7] = -111;
-//		    		setTorque(0, &act_para, 1,0);
-//			    	return;
-//			    }
+				//begin safety check
+			    if (safetyShutoff())
+			    {
+			    	/*motor behavior changes based on failure mode.
+			    	  Bypasses the switch statement if return true
+			    	  but sensors check still runs and has a chance
+			    	  to allow code to move past this block.
+			    	  Only update the walking FSM, but don't output torque.
+			    	*/
+			    	//gaitStateTransition(); //for testing only
+			    	rigid1.mn.genVar[7] = -111;
+			    	setMotorVoltage(0);
+			    	return;
+			    }
 
-//			    else
-//			    {
+			    else
+			    {
 					#if (CONTROL_STRATEGY == GAIT_TORQUE_TRACKING)
 			    	//Torque Trajectory Tracking
 			    	//Update states
@@ -288,6 +290,8 @@ void RunningExo_fsm_1(void)
 					#endif //CONTROL_STRATEGY == USER_TORQUE_COMMAND
 			    	//Send torque command
 		    		setTorque(torqueCommand, &act_para, 1,0);
+			    }
+				break;
 
 			    	//rigid1.mn.genVar[0]=runningExoState.state;
 			    	//rigid1.mn.genVar[1]=act_para.currentMotorPosition;
@@ -409,7 +413,6 @@ void RunningExo_fsm_1(void)
 //			    	torqueDes = float calcImpedanceTorque(float m, float b, float k, float ddthetad_set, float dtheta_set, float theta_set);
 
 //			    	setMotorTorque(&act_para, torqueDes);
-					break;
 
 //				rigid1.mn.genVar[0] = isSafetyFlag;
 //				rigid1.mn.genVar[1] = act1.jointAngleDegrees; //deg
@@ -788,7 +791,7 @@ int8_t safetyShutoff(void)
 			}
 			else
 			{
-				setMotorCurrent(0); // this might happen when no load under torque control mode. turn off motor. might need something better than this.
+				setMotorVoltage(0); // this might happen when no load under torque control mode. turn off motor. might need something better than this.
 			}
 
 			return 1;
@@ -801,30 +804,32 @@ int8_t safetyShutoff(void)
 			if(!isPositionLimit)
 			{
 				isSafetyFlag = SAFETY_OK;
-				break;
+				return 1;
 			}
 			else
 			{
-				setMotorCurrent(0); // turn off motor. might need something better than this.
+				setMotorVoltage(0); // turn off motor. might need something better than this.
 			}
 
-			return 1;
+		return 1;
 
-		case SAFETY_CABLE_TENSION:
+		//TODO: Current limitation?
 
-			//check if flag is not still active to be released, else do something about problem.
-			if(!isTorqueLimit)
-			{
-				isSafetyFlag = SAFETY_OK;
-				break;
-			}
-			else
-			{
-				//setAnkleTorque(&act_para, act_para.ankleTorqueDesired*0.5); //run this in order to update torque genVars sent to Plan
-				setCableTensionForce(&act_para, act_para.cableTensionForce*0.5);
-			}
-
-			return 1;
+//		case SAFETY_CABLE_TENSION:
+//
+//			//check if flag is not still active to be released, else do something about problem.
+//			if(!isTorqueLimit)
+//			{
+//				isSafetyFlag = SAFETY_OK;
+//				break;
+//			}
+//			else
+//			{
+//				//setAnkleTorque(&act_para, act_para.ankleTorqueDesired*0.5); //run this in order to update torque genVars sent to Plan
+//				setCableTensionForce(&act_para, act_para.cableTensionForce*0.5);
+//			}
+//
+//			return 1;
 
 
 		default:
@@ -866,32 +871,33 @@ void updateSensorValues(actuation_parameters *actx)
 //get motor's kinematic parameters
 void getMortorKinematics(struct actuation_parameters *actx)
 {
-	actx->currentMotorEncPosition = *(rigid1.ex.enc_ang);
+	//TODO: Put everything in SI units
+	actx->currentMotorEncPosition = *(rigid1.ex.enc_ang)/ENCODER_CPR;
 	actx->motorRelativeEncRevolution = (actx->currentMotorEncPosition - actx->initialMotorEncPosition) / ENCODER_CPR;
 	actx->motorRotationAngle = actx->motorRelativeEncRevolution * 2 * M_PI;		//rad
 	actx->motorAngularVel = (*(rigid1.ex.enc_ang_vel)/ENCODER_CPR) * 2 * M_PI;	//rad/s, need to times SECONDS?????
 	actx->motorAngularAcc = (rigid1.ex.mot_acc/ENCODER_CPR) * 2 * M_PI;			//rad/s/s, need to check if the gain factor is needed
-
-	 if(actx->motorRelativeEncRevolution >= MAX_MOTOR_ENC_REVOLUTION)
-	 {
-		isSafetyFlag = SAFETY_MOTOR_POSITION;
-		isPositionLimit = 1;
-	 }
-	 else
-	 {
-		 isPositionLimit = 0;
-	 }
-
-
-	 if(actx->motorAngularVel >= MAX_MOTOR_SPEED)
-	 {
-		isSafetyFlag = SAFETY_MOTOR_VELOCITY;
-		isAngularVelLimit = 1;
-	 }
-	 else
-	 {
-		isAngularVelLimit = 0;
-	 }
+//
+//	 if(actx->motorRelativeEncRevolution >= MAX_MOTOR_ENC_REVOLUTION)
+//	 {
+//		isSafetyFlag = SAFETY_MOTOR_POSITION;
+//		isPositionLimit = 1;
+//	 }
+//	 else
+//	 {
+//		 isPositionLimit = 0;
+//	 }
+//
+//
+//	 if(actx->motorAngularVel >= MAX_MOTOR_SPEED)
+//	 {
+//		isSafetyFlag = SAFETY_MOTOR_VELOCITY;
+//		isAngularVelLimit = 1;
+//	 }
+//	 else
+//	 {
+//		isAngularVelLimit = 0;
+//	 }
 }
 
 //get ankle's kinematic parameters

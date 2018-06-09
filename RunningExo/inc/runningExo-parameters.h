@@ -9,7 +9,7 @@
 #define RUNNING_EXO_PARAMETERS
 
 //Turn off safety check for testing purposes
-#define DISABLE_SAFETY
+//#define DISABLE_SAFETY
 //****************************************************************************
 // Constant Definition(s):
 //****************************************************************************
