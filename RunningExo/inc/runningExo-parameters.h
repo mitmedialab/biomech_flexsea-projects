@@ -21,7 +21,7 @@
 #define GAIT_TORQUE_TRACKING 1
 #define USER_TORQUE_COMMAND 2
 #define TRAJECTORY_TORQUE_TRACKING 3
-#define CONTROL_STRATEGY TRAJECTORY_TORQUE_TRACKING
+#define CONTROL_STRATEGY GAIT_TORQUE_TRACKING
 
 //Angle Limit
 //TODO:
@@ -76,7 +76,7 @@
 //Lookup Table
 //#if (CONTROL_STRATEGY == GAIT_TORQUE_TRACKING)
 #define TABLE_SIZE 1001
-#define DEFAULT_TORQUE_PROFILE_GAIN 0.1    	//percentage of biological torque applied to the subject
+#define DEFAULT_TORQUE_PROFILE_GAIN 0.01    	//percentage of biological torque applied to the subject
 //State Definition
 #define DEACTIVATED 0
 #define HEEL_STRIKE 1						//between heel strike and foot flat
@@ -225,8 +225,8 @@
 #define	GAIT_CYCLE_PERIOD	0.41 //s, 0.41 s  when running at speed of 3.9 m/s
 #define STANCE_PERCENTAGE	0.4 // percentage of stance phase occupying the whole gait cycle period
 #define MOTOR_SPEED_MARGIN_FACTOR	0.6
-#define	MAX_MOTOR_SPEED		(MOTOR_SPEED_MARGIN_FACTOR*(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER/(GAIT_CYCLE_PERIOD*STANCE_PERCENTAGE))*2*M_PI) // rad/sec
-//#define	MAX_MOTOR_SPEED 10	//debug
+//#define	MAX_MOTOR_SPEED		(MOTOR_SPEED_MARGIN_FACTOR*(MAX_FOOT_PULL_HEIGHT/MOT_OUTPUT_SHAFT_PERIMETER/(GAIT_CYCLE_PERIOD*STANCE_PERCENTAGE))*2*M_PI) // rad/sec
+#define	MAX_MOTOR_SPEED 100	//debug
 
 
 //Torque Control PID gains

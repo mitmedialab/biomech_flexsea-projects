@@ -76,7 +76,7 @@ void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool fee
     //DEBUG
 //    setMotorCurrent(targetV*1000);
 
-    rigid1.mn.genVar[3] = targetV*1000;
-	rigid1.mn.genVar[4] = omega*1000.0;
+    //rigid1.mn.genVar[3] = targetV*1000;
+	//rigid1.mn.genVar[4] = omega*1000.0;
 	return;
 }

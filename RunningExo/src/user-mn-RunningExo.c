@@ -170,6 +170,7 @@ void RunningExo_fsm_1(void)
 			    {
 			    	//Shutdown motor if safety check did not pass
 			    	//gaitStateTransition(); //for testing only
+			    	rigid1.mn.genVar[9]=-111;
 			    	return;
 			    }
 
@@ -201,6 +202,8 @@ void RunningExo_fsm_1(void)
 			    	}
 			    	runningExoState.timer+=1;					//increase timer
 			    	torqueCommand *= (int)runningExoState.enableOutput;			//safety check
+			    	rigid1.mn.genVar[2] = torqueCommand*1000;
+			    	rigid1.mn.genVar[3] = runningExoState.state;
 					#endif //CONTROL_STRATEGY == TORQUE_TRACKING
 
 					#if (CONTROL_STRATEGY == TRAJECTORY_TORQUE_TRACKING)
@@ -329,7 +332,7 @@ void gaitStateTransition(void)
 
 		case FOOT_FLAT:
 			if((rigid1.mn.analog[FOOTSWITCH_TOE]<TOE_OFF_THRESHOLD &&
-			rigid1.mn.analog[FOOTSWITCH_LATERAL]<TOE_OFF_THREFSHOLD &&
+			rigid1.mn.analog[FOOTSWITCH_LATERAL]<TOE_OFF_THRESHOLD &&
 			rigid1.mn.analog[FOOTSWITCH_MEDIAL]<TOE_OFF_THRESHOLD)&&
 			rigid1.mn.analog[FOOTSWITCH_HEEL]<TOE_OFF_THRESHOLD)
 			{
@@ -340,10 +343,7 @@ void gaitStateTransition(void)
 			break;
 	}
 }
-#endif //CONTROL_STRATEGY == GAIT_TORQUE_TRACKING
 
-
-#if(CONTROL_STRATEGY == GAIT_TORQUE_TRACKING)
 void trackTorque(void)
 //sets control output based on trajectory tracking
 {
@@ -356,15 +356,6 @@ void trackTorque(void)
 	percentStance = (float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration>1 ? 1:(float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration;//range=[0,1]
 	currentIndex = (int)(percentStance*(float)TABLE_SIZE);
 	float torqueValue = 0;
-
-	if(currentIndex != lastIndex)
-	{
-		isClearErrorIntegral = 1;
-	}
-	else
-	{
-		isClearErrorIntegral = 0;
-	}
 
 	if (runningExoState.running)
 	{
@@ -500,10 +491,10 @@ void getMotorKinematics(struct actuation_parameters *actx)
 	actx->motorAngularVel = (*(rigid1.ex.enc_ang_vel)*1.0/ENCODER_CPR) * 2 * M_PI*1000;	//rad/s, need to times SECONDS?????
 	actx->motorAngularAcc = rigid1.ex.mot_acc;			//rad/s/s, need to check if the gain factor is needed
 	//debug
-	rigid1.mn.genVar[5] = actx->currentMotorEncPosition;
-	rigid1.mn.genVar[8] = actx->motorRelativeEncRevolution;
-	rigid1.mn.genVar[9] = actx->motorAngularAcc;
-
+//	rigid1.mn.genVar[5] = actx->currentMotorEncPosition;
+//	rigid1.mn.genVar[8] = actx->motorRelativeEncRevolution;
+//	rigid1.mn.genVar[9] = actx->motorAngularAcc;
+//
 
 //	 if(actx->motorRelativeEncRevolution >= MAX_MOTOR_ENC_REVOLUTION)
 //	 {
