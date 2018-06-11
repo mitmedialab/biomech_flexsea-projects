@@ -24,8 +24,10 @@
 #include "runningExo-structs.h"
 #include "runningExo-parameters.h"
 
-void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool feedFoward, _Bool feedBack)
+void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Bool feedFoward, _Bool feedBack)
 {
+	//TODO: Convert from ankle torque to motor torque
+
 	//Calculates the voltage to set using feedforward and/or feedback
 	//Sends the voltage to the motor
 	float targetV = 0.0;

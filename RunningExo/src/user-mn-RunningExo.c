@@ -219,7 +219,7 @@ void RunningExo_fsm_1(void)
 			    		rigid1.mn.genVar[2] = torqueCommand*1000.0;
 					#endif //CONTROL_STRATEGY == USER_TORQUE_COMMAND
 			    	//Send torque command
-		    		setTorque(torqueCommand, &act_para, 1,0);
+			    	setAnkleTorque(torqueCommand, &act_para, 1,1);
 			    }
 				break;
         	default:
@@ -374,17 +374,17 @@ int8_t safetyShutoff(actuation_parameters *actx)
 		return 1;
 	}
 	//Check Motor Position
-//	if(abs(actx->motorAngularVel)>MAX_MOTOR_ANGLE)
-//	{
-//		return 1;
-//	}
+	if(actx->motorAngularVel>ENC_POS_MAX||actx->motorAngularVel<ENC_POS_MIN)
+	{
+		return 1;
+	}
 
 	//Check Motor Velocity
 	//Note that this is not a "hard brake" to prevent oscillatory behavior around limit.
 	//It just tries to stop accelerating.
 	if(abs(actx->motorAngularVel)>MAX_MOTOR_SPEED)
 	{
-		setTorque(0, &act_para, 1,0);
+		setMotorTorque(0, &act_para, 1,0);
 		return 1;
 	}
 
@@ -468,6 +468,7 @@ void getAnkleKinematics(struct actuation_parameters *actx)
 void getAnkleTorque(struct actuation_parameters *actx)
 {
 	 actx->ankleTorqueMeasured = ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B; //N.m
+	 rigid1.mn.genVar[4] = actx->ankleTorqueMeasured*1000;
 }
 
 

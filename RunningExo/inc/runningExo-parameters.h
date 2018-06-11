@@ -26,8 +26,8 @@
 
 //Angle Limit
 //TODO:
-#define ENC_POS_MAX 16384
-#define ENC_POS_MIN 0
+#define ENC_POS_MAX 42000
+#define ENC_POS_MIN -28000
 
 //Human parameters
 #define LEFT_ANKLE 0

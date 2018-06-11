@@ -9,7 +9,6 @@
 #define TORQUE_CONTROLLER_H
 #include "runningExo-structs.h"
 
-void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool feedFoward, _Bool feedBack);
-
+void setMotorTorque(float torqueReference, actuation_parameters *act_para,  _Bool feedFoward, _Bool feedBack);
 
 #endif /* TORQUE_CONTROLLER_H */
