@@ -21,7 +21,8 @@
 #define GAIT_TORQUE_TRACKING 1
 #define USER_TORQUE_COMMAND 2
 #define TRAJECTORY_TORQUE_TRACKING 3
-#define CONTROL_STRATEGY GAIT_TORQUE_TRACKING
+#define CONTROL_STRATEGY USER_TORQUE_COMMAND
+#define PD_TUNING
 
 //Angle Limit
 //TODO:
@@ -230,14 +231,8 @@
 
 
 //Torque Control PID gains
-#define TORQ_KP_INIT			6 //10.
-#define TORQ_KI_INIT			0.
-#define TORQ_KD_INIT			5 //2.
-#define MAX_TORQ_I_ERROR				0.05	//prevent wind-up
-// Current Control Parameters  -- Test these on a motor test stand first
-#define ACTRL_I_KP_INIT		25
-#define ACTRL_I_KI_INIT		5
-#define ACTRL_I_KD_INIT		0
+#define TORQUE_KP			6 //10.
+#define TORQUE_KD			5 //2.
 
 // extern variables
 extern struct actuation_parameters act_para;
@@ -246,11 +241,10 @@ extern struct actuation_parameters act_para;
 // Torque command trajectory lookup table(s)
 //****************************************************************************
 
-
 #define CURRENT_SCALAR_INIT		1000	// Scale Amps to mAmps
 #define TIMESTEPS_PER_SECOND			1000
+#define TIMESTEP_SIZE 1/TIMESTEPS_PER_SECOND //timestep size for doing 1st order differentiation
 #define FORCE_OFFSET_CLOSED	0 //N, cable preload of close loop
 #define FORCE_OFFSET_OPEN	30 //N, cable preload of open loop. Todo, currently, roughly use this, should program to initialize the cable preload according to the force sensor reader
-
 
 #endif /* RUNNING_EXO_PARAMETERS */

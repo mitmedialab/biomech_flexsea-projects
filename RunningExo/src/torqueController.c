@@ -31,7 +31,7 @@ void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool fee
 	float targetV = 0.0;
 	float vFeedForward = 0.0;
 	float vFeedBack = 0.0;
-
+	static float previousAnkleTorqueError =0.0;
 	//float omega = ((*(rigid1.ex.enc_ang_vel)*1.0)/ENCODER_CPR) * 2 * M_PI*1000;
 	float omega = act_para->motorAngularVel;
 
@@ -60,8 +60,17 @@ void setTorque(float torqueReference, actuation_parameters *act_para,  _Bool fee
     }
     if(feedBack)
     {
-    	//TODO
+    	//Feedback on voltage
+    	float currentAnkleTorque =act_para->ankleTorqueMeasured;
+    	float currentAnkleTorqueError = torqueReference - currentAnkleTorque;
+    	float dAnkleTorqueError = (currentAnkleTorqueError-previousAnkleTorqueError)/TIMESTEP_SIZE;
+    	#ifdef PD_TUNING
+    	vFeedBack =user_data_1.w[1]*1e-3*currentAnkleTorqueError+user_data_1.w[2]*1e-3*dAnkleTorqueError;
+		#else
+    	vFeedBack = TORQUE_KP*currentAnkleTorqueError+TORQUE_KD*dAnkleTorqueError;
+		#endif	//#ifdef PD_TUNING
     	targetV += vFeedBack;
+    	previousAnkleTorqueError = currentAnkleTorqueError;
     }
 	//setControlMode(CTRL_OPEN);	//set to open loop voltage controller
     if(user_data_1.w[1]!=0)	//estop

@@ -229,59 +229,6 @@ void RunningExo_fsm_1(void)
 	#endif	//ACTIVE_PROJECT == PROJECT_RUNNING_EXO
 }
 
-
-
-
-
-/*
-//Running Exo state machine
-void RunningExo_fsm_1(void)
-//TODO
-{
-	#if (CONTROL_STRATEGY == TORQUE_TRACKING)
-	//Torque Trajectory Tracking
-	//Update states
-	stateTransition();
-	//check for impossible gaits
-	checkInvalidGait();
-	//Perform actions
-	switch (runningExoState.state)
-	{
-		case HEEL_STRIKE:
-			//Gait cycle is between heel strike and toe off
-			trackTorque();
-			break;
-
-		case FOOT_FLAT:
-			//Foot flat is irrelevant in trajectory tracking
-			trackTorque();
-			break;
-
-		case SWING_PHASE:
-			//Swing phase
-			controlAction = 0;					//no force output
-			break;
-	}
-	runningExoState.timer+=1;					//increase timer
-	controlAction *= (int)runningExoState.enableOutput;			//safety check
-	#endif //CONTROL_STRATEGY == TORQUE_TRACKING
-	rigid1.mn.genVar[0]=runningExoState.state;
-	rigid1.mn.genVar[1]=runningExoState.toeOffTime;
-	rigid1.mn.genVar[2]=runningExoState.pedometer;
-	rigid1.mn.genVar[3]=controlAction*1000;
-	//Time stamps
-	rigid1.mn.genVar[4]= runningExoState.heelStrikeTime;
-	rigid1.mn.genVar[5]= runningExoState.footFlatTime;
-	rigid1.mn.genVar[6]= runningExoState.prevStanceDuration;
-	rigid1.mn.genVar[7]= runningExoState.prevGaitDuration;
-	rigid1.mn.genVar[8]= runningExoState.enableOutput;
-	rigid1.mn.genVar[9]= runningExoState.disabledPedometer;
-
-}
-
-*/
-
-
 //Second state machine for the Running Exo
 void RunningExo_fsm_2(void)
 {
@@ -296,7 +243,6 @@ void gaitStateTransition(void)
 //Computes the current state
 {
 	//TODO: Add debounce filtering
-
 	switch(runningExoState.state)
 	{
 		case SWING_PHASE:
@@ -428,7 +374,7 @@ int8_t safetyShutoff(actuation_parameters *actx)
 		return 1;
 	}
 	//Check Motor Position
-//	if(abs(actx->motorAngularVel)>MAX_MOTOR_VELOCITY)
+//	if(abs(actx->motorAngularVel)>MAX_MOTOR_ANGLE)
 //	{
 //		return 1;
 //	}
@@ -474,8 +420,8 @@ void parseSensorValues(actuation_parameters *actx)
 {
 	getMotorKinematics(actx);
 	getAnkleKinematics(actx);
-	//getAnkleTorque(&actx);
-	//getMotorTorque(&actx);
+	getAnkleTorque(actx);
+	//getMotorTorque(actx);
 
 	actx->boardTemperature =  rigid1.re.temp;				//centidegree
 	actx->motorCurrentMeasured = rigid1.ex.mot_current; 	//mA
@@ -519,23 +465,11 @@ void getAnkleKinematics(struct actuation_parameters *actx)
 
 
 ////Determine torque at ankle
-//void getAnkleTorque(struct actuation_parameters *actx)
-//{
-//	 actx->ankleTorqueMeasured = ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B; //N.m
-//
-//	 if(actx->ankleTorqueMeasured >= MAX_ANKLE_TORQUE)
-//	 {
-//		isSafetyFlag = SAFETY_CABLE_TENSION;
-//		isTorqueLimit = 1;
-//	 }
-//	 else
-//	 {
-//		isTorqueLimit = 0;
-//	 }
-//
-//}
-//
-//
+void getAnkleTorque(struct actuation_parameters *actx)
+{
+	 actx->ankleTorqueMeasured = ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B; //N.m
+}
+
 
 /*
 void setAnkleTorque(struct actuation_parameters *actx, float tau_desired_ankle)
