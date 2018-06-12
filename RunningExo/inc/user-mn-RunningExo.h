@@ -31,7 +31,8 @@ void init_runningExo(void);
 void RunningExo_fsm_1(void);
 void RunningExo_fsm_2(void);
 void gaitStateTransition(void);
-
+float motorTorqueToAnkleTorque(float motorTorque);
+float ankleTorqueToMotorTorque(float ankleTorque);
 //****************************************************************************
 // Accessor(s)
 //****************************************************************************

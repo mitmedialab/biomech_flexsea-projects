@@ -26,8 +26,10 @@
 
 void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Bool feedFoward, _Bool feedBack)
 {
-	//TODO: Convert from ankle torque to motor torque
-
+	//TODO: Consider controller architecture of feedback and feedforward blocks
+	torqueReference = torqueReference >SLACK_ANKLE_TORQUE?torqueReference:SLACK_ANKLE_TORQUE;//prevent string slack
+	float motorTorque = ankleTorqueToMotorTorque(torqueReference);
+	motorTorque = motorTorque>0?motorTorque:0;//no negative torque
 	//Calculates the voltage to set using feedforward and/or feedback
 	//Sends the voltage to the motor
 	float targetV = 0.0;
@@ -37,10 +39,19 @@ void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Boo
 	//float omega = ((*(rigid1.ex.enc_ang_vel)*1.0)/ENCODER_CPR) * 2 * M_PI*1000;
 	float omega = act_para->motorAngularVel;
 
+	//Prevent motor from spinning beyond lower limit
+//	if(act_para->currentMotorEncPosition < FEEDBACK_POS_MIN)
+//	{
+//		targetV = -0.0002*(act_para->currentMotorEncPosition-(FEEDBACK_POS_MIN+2000));
+//		targetV = targetV<FEEDBACK_MIN_VOLTAGE?FEEDBACK_MIN_VOLTAGE:targetV;//limit voltage
+//		setMotorVoltage(targetV*1000);
+//		return;
+//	}
+
 	if(feedFoward)
     {
 		//vFeedForward = torqueReference*MOT_R/MOT_KT+MOT_KT*omega;
-		vFeedForward = torqueReference*K1;
+		vFeedForward = motorTorque*K1;
 		if(abs(omega)>OMEGA_THRESHOLD)
 		{
 			vFeedForward += omega*K2;
@@ -51,11 +62,11 @@ void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Boo
 //		{
 //			//don't add dead band if motor is driven backwards
 //		}
-		if (torqueReference>TORQUE_EPSILON)
+		if (motorTorque>TORQUE_EPSILON)
 		{
 			targetV+=DEADBAND;
 		}
-		else if (torqueReference<-TORQUE_EPSILON)
+		else if (motorTorque<-TORQUE_EPSILON)
 		{
 			targetV-=DEADBAND;
 		}
@@ -65,29 +76,52 @@ void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Boo
     	//Feedback on voltage
     	float currentAnkleTorque =act_para->ankleTorqueMeasured;
     	float currentAnkleTorqueError = torqueReference - currentAnkleTorque;
-    	float dAnkleTorqueError = (currentAnkleTorqueError-previousAnkleTorqueError)/TIMESTEP_SIZE;
+    	float dAnkleTorqueError = (currentAnkleTorqueError-previousAnkleTorqueError)/(TIMESTEP_SIZE*1.0);
     	#ifdef PD_TUNING
-    	vFeedBack =user_data_1.w[1]*1e-3*currentAnkleTorqueError+user_data_1.w[2]*1e-3*dAnkleTorqueError;
+    	vFeedBack =user_data_1.w[1]*1e-3*currentAnkleTorqueError+user_data_1.w[2]*1e-6*dAnkleTorqueError;
 		#else
     	vFeedBack = TORQUE_KP*currentAnkleTorqueError+TORQUE_KD*dAnkleTorqueError;
 		#endif	//#ifdef PD_TUNING
     	targetV += vFeedBack;
-    	previousAnkleTorqueError = currentAnkleTorqueError;
+    	rigid1.mn.genVar[8]=user_data_1.w[2]*1e-3*dAnkleTorqueError;//debug
+    	previousAnkleTorqueError =previousAnkleTorqueError*(1-DERIVATIVE_WEIGHTING_FACTOR)+DERIVATIVE_WEIGHTING_FACTOR*currentAnkleTorqueError;
+    	rigid1.mn.genVar[5]=vFeedBack*1000;//debug
     }
 	//setControlMode(CTRL_OPEN);	//set to open loop voltage controller
-    if(user_data_1.w[1]!=0)	//estop
-    {
-    	setMotorVoltage(0);
-    }
-    else
-    {
-    	setMotorVoltage(targetV*1000);
-    }
+	setMotorVoltage(targetV*1000);
 
     //DEBUG
 //    setMotorCurrent(targetV*1000);
 
     //rigid1.mn.genVar[3] = targetV*1000;
 	//rigid1.mn.genVar[4] = omega*1000.0;
+	return;
+}
+
+void setMotorTorque(float torqueReference, actuation_parameters *act_para)
+{
+	//Open loop feedfoward motor torque
+	//Legacy code, for safety only
+	float targetV = 0.0;
+	float vFeedForward = 0.0;
+	float omega = act_para->motorAngularVel;
+
+	vFeedForward = torqueReference*K1;
+	if(abs(omega)>OMEGA_THRESHOLD)
+	{
+		vFeedForward += omega*K2;
+	}
+	targetV += vFeedForward;
+
+	if (torqueReference>TORQUE_EPSILON)
+	{
+		targetV+=DEADBAND;
+	}
+	else if (torqueReference<-TORQUE_EPSILON)
+	{
+		targetV-=DEADBAND;
+		}
+
+	setMotorVoltage(targetV*1000);
 	return;
 }

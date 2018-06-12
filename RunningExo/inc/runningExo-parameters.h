@@ -21,14 +21,14 @@
 #define GAIT_TORQUE_TRACKING 1
 #define USER_TORQUE_COMMAND 2
 #define TRAJECTORY_TORQUE_TRACKING 3
-#define CONTROL_STRATEGY USER_TORQUE_COMMAND
+#define CONTROL_STRATEGY GAIT_TORQUE_TRACKING
 #define PD_TUNING
 
 //Angle Limit
-//TODO:
 #define ENC_POS_MAX 42000
 #define ENC_POS_MIN -28000
-
+#define FEEDBACK_POS_MIN -22000
+#define FEEDBACK_MIN_VOLTAGE -8.
 //Human parameters
 #define LEFT_ANKLE 0
 #define Right_ANKLE 1
@@ -42,10 +42,16 @@
 #define WALKING_TORQUE_TRACKING
 
 //Foot switch
+//#define FOOTSWITCH_TOE 0                	// 0th analog channel
+//#define FOOTSWITCH_LATERAL 1            	// 1st analog channel
+//#define FOOTSWITCH_HEEL 2               	// 2nd analog channel
+//#define FOOTSWITCH_MEDIAL 3             	// 3rd analog channel
+
+//Right leg
 #define FOOTSWITCH_TOE 0                	// 0th analog channel
-#define FOOTSWITCH_LATERAL 1            	// 1st analog channel
-#define FOOTSWITCH_HEEL 2               	// 2nd analog channel
-#define FOOTSWITCH_MEDIAL 3             	// 3rd analog channel
+#define FOOTSWITCH_LATERAL 3            	// 1st analog channel
+#define FOOTSWITCH_HEEL 1               	// 2nd analog channel
+#define FOOTSWITCH_MEDIAL 2             	// 3rd analog channel
 
 #if ACTIVE_LEG == LEFT_ANKLE
 
@@ -53,7 +59,7 @@
 #define FOOT_FLAT_THRESHOLD 500
 #define TOE_OFF_THRESHOLD 30		    	//threshold for toe off detection
 #define dTOE_OFF_THRESHOLD -30		    	//differential threshold for toe off detection
-#define HEEL_STRIKE_THRESHOLD 1500			//threshold for heel strike detection
+#define HEEL_STRIKE_THRESHOLD 500			//threshold for heel strike detection
 #define dHEEL_STRIKE_THRESHOLD 30	    	//differential threshold for heel strike detection
 
 //Gait sanity checks
@@ -77,7 +83,7 @@
 //Lookup Table
 //#if (CONTROL_STRATEGY == GAIT_TORQUE_TRACKING)
 #define TABLE_SIZE 1001
-#define DEFAULT_TORQUE_PROFILE_GAIN 0.01    	//percentage of biological torque applied to the subject
+#define DEFAULT_TORQUE_PROFILE_GAIN 0.08    	//percentage of biological torque applied to the subject
 //State Definition
 #define DEACTIVATED 0
 #define HEEL_STRIKE 1						//between heel strike and foot flat
@@ -131,7 +137,8 @@
 #define FORCE_CALIB_M					0.074306 // Force = M*tick + B, from collected data set, applied load
 #define FORCE_CALIB_B					-2455.6817859 	// Force = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
-
+#define MIN_FEEDBACK_ANKLE_TORQUE		4.5//Nm minimum command to activate feedback system
+#define DERIVATIVE_WEIGHTING_FACTOR		0.1
 //****************************************************************************
 // Running exoskeleton parameter(s)
 //****************************************************************************
@@ -140,7 +147,7 @@
 #define ANKLE_TORQUE_CALIB_M			0.0185766 // Torque = M*tick + B, from collected data set, applied load
 #define ANKLE_TORQUE_CALIB_B			-613.9204465 	// Torque = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
-
+#define SLACK_ANKLE_TORQUE				1.7 //prevent string slack
 #elif ACTIVE_LEG == RIGHT_ANKLE
 
 #define LOAD_MAX_IN_POUND				500		// lb, maximum mass the force sensor can measure
@@ -210,6 +217,7 @@
 //#define MAX_ANKLE_TORQUE	(DEFAULT_TORQUE_PROFILE_GAIN*DEFAULT_BODY_WEIGHT*MAX_UNIT_RUNNING_TORQUE) // N.m, applied torque on the human ankle
 #define	MAX_CABLE_TENSION_FORCE	(MAX_ANKLE_TORQUE/MOMENT_ARM_ON_FOOT) //Newton
 #define MOT_OUTPUT_SHAFT_DIAMETER	0.0065			//m, motor output shaft
+#define MOT_OUTPUT_SHAFT_RADIUS MOT_OUTPUT_SHAFT_DIAMETER/2
 #define ROPE_DIAMETER		0.001	//m, diameter of ropes
 #define MOTOR_TORQUE_MARGIN_FACTOR	1.2
 #define MAX_MOTOR_TORQUE_REQUIRED	(MOTOR_TORQUE_MARGIN_FACTOR*MAX_CABLE_TENSION_FORCE*(MOT_OUTPUT_SHAFT_DIAMETER/2))
@@ -231,8 +239,9 @@
 
 
 //Torque Control PID gains
-#define TORQUE_KP			6 //10.
-#define TORQUE_KD			5 //2.
+//For motor 1
+#define TORQUE_KP			800e-3 //10.
+#define TORQUE_KD			500e-6 //2.
 
 // extern variables
 extern struct actuation_parameters act_para;
@@ -242,7 +251,7 @@ extern struct actuation_parameters act_para;
 //****************************************************************************
 
 #define CURRENT_SCALAR_INIT		1000	// Scale Amps to mAmps
-#define TIMESTEPS_PER_SECOND			1000
+#define TIMESTEPS_PER_SECOND			1000.
 #define TIMESTEP_SIZE 1/TIMESTEPS_PER_SECOND //timestep size for doing 1st order differentiation
 #define FORCE_OFFSET_CLOSED	0 //N, cable preload of close loop
 #define FORCE_OFFSET_OPEN	30 //N, cable preload of open loop. Todo, currently, roughly use this, should program to initialize the cable preload according to the force sensor reader

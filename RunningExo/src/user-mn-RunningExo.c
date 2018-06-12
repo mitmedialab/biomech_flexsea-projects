@@ -88,6 +88,8 @@ int8_t findPolesRunningExo(void);
 int8_t safetyShutoff(actuation_parameters *actx);
 void parseSensorValues(actuation_parameters *actx);
 void packRigidVars(struct actuation_parameters  *actx);
+float motorTorqueToAnkleTorque(float motorTorque);
+float ankleTorqueToMotorTorque(float ankleTorque);
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -382,11 +384,11 @@ int8_t safetyShutoff(actuation_parameters *actx)
 	//Check Motor Velocity
 	//Note that this is not a "hard brake" to prevent oscillatory behavior around limit.
 	//It just tries to stop accelerating.
-	if(abs(actx->motorAngularVel)>MAX_MOTOR_SPEED)
-	{
-		setMotorTorque(0, &act_para, 1,0);
-		return 1;
-	}
+//	if(abs(actx->motorAngularVel)>MAX_MOTOR_SPEED)
+//	{
+//		setMotorTorque(0, &act_para);
+//		return 1;
+//	}
 
 	//TODO: exo-specific checks
 
@@ -468,9 +470,23 @@ void getAnkleKinematics(struct actuation_parameters *actx)
 void getAnkleTorque(struct actuation_parameters *actx)
 {
 	 actx->ankleTorqueMeasured = ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B; //N.m
+	 actx->ankleTorqueMeasured = actx->ankleTorqueMeasured>0? actx->ankleTorqueMeasured:0;//negative torque is impos
 	 rigid1.mn.genVar[4] = actx->ankleTorqueMeasured*1000;
 }
 
+float motorTorqueToAnkleTorque(float motorTorque)
+{
+	//Conversion
+	float ankleTorque = (motorTorque/MOT_OUTPUT_SHAFT_RADIUS)*MOMENT_ARM_ON_FOOT;
+	return ankleTorque;
+}
+
+float ankleTorqueToMotorTorque(float ankleTorque)
+{
+	//Conversion
+	float motorTorque = (ankleTorque/MOMENT_ARM_ON_FOOT)*MOT_OUTPUT_SHAFT_RADIUS;
+	return motorTorque;
+}
 
 /*
 void setAnkleTorque(struct actuation_parameters *actx, float tau_desired_ankle)
