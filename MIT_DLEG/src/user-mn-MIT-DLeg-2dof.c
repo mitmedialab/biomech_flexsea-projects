@@ -185,11 +185,10 @@ void MIT_DLeg_fsm_1(void)
 			    	stateMachine.current_state = STATE_EARLY_STANCE;
 
 			    } else {
-			    	runFlatGroundFSM(&act1);
+			    	//runFlatGroundFSM(&act1);
 
-					setMotorTorque(&act1, act1.tauDes);
-
-//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
+			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
+			    	setMotorTorque(&act1, act1.tauDes);
 
 //			        rigid1.mn.genVar[0] = startedOverLimit;
 					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
