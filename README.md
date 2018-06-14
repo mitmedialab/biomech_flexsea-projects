@@ -20,3 +20,5 @@ start learning about the system by reading the two IEEE BioRob papers.
   
 **Please reach out to jfduval at dephy.com if you have questions, or if you'd  
 like to get involved!**  
+
+Guillermo Herrera branch.
