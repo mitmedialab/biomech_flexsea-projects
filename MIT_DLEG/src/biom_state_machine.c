@@ -24,7 +24,7 @@ GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
 GainParams lswGains = {1.5, 1, 0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
-GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
+GainParams lstPowerGains = {4.5, 0.0, 0.1, 10};
 
 GainParams emgStandGains = {2, 0.025, 0.04, 0};
 GainParams emgFreeGains  = {1.2, 0, 0.02, 0};
@@ -56,7 +56,7 @@ void runFlatGroundFSM(Act_s *actx) {
     static int8_t isTransitioning = 0;
     static uint32_t time_in_state = 0;
     static int32_t emgInputPPF = 0; //used to keep track of EMG PPF input
-    static uint32_t index = 0; // used for linear spline
+    //static float spline_index = 0; // used for linear spline
 
 
     if (!walkParams.initializedStateMachineVariables){
@@ -103,26 +103,27 @@ void runFlatGroundFSM(Act_s *actx) {
 			if (isTransitioning) {
 				walkParams.virtual_hardstop_tq = 0.0;
 				// initialize linearSpline params once
-				linearSpline.res_factor = 1.0;
-				linearSpline.res_size = (linearSpline.xf - linearSpline.xi) / linearSpline.res_factor;
-				linearSpline.xi = time_in_state; // cast?
-				linearSpline.yi = actx->jointAngleDegrees;
-				linearSpline.xf = time_in_state + linearSpline.res_size; // Not sure. cast?
-				linearSpline.yf = eswGains.thetaDes;
+				//linearSpline.res_factor = 1.0; // to change interpolation resolution
+				//linearSpline.res_size = (linearSpline.xf - linearSpline.xi) / linearSpline.res_factor;
+				//linearSpline.xi = (float)time_in_state; // cast?
+				//linearSpline.yi = actx->jointAngleDegrees;
+				//linearSpline.xf = (float)time_in_state + linearSpline.res_size; // Not sure. cast?
+				//linearSpline.yf = eswGains.thetaDes;
 			}
 
-			// TODO: linear spline in function. For already included in while loop. end condition?
-			index = linearSpline.xi;
-			linearSpline.X = index;
-			linearSpline.Y = (((linearSpline.yf - linearSpline.yi) * (index - linearSpline.xi)) / (linearSpline.xf - linearSpline.xi)) + linearSpline.yi;
-			index = index + linearSpline.res_factor; // cast?
+			// TODO: linear spline in function. end condition?
+			//spline_index = linearSpline.xi + linearSpline.res_factor;
+			//linearSpline.X = spline_index;
+			//linearSpline.Y = (((linearSpline.yf - linearSpline.yi) * (spline_index - linearSpline.xi)) / (linearSpline.xf - linearSpline.xi)) + linearSpline.yi;
+			//spline_index = spline_index + linearSpline.res_factor; // cast?
 
 			// Instead of fixed gains, spline
+			//eswGains.thetaDes = linearSpline.Y; // gains need to be modified? - k1, b
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
 
             //Early Swing transition vectors
             // VECTOR(1): Early Swing -> Late Swing
-            if (time_in_state >= ESW_TO_LSW_DELAY) {
+            if (time_in_state >= ESW_TO_LSW_DELAY) { // more time needed?
                 stateMachine.current_state = STATE_LATE_SWING;      //Transition occurs even if the early swing motion is not finished
             }
 
@@ -139,7 +140,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			actx->tauDes = calcJointTorque(lswGains, actx, &walkParams);
 
-			if (MIT_EMG_getState() == 1) windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
+			//if (MIT_EMG_getState() == 1) windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
 
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 			if(time_in_state > ESW_TO_LSW_DELAY) {
@@ -181,7 +182,7 @@ void runFlatGroundFSM(Act_s *actx) {
 				}
 
 				//update emgVal for EMG PPF
-				if (MIT_EMG_getState() == 1) {
+			/*	if (MIT_EMG_getState() == 1) {
 
 					emgVal = windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
 
@@ -194,7 +195,7 @@ void runFlatGroundFSM(Act_s *actx) {
 						emgInputPPF = emgVal;
 					}
 
-				}
+				}*/
 
 
 				updateVirtualHardstopTorque(actx, &walkParams);
@@ -205,12 +206,12 @@ void runFlatGroundFSM(Act_s *actx) {
 				// VECTOR (1): Early Stance -> Free space EMG
 				//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
 
-				if (MIT_EMG_getState() == 1 && using_EMG_free_space) {
+				/*if (MIT_EMG_getState() == 1 && using_EMG_free_space) {
 
 					if(time_in_state > 400 && abs(actx->jointTorque) < 3.5) {
 						stateMachine.current_state = STATE_LSW_EMG;
 					}
-				}
+				}*/
 
 				//Early Stance transition vectors
 				// VECTOR (2): Early Stance -> Late Stance POWER!
@@ -265,15 +266,15 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				updateVirtualHardstopTorque(actx, &walkParams);
 
-				if (MIT_EMG_getState() == 1 && using_EMG_PPF) {
+				/*if (MIT_EMG_getState() == 1 && using_EMG_PPF) {
 
 					actx->tauDes = calcEMGPPF(actx, &walkParams);
 
 				} else {
 					//Linear ramp push off
-					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
-				}
-
+					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(, actx, &walkParams);
+				}*/
+				actx->tauDes = calcJointTorque(lstPowerGains, actx, &walkParams);
 
 				//Late Stance Power transition vectors
 				// VECTOR (1): Late Stance Power -> Early Swing - Condition 1
@@ -389,9 +390,9 @@ static void initializeUserWrites(WalkParams *wParams){
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 	wParams->lstPGDelTics = 1;
 	wParams->earlyStanceKF = 1;
-	wParams->virtualHardstopK = 7;				//7 x 100
+	wParams->virtualHardstopK = 5;				//7 x 100
 	wParams->virtualHardstopEngagementAngle = 0;	//0.0 x 1
-	wParams->lspEngagementTorque = 80;
+	wParams->lspEngagementTorque = 50;
 
 	wParams->initializedStateMachineVariables = 1;
 }
