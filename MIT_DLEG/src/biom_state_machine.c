@@ -17,6 +17,7 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 WalkParams walkParams;
+LinearSpline linearSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
@@ -55,6 +56,7 @@ void runFlatGroundFSM(Act_s *actx) {
     static int8_t isTransitioning = 0;
     static uint32_t time_in_state = 0;
     static int32_t emgInputPPF = 0; //used to keep track of EMG PPF input
+    static uint32_t index = 0; // used for linear spline
 
 
     if (!walkParams.initializedStateMachineVariables){
@@ -100,8 +102,22 @@ void runFlatGroundFSM(Act_s *actx) {
             //Put anything you want to run ONCE during state entry.
 			if (isTransitioning) {
 				walkParams.virtual_hardstop_tq = 0.0;
+				// initialize linearSpline params once
+				linearSpline.res_factor = 1.0;
+				linearSpline.res_size = (linearSpline.xf - linearSpline.xi) / linearSpline.res_factor;
+				linearSpline.xi = time_in_state; // cast?
+				linearSpline.yi = actx->jointAngleDegrees;
+				linearSpline.xf = time_in_state + linearSpline.res_size; // Not sure. cast?
+				linearSpline.yf = eswGains.thetaDes;
 			}
 
+			// TODO: linear spline in function. For already included in while loop. end condition?
+			index = linearSpline.xi;
+			linearSpline.X = index;
+			linearSpline.Y = (((linearSpline.yf - linearSpline.yi) * (index - linearSpline.xi)) / (linearSpline.xf - linearSpline.xi)) + linearSpline.yi;
+			index = index + linearSpline.res_factor; // cast?
+
+			// Instead of fixed gains, spline
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
 
             //Early Swing transition vectors
@@ -449,6 +465,7 @@ void updatePFDFState(struct act_s *actx) {
 	PFDF_state[1] = 0;
 	PFDF_state[2] = 0;
 }
+
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
 

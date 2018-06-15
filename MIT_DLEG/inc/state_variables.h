@@ -101,6 +101,16 @@ typedef struct walkParams {
 
 } WalkParams;
 
+typedef struct linearSpline{
+	float xi; // x initial
+	float xf; // x final
+	float yi; // y initial
+	float yf; // y final
+	float res_factor; // resolution factor
+	float res_size; // interpolation resolution size
+	float X; // interpolation x coordinate
+	float Y; // interpolation Y coordinate
+} LinearSpline;
 
 
 //****************************************************************************
