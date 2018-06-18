@@ -17,7 +17,7 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 WalkParams walkParams;
-LinearSpline linearSpline;
+//LinearSpline linearSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};

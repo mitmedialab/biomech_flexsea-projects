@@ -81,7 +81,7 @@ float 	signalFilterSlope(float value, float a, float limit);
 void 	updateJointTorqueRate(struct act_s *actx);
 
 //Control outputs
-float biomCalcImpedance(float k1, float k2, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
+float biomCalcImpedance(float k1, float k2, float b, float theta_set, float res_factor); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
 void  setMotorTorque(struct act_s *actx, float tor_d);
 void  packRigidVars(struct act_s *actx);
 
@@ -244,7 +244,7 @@ void torqueSweepTest(struct act_s *actx);
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
 #define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
 #define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
-#define JOINT_MIN_ABS		19000		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
+#define JOINT_MIN_ABS		15900		// Absolute encoder at MIN (Max dorsiflexion, 30Deg), was 19000
 #define JOINT_MAX_ABS		12624		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
 #define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
 #define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
@@ -368,7 +368,7 @@ void torqueSweepTest(struct act_s *actx);
 //Safety limits
 #define PCB_TEMP_LIMIT_INIT		70
 #define MOTOR_TEMP_LIMIT_INIT	70
-#define ABS_TORQUE_LIMIT_INIT	90	    // Joint torque [Nm], was 150
+#define ABS_TORQUE_LIMIT_INIT	100	    // Joint torque [Nm], was 150
 #define CURRENT_LIMIT_INIT		10000		// [mA] useful in this form, 40000 max, was 50000
 
 // Motor Temp Sensor

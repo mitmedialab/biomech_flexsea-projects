@@ -105,6 +105,9 @@ static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
 
 struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
 
+LinearSpline linearSpline;
+static float theta_set_fsm; // test - TODO:change according to each state within the fsm
+
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -185,9 +188,13 @@ void MIT_DLeg_fsm_1(void)
 			    	stateMachine.current_state = STATE_EARLY_STANCE;
 
 			    } else {
-			    	runFlatGroundFSM(&act1);
+			    	//runFlatGroundFSM(&act1);
 
-			    	//act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
+			    	// -----Linear Spline-----
+
+			    	// -----Linear Spline-----
+			    	theta_set_fsm = (float) user_data_1.w[3];
+			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3], user_data_1.w[4]);
 			    	setMotorTorque(&act1, act1.tauDes);
 
 //			        rigid1.mn.genVar[0] = startedOverLimit;
@@ -197,8 +204,8 @@ void MIT_DLeg_fsm_1(void)
 					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
 					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
 					rigid1.mn.genVar[6] = (int16_t) (JIM_LG); // LG
-					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
-					rigid1.mn.genVar[8] = stateMachine.current_state;
+					//rigid1.mn.genVar[7] = (int16_t) time_state; // TA. was (JIM_TA)
+					rigid1.mn.genVar[8] = (int16_t) time; // was stateMachine.current_state
 					rigid1.mn.genVar[9] = act1.tauDes*100;
 			    }
 
@@ -637,13 +644,30 @@ float calcRestoringCurrent(struct act_s *actx, float N) {
  * 			k1,k2,b, impedance parameters
  * return: 	tor_d, desired torque
  */
-float biomCalcImpedance(float k1, float k2, float b, float theta_set)
+float biomCalcImpedance(float k1, float k2, float b, float theta_set, float res_factor)
 {
 	float theta = 0, theta_d = 0;
 	float tor_d = 0;
+	static uint32_t time_state = 0; // for linear spline
 
 	theta = act1.jointAngleDegrees;
 	theta_d = act1.jointVelDegrees;
+
+	// -----LinearSpline-----
+	linearSpline.xi = -1.0;
+	linearSpline.xf = res_factor; // w[4]? - Resolution factor - Need to verify, transition time in fsm is max 100 ms
+	linearSpline.yi = theta;
+	linearSpline.yf = theta_set_fsm;
+	linearSpline.Y = (((linearSpline.yf - linearSpline.yi) * ((float)time_state - linearSpline.xi)) / (linearSpline.xf - linearSpline.xi)) + linearSpline.yi;
+	theta_set = linearSpline.Y;
+	// -----Linear Spline-----
+
+	rigid1.mn.genVar[7] = (int16_t) time_state;
+	time_state++; // for linear spline
+	if ((theta <= (theta_set_fsm + 3.0)) || (theta >= (theta_set_fsm - 3.0))){ // torque seems not be working
+		time_state = 0;
+	}
+
 	tor_d = k1 * (theta_set - theta ) + k2 * powf((theta_set - theta ), 3) - b*theta_d;
 
 	return tor_d;
