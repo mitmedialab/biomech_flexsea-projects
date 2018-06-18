@@ -21,8 +21,12 @@
 #define GAIT_TORQUE_TRACKING 1
 #define USER_TORQUE_COMMAND 2
 #define TRAJECTORY_TORQUE_TRACKING 3
-#define CONTROL_STRATEGY GAIT_TORQUE_TRACKING
+#define CONTROL_STRATEGY USER_TORQUE_COMMAND
 #define PD_TUNING
+
+#if CONTROL_STRATEGY == TRAJECTORY_TORQUE_TRACKING
+	#define TRACK_PERIOD 3
+#endif
 
 //Angle Limit
 #define ENC_POS_MAX 42000
@@ -143,7 +147,7 @@
 // Running exoskeleton parameter(s)
 //****************************************************************************
 #define MOMENT_ARM_ON_FOOT 				0.25 //m, cable tension force's applied arm
-#define ANKLE_TORQUE_PER_TICK			(FORCE_PER_TICK*MOMENT_ARM_ON_FOOT) // N.m/tick, 0.01924465
+#define ANKLE_TORQUE_PER_TICK			2.*(FORCE_PER_TICK*MOMENT_ARM_ON_FOOT) // N.m/tick, 0.01924465
 #define ANKLE_TORQUE_CALIB_M			0.0185766 // Torque = M*tick + B, from collected data set, applied load
 #define ANKLE_TORQUE_CALIB_B			-613.9204465 	// Torque = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
@@ -205,6 +209,8 @@
 #define OMEGA_THRESHOLD 0.2		//Prevent noise
 //#define DEADBAND 0.523
 #define DEADBAND 0.489
+#define EXO_ANKLE_DEADBAND 12.
+#define FRICTION_COMPENSATION 1.8
 
 //Values for motor 2
 //#define K1 0.051

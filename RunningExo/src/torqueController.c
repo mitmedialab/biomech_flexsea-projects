@@ -51,6 +51,11 @@ void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Boo
 	if(feedFoward)
     {
 		//vFeedForward = torqueReference*MOT_R/MOT_KT+MOT_KT*omega;
+//		if(motorTorque > TORQUE_EPSILON)
+//		{
+//			motorTorque += ankleTorqueToMotorTorque(EXO_ANKLE_DEADBAND);
+//		}
+		motorTorque*=FRICTION_COMPENSATION;
 		vFeedForward = motorTorque*K1;
 		if(abs(omega)>OMEGA_THRESHOLD)
 		{
@@ -83,10 +88,12 @@ void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Boo
     	vFeedBack = TORQUE_KP*currentAnkleTorqueError+TORQUE_KD*dAnkleTorqueError;
 		#endif	//#ifdef PD_TUNING
     	targetV += vFeedBack;
-    	rigid1.mn.genVar[8]=user_data_1.w[2]*1e-3*dAnkleTorqueError;//debug
+    	rigid1.mn.genVar[5]=user_data_1.w[2]*dAnkleTorqueError;//debug
+
     	previousAnkleTorqueError =previousAnkleTorqueError*(1-DERIVATIVE_WEIGHTING_FACTOR)+DERIVATIVE_WEIGHTING_FACTOR*currentAnkleTorqueError;
-    	rigid1.mn.genVar[5]=vFeedBack*1000;//debug
     }
+	rigid1.mn.genVar[8]=vFeedBack*1000;//debug
+	rigid1.mn.genVar[9]=vFeedForward*1000;//debug
 	//setControlMode(CTRL_OPEN);	//set to open loop voltage controller
 	setMotorVoltage(targetV*1000);
 

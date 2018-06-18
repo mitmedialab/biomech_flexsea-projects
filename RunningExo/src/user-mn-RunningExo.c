@@ -210,15 +210,15 @@ void RunningExo_fsm_1(void)
 
 					#if (CONTROL_STRATEGY == TRAJECTORY_TORQUE_TRACKING)
 			    		trackTorque();
-			    		rigid1.mn.genVar[2] = torqueCommand*1000.0;
+			    		rigid1.mn.genVar[2] = torqueCommand*10.0;
 			    	#endif
 
 
 			    	#if CONTROL_STRATEGY == USER_TORQUE_COMMAND
 			    		//User torque command input from GUI
-						torqueCommand = user_data_1.w[0]*1.0/1000.0;
+						torqueCommand = user_data_1.w[0]*1.0/10.0;
 			    		//echo torque command
-			    		rigid1.mn.genVar[2] = torqueCommand*1000.0;
+			    		rigid1.mn.genVar[2] = torqueCommand*10.0;
 					#endif //CONTROL_STRATEGY == USER_TORQUE_COMMAND
 			    	//Send torque command
 			    	setAnkleTorque(torqueCommand, &act_para, 1,1);
@@ -331,9 +331,9 @@ void trackTorque(void)
 	static float percentStance = 0;
 	uint16_t currentIndex = 0;
 	currentIndex = (int)(percentStance*(float)TABLE_SIZE);
-	float torqueValue = torqueTrajectory[currentIndex];
+	float torqueValue = torqueTrajectory[currentIndex]*10;
 	torqueCommand=torqueValue;
-	percentStance+=0.001;
+	percentStance+=0.001/TRACK_PERIOD;
 	if (percentStance>1)
 	{
 		percentStance = 0;
@@ -469,7 +469,7 @@ void getAnkleKinematics(struct actuation_parameters *actx)
 ////Determine torque at ankle
 void getAnkleTorque(struct actuation_parameters *actx)
 {
-	 actx->ankleTorqueMeasured = ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B; //N.m
+	 actx->ankleTorqueMeasured = (ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B)*2.0; //N.m
 	 actx->ankleTorqueMeasured = actx->ankleTorqueMeasured>0? actx->ankleTorqueMeasured:0;//negative torque is impos
 	 rigid1.mn.genVar[4] = actx->ankleTorqueMeasured*1000;
 }
