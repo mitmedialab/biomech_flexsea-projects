@@ -19,8 +19,8 @@ Act_s act1;
 WalkParams walkParams;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {1.5, 0.0, 0.3, -13.0}; // was -10.0
-GainParams lswGains = {1.5, 1, 0.3, 0.0};
+GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
+GainParams lswGains = {1.5, 1, 0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
@@ -74,7 +74,7 @@ void runFlatGroundFSM(Act_s *actx) {
     	///////////////////////////////////////////////////
     }
 
-    updateUserWrites(actx, &walkParams);
+    updateUserWrites(actx, &walkParams); // not implemented
 
     stateMachine.on_entry_sm_state = stateMachine.current_state; // save the state on entry, assigned to last_current_state on exit
 
