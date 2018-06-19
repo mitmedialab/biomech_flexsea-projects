@@ -204,7 +204,7 @@ void MIT_DLeg_fsm_1(void)
 					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
 					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
 					rigid1.mn.genVar[6] = (int16_t) (JIM_LG); // LG
-					//rigid1.mn.genVar[7] = (int16_t) time_state; // TA. was (JIM_TA)
+					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
 					rigid1.mn.genVar[8] = (int16_t) time; // was stateMachine.current_state
 					rigid1.mn.genVar[9] = act1.tauDes*100;
 			    }
@@ -654,24 +654,22 @@ float biomCalcImpedance(float k1, float k2, float b, float theta_set, float res_
 	theta_d = act1.jointVelDegrees;
 
 	// -----LinearSpline-----
-	linearSpline.xi = -1.0;
-	linearSpline.xf = res_factor; // w[4]? - Resolution factor - Need to verify, transition time in fsm is max 100 ms
+	linearSpline.xi = -1.0; // to not divide by zero
+	linearSpline.xf = res_factor; // Resolution factor, transition time in fsm is max 100 ms
 	linearSpline.yi = theta;
 	linearSpline.yf = theta_set_fsm;
 	linearSpline.Y = (((linearSpline.yf - linearSpline.yi) * ((float)time_state - linearSpline.xi)) / (linearSpline.xf - linearSpline.xi)) + linearSpline.yi;
 	theta_set = linearSpline.Y;
 	// -----Linear Spline-----
 
-	rigid1.mn.genVar[7] = (int16_t) time_state;
 	time_state++; // for linear spline
-	if ((theta <= (theta_set_fsm + 3.0)) || (theta >= (theta_set_fsm - 3.0))){ // torque seems not be working
+	if ((theta <= (theta_set_fsm + 3.0)) || (theta >= (theta_set_fsm - 3.0))){ // torque seems not be working, was 3.0
 		time_state = 0;
 	}
 
 	tor_d = k1 * (theta_set - theta ) + k2 * powf((theta_set - theta ), 3) - b*theta_d;
 
 	return tor_d;
-
 }
 
 void mit_init_current_controller(void) {

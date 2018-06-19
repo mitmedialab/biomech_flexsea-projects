@@ -103,22 +103,16 @@ void runFlatGroundFSM(Act_s *actx) {
 			if (isTransitioning) {
 				walkParams.virtual_hardstop_tq = 0.0;
 				// initialize linearSpline params once
-				//linearSpline.res_factor = 1.0; // to change interpolation resolution
-				//linearSpline.res_size = (linearSpline.xf - linearSpline.xi) / linearSpline.res_factor;
-				//linearSpline.xi = (float)time_in_state; // cast?
-				//linearSpline.yi = actx->jointAngleDegrees;
-				//linearSpline.xf = (float)time_in_state + linearSpline.res_size; // Not sure. cast?
-				//linearSpline.yf = eswGains.thetaDes;
+				// theta_set_fsm
+				// xi, xf
 			}
 
 			// TODO: linear spline in function. end condition?
-			//spline_index = linearSpline.xi + linearSpline.res_factor;
-			//linearSpline.X = spline_index;
-			//linearSpline.Y = (((linearSpline.yf - linearSpline.yi) * (spline_index - linearSpline.xi)) / (linearSpline.xf - linearSpline.xi)) + linearSpline.yi;
-			//spline_index = spline_index + linearSpline.res_factor; // cast?
+
 
 			// Instead of fixed gains, spline
-			//eswGains.thetaDes = linearSpline.Y; // gains need to be modified? - k1, b
+
+
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
 
             //Early Swing transition vectors
@@ -196,7 +190,6 @@ void runFlatGroundFSM(Act_s *actx) {
 					}
 
 				}*/
-
 
 				updateVirtualHardstopTorque(actx, &walkParams);
 				updateImpedanceParams(actx, &walkParams);
