@@ -24,6 +24,10 @@
 #include "runningExo-structs.h"
 #include "runningExo-parameters.h"
 
+derivativeAverager derAvg={
+	.sum=0,.average=0,.lastIndex=0
+};
+
 void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Bool feedFoward, _Bool feedBack)
 {
 	//TODO: Consider controller architecture of feedback and feedforward blocks
@@ -82,13 +86,14 @@ void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Boo
     	float currentAnkleTorque =act_para->ankleTorqueMeasured;
     	float currentAnkleTorqueError = torqueReference - currentAnkleTorque;
     	float dAnkleTorqueError = (currentAnkleTorqueError-previousAnkleTorqueError)/(TIMESTEP_SIZE*1.0);
+    	float averagedDerivative = updateDerivative(&derAvg, dAnkleTorqueError);
     	#ifdef PD_TUNING
-    	vFeedBack =user_data_1.w[1]*1e-3*currentAnkleTorqueError+user_data_1.w[2]*1e-6*dAnkleTorqueError;
+    	vFeedBack =user_data_1.w[1]*1e-3*currentAnkleTorqueError+user_data_1.w[2]*1e-6*averagedDerivative;
 		#else
-    	vFeedBack = TORQUE_KP*currentAnkleTorqueError+TORQUE_KD*dAnkleTorqueError;
+    	vFeedBack = TORQUE_KP*currentAnkleTorqueError+TORQUE_KD*averagedDerivative;
 		#endif	//#ifdef PD_TUNING
     	targetV += vFeedBack;
-    	rigid1.mn.genVar[5]=user_data_1.w[2]*dAnkleTorqueError;//debug
+    	rigid1.mn.genVar[5]=dAnkleTorqueError;//debug
 
     	previousAnkleTorqueError =previousAnkleTorqueError*(1-DERIVATIVE_WEIGHTING_FACTOR)+DERIVATIVE_WEIGHTING_FACTOR*currentAnkleTorqueError;
     }

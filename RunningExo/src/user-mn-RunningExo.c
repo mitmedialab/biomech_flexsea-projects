@@ -53,7 +53,7 @@ uint8_t mitRunningExoInfo[2] = {PORT_RS485_2, PORT_RS485_2};
 int16_t fsm1State;
 
 #if(CONTROL_STRATEGY==GAIT_TORQUE_TRACKING)
-float torqueProfileGain = DEFAULT_TORQUE_PROFILE_GAIN;
+static float torqueProfileGain = DEFAULT_TORQUE_PROFILE_GAIN;
 int8_t bodyWeight = DEFAULT_BODY_WEIGHT;//user body weight (kg)
 float currentScalar = CURRENT_SCALAR_INIT;
 #endif //CONTROL_STRATEGY==GAIT_TORQUE_TRACKING
@@ -61,7 +61,7 @@ float torqueCommand;
 
 //initialize running exo system state
 struct runningExoSystemState runningExoState =
-{.state=0,.prevStanceDuration=0,.timer=0,.pedometer=0,.heelStrikeTime=0,.toeOffTime=0, .enableOutput=0, .running=1, .prevGaitDuration=0, .footFlatTime=0};	//zero initialization
+{.state=0,.prevStanceDuration=0,.timer=0,.pedometer=0,.heelStrikeTime=0,.toeOffTime=0, .enableOutput=0, .running=0, .prevGaitDuration=0, .footFlatTime=0};	//zero initialization
 
 // initialize running exo sensor values struct
 actuation_parameters act_para =
@@ -179,6 +179,9 @@ void RunningExo_fsm_1(void)
 			    else
 			    {
 					#if (CONTROL_STRATEGY == GAIT_TORQUE_TRACKING)
+					#ifdef VARIABLE_BIO_TORQUE_GAIN
+			    		torqueProfileGain = user_data_1.w[3]*1.0/100.0;;
+					#endif
 			    	//Torque Trajectory Tracking
 			    	//Update states
 			    	gaitStateTransition();
@@ -204,7 +207,7 @@ void RunningExo_fsm_1(void)
 			    	}
 			    	runningExoState.timer+=1;					//increase timer
 			    	torqueCommand *= (int)runningExoState.enableOutput;			//safety check
-			    	rigid1.mn.genVar[2] = torqueCommand*1000;
+			    	rigid1.mn.genVar[2] = torqueCommand*100;
 			    	rigid1.mn.genVar[3] = runningExoState.state;
 					#endif //CONTROL_STRATEGY == TORQUE_TRACKING
 
@@ -471,7 +474,7 @@ void getAnkleTorque(struct actuation_parameters *actx)
 {
 	 actx->ankleTorqueMeasured = (ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B)*2.0; //N.m
 	 actx->ankleTorqueMeasured = actx->ankleTorqueMeasured>0? actx->ankleTorqueMeasured:0;//negative torque is impos
-	 rigid1.mn.genVar[4] = actx->ankleTorqueMeasured*1000;
+	 rigid1.mn.genVar[4] = actx->ankleTorqueMeasured*100;
 }
 
 float motorTorqueToAnkleTorque(float motorTorque)

@@ -21,7 +21,7 @@
 #define GAIT_TORQUE_TRACKING 1
 #define USER_TORQUE_COMMAND 2
 #define TRAJECTORY_TORQUE_TRACKING 3
-#define CONTROL_STRATEGY TRAJECTORY_TORQUE_TRACKING
+#define CONTROL_STRATEGY GAIT_TORQUE_TRACKING
 #define PD_TUNING
 
 #if CONTROL_STRATEGY == TRAJECTORY_TORQUE_TRACKING
@@ -36,7 +36,7 @@
 //Human parameters
 #define LEFT_ANKLE 0
 #define Right_ANKLE 1
-#define DEFAULT_BODY_WEIGHT 75 // kg, subject's body weight
+#define DEFAULT_BODY_WEIGHT 68 // kg, subject's body weight
 #define	MAX_UNIT_RUNNING_TORQUE	2 // N.m/kg, we use 2 here, can be changed according to the applied torque profile
 #define ACTIVE_LEG 0
 #define DISABLED_STEPS 5
@@ -87,7 +87,8 @@
 //Lookup Table
 //#if (CONTROL_STRATEGY == GAIT_TORQUE_TRACKING)
 #define TABLE_SIZE 1001
-#define DEFAULT_TORQUE_PROFILE_GAIN 0.08    	//percentage of biological torque applied to the subject
+#define DEFAULT_TORQUE_PROFILE_GAIN 0.2    	//percentage of biological torque applied to the subject
+#define VARIABLE_BIO_TORQUE_GAIN
 //State Definition
 #define DEACTIVATED 0
 #define HEEL_STRIKE 1						//between heel strike and foot flat
@@ -142,7 +143,7 @@
 #define FORCE_CALIB_B					-2455.6817859 	// Force = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
 #define MIN_FEEDBACK_ANKLE_TORQUE		4.5//Nm minimum command to activate feedback system
-#define DERIVATIVE_WEIGHTING_FACTOR		0.1
+#define DERIVATIVE_WEIGHTING_FACTOR		0.01
 //****************************************************************************
 // Running exoskeleton parameter(s)
 //****************************************************************************
@@ -151,7 +152,7 @@
 #define ANKLE_TORQUE_CALIB_M			0.0185766 // Torque = M*tick + B, from collected data set, applied load
 #define ANKLE_TORQUE_CALIB_B			-613.9204465 	// Torque = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
-#define SLACK_ANKLE_TORQUE				1.7 //prevent string slack
+#define SLACK_ANKLE_TORQUE				4 //prevent string slack
 #elif ACTIVE_LEG == RIGHT_ANKLE
 
 #define LOAD_MAX_IN_POUND				500		// lb, maximum mass the force sensor can measure
@@ -247,9 +248,11 @@
 
 //Torque Control PID gains
 //For motor 1
-#define TORQUE_KP			800e-3 //10.
-#define TORQUE_KD			500e-6 //2.
+#define TORQUE_KP			400e-3 //10.
+#define TORQUE_KD			100e-6 //2.
 
+//Averager Filtering
+#define AVERAGE_FILTER_SAMPLES 80
 // extern variables
 extern struct actuation_parameters act_para;
 

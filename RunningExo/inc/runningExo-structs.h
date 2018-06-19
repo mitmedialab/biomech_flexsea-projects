@@ -9,6 +9,8 @@
 #define RUNNINGEXO_STRUCTS_H
 #include "main.h"
 #include "math.h"
+#include "runningExo-parameters.h"
+
 
 enum {
 	SAFETY_OK				=	0,
@@ -80,5 +82,15 @@ typedef struct{
 
 } GainParams;
 
+typedef struct derivativeAverager{
+	float prevDerivatives[AVERAGE_FILTER_SAMPLES];
+	float sum;
+	float average;
+	int lastIndex;
+}derivativeAverager;
+
+float updateDerivative(derivativeAverager *der,float newValue);
+float getDerivative(derivativeAverager *der);
 
 #endif /* RUNNINGEXO_STRUCTS_H */
+
