@@ -101,6 +101,18 @@ typedef struct walkParams {
 
 } WalkParams;
 
+typedef struct linearSpline{
+	float xi;
+	float xf;
+	float yi;
+	float yf;
+	float X;
+	float Y;
+	float theta_set_fsm;
+	float res_factor;
+	uint32_t time_state;
+} LinearSpline;
+
 
 
 //****************************************************************************

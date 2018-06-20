@@ -68,6 +68,7 @@ extern GainParams emgFreeGains;
 extern WalkParams walkParams;
 extern WalkingStateMachine stateMachine;
 extern Act_s act1;
+extern LinearSpline linearSpline;
 
 //****************************************************************************
 // Prototype(s):

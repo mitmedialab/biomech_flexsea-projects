@@ -17,9 +17,10 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 WalkParams walkParams;
+LinearSpline linearSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
+GainParams eswGains = {1.5, 0.0, 0.03, -10.0}; // b was .3
 GainParams lswGains = {1.5, 1, 0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
@@ -42,6 +43,8 @@ static void updateUserWrites(Act_s *actx, WalkParams *wParams);
 static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams);
 static void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
 static void initializeUserWrites(WalkParams *wParams);
+
+static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx);
 
 
 /** Impedance Control Level-ground Walking FSM
@@ -107,7 +110,19 @@ void runFlatGroundFSM(Act_s *actx) {
             //Put anything you want to run ONCE during state entry.
 			if (isTransitioning) {
 				walkParams.virtual_hardstop_tq = 0.0;
+				// initialize linear spline params once
+				linearSpline.time_state = 0;
+				linearSpline.res_factor = 5.0; // resolution factor TODO: change magic number
+				linearSpline.xi = -1.0; // to not divide by zero
+				linearSpline.xf = linearSpline.res_factor;
+				linearSpline.theta_set_fsm = eswGains.thetaDes;
+				linearSpline.yi = actx->jointAngleDegrees;
+				linearSpline.yf = linearSpline.theta_set_fsm;
 			}
+
+			// Linear Spline
+			calcLinearSpline(&linearSpline, actx);
+			eswGains.thetaDes = linearSpline.Y; // new thetaDes after linear spline
 
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
 
@@ -444,6 +459,17 @@ void updatePFDFState(struct act_s *actx) {
 	PFDF_state[0] = equilibriumAngle;
 	PFDF_state[1] = 0;
 	PFDF_state[2] = 0;
+}
+
+//
+static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
+	lSpline->yi = actx->jointAngleDegrees;
+	lSpline->Y = (((lSpline->yf - lSpline->yi) * ((float)lSpline->time_state - lSpline->xi)) / (lSpline->xf - lSpline->xi)) + lSpline->yi;
+	lSpline->time_state++;
+	// Condition to reset time_state - TODO: Correct?
+	if ((lSpline->yi <= (lSpline->theta_set_fsm + 3.0)) || (lSpline->yi >= (lSpline->theta_set_fsm - 3.0))){
+		lSpline->time_state = 0;
+	}
 }
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
