@@ -109,10 +109,10 @@ void runFlatGroundFSM(Act_s *actx) {
 
             //Put anything you want to run ONCE during state entry.
 			if (isTransitioning) {
-				walkParams.virtual_hardstop_tq = 0.0;
+				walkParams.virtual_hardstop_tq = 1.0;
 				// initialize linear spline params once
 				linearSpline.time_state = 0;
-				linearSpline.res_factor = 5.0; // resolution factor TODO: change magic number
+				linearSpline.res_factor = 1.0; // resolution factor TODO: change magic number
 				linearSpline.xi = -1.0; // to not divide by zero
 				linearSpline.xf = linearSpline.res_factor;
 				linearSpline.theta_set_fsm = eswGains.thetaDes;
@@ -467,8 +467,9 @@ static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
 	lSpline->Y = (((lSpline->yf - lSpline->yi) * ((float)lSpline->time_state - lSpline->xi)) / (lSpline->xf - lSpline->xi)) + lSpline->yi;
 	lSpline->time_state++;
 	// Condition to reset time_state - TODO: Correct?
-	if ((lSpline->yi <= (lSpline->theta_set_fsm + 3.0)) || (lSpline->yi >= (lSpline->theta_set_fsm - 3.0))){
+	if (lSpline->Y <= (lSpline->theta_set_fsm + 3.0)){
 		lSpline->time_state = 0;
+		lSpline->Y = lSpline->theta_set_fsm;
 	}
 }
 
