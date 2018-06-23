@@ -172,7 +172,6 @@ void RunningExo_fsm_1(void)
 			    {
 			    	//Shutdown motor if safety check did not pass
 			    	//gaitStateTransition(); //for testing only
-			    	rigid1.mn.genVar[9]=-111;
 			    	return;
 			    }
 
@@ -375,14 +374,17 @@ int8_t safetyShutoff(actuation_parameters *actx)
 	if(actx->boardTemperature > MAX_BOARD_TEMP)
 	{
 		//shutdown motor
+    	rigid1.mn.genVar[9]=-111;
 		setMotorVoltage(0);
 		return 1;
 	}
 	//Check Motor Position
-	if(actx->motorAngularVel>ENC_POS_MAX||actx->motorAngularVel<ENC_POS_MIN)
-	{
-		return 1;
-	}
+//	if(actx->currentMotorEncPosition>ENC_POS_MAX||actx->currentMotorEncPosition<ENC_POS_MIN)
+//	{
+//    	rigid1.mn.genVar[9]=-222;
+//		setMotorVoltage(0);
+//		return 1;
+//	}
 
 	//Check Motor Velocity
 	//Note that this is not a "hard brake" to prevent oscillatory behavior around limit.

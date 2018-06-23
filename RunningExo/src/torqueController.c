@@ -30,6 +30,13 @@ derivativeAverager derAvg={
 
 void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Bool feedFoward, _Bool feedBack)
 {
+	//Shutdown feedback if below minimum feedback position
+	if(act_para->currentMotorEncPosition< FEEDBACK_POS_MIN && feedBack)
+	{
+		setAnkleTorque(torqueReference, act_para, feedFoward, 0);
+		return;
+	}
+
 	//TODO: Consider controller architecture of feedback and feedforward blocks
 	torqueReference = torqueReference >SLACK_ANKLE_TORQUE?torqueReference:SLACK_ANKLE_TORQUE;//prevent string slack
 	float motorTorque = ankleTorqueToMotorTorque(torqueReference);
@@ -42,15 +49,6 @@ void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Boo
 	static float previousAnkleTorqueError =0.0;
 	//float omega = ((*(rigid1.ex.enc_ang_vel)*1.0)/ENCODER_CPR) * 2 * M_PI*1000;
 	float omega = act_para->motorAngularVel;
-
-	//Prevent motor from spinning beyond lower limit
-//	if(act_para->currentMotorEncPosition < FEEDBACK_POS_MIN)
-//	{
-//		targetV = -0.0002*(act_para->currentMotorEncPosition-(FEEDBACK_POS_MIN+2000));
-//		targetV = targetV<FEEDBACK_MIN_VOLTAGE?FEEDBACK_MIN_VOLTAGE:targetV;//limit voltage
-//		setMotorVoltage(targetV*1000);
-//		return;
-//	}
 
 	if(feedFoward)
     {

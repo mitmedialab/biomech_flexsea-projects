@@ -29,9 +29,9 @@
 #endif
 
 //Angle Limit
-#define ENC_POS_MAX 42000
-#define ENC_POS_MIN -28000
-#define FEEDBACK_POS_MIN -22000
+//#define ENC_POS_MAX 1000000		//basically no limit, not used.
+//#define ENC_POS_MIN -28000			//not used.
+#define FEEDBACK_POS_MIN 10000
 #define FEEDBACK_MIN_VOLTAGE -8.
 //Human parameters
 #define LEFT_ANKLE 0
@@ -152,7 +152,7 @@
 #define ANKLE_TORQUE_CALIB_M			0.0185766 // Torque = M*tick + B, from collected data set, applied load
 #define ANKLE_TORQUE_CALIB_B			-613.9204465 	// Torque = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
-#define SLACK_ANKLE_TORQUE				4 //prevent string slack
+#define SLACK_ANKLE_TORQUE				4. //prevent string slack
 #elif ACTIVE_LEG == RIGHT_ANKLE
 
 #define LOAD_MAX_IN_POUND				500		// lb, maximum mass the force sensor can measure
