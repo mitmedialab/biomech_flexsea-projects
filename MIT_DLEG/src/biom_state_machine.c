@@ -106,7 +106,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
         case STATE_INIT: //1
 
-            stateMachine.current_state = STATE_LATE_SWING;
+        	stateMachine.current_state = STATE_LATE_SWING;
 
             break;
 					
@@ -128,7 +128,6 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			// Cubic Spline
 			calcCubicSpline(&cubicSpline, actx);
-
 			eswGains.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
@@ -493,9 +492,9 @@ static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
 static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams){
 	cSpline->time_state = 0;
 	cSpline->theta_set_fsm = gainParams.thetaDes;
-	cSpline->theta_set_fsm_int = actx->jointAngleDegrees-((actx->jointAngleDegrees-cSpline->theta_set_fsm)/4.0); // TODO: magic number (4)
-	cSpline->res_factor = 85.0; // TODO: magic number
-	cSpline->x_int = cSpline->res_factor * 0.7; // TODO: magic number (0.7)
+	cSpline->theta_set_fsm_int = actx->jointAngleDegrees-((actx->jointAngleDegrees-cSpline->theta_set_fsm)/5.0); // TODO: magic number (4)
+	cSpline->res_factor = 90.0; // TODO: magic number
+	cSpline->x_int = cSpline->res_factor * 0.5; // TODO: magic number (0.7)
 	cSpline->y_int = cSpline->theta_set_fsm_int;
 	cSpline->xi = 0.0;
 	cSpline->yi = actx->jointAngleDegrees; //joint_angle
