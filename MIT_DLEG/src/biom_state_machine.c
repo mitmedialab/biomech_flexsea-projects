@@ -18,6 +18,7 @@ WalkingStateMachine stateMachine;
 Act_s act1;
 WalkParams walkParams;
 LinearSpline linearSpline;
+CubicSpline cubicSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.03, -10.0}; // b was .3
@@ -44,7 +45,11 @@ static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wPa
 static void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
 static void initializeUserWrites(WalkParams *wParams);
 
+static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams);
 static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx);
+static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams);
+static void solveTridiagonalMatrix(CubicSpline *cSpline);
+static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx);
 
 
 /** Impedance Control Level-ground Walking FSM
@@ -111,18 +116,20 @@ void runFlatGroundFSM(Act_s *actx) {
 			if (isTransitioning) {
 				walkParams.virtual_hardstop_tq = 1.0;
 				// initialize linear spline params once
-				linearSpline.time_state = 0;
-				linearSpline.res_factor = 1.0; // resolution factor TODO: change magic number
-				linearSpline.xi = -1.0; // to not divide by zero
-				linearSpline.xf = linearSpline.res_factor;
-				linearSpline.theta_set_fsm = eswGains.thetaDes;
-				linearSpline.yi = actx->jointAngleDegrees;
-				linearSpline.yf = linearSpline.theta_set_fsm;
+				//initializeLinearSplineParams(&linearSpline, actx, eswGains);
+				// initialize cubic spline params once
+				initializeCubicSplineParams(&cubicSpline, actx, eswGains);
+				solveTridiagonalMatrix(&cubicSpline);
 			}
 
 			// Linear Spline
-			calcLinearSpline(&linearSpline, actx);
-			eswGains.thetaDes = linearSpline.Y; // new thetaDes after linear spline
+			//calcLinearSpline(&linearSpline, actx);
+			//eswGains.thetaDes = linearSpline.Y; // new thetaDes after linear spline
+
+			// Cubic Spline
+			calcCubicSpline(&cubicSpline, actx);
+
+			eswGains.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
 
@@ -462,6 +469,16 @@ void updatePFDFState(struct act_s *actx) {
 }
 
 //
+static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams){
+	lSpline->time_state = 0;
+	lSpline->res_factor = 1.0; // resolution factor TODO: change magic number
+	lSpline->xi = -1.0; // to not divide by zero
+	lSpline->xf = linearSpline.res_factor;
+	lSpline->theta_set_fsm = gainParams.thetaDes;
+	lSpline->yi = actx->jointAngleDegrees;
+	lSpline->yf = lSpline->theta_set_fsm;
+}
+
 static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
 	lSpline->yi = actx->jointAngleDegrees;
 	lSpline->Y = (((lSpline->yf - lSpline->yi) * ((float)lSpline->time_state - lSpline->xi)) / (lSpline->xf - lSpline->xi)) + lSpline->yi;
@@ -471,6 +488,110 @@ static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
 		lSpline->time_state = 0;
 		lSpline->Y = lSpline->theta_set_fsm;
 	}
+}
+
+static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams){
+	cSpline->time_state = 0;
+	cSpline->theta_set_fsm = gainParams.thetaDes;
+	cSpline->theta_set_fsm_int = actx->jointAngleDegrees-((actx->jointAngleDegrees-cSpline->theta_set_fsm)/4.0); // TODO: magic number (4)
+	cSpline->res_factor = 85.0; // TODO: magic number
+	cSpline->x_int = cSpline->res_factor * 0.7; // TODO: magic number (0.7)
+	cSpline->y_int = cSpline->theta_set_fsm_int;
+	cSpline->xi = 0.0;
+	cSpline->yi = actx->jointAngleDegrees; //joint_angle
+	cSpline->xf = cSpline->res_factor;
+	cSpline->yf = cSpline->theta_set_fsm;
+}
+
+static void solveTridiagonalMatrix(CubicSpline *cSpline){
+	float B[3], A[2], C[2], r[3];
+	float x[3];
+	float y[3];
+	x[0] = cSpline->xi;
+	x[1] = cSpline->x_int;
+	x[2] = cSpline->xf;
+	y[0] = cSpline->yi;
+	y[1] = cSpline->y_int;
+	y[2] = cSpline->yf;
+
+	B[0] = 2.0 / (x[1] - x[0]);
+	B[1] = 2.0 * ((1/(x[1]-x[0])) + (1/(x[2]-x[1])));
+	B[2] = 2.0 / (x[2]-x[1]);
+	A[0] = 1.0 / (x[1]-x[0]);
+	A[1] = 1.0 / (x[2]-x[1]);
+	C[0] = 1.0 / (x[1]-x[0]);
+	C[1] = 1.0 / (x[2]-x[1]);
+	r[0] = 3.0 * ((y[1]-y[0])/(pow(x[1]-x[0],2)));
+	r[1] = 3.0 * (((y[1]-y[0])/(pow(x[1]-x[0],2))) + ((y[2]-y[1])/(pow(x[2]-x[1],2))));
+	r[2] = 3.0 * ((y[2]-y[1])/(pow(x[2]-x[1],2)));
+
+	float e[3], f[3], g[2];
+	e[0] = 0;
+	e[1] = A[0];
+	e[2] = A[1];
+	for(int i=0; i<3; i++){
+		f[i] = B[i];
+	}
+	g[0] = C[0];
+	g[1] = C[1];
+
+	int n = 3; // f vector length
+	// Forward elimination
+	float factor;
+	for(int i = 1; i < n; i++){
+		factor = e[i] / f[i-1];
+		f[i] = f[i] - (factor * g[i-1]);
+		r[i] = r[i] - (factor * r[i-1]);
+	}
+	// Back substitution
+	float k[3];
+	k[n-1] = r[n-1] / f[n-1];
+	for(int i = 1; i >= 0; i--){
+		k[i] = (r[i] - (g[i] * k[i+1])) / f[i];
+	}
+
+	// ai and bi computation
+	float a1, a2, b1, b2;
+	a1 = k[0]*(x[1]-x[0]) - (y[1]-y[0]);
+	a2 = k[1]*(x[2]-x[1]) - (y[2]-y[1]);
+	b1 = -1.0*k[1]*(x[1]-x[0]) + (y[1]-y[0]);
+	b2 = -1.0*k[2]*(x[2]-x[1]) + (y[2]-y[1]);
+	cSpline->a1 = a1;
+	cSpline->a2 = a2;
+	cSpline->b1 = b1;
+	cSpline->b2 = b2;
+}
+
+static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx){
+	float t;
+	float q[2];
+	float x[3];
+	float y[3];
+	x[0] = cSpline->xi;
+	x[1] = cSpline->x_int;
+	x[2] = cSpline->xf;
+	y[0] = cSpline->yi;
+	y[1] = cSpline->y_int;
+	y[2] = cSpline->yf;
+
+	t = (cubicSpline.time_state - x[0]) / (x[1]-x[0]);
+	q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a1*(1-t)+(cSpline->b1*t)));
+
+	t = (cubicSpline.time_state - x[1]) / (x[2]-x[1]);
+	q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a2*(1-t)+(cSpline->b2*t)));
+
+	if (actx->jointAngleDegrees > cSpline->theta_set_fsm_int)
+		cSpline->Y = q[0];
+	else cSpline->Y = q[1];
+
+	cSpline->time_state++;
+
+	// Condition to reset time_state. TODO: Correct?
+	if (cSpline->Y <= (cSpline->theta_set_fsm + 3.0)){
+		//cSpline->time_state = 0; // Not sure about this
+		cSpline->Y = cSpline->theta_set_fsm;
+	}
+
 }
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE

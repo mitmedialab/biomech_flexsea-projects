@@ -113,6 +113,25 @@ typedef struct linearSpline{
 	uint32_t time_state;
 } LinearSpline;
 
+typedef struct cubicSpline{
+	float xi; // x initial
+	float x_int; // x intermediate
+	float xf; // x final
+	float yi; // y initial
+	float y_int; // y intermediate
+	float yf; // y final
+	float X; // interpolation x coordinate
+	float Y; // interpolation Y coordinate
+	float theta_set_fsm;
+	float theta_set_fsm_int;
+	float res_factor; // resolution factor
+	uint32_t time_state;
+	float a1;
+	float a2;
+	float b1;
+	float b2;
+} CubicSpline;
+
 
 
 //****************************************************************************
