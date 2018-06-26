@@ -28,7 +28,11 @@ derivativeAverager derAvg={
 	.sum=0,.average=0,.lastIndex=0
 };
 
-void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Bool feedFoward, _Bool feedBack)
+derivativeFilter derFil={
+	.lastIndex=0
+};
+
+void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Bool feedFoward, _Bool feedBack)
 {
 	//Shutdown feedback if below minimum feedback position
 	if(act_para->currentMotorEncPosition< FEEDBACK_POS_MIN && feedBack)
@@ -84,14 +88,17 @@ void setAnkleTorque(float torqueReference, actuation_parameters *act_para,  _Boo
     	float currentAnkleTorque =act_para->ankleTorqueMeasured;
     	float currentAnkleTorqueError = torqueReference - currentAnkleTorque;
     	float dAnkleTorqueError = (currentAnkleTorqueError-previousAnkleTorqueError)/(TIMESTEP_SIZE*1.0);
-    	float averagedDerivative = updateDerivative(&derAvg, dAnkleTorqueError);
+    	float averagedDerivative = updateDerivativeAverage(&derAvg, dAnkleTorqueError);
+//    	float filteredDerivative = updateDerivativeFilter(&derFil, dAnkleTorqueError);
+
     	#ifdef PD_TUNING
     	vFeedBack =user_data_1.w[1]*1e-3*currentAnkleTorqueError+user_data_1.w[2]*1e-6*averagedDerivative;
 		#else
     	vFeedBack = TORQUE_KP*currentAnkleTorqueError+TORQUE_KD*averagedDerivative;
 		#endif	//#ifdef PD_TUNING
     	targetV += vFeedBack;
-    	rigid1.mn.genVar[5]=dAnkleTorqueError;//debug
+//    	rigid1.mn.genVar[5]=filteredDerivative;//debug
+    	rigid1.mn.genVar[0]=averagedDerivative;//debug
 
     	previousAnkleTorqueError =previousAnkleTorqueError*(1-DERIVATIVE_WEIGHTING_FACTOR)+DERIVATIVE_WEIGHTING_FACTOR*currentAnkleTorqueError;
     }

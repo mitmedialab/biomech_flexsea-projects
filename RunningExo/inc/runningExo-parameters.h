@@ -7,6 +7,17 @@
 
 #ifndef RUNNING_EXO_PARAMETERS
 #define RUNNING_EXO_PARAMETERS
+#include "user-mn.h"
+#include "user-mn-ActPack.h"
+#include "flexsea_sys_def.h"
+#include "flexsea_user_structs.h"
+#include "flexsea_global_structs.h"
+#include <flexsea_system.h>
+#include "flexsea_cmd_calibration.h"
+#include <flexsea_comm.h>
+#include "flexsea_board.h"
+
+
 
 //Turn off safety check for testing purposes
 //#define DISABLE_SAFETY
@@ -22,7 +33,7 @@
 #define USER_TORQUE_COMMAND 2
 #define TRAJECTORY_TORQUE_TRACKING 3
 #define CONTROL_STRATEGY GAIT_TORQUE_TRACKING
-#define PD_TUNING
+//#define PD_TUNING
 
 #if CONTROL_STRATEGY == TRAJECTORY_TORQUE_TRACKING
 	#define TRACK_PERIOD 3
@@ -31,7 +42,7 @@
 //Angle Limit
 //#define ENC_POS_MAX 1000000		//basically no limit, not used.
 //#define ENC_POS_MIN -28000			//not used.
-#define FEEDBACK_POS_MIN 10000
+#define FEEDBACK_POS_MIN 10000		//TODO: this seems to change on every start up
 #define FEEDBACK_MIN_VOLTAGE -8.
 //Human parameters
 #define LEFT_ANKLE 0
@@ -207,7 +218,7 @@
 //Values for motor 1
 // V = tau_desired*K1+omega*K2
 #define K1 0.78//Motor Only 0.493
-#define K2 0.1155//Motor only: 0.1135
+#define K2 0.1125//Motor only: 0.1135
 #define OMEGA_THRESHOLD 0.2		//Prevent noise
 //#define DEADBAND 0.523
 #define DEADBAND 0.489
@@ -248,11 +259,30 @@
 
 //Torque Control PID gains
 //For motor 1
-#define TORQUE_KP			400e-3 //10.
-#define TORQUE_KD			100e-6 //2.
+#define TORQUE_KP			300e-3 //10.
+#define TORQUE_KD			-100e-6 //don't know why it's negative but it works well
 
 //Averager Filtering
 #define AVERAGE_FILTER_SAMPLES 80
+
+//Digital LPF
+#define LPF_SAMPLE_COUNT 62
+static const float LPF_COEFFICIENTS[LPF_SAMPLE_COUNT] = {0.00526686499700382,0.0333076591118252,
+							  0.107859852808001,0.227534642759739,0.333326852544359,0.329499070916401,
+							  0.172699406644114,-0.0517901034056601,-0.176913727961088,
+							  -0.112713620698725,0.0494147803722348,0.127266858406567,
+							  0.0490093786773033,-0.072383748526244,-0.0868594850269479,
+							  0.00775203978426433,0.0779184127860659,0.0378254421386039,
+							  -0.0453799557082701,-0.0567458282956024,0.00887033828750875,
+							  0.0531191789265961,0.0193707435453973,-0.0357115063583919,
+							  -0.0340690494637236,0.0139490687776598,0.0357622392982401,
+							  0.00526921542994905,-0.0276627188872557,-0.0172094978439014,
+							  0.0155900051997027,0.0221193976849347,-0.00227626115728514,
+							  -0.0187825326334373,-0.00558146647581938,0.0149258003318076,
+							  0.0140472946656259,-0.00297288051186792,-0.00925309141243743,
+							  0.00474873519148799,0.0215576639985494,0.0225225414349096,
+							  0.00921890841391762,-0.00369968175420303,-0.00734184373464438,
+							  -0.00441495051624024,-0.00115984206007953};
 // extern variables
 extern struct actuation_parameters act_para;
 

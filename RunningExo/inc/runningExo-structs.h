@@ -89,8 +89,17 @@ typedef struct derivativeAverager{
 	int lastIndex;
 }derivativeAverager;
 
-float updateDerivative(derivativeAverager *der,float newValue);
-float getDerivative(derivativeAverager *der);
+typedef struct derivativeFilter{
+	float prevDerivatives[LPF_SAMPLE_COUNT];
+	float result;
+	int lastIndex;
+}derivativeFilter;
+
+float updateDerivativeAverage(derivativeAverager* der,float newValue);
+float getDerivativeAverage(derivativeAverager* der);
+
+float updateDerivativeFilter(derivativeFilter* der, float newValue);
+float getDerivativeFilter(derivativeFilter* der, float newValue);
 
 #endif /* RUNNINGEXO_STRUCTS_H */
 
