@@ -21,7 +21,7 @@ LinearSpline linearSpline;
 CubicSpline cubicSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {1.5, 0.0, 0.03, -10.0}; // b was .3
+GainParams eswGains = {1.5, 0.0, 0.03, -15.0}; // b was .3, thetades was -10.0
 GainParams lswGains = {1.5, 1, 0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
@@ -494,7 +494,7 @@ static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainP
 	cSpline->theta_set_fsm = gainParams.thetaDes;
 	cSpline->theta_set_fsm_int = actx->jointAngleDegrees-((actx->jointAngleDegrees-cSpline->theta_set_fsm)/12.0); // TODO: magic number (4)
 	cSpline->theta_set_fsm_end = 7.5; // TODO: magic number
-	cSpline->res_factor = 58.0; // TODO: magic number
+	cSpline->res_factor = 48.0; // TODO: magic number
 	cSpline->x_int = cSpline->res_factor * 0.6; // TODO: magic number (0.7)
 	cSpline->y_int = cSpline->theta_set_fsm_int;
 	cSpline->xi = 0.0;
@@ -593,7 +593,7 @@ static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx, GainParams *gainP
 			cSpline->Y = q[0];
 		else cSpline->Y = q[1];
 
-		gainParams->k1 = 3.5;
+		gainParams->k1 = 4.2;
 		gainParams->k2 = 0.0;
 		gainParams->b = 0.03;
 		gainParams->thetaDes = cSpline->Y;
