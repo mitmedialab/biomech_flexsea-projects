@@ -49,7 +49,7 @@ static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, Gai
 static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx);
 static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams);
 static void solveTridiagonalMatrix(CubicSpline *cSpline);
-static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx);
+static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx, GainParams *gainParams);
 
 
 /** Impedance Control Level-ground Walking FSM
@@ -127,8 +127,8 @@ void runFlatGroundFSM(Act_s *actx) {
 			//eswGains.thetaDes = linearSpline.Y; // new thetaDes after linear spline
 
 			// Cubic Spline
-			calcCubicSpline(&cubicSpline, actx);
-			eswGains.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
+			calcCubicSpline(&cubicSpline, actx, &eswGains);
+			//eswGains.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
 
@@ -484,7 +484,7 @@ static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
 	lSpline->time_state++;
 	// Condition to reset time_state - TODO: Correct?
 	if (lSpline->Y <= (lSpline->theta_set_fsm + 3.0)){
-		lSpline->time_state = 0;
+		//lSpline->time_state = 0;
 		lSpline->Y = lSpline->theta_set_fsm;
 	}
 }
@@ -492,14 +492,15 @@ static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
 static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams){
 	cSpline->time_state = 0;
 	cSpline->theta_set_fsm = gainParams.thetaDes;
-	cSpline->theta_set_fsm_int = actx->jointAngleDegrees-((actx->jointAngleDegrees-cSpline->theta_set_fsm)/5.0); // TODO: magic number (4)
-	cSpline->res_factor = 90.0; // TODO: magic number
-	cSpline->x_int = cSpline->res_factor * 0.5; // TODO: magic number (0.7)
+	cSpline->theta_set_fsm_int = actx->jointAngleDegrees-((actx->jointAngleDegrees-cSpline->theta_set_fsm)/12.0); // TODO: magic number (4)
+	cSpline->theta_set_fsm_end = 7.5; // TODO: magic number
+	cSpline->res_factor = 58.0; // TODO: magic number
+	cSpline->x_int = cSpline->res_factor * 0.6; // TODO: magic number (0.7)
 	cSpline->y_int = cSpline->theta_set_fsm_int;
 	cSpline->xi = 0.0;
 	cSpline->yi = actx->jointAngleDegrees; //joint_angle
 	cSpline->xf = cSpline->res_factor;
-	cSpline->yf = cSpline->theta_set_fsm;
+	cSpline->yf = cSpline->theta_set_fsm_end; // was: theta_set_fsm
 }
 
 static void solveTridiagonalMatrix(CubicSpline *cSpline){
@@ -561,7 +562,7 @@ static void solveTridiagonalMatrix(CubicSpline *cSpline){
 	cSpline->b2 = b2;
 }
 
-static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx){
+static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx, GainParams *gainParams){
 	float t;
 	float q[2];
 	float x[3];
@@ -573,23 +574,32 @@ static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx){
 	y[1] = cSpline->y_int;
 	y[2] = cSpline->yf;
 
-	t = (cubicSpline.time_state - x[0]) / (x[1]-x[0]);
-	q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a1*(1-t)+(cSpline->b1*t)));
-
-	t = (cubicSpline.time_state - x[1]) / (x[2]-x[1]);
-	q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a2*(1-t)+(cSpline->b2*t)));
-
-	if (actx->jointAngleDegrees > cSpline->theta_set_fsm_int)
-		cSpline->Y = q[0];
-	else cSpline->Y = q[1];
-
-	cSpline->time_state++;
-
 	// Condition to reset time_state. TODO: Correct?
-	if (cSpline->Y <= (cSpline->theta_set_fsm + 3.0)){
+	if (actx->jointAngleDegrees <= cSpline->theta_set_fsm_end) { // was: if (cSpline->Y <= (cSpline->theta_set_fsm)
 		//cSpline->time_state = 0; // Not sure about this
 		cSpline->Y = cSpline->theta_set_fsm;
+		gainParams->k1 = 1.0;
+		gainParams->k2 = 0.0;
+		gainParams->b = 0.3;
+		gainParams->thetaDes = cSpline->Y;
 	}
+	else{
+		t = (cubicSpline.time_state - x[0]) / (x[1]-x[0]);
+		q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a1*(1-t)+(cSpline->b1*t)));
+
+		t = (cubicSpline.time_state - x[1]) / (x[2]-x[1]);
+		q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a2*(1-t)+(cSpline->b2*t)));
+		if (actx->jointAngleDegrees > cSpline->theta_set_fsm_int)
+			cSpline->Y = q[0];
+		else cSpline->Y = q[1];
+
+		gainParams->k1 = 3.5;
+		gainParams->k2 = 0.0;
+		gainParams->b = 0.03;
+		gainParams->thetaDes = cSpline->Y;
+	}
+
+	cSpline->time_state++;
 
 }
 

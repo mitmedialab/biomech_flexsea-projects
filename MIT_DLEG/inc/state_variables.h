@@ -124,6 +124,7 @@ typedef struct cubicSpline{
 	float Y; // interpolation Y coordinate
 	float theta_set_fsm;
 	float theta_set_fsm_int;
+	float theta_set_fsm_end;
 	float res_factor; // resolution factor
 	uint32_t time_state;
 	float a1;
