@@ -105,9 +105,9 @@ float windowSmoothAxial(float val);
 //#define IS_KNEE
 
 //2. Select device
-//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
 //#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
-#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
+//#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_K02		// Define specific actuator configuration. Knee 02
 
 
@@ -352,8 +352,8 @@ float windowSmoothAxial(float val);
 
 //Joint software limits [Degrees]
 #ifdef IS_ANKLE
-#define JOINT_MIN_SOFT		-28	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
-#define JOINT_MAX_SOFT		45	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
+#define JOINT_MIN_SOFT		-32	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
+#define JOINT_MAX_SOFT		65	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
 #endif
 
 #ifdef IS_KNEE
