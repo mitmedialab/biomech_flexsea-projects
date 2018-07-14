@@ -21,7 +21,7 @@ LinearSpline linearSpline;
 CubicSpline cubicSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {1.5, 0.0, 0.03, -15.0}; // b was .3, thetaDes was -10.0
+GainParams eswGains = {1.5, 0.0, 0.03, -10.0}; // b was .3
 GainParams lswGains = {1.5, 1, 0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
@@ -29,7 +29,6 @@ GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
 
 GainParams emgStandGains = {2, 0.025, 0.04, 0};
 GainParams emgFreeGains  = {1.2, 0, 0.02, 0};
-
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
@@ -128,7 +127,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			// Cubic Spline
 			calcCubicSpline(&cubicSpline, actx, &eswGains);
-			//eswGains.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
+			eswGains.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
 
@@ -470,8 +469,8 @@ void updatePFDFState(struct act_s *actx) {
 //
 static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams){
 	lSpline->time_state = 0;
-	lSpline->res_factor = 1.0; // resolution factor
-	lSpline->xi = -1.0; // to not divide by zero
+	lSpline->res_factor = 20.0; // resolution factor
+	lSpline->xi = 0.0; // caution: divide by zero
 	lSpline->xf = linearSpline.res_factor;
 	lSpline->theta_set_fsm = gainParams.thetaDes;
 	lSpline->yi = actx->jointAngleDegrees;
@@ -483,36 +482,45 @@ static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
 	lSpline->Y = (((lSpline->yf - lSpline->yi) * ((float)lSpline->time_state - lSpline->xi)) / (lSpline->xf - lSpline->xi)) + lSpline->yi;
 	lSpline->time_state++;
 	// Condition to reset time_state
-	if (lSpline->Y <= (lSpline->theta_set_fsm + 3.0)){
-		//lSpline->time_state = 0;
+	if (lSpline->Y < (lSpline->theta_set_fsm)){
 		lSpline->Y = lSpline->theta_set_fsm;
 	}
 }
 
 static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams){
 	cSpline->time_state = 0;
-	cSpline->theta_set_fsm = gainParams.thetaDes;
-	cSpline->theta_set_fsm_int = actx->jointAngleDegrees-((actx->jointAngleDegrees-cSpline->theta_set_fsm)/12.0); // TODO: magic number
-	cSpline->theta_set_fsm_end = 7.5; // TODO: magic number
-	cSpline->res_factor = 48.0; //
-	cSpline->x_int = cSpline->res_factor * 0.6; // TODO: magic number
-	cSpline->y_int = cSpline->theta_set_fsm_int;
-	cSpline->xi = 0.0;
-	cSpline->yi = actx->jointAngleDegrees; //joint_angle
-	cSpline->xf = cSpline->res_factor;
-	cSpline->yf = cSpline->theta_set_fsm_end; // theta_set_fsm for cubic spline in all the trajectory
+	//cSpline->theta_set_fsm = gainParams.thetaDes;
+	//cSpline->theta_set_fsm_int = actx->jointAngleDegrees-((actx->jointAngleDegrees-cSpline->theta_set_fsm)/12.0); // TODO: magic number
+	//cSpline->res_factor = 20.0; //
+	cSpline->xi_1 = 0.0;
+	cSpline->x_int_1 = 6.0;
+	cSpline->xf_1 = 10.0;
+	cSpline->yi_1 = actx->jointAngleDegrees; // 14.0?
+	cSpline->y_int_1 = 11.0;
+	cSpline->yf_1 = 2.0;
+	cSpline->xi_2 = 10.0;
+	cSpline->x_int_2 = 15.0;
+	cSpline->xf_2 = 20.0;
+	cSpline->yi_2 = 2.0;
+	cSpline->y_int_2 = -7.0;
+	cSpline->yf_2 = -10.0;
 }
 
 static void solveTridiagonalMatrix(CubicSpline *cSpline){
 	float B[3], A[2], C[2], r[3];
+	float e[3], f[3], g[2];
 	float x[3];
 	float y[3];
-	x[0] = cSpline->xi;
-	x[1] = cSpline->x_int;
-	x[2] = cSpline->xf;
-	y[0] = cSpline->yi;
-	y[1] = cSpline->y_int;
-	y[2] = cSpline->yf;
+	int n = 3; // f vector length
+	float factor;
+	float k[3];
+	float a1, a2, b1, b2;
+	x[0] = cSpline->xi_1;
+	x[1] = cSpline->x_int_1;
+	x[2] = cSpline->xf_1;
+	y[0] = cSpline->yi_1;
+	y[1] = cSpline->y_int_1;
+	y[2] = cSpline->yf_1;
 
 	B[0] = 2.0 / (x[1] - x[0]);
 	B[1] = 2.0 * ((1/(x[1]-x[0])) + (1/(x[2]-x[1])));
@@ -525,7 +533,6 @@ static void solveTridiagonalMatrix(CubicSpline *cSpline){
 	r[1] = 3.0 * (((y[1]-y[0])/(pow(x[1]-x[0],2))) + ((y[2]-y[1])/(pow(x[2]-x[1],2))));
 	r[2] = 3.0 * ((y[2]-y[1])/(pow(x[2]-x[1],2)));
 
-	float e[3], f[3], g[2];
 	e[0] = 0;
 	e[1] = A[0];
 	e[2] = A[1];
@@ -534,68 +541,117 @@ static void solveTridiagonalMatrix(CubicSpline *cSpline){
 	}
 	g[0] = C[0];
 	g[1] = C[1];
-
-	int n = 3; // f vector length
 	// Forward elimination
-	float factor;
 	for(int i = 1; i < n; i++){
 		factor = e[i] / f[i-1];
 		f[i] = f[i] - (factor * g[i-1]);
 		r[i] = r[i] - (factor * r[i-1]);
 	}
 	// Back substitution
-	float k[3];
 	k[n-1] = r[n-1] / f[n-1];
 	for(int i = 1; i >= 0; i--){
 		k[i] = (r[i] - (g[i] * k[i+1])) / f[i];
 	}
-
 	// ai and bi computation
-	float a1, a2, b1, b2;
 	a1 = k[0]*(x[1]-x[0]) - (y[1]-y[0]);
 	a2 = k[1]*(x[2]-x[1]) - (y[2]-y[1]);
 	b1 = -1.0*k[1]*(x[1]-x[0]) + (y[1]-y[0]);
 	b2 = -1.0*k[2]*(x[2]-x[1]) + (y[2]-y[1]);
-	cSpline->a1 = a1;
-	cSpline->a2 = a2;
-	cSpline->b1 = b1;
-	cSpline->b2 = b2;
+	cSpline->a1_1 = a1;
+	cSpline->a2_1 = a2;
+	cSpline->b1_1 = b1;
+	cSpline->b2_1 = b2;
+	// -----S curve complementary trajectory-----
+	x[0] = cSpline->xi_2;
+	x[1] = cSpline->x_int_2;
+	x[2] = cSpline->xf_2;
+	y[0] = cSpline->yi_2;
+	y[1] = cSpline->y_int_2;
+	y[2] = cSpline->yf_2;
+
+	B[0] = 2.0 / (x[1] - x[0]);
+	B[1] = 2.0 * ((1/(x[1]-x[0])) + (1/(x[2]-x[1])));
+	B[2] = 2.0 / (x[2]-x[1]);
+	A[0] = 1.0 / (x[1]-x[0]);
+	A[1] = 1.0 / (x[2]-x[1]);
+	C[0] = 1.0 / (x[1]-x[0]);
+	C[1] = 1.0 / (x[2]-x[1]);
+	r[0] = 3.0 * ((y[1]-y[0])/(pow(x[1]-x[0],2)));
+	r[1] = 3.0 * (((y[1]-y[0])/(pow(x[1]-x[0],2))) + ((y[2]-y[1])/(pow(x[2]-x[1],2))));
+	r[2] = 3.0 * ((y[2]-y[1])/(pow(x[2]-x[1],2)));
+
+	e[0] = 0;
+	e[1] = A[0];
+	e[2] = A[1];
+	for(int i=0; i<3; i++){
+		f[i] = B[i];
+	}
+	g[0] = C[0];
+	g[1] = C[1];
+	// Forward elimination
+	for(int i = 1; i < n; i++){
+		factor = e[i] / f[i-1];
+		f[i] = f[i] - (factor * g[i-1]);
+		r[i] = r[i] - (factor * r[i-1]);
+	}
+	// Back substitution
+	k[n-1] = r[n-1] / f[n-1];
+	for(int i = 1; i >= 0; i--){
+		k[i] = (r[i] - (g[i] * k[i+1])) / f[i];
+	}
+	// ai and bi computation
+	a1 = k[0]*(x[1]-x[0]) - (y[1]-y[0]);
+	a2 = k[1]*(x[2]-x[1]) - (y[2]-y[1]);
+	b1 = -1.0*k[1]*(x[1]-x[0]) + (y[1]-y[0]);
+	b2 = -1.0*k[2]*(x[2]-x[1]) + (y[2]-y[1]);
+	cSpline->a1_2 = a1;
+	cSpline->a2_2 = a2;
+	cSpline->b1_2 = b1;
+	cSpline->b2_2 = b2;
 }
 
 static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx, GainParams *gainParams){
 	float t;
 	float q[2];
+	float q2[2];
 	float x[3];
+	float x2[3];
 	float y[3];
-	x[0] = cSpline->xi;
-	x[1] = cSpline->x_int;
-	x[2] = cSpline->xf;
-	y[0] = cSpline->yi;
-	y[1] = cSpline->y_int;
-	y[2] = cSpline->yf;
+	float y2[3];
+	x[0] = cSpline->xi_1;
+	x[1] = cSpline->x_int_1;
+	x[2] = cSpline->xf_1;
+	y[0] = cSpline->yi_1;
+	y[1] = cSpline->y_int_1;
+	y[2] = cSpline->yf_1;
+	x2[0] = cSpline->xi_2;
+	x2[1] = cSpline->x_int_2;
+	x2[2] = cSpline->xf_2;
+	y2[0] = cSpline->yi_2;
+	y2[1] = cSpline->y_int_2;
+	y2[2] = cSpline->yf_2;
 
-	if (actx->jointAngleDegrees <= cSpline->theta_set_fsm_end) { // if (cSpline->Y <= (cSpline->theta_set_fsm) for cubic spline in all trajectory
-		//cSpline->time_state = 0; // Not sure about this
-		cSpline->Y = cSpline->theta_set_fsm;
-		gainParams->k1 = 1.0;
-		gainParams->k2 = 0.0;
-		gainParams->b = 0.3;
-		gainParams->thetaDes = cSpline->Y;
-	}
-	else{
-		t = (cubicSpline.time_state - x[0]) / (x[1]-x[0]);
-		q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a1*(1-t)+(cSpline->b1*t)));
-
-		t = (cubicSpline.time_state - x[1]) / (x[2]-x[1]);
-		q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a2*(1-t)+(cSpline->b2*t)));
-		if (actx->jointAngleDegrees > cSpline->theta_set_fsm_int)
+	if (cSpline->time_state <= 10){
+		t = ((float)cSpline->time_state - x[0]) / (x[1]-x[0]);
+		q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a1_1*(1-t)+(cSpline->b1_1*t)));
+		t = ((float)cSpline->time_state - x[1]) / (x[2]-x[1]);
+		q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a2_1*(1-t)+(cSpline->b2_1*t)));
+		if(cSpline->time_state <= 6)
 			cSpline->Y = q[0];
 		else cSpline->Y = q[1];
+	}
+	else{
+		t = ((float)cSpline->time_state - x2[0]) / (x2[1]-x2[0]);
+		q2[0] = (1-t)*y2[0] + t*y2[1] + (t*(1-t)*(cSpline->a1_2*(1-t)+(cSpline->b1_2*t)));
+		t = ((float)cSpline->time_state - x2[1]) / (x2[2]-x2[1]);
+		q2[1] = (1-t)*y2[1] + t*y2[2] + (t*(1-t)*(cSpline->a2_2*(1-t)+(cSpline->b2_2*t)));
+		if(cSpline->time_state <= 15)
+			cSpline->Y = q2[0];
+		else cSpline->Y = q2[1];
+	}
 
-		gainParams->k1 = 4.2;
-		gainParams->k2 = 0.0;
-		gainParams->b = 0.03;
-		gainParams->thetaDes = cSpline->Y;
+	if(cSpline->Y < -10.0){
+		cSpline->Y = -10.0;
 	}
 
 	cSpline->time_state++;

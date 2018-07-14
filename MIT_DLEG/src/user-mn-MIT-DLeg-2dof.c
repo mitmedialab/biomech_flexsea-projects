@@ -184,24 +184,25 @@ void MIT_DLeg_fsm_1(void)
 			    	stateMachine.current_state = STATE_EARLY_STANCE;
 
 			    } else {
-			    	runFlatGroundFSM(&act1);
+			    	// runFlatGroundFSM(&act1);
+			    	//initializeLinearSplineParams(&linearSpline, &act1, eswGains);
+			    	//calcLinearSpline(&linearSpline, &act1);
 
+			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 					setMotorTorque(&act1, act1.tauDes);
 
-//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
-
-//			        rigid1.mn.genVar[0] = startedOverLimit;
-					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
-					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
-// 					rigid1.mn.genVar[3] = (int16_t) walkParams.transition_id;
-					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
-					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
+			        rigid1.mn.genVar[0] = (int16_t) ((act1.jointTorque / (act1.linkageMomentArm * nScrew))*100.0); // Motor torque-Nm. was: startedOverLimit;
+					rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.0); //Nm
+					rigid1.mn.genVar[2] = (int16_t) (act1.tauDes*100.0); // desired joint torque-Nm
+ 					rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
+					rigid1.mn.genVar[4] = (int16_t) (cubicSpline.Y*100.0); // desired theta-deg
+					rigid1.mn.genVar[5] = (int16_t) (stateMachine.current_state);
 					rigid1.mn.genVar[6] = (int16_t) (JIM_LG); // LG
 					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
-					rigid1.mn.genVar[8] = stateMachine.current_state;
-					rigid1.mn.genVar[9] = act1.tauDes*100;
-			    }
+					rigid1.mn.genVar[8] = (int16_t)  walkParams.transition_id;
+					rigid1.mn.genVar[9] = (int16_t) (act1.jointTorqueRate*100.0);
 
+			    }
 
 				break;
 			}
@@ -748,7 +749,6 @@ float windowSmoothAxial(float val) {
 
 	return average;
 }
-
 
 void openSpeedFSM(void)
 {
