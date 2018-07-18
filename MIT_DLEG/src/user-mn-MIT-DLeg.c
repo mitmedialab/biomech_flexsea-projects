@@ -21,7 +21,7 @@
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors] Tony Shu, tony shu at mit dot edu, Matthew Carney mcarney at mit dot edu
 *****************************************************************************
-	[This file] user-mn-MIT_DLeg_2dof: User code running on Manage
+	[This file] user-mn-MIT_DLeg: User code running on Manage
 *****************************************************************************/
 
 #if defined INCLUDE_UPROJ_MIT_DLEG || defined BOARD_TYPE_FLEXSEA_PLAN
@@ -32,7 +32,7 @@
 //****************************************************************************
 
 #include "user-mn.h"
-#include "user-mn-MIT-DLeg-2dof.h"
+#include <user-mn-MIT-DLeg.h>
 #include "user-mn-MIT-EMG.h"
 #include "biom_state_machine.h"
 #include "state_variables.h"
@@ -610,7 +610,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	}
 
 	actx->desiredCurrent = (int32_t) I; 	// demanded mA
-	setMotorCurrent(actx->desiredCurrent);	// send current command to comm buffer to Execute
+	setMotorCurrent(actx->desiredCurrent, 0);	// send current command to comm buffer to Execute
 
 	//variables used in cmd-rigid offset 5
 	rigid1.mn.userVar[5] = tau_meas*1000;
@@ -640,9 +640,9 @@ float biomCalcImpedance(float k1, float k2, float b, float theta_set)
 
 void mit_init_current_controller(void) {
 
-	setControlMode(CTRL_CURRENT);
+	setControlMode(CTRL_CURRENT, 0);
 	writeEx[0].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
-	setControlGains(currentKp, currentKi, currentKd, 0);
+	setControlGains(currentKp, currentKi, currentKd, 0, 0);
 
 }
 
@@ -746,8 +746,8 @@ void openSpeedFSM(void)
 	switch(fsm1State)
 	{
 		case 0:
-			setControlMode(CTRL_OPEN);
-			setMotorVoltage(0);
+			setControlMode(CTRL_OPEN, 0);
+			setMotorVoltage(0, 0);
 			fsm1State = 1;
 			deltaT = 0;
 			break;
@@ -758,7 +758,7 @@ void openSpeedFSM(void)
 				deltaT = 0;
 				fsm1State = 2;
 			}
-			setMotorVoltage(0);
+			setMotorVoltage(0, 0);
 			break;
 		case 2:
 			deltaT++;
@@ -767,7 +767,7 @@ void openSpeedFSM(void)
 				deltaT = 0;
 				fsm1State = 1;
 			}
-			setMotorVoltage(1000);
+			setMotorVoltage(1000, 0);
 			break;
 	}
 }
@@ -790,9 +790,9 @@ void twoPositionFSM(void)
 			}
 			break;
 		case 0:
-			setControlMode(CTRL_POSITION);
-			setControlGains(20, 6, 0, 0);	//kp = 20, ki = 6
-			setMotorPosition(initPos);
+			setControlMode(CTRL_POSITION, 0);
+			setControlGains(20, 6, 0, 0, 0);	//kp = 20, ki = 6
+			setMotorPosition(initPos, 0);
 			fsm1State = 1;
 			deltaT = 0;
 			break;
@@ -803,7 +803,7 @@ void twoPositionFSM(void)
 				deltaT = 0;
 				fsm1State = 2;
 			}
-			setMotorPosition(initPos + 10000);
+			setMotorPosition(initPos + 10000, 0);
 			break;
 		case 2:
 			deltaT++;
@@ -812,7 +812,7 @@ void twoPositionFSM(void)
 				deltaT = 0;
 				fsm1State = 1;
 			}
-			setMotorPosition(initPos);
+			setMotorPosition(initPos, 0);
 			break;
 	}
 }

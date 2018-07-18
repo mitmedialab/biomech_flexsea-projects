@@ -40,7 +40,7 @@
 #include "flexsea_system.h"
 #include <free_ankle_EMG.h>
 #include "user-mn-MIT-EMG.h"
-#include "user-mn-MIT-DLeg-2dof.h"
+#include <user-mn-MIT-DLeg.h>
 #include "state_variables.h"
 #include "flexsea_user_structs.h"
 #include <flexsea_global_structs.h>

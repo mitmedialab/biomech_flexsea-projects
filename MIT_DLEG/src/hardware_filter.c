@@ -1,7 +1,7 @@
+#include <user-mn-MIT-DLeg.h>
 #include "arm_math.h"
 #include "hardware_filter.h"
 #include "user-mn.h"
-#include "user-mn-MIT-DLeg-2dof.h"
 #include "biom_state_machine.h"
 #include "state_variables.h"
 #include "user-mn-ActPack.h"

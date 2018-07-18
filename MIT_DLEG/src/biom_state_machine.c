@@ -1,10 +1,11 @@
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include "state_variables.h"
 #include "biom_state_machine.h"
-#include "user-mn-MIT-DLeg-2dof.h"
+#include <user-mn-MIT-DLeg.h>
 #include "user-mn-MIT-EMG.h"
 #include "flexsea_user_structs.h"
 #include "free_ankle_EMG.h"
