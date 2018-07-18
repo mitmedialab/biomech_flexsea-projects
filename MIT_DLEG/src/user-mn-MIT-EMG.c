@@ -195,7 +195,7 @@ void MIT_EMG_i2c2_fsm(void)
 
 				if(emg_timer>EMG_TIMER_PRESCALER*5)
 				{
-//					emg_state = EMG_STATE_WAIT; //just go back to wait state
+					//emg_state = EMG_STATE_WAIT; //just go back to wait state
 					emg_state = EMG_STATE_DEINIT; //Reboot I2C peripheral
 					emg_timer = 0;
 					emg_peripheral_state = EMG_PERIPH_READY;

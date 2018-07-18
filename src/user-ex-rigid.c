@@ -66,6 +66,10 @@ void init_user(void)
 //Call this function in one of the main while time slots.
 void user_fsm(void)
 {
+
+	//Refresh sensor values - common across projects:
+	refresh_values();
+
 	//ActPack:
 	//(Note: Biomech's projects use ActPack)
 	#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
@@ -78,6 +82,24 @@ void user_fsm(void)
 
 	#ifdef DEPHY
 	dephy_fsm();
+	#endif
+}
+
+//Refresh sensor values - common across projects
+static void refresh_values(void)
+{
+	mot_ang = *rigid1.ex.enc_ang - mot_ang_offset;
+	mot_vel = *exec1.enc_ang_vel; //cpms
+
+	update_diffarr(&mot_ang_clks, mot_ang, 10);
+
+	mot_acc = get_accl_1k_5samples_downsampled(&mot_ang_clks)/2609; //rad/s^2
+	rigid1.ex.mot_acc = mot_acc;
+
+	#ifdef BOARD_SUBTYPE_POCKET
+	//ToDo second channel
+	pocket1.ex[0].mot_acc = rigid1.ex.mot_acc;
+	pocket1.ex[1].mot_acc = rigid1.ex.mot_acc;
 	#endif
 }
 

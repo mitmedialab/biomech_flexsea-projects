@@ -1,8 +1,7 @@
 /****************************************************************************
 	[Project] FlexSEA: Flexible & Scalable Electronics Architecture
-	[Sub-project] 'flexsea-user' System commands & functions specific to
-	user projects
-	Copyright (C) 2016 Dephy, Inc. <http://dephy.com/>
+	[Sub-project] 'flexsea-manage' Mid-level computing, and networking
+	Copyright (C) 2018 Dephy, Inc. <http://dephy.com/>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -22,61 +21,68 @@
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors]
 *****************************************************************************
-	[This file] flexsea_cmd_user: Interface to the user functions
+	[This file] mn-MotorControl: Wrappers for motor control functions on Mn
+*****************************************************************************
+	[Change log] (Convention: YYYY-MM-DD | author | comment)
+	* 2018-05-22 | jfduval | Initial GPL-3.0 release
+	*
 ****************************************************************************/
 
-#ifndef INC_FLEXSEA_CMD_USER_H
-#define INC_FLEXSEA_CMD_USER_H
+#ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
+#ifndef INC_MN_MOTOR_CONTROL_H
+#define INC_MN_MOTOR_CONTROL_H
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
 
+#include "main.h"
+#include "flexsea_board.h"
+#include "flexsea_sys_def.h"
+#include "flexsea_global_structs.h"
+
 //****************************************************************************
-// Prototype(s):
+// Public Function Prototype(s):
 //****************************************************************************
 
-void init_flexsea_payload_ptr_user(void);
+void initWriteEx(uint8_t ch);
+void init_current_controller(uint8_t ch);
+void init_position_controller(uint8_t ch);
+void setMotorVoltage(int32_t v, uint8_t ch);
+void setMotorCurrent(int32_t i, uint8_t ch);
+void setControlMode(uint8_t m, uint8_t ch);
+void setControlGains(int16_t g0, int16_t g1, int16_t g2, int16_t g3, uint8_t ch);
+void setMotorPosition(int32_t i, uint8_t ch);
 
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
 
-//Give nickname to function codes here. Always remember that they have to be
-//in the 100-127 range!
+//Default:
+#define CTRL_I_KP					100
+#define CTRL_I_KI					20
+#define CTRL_P_KP					200
 
-#define CMD_A2DOF					100
-#define CMD_RICNU					101
-#define CMD_MOTORTB					103
-#define CMD_ANGLE_TORQUE_PROFILE	104
-#define CMD_CYCLE_TESTER			105
-#define CMD_DPEB31					106
-#define CMD_DPEB42					CMD_DPEB31
-#define CMD_UTT						107
-#define CMD_GAITSTATS				108
-
-#define CMD_READ_ALL_POCKET			119
-#define CMD_READ_ALL_RIGID			120
-#define CMD_ACTPACK					121
-#define CMD_DLEG					122
-#define CMD_BILATERAL				125
-#define CMD_USER_DYNAMIC 			126
-
-//***************
-// Structure(s):
 //****************************************************************************
+// Structure(s)
+//****************************************************************************
+
+typedef struct {
+	uint8_t ctrl;
+	int32_t setpoint;
+	uint8_t setGains;
+	uint8_t offset;
+	int16_t g[4];
+} writeEx_s;
 
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
 
-#ifdef __cplusplus
-}
-#endif
+extern struct ctrl_s ctrl[2];
+extern writeEx_s writeEx[2];
 
-#endif	//INC_FLEXSEA_CMD_USER_H
+#endif	//INC_MN_MOTOR_CONTROL_H
+
+#endif //BOARD_TYPE_FLEXSEA_MANAGE

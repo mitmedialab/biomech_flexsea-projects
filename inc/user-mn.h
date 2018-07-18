@@ -49,6 +49,7 @@
 void init_user(void);
 void user_fsm_1(void);
 void user_fsm_2(void);
+void reset_user_code(void);
 
 //****************************************************************************
 // Definition(s):
@@ -80,7 +81,7 @@ void user_fsm_2(void);
 //Step 1) Select active project (from list):
 //==========================================
 
-#define ACTIVE_PROJECT			PROJECT_MIT_DLEG
+#define ACTIVE_PROJECT			PROJECT_POCKET_2XDC
 #define ACTIVE_SUBPROJECT		SUBPROJECT_A
 
 //Step 2) Customize the enabled/disabled sub-modules:
@@ -351,7 +352,7 @@ void user_fsm_2(void);
 	#define USE_USB
 	#define USE_COMM			//Requires USE_RS485 and/or USE_USB
 	#define USE_I2C_1			//3V3, IMU & Digital pot
-	//#define USE_I2C_2			//3V3, Expansion
+	#define USE_I2C_2			//3V3, Expansion
 	#define USE_I2C_3			//Onboard, Regulate & Execute
 	#define USE_IMU				//Requires USE_I2C_1
 	#define USE_UART3			//Bluetooth
@@ -360,8 +361,10 @@ void user_fsm_2(void);
 	//#define USE_SPI_PLAN		//Enables the external SPI port
 
 	//Runtime finite state machine (FSM):
-	//#define RUNTIME_FSM1		ENABLED	//Enable only if you DO NOT use Plan
+	#define RUNTIME_FSM1		ENABLED	//Enable only if you DO NOT use Plan
 	#define RUNTIME_FSM2		ENABLED	//Enable at all time, Mn <> Ex comm.
+
+	#define USE_MIT_EMG_I2C //MIT EMG System Interface
 
 	#define CO_ENABLE_ACTPACK	//Enables the ActPack state machine(s)
 

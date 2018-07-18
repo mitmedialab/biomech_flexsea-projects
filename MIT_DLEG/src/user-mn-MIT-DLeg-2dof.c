@@ -44,6 +44,7 @@
 #include "arm_math.h"
 //#include "software_filter.h"
 #include "hardware_filter.h"
+#include "mn-MotorControl.h"
 #include <flexsea_comm.h>
 #include <math.h>
 
@@ -640,7 +641,7 @@ float biomCalcImpedance(float k1, float k2, float b, float theta_set)
 void mit_init_current_controller(void) {
 
 	setControlMode(CTRL_CURRENT);
-	writeEx.setpoint = 0;			// wasn't included in setControlMode, could be safe for init
+	writeEx[0].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
 	setControlGains(currentKp, currentKi, currentKd, 0);
 
 }
