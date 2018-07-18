@@ -104,6 +104,19 @@ static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
 
 struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
 
+// Test 1 state in user_mn
+static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams);
+static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx);
+static void initializeCubicSplineParams(CubicSpline *cSpline);
+static void solveTridiagonalMatrix(CubicSpline *cSpline);
+static void calcCubicSpline(CubicSpline *cSpline);
+static int8_t isTransitioning = 1;
+static float theta_des;
+GainParams eswGains = {1.5, 0.0, 0.15, -10.0}; // b was .3
+LinearSpline linearSpline;
+CubicSpline cubicSpline;
+// End test 1 state
+
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -185,18 +198,35 @@ void MIT_DLeg_fsm_1(void)
 
 			    } else {
 			    	// runFlatGroundFSM(&act1);
-			    	//initializeLinearSplineParams(&linearSpline, &act1, eswGains);
-			    	//calcLinearSpline(&linearSpline, &act1);
 
-			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
+			    	if (user_data_1.w[2] == 1){
+			    		if(isTransitioning){
+			    			//initializeLinearSplineParams(&linearSpline, &act1, eswGains);
+			    			initializeCubicSplineParams(&cubicSpline);
+			    			solveTridiagonalMatrix(&cubicSpline);
+			    			isTransitioning = 0;
+			    			//calcLinearSpline(&linearSpline, &act1);
+			    			calcCubicSpline(&cubicSpline);
+			    			theta_des = cubicSpline.Y;
+			    		} else{
+			    			//calcLinearSpline(&linearSpline, &act1);
+			    			calcCubicSpline(&cubicSpline);
+			    			theta_des = cubicSpline.Y;
+			    		}
+			    	} else{
+			    		theta_des = (float)user_data_1.w[3];
+			    		isTransitioning = 1;
+			    	}
+
+			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0.0, user_data_1.w[1]/100., theta_des);
 					setMotorTorque(&act1, act1.tauDes);
 
 			        rigid1.mn.genVar[0] = (int16_t) ((act1.jointTorque / (act1.linkageMomentArm * nScrew))*100.0); // Motor torque-Nm. was: startedOverLimit;
 					rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.0); //Nm
 					rigid1.mn.genVar[2] = (int16_t) (act1.tauDes*100.0); // desired joint torque-Nm
  					rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
-					rigid1.mn.genVar[4] = (int16_t) (cubicSpline.Y*100.0); // desired theta-deg
-					rigid1.mn.genVar[5] = (int16_t) (stateMachine.current_state);
+					rigid1.mn.genVar[4] = (int16_t) (theta_des*100.0); // desired theta-deg
+					rigid1.mn.genVar[5] = (int16_t) (linearSpline.Y*100.0); //was: (stateMachine.current_state);
 					rigid1.mn.genVar[6] = (int16_t) (JIM_LG); // LG
 					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
 					rigid1.mn.genVar[8] = (int16_t)  walkParams.transition_id;
@@ -385,8 +415,6 @@ void getJointAngleKinematic(struct act_s *actx)
 	actx->lastJointAngle = actx->jointAngle;
 	//last_jointAngle = joint[0];
 	//last_jointVel = joint[1];
-
-
 
 }
 
@@ -1006,6 +1034,193 @@ void torqueSweepTest(struct act_s *actx) {
 //		rigid1.mn.genVar[9] = user_data_1.r[2]*1000; //mNm
 
 }
+
+static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams){
+	lSpline->time_state = 1;
+	lSpline->res_factor = 100.0; // resolution factor
+	lSpline->xi = 0.0; // caution: divide by zero
+	lSpline->xf = lSpline->res_factor;
+	lSpline->theta_set_fsm = -10.0; //gainParams.thetaDes;
+	lSpline->yi = 14.0; //actx->jointAngleDegrees;
+	lSpline->yf = lSpline->theta_set_fsm;
+}
+
+static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
+	lSpline->Y = (((lSpline->yf - lSpline->yi) * ((float)lSpline->time_state - lSpline->xi)) / (lSpline->xf - lSpline->xi)) + lSpline->yi;
+	if (lSpline->Y < lSpline->theta_set_fsm){
+		lSpline->Y = lSpline->theta_set_fsm;
+	}
+	lSpline->time_state++;
+}
+
+static void initializeCubicSplineParams(CubicSpline *cSpline){
+	cSpline->time_state = 0;
+	cSpline->res_factor = 100.0;
+	cSpline->xi_1 = 0.0;
+	cSpline->x_int_1 = (cSpline->res_factor/1.4)*.6; // /2.0
+	cSpline->xf_1 = cSpline->res_factor/1.4;
+	cSpline->yi_1 = 14.0;
+	cSpline->y_int_1 = 11.0;
+	cSpline->yf_1 = 2.0;
+	cSpline->xi_2 = cSpline->res_factor/1.4;
+	cSpline->x_int_2 = (cSpline->res_factor-(cSpline->res_factor/1.4))*.4+(cSpline->res_factor/1.4);
+	cSpline->xf_2 = cSpline->res_factor;
+	cSpline->yi_2 = 2.0;
+	cSpline->y_int_2 = -7.0;
+	cSpline->yf_2 = -10.0;
+}
+
+static void solveTridiagonalMatrix(CubicSpline *cSpline){
+	float B[3], A[2], C[2], r[3];
+	float e[3], f[3], g[2];
+	float x[3];
+	float y[3];
+	int n = 3; // f vector length
+	float factor;
+	float k[3];
+	float a1, a2, b1, b2;
+	x[0] = cSpline->xi_1;
+	x[1] = cSpline->x_int_1;
+	x[2] = cSpline->xf_1;
+	y[0] = cSpline->yi_1;
+	y[1] = cSpline->y_int_1;
+	y[2] = cSpline->yf_1;
+
+	B[0] = 2.0 / (x[1] - x[0]);
+	B[1] = 2.0 * ((1/(x[1]-x[0])) + (1/(x[2]-x[1])));
+	B[2] = 2.0 / (x[2]-x[1]);
+	A[0] = 1.0 / (x[1]-x[0]);
+	A[1] = 1.0 / (x[2]-x[1]);
+	C[0] = 1.0 / (x[1]-x[0]);
+	C[1] = 1.0 / (x[2]-x[1]);
+	r[0] = 3.0 * ((y[1]-y[0])/(pow(x[1]-x[0],2)));
+	r[1] = 3.0 * (((y[1]-y[0])/(pow(x[1]-x[0],2))) + ((y[2]-y[1])/(pow(x[2]-x[1],2))));
+	r[2] = 3.0 * ((y[2]-y[1])/(pow(x[2]-x[1],2)));
+
+	e[0] = 0;
+	e[1] = A[0];
+	e[2] = A[1];
+	for(int i=0; i<3; i++){
+		f[i] = B[i];
+	}
+	g[0] = C[0];
+	g[1] = C[1];
+	// Forward elimination
+	for(int i = 1; i < n; i++){
+			factor = e[i] / f[i-1];
+			f[i] = f[i] - (factor * g[i-1]);
+			r[i] = r[i] - (factor * r[i-1]);
+	}
+  // Back substitution
+	k[n-1] = r[n-1] / f[n-1];
+	for(int i = 1; i >= 0; i--){
+		k[i] = (r[i] - (g[i] * k[i+1])) / f[i];
+	}
+	// ai and bi computation
+	a1 = k[0]*(x[1]-x[0]) - (y[1]-y[0]);
+	a2 = k[1]*(x[2]-x[1]) - (y[2]-y[1]);
+	b1 = -1.0*k[1]*(x[1]-x[0]) + (y[1]-y[0]);
+	b2 = -1.0*k[2]*(x[2]-x[1]) + (y[2]-y[1]);
+	cSpline->a1_1 = a1;
+	cSpline->a2_1 = a2;
+	cSpline->b1_1 = b1;
+	cSpline->b2_1 = b2;
+	// -----S curve complementary trajectory-----
+	x[0] = cSpline->xi_2;
+	x[1] = cSpline->x_int_2;
+	x[2] = cSpline->xf_2;
+	y[0] = cSpline->yi_2;
+	y[1] = cSpline->y_int_2;
+	y[2] = cSpline->yf_2;
+
+	B[0] = 2.0 / (x[1] - x[0]);
+	B[1] = 2.0 * ((1/(x[1]-x[0])) + (1/(x[2]-x[1])));
+	B[2] = 2.0 / (x[2]-x[1]);
+	A[0] = 1.0 / (x[1]-x[0]);
+	A[1] = 1.0 / (x[2]-x[1]);
+	C[0] = 1.0 / (x[1]-x[0]);
+	C[1] = 1.0 / (x[2]-x[1]);
+	r[0] = 3.0 * ((y[1]-y[0])/(pow(x[1]-x[0],2)));
+	r[1] = 3.0 * (((y[1]-y[0])/(pow(x[1]-x[0],2))) + ((y[2]-y[1])/(pow(x[2]-x[1],2))));
+	r[2] = 3.0 * ((y[2]-y[1])/(pow(x[2]-x[1],2)));
+
+	e[0] = 0;
+	e[1] = A[0];
+	e[2] = A[1];
+	for(int i=0; i<3; i++){
+		f[i] = B[i];
+	}
+	g[0] = C[0];
+	g[1] = C[1];
+	// Forward elimination
+	for(int i = 1; i < n; i++){
+			factor = e[i] / f[i-1];
+			f[i] = f[i] - (factor * g[i-1]);
+			r[i] = r[i] - (factor * r[i-1]);
+	}
+  // Back substitution
+	k[n-1] = r[n-1] / f[n-1];
+	for(int i = 1; i >= 0; i--){
+		k[i] = (r[i] - (g[i] * k[i+1])) / f[i];
+	}
+	// ai and bi computation
+	a1 = k[0]*(x[1]-x[0]) - (y[1]-y[0]);
+	a2 = k[1]*(x[2]-x[1]) - (y[2]-y[1]);
+	b1 = -1.0*k[1]*(x[1]-x[0]) + (y[1]-y[0]);
+	b2 = -1.0*k[2]*(x[2]-x[1]) + (y[2]-y[1]);
+	cSpline->a1_2 = a1;
+	cSpline->a2_2 = a2;
+	cSpline->b1_2 = b1;
+	cSpline->b2_2 = b2;
+}
+
+static void calcCubicSpline(CubicSpline *cSpline){
+	float t;
+	float q[2];
+	float q2[2];
+	float x[3];
+	float x2[3];
+	float y[3];
+	float y2[3];
+	x[0] = cSpline->xi_1;
+	x[1] = cSpline->x_int_1;
+	x[2] = cSpline->xf_1;
+	y[0] = cSpline->yi_1;
+	y[1] = cSpline->y_int_1;
+	y[2] = cSpline->yf_1;
+	x2[0] = cSpline->xi_2;
+	x2[1] = cSpline->x_int_2;
+	x2[2] = cSpline->xf_2;
+	y2[0] = cSpline->yi_2;
+	y2[1] = cSpline->y_int_2;
+	y2[2] = cSpline->yf_2;
+
+	if (cSpline->time_state <= (cSpline->res_factor/1.4)){
+		t = ((float)cSpline->time_state - x[0]) / (x[1]-x[0]);
+		q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a1_1*(1-t)+(cSpline->b1_1*t)));
+		t = ((float)cSpline->time_state - x[1]) / (x[2]-x[1]);
+		q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a2_1*(1-t)+(cSpline->b2_1*t)));
+		if(cSpline->time_state <= ((cSpline->res_factor/1.4)*.6))
+			cSpline->Y = q[0];
+			else cSpline->Y = q[1];
+	}
+	else{
+		t = ((float)cSpline->time_state - x2[0]) / (x2[1]-x2[0]);
+		q2[0] = (1-t)*y2[0] + t*y2[1] + (t*(1-t)*(cSpline->a1_2*(1-t)+(cSpline->b1_2*t)));
+		t = ((float)cSpline->time_state - x2[1]) / (x2[2]-x2[1]);
+		q2[1] = (1-t)*y2[1] + t*y2[2] + (t*(1-t)*(cSpline->a2_2*(1-t)+(cSpline->b2_2*t)));
+		if(cSpline->time_state <= ((cSpline->res_factor-(cSpline->res_factor/1.4))*.4+(cSpline->res_factor/1.4)))
+			cSpline->Y = q2[0];
+			else cSpline->Y = q2[1];
+	}
+
+	if(cSpline->Y < -10.0){
+		cSpline->Y = -10.0;
+	}
+
+	cSpline->time_state++;
+}
+
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
 #endif //INCLUDE_UPROJ_MIT_DLEG || defined BOARD_TYPE_FLEXSEA_PLAN

@@ -17,11 +17,11 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 WalkParams walkParams;
-LinearSpline linearSpline;
-CubicSpline cubicSpline;
+//LinearSpline linearSpline;
+//CubicSpline cubicSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {1.5, 0.0, 0.03, -10.0}; // b was .3
+//GainParams eswGains = {1.5, 0.0, 0.03, -10.0}; // b was .3
 GainParams lswGains = {1.5, 1, 0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
@@ -44,12 +44,13 @@ static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wPa
 static void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
 static void initializeUserWrites(WalkParams *wParams);
 
+/*
 static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams);
 static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx);
 static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams);
 static void solveTridiagonalMatrix(CubicSpline *cSpline);
 static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx, GainParams *gainParams);
-
+*/
 
 /** Impedance Control Level-ground Walking FSM
 	Based on BiOM ankle and simplified.
@@ -466,7 +467,7 @@ void updatePFDFState(struct act_s *actx) {
 	PFDF_state[2] = 0;
 }
 
-//
+/*
 static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams){
 	lSpline->time_state = 0;
 	lSpline->res_factor = 20.0; // resolution factor
@@ -657,6 +658,7 @@ static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx, GainParams *gainP
 	cSpline->time_state++;
 
 }
+*/
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
 

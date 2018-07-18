@@ -96,8 +96,6 @@ void oneTorqueFSM(struct act_s *actx);
 void twoTorqueFSM(struct act_s *actx);
 void torqueSweepTest(struct act_s *actx);
 
-// Spline functions
-
 
 //****************************************************************************
 // Definition(s):
