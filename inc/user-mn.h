@@ -81,7 +81,7 @@ void reset_user_code(void);
 //Step 1) Select active project (from list):
 //==========================================
 
-#define ACTIVE_PROJECT			PROJECT_POCKET_2XDC
+#define ACTIVE_PROJECT			PROJECT_MIT_DLEG
 #define ACTIVE_SUBPROJECT		SUBPROJECT_A
 
 //Step 2) Customize the enabled/disabled sub-modules:

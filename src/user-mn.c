@@ -50,7 +50,7 @@
 #endif	//PROJECT_UMICH_KNEE
 
 #if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-//#include "user-mn-MIT-DLeg.h"
+#include "user-mn-MIT-DLeg.h"
 #include "user-mn-MIT-EMG.h"
 #include <software_filter.h>
 #endif
