@@ -17,11 +17,11 @@ extern "C" {
 WalkingStateMachine stateMachine;
 Act_s act1;
 WalkParams walkParams;
-//LinearSpline linearSpline;
-//CubicSpline cubicSpline;
+LinearSpline linearSpline;
+CubicSpline cubicSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-//GainParams eswGains = {1.5, 0.0, 0.03, -10.0}; // b was .3
+GainParams eswGains = {1.5, 0.0, 0.15, -10.0}; // b was .3
 GainParams lswGains = {1.5, 1, 0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.1, 0.0};
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
@@ -44,13 +44,12 @@ static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wPa
 static void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
 static void initializeUserWrites(WalkParams *wParams);
 
-/*
+// Splines
 static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams);
-static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx);
+static void calcLinearSpline(LinearSpline *lSpline);
 static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams);
 static void solveTridiagonalMatrix(CubicSpline *cSpline);
-static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx, GainParams *gainParams);
-*/
+static void calcCubicSpline(CubicSpline *cSpline);
 
 /** Impedance Control Level-ground Walking FSM
 	Based on BiOM ankle and simplified.
@@ -123,11 +122,11 @@ void runFlatGroundFSM(Act_s *actx) {
 			}
 
 			// Linear Spline
-			//calcLinearSpline(&linearSpline, actx);
+			//calcLinearSpline(&linearSpline);
 			//eswGains.thetaDes = linearSpline.Y; // new thetaDes after linear spline
 
 			// Cubic Spline
-			calcCubicSpline(&cubicSpline, actx, &eswGains);
+			calcCubicSpline(&cubicSpline);
 			eswGains.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
@@ -467,44 +466,47 @@ void updatePFDFState(struct act_s *actx) {
 	PFDF_state[2] = 0;
 }
 
-/*
+
 static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams){
 	lSpline->time_state = 0;
-	lSpline->res_factor = 20.0; // resolution factor
+	lSpline->res_factor = 100.0; // resolution factor
 	lSpline->xi = 0.0; // caution: divide by zero
-	lSpline->xf = linearSpline.res_factor;
+	lSpline->xf = lSpline->res_factor;
 	lSpline->theta_set_fsm = gainParams.thetaDes;
 	lSpline->yi = actx->jointAngleDegrees;
 	lSpline->yf = lSpline->theta_set_fsm;
 }
 
-static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
-	lSpline->yi = actx->jointAngleDegrees;
+static void calcLinearSpline(LinearSpline *lSpline) {
 	lSpline->Y = (((lSpline->yf - lSpline->yi) * ((float)lSpline->time_state - lSpline->xi)) / (lSpline->xf - lSpline->xi)) + lSpline->yi;
+	if((lSpline->yi - lSpline->theta_set_fsm) > 0){
+		if (lSpline->Y < lSpline->theta_set_fsm)
+			lSpline->Y = lSpline->theta_set_fsm;
+		}
+		else{
+			if(lSpline->Y > lSpline->theta_set_fsm)
+				lSpline->Y = lSpline->theta_set_fsm;
+			}
+
 	lSpline->time_state++;
-	// Condition to reset time_state
-	if (lSpline->Y < (lSpline->theta_set_fsm)){
-		lSpline->Y = lSpline->theta_set_fsm;
-	}
 }
 
 static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams){
 	cSpline->time_state = 0;
-	//cSpline->theta_set_fsm = gainParams.thetaDes;
-	//cSpline->theta_set_fsm_int = actx->jointAngleDegrees-((actx->jointAngleDegrees-cSpline->theta_set_fsm)/12.0); // TODO: magic number
-	//cSpline->res_factor = 20.0; //
+	cSpline->res_factor = 100.0;
+	cSpline->theta_set_fsm = gainParams.thetaDes;
 	cSpline->xi_1 = 0.0;
-	cSpline->x_int_1 = 6.0;
-	cSpline->xf_1 = 10.0;
-	cSpline->yi_1 = actx->jointAngleDegrees; // 14.0?
-	cSpline->y_int_1 = 11.0;
-	cSpline->yf_1 = 2.0;
-	cSpline->xi_2 = 10.0;
-	cSpline->x_int_2 = 15.0;
-	cSpline->xf_2 = 20.0;
-	cSpline->yi_2 = 2.0;
-	cSpline->y_int_2 = -7.0;
-	cSpline->yf_2 = -10.0;
+	cSpline->x_int_1 = (cSpline->res_factor/2.0)*.4;
+	cSpline->xf_1 = cSpline->res_factor/2.0;
+	cSpline->yi_1 = actx->jointAngleDegrees;
+	cSpline->yf_1 = cSpline->yi_1 + ((cSpline->theta_set_fsm - cSpline->yi_1)/2.0);
+	cSpline->y_int_1 = cSpline->yi_1 - ((cSpline->yi_1 - cSpline->yf_1) * .15);
+	cSpline->xi_2 = cSpline->res_factor/2.0;
+	cSpline->x_int_2 = (cSpline->res_factor-(cSpline->res_factor/2.0))*.6+(cSpline->res_factor/2.0);
+	cSpline->xf_2 = cSpline->res_factor;
+	cSpline->yi_2 = cSpline->yi_1 + ((cSpline->theta_set_fsm - cSpline->yi_1)/2.0);
+	cSpline->yf_2 = cSpline->theta_set_fsm;
+	cSpline->y_int_2 = cSpline->yf_2 + ((cSpline->yi_2 - cSpline->yf_2) * .15);
 }
 
 static void solveTridiagonalMatrix(CubicSpline *cSpline){
@@ -611,7 +613,7 @@ static void solveTridiagonalMatrix(CubicSpline *cSpline){
 	cSpline->b2_2 = b2;
 }
 
-static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx, GainParams *gainParams){
+static void calcCubicSpline(CubicSpline *cSpline){
 	float t;
 	float q[2];
 	float q2[2];
@@ -632,33 +634,36 @@ static void calcCubicSpline(CubicSpline *cSpline, Act_s *actx, GainParams *gainP
 	y2[1] = cSpline->y_int_2;
 	y2[2] = cSpline->yf_2;
 
-	if (cSpline->time_state <= 10){
+	if (cSpline->time_state <= (cSpline->res_factor/2.0)){
 		t = ((float)cSpline->time_state - x[0]) / (x[1]-x[0]);
 		q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a1_1*(1-t)+(cSpline->b1_1*t)));
 		t = ((float)cSpline->time_state - x[1]) / (x[2]-x[1]);
 		q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a2_1*(1-t)+(cSpline->b2_1*t)));
-		if(cSpline->time_state <= 6)
+		if(cSpline->time_state <= ((cSpline->res_factor/2.0)*.4))
 			cSpline->Y = q[0];
-		else cSpline->Y = q[1];
-	}
+			else cSpline->Y = q[1];
+		}
 	else{
 		t = ((float)cSpline->time_state - x2[0]) / (x2[1]-x2[0]);
 		q2[0] = (1-t)*y2[0] + t*y2[1] + (t*(1-t)*(cSpline->a1_2*(1-t)+(cSpline->b1_2*t)));
 		t = ((float)cSpline->time_state - x2[1]) / (x2[2]-x2[1]);
 		q2[1] = (1-t)*y2[1] + t*y2[2] + (t*(1-t)*(cSpline->a2_2*(1-t)+(cSpline->b2_2*t)));
-		if(cSpline->time_state <= 15)
+		if(cSpline->time_state <= ((cSpline->res_factor-(cSpline->res_factor/2.0))*.6+(cSpline->res_factor/2.0)))
 			cSpline->Y = q2[0];
 		else cSpline->Y = q2[1];
 	}
 
-	if(cSpline->Y < -10.0){
-		cSpline->Y = -10.0;
+	if((cSpline->yi_1 - cSpline->theta_set_fsm) > 0){
+		if(cSpline->Y < cSpline->theta_set_fsm)
+			cSpline->Y = cSpline->theta_set_fsm;
+	}
+	else{
+		if(cSpline->Y > cSpline->theta_set_fsm)
+			cSpline->Y = cSpline->theta_set_fsm;
 	}
 
 	cSpline->time_state++;
-
 }
-*/
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
 
