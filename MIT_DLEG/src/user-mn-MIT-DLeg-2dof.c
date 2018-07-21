@@ -105,9 +105,9 @@ static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
 struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
 
 // Test 1 state in user_mn
-static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams);
+static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, float thetaDes);
 static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx);
-static void initializeCubicSplineParams(CubicSpline *cSpline);
+static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, float thetaDes);
 static void solveTridiagonalMatrix(CubicSpline *cSpline);
 static void calcCubicSpline(CubicSpline *cSpline);
 static int8_t isTransitioning = 1;
@@ -197,12 +197,11 @@ void MIT_DLeg_fsm_1(void)
 			    	stateMachine.current_state = STATE_EARLY_STANCE;
 
 			    } else {
-			    	// runFlatGroundFSM(&act1);
 
 			    	if (user_data_1.w[2] == 1){
 			    		if(isTransitioning){
-			    			//initializeLinearSplineParams(&linearSpline, &act1, eswGains);
-			    			initializeCubicSplineParams(&cubicSpline);
+			    			//initializeLinearSplineParams(&linearSpline, &act1, (float)user_data_1.w[1]);
+			    			initializeCubicSplineParams(&cubicSpline, &act1, (float)user_data_1.w[1]);
 			    			solveTridiagonalMatrix(&cubicSpline);
 			    			isTransitioning = 0;
 			    			//calcLinearSpline(&linearSpline, &act1);
@@ -216,17 +215,19 @@ void MIT_DLeg_fsm_1(void)
 			    	} else{
 			    		theta_des = (float)user_data_1.w[3];
 			    		isTransitioning = 1;
+			    		//thetaDes = (float)user_data_1.w[1];
 			    	}
+			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0.0, 0.15, theta_des);
 
-			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., 0.0, user_data_1.w[1]/100., theta_des);
-					setMotorTorque(&act1, act1.tauDes);
+			    	// runFlatGroundFSM(&act1);
+			    	setMotorTorque(&act1, act1.tauDes);
 
 			        rigid1.mn.genVar[0] = (int16_t) ((act1.jointTorque / (act1.linkageMomentArm * nScrew))*100.0); // Motor torque-Nm. was: startedOverLimit;
 					rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.0); //Nm
 					rigid1.mn.genVar[2] = (int16_t) (act1.tauDes*100.0); // desired joint torque-Nm
  					rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
 					rigid1.mn.genVar[4] = (int16_t) (theta_des*100.0); // desired theta-deg
-					rigid1.mn.genVar[5] = (int16_t) (linearSpline.Y*100.0); //was: (stateMachine.current_state);
+					rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_acc); //was: (stateMachine.current_state);
 					rigid1.mn.genVar[6] = (int16_t) (JIM_LG); // LG
 					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
 					rigid1.mn.genVar[8] = (int16_t)  walkParams.transition_id;
@@ -1035,39 +1036,46 @@ void torqueSweepTest(struct act_s *actx) {
 
 }
 
-static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams){
-	lSpline->time_state = 1;
+static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, float thetaDes){
+	lSpline->time_state = 0;
 	lSpline->res_factor = 100.0; // resolution factor
 	lSpline->xi = 0.0; // caution: divide by zero
 	lSpline->xf = lSpline->res_factor;
-	lSpline->theta_set_fsm = -10.0; //gainParams.thetaDes;
-	lSpline->yi = 14.0; //actx->jointAngleDegrees;
+	lSpline->theta_set_fsm = thetaDes; //user write
+	lSpline->yi = actx->jointAngleDegrees; //actx->jointAngleDegrees;
 	lSpline->yf = lSpline->theta_set_fsm;
 }
 
 static void calcLinearSpline(LinearSpline *lSpline, Act_s *actx) {
 	lSpline->Y = (((lSpline->yf - lSpline->yi) * ((float)lSpline->time_state - lSpline->xi)) / (lSpline->xf - lSpline->xi)) + lSpline->yi;
-	if (lSpline->Y < lSpline->theta_set_fsm){
-		lSpline->Y = lSpline->theta_set_fsm;
-	}
+	if((lSpline->yi - lSpline->theta_set_fsm) > 0){
+		if (lSpline->Y < lSpline->theta_set_fsm)
+			lSpline->Y = lSpline->theta_set_fsm;
+		}
+	else{
+		if(lSpline->Y > lSpline->theta_set_fsm)
+			lSpline->Y = lSpline->theta_set_fsm;
+		}
+
 	lSpline->time_state++;
 }
 
-static void initializeCubicSplineParams(CubicSpline *cSpline){
+static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, float thetaDes){
 	cSpline->time_state = 0;
 	cSpline->res_factor = 100.0;
+	cSpline->theta_set_fsm = thetaDes; //user write
 	cSpline->xi_1 = 0.0;
-	cSpline->x_int_1 = (cSpline->res_factor/1.4)*.6; // /2.0
-	cSpline->xf_1 = cSpline->res_factor/1.4;
-	cSpline->yi_1 = 14.0;
-	cSpline->y_int_1 = 11.0;
-	cSpline->yf_1 = 2.0;
-	cSpline->xi_2 = cSpline->res_factor/1.4;
-	cSpline->x_int_2 = (cSpline->res_factor-(cSpline->res_factor/1.4))*.4+(cSpline->res_factor/1.4);
+	cSpline->x_int_1 = (cSpline->res_factor/2.0)*.4;
+	cSpline->xf_1 = cSpline->res_factor/2.0;
+	cSpline->yi_1 = actx->jointAngleDegrees;
+	cSpline->yf_1 = cSpline->yi_1 + ((cSpline->theta_set_fsm - cSpline->yi_1)/2.0);
+	cSpline->y_int_1 = cSpline->yi_1 - ((cSpline->yi_1 - cSpline->yf_1) * .15);
+	cSpline->xi_2 = cSpline->res_factor/2.0;
+	cSpline->x_int_2 = (cSpline->res_factor-(cSpline->res_factor/2.0))*.6+(cSpline->res_factor/2.0);
 	cSpline->xf_2 = cSpline->res_factor;
-	cSpline->yi_2 = 2.0;
-	cSpline->y_int_2 = -7.0;
-	cSpline->yf_2 = -10.0;
+	cSpline->yi_2 = cSpline->yi_1 + ((cSpline->theta_set_fsm - cSpline->yi_1)/2.0);
+	cSpline->yf_2 = cSpline->theta_set_fsm;
+	cSpline->y_int_2 = cSpline->yf_2 + ((cSpline->yi_2 - cSpline->yf_2) * .15);
 }
 
 static void solveTridiagonalMatrix(CubicSpline *cSpline){
@@ -1195,12 +1203,12 @@ static void calcCubicSpline(CubicSpline *cSpline){
 	y2[1] = cSpline->y_int_2;
 	y2[2] = cSpline->yf_2;
 
-	if (cSpline->time_state <= (cSpline->res_factor/1.4)){
+	if (cSpline->time_state <= (cSpline->res_factor/2.0)){
 		t = ((float)cSpline->time_state - x[0]) / (x[1]-x[0]);
 		q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a1_1*(1-t)+(cSpline->b1_1*t)));
 		t = ((float)cSpline->time_state - x[1]) / (x[2]-x[1]);
 		q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a2_1*(1-t)+(cSpline->b2_1*t)));
-		if(cSpline->time_state <= ((cSpline->res_factor/1.4)*.6))
+		if(cSpline->time_state <= ((cSpline->res_factor/2.0)*.4))
 			cSpline->Y = q[0];
 			else cSpline->Y = q[1];
 	}
@@ -1209,13 +1217,18 @@ static void calcCubicSpline(CubicSpline *cSpline){
 		q2[0] = (1-t)*y2[0] + t*y2[1] + (t*(1-t)*(cSpline->a1_2*(1-t)+(cSpline->b1_2*t)));
 		t = ((float)cSpline->time_state - x2[1]) / (x2[2]-x2[1]);
 		q2[1] = (1-t)*y2[1] + t*y2[2] + (t*(1-t)*(cSpline->a2_2*(1-t)+(cSpline->b2_2*t)));
-		if(cSpline->time_state <= ((cSpline->res_factor-(cSpline->res_factor/1.4))*.4+(cSpline->res_factor/1.4)))
+		if(cSpline->time_state <= ((cSpline->res_factor-(cSpline->res_factor/2.0))*.6+(cSpline->res_factor/2.0)))
 			cSpline->Y = q2[0];
 			else cSpline->Y = q2[1];
 	}
 
-	if(cSpline->Y < -10.0){
-		cSpline->Y = -10.0;
+	if((cSpline->yi_1 - cSpline->theta_set_fsm) > 0){
+		if(cSpline->Y < cSpline->theta_set_fsm)
+			cSpline->Y = cSpline->theta_set_fsm;
+		}
+	else{
+		if(cSpline->Y > cSpline->theta_set_fsm)
+			cSpline->Y = cSpline->theta_set_fsm;
 	}
 
 	cSpline->time_state++;

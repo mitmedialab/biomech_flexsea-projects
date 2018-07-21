@@ -123,7 +123,6 @@ typedef struct cubicSpline{
 	float X; // interpolation x coordinate
 	float Y; // interpolation Y coordinate
 	float theta_set_fsm;
-	float theta_set_fsm_int;
 	float res_factor; // resolution factor
 	uint32_t time_state;
 	float a1_1; // coefficients for the polynomial
