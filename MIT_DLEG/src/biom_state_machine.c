@@ -154,6 +154,10 @@ void runFlatGroundFSM(Act_s *actx) {
 					stateMachine.current_state = STATE_EARLY_STANCE;
 					walkParams.transition_id = 3;
 				}
+				else {
+					stateMachine.current_state = STATE_EARLY_STANCE;
+					walkParams.transition_id = 5;
+				}
 			}
 
 
@@ -218,7 +222,7 @@ void runFlatGroundFSM(Act_s *actx) {
 		            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
 		        }
 
-				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 100) {
+				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 400) {
 					stateMachine.current_state = STATE_LATE_SWING;
 				}
 

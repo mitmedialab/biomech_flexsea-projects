@@ -33,7 +33,7 @@
 // Variable(s)
 //****************************************************************************
 volatile uint8_t emg_peripheral_state = EMG_PERIPH_READY;
-volatile uint8_t emg_on_flag = 1;
+volatile uint8_t emg_on_flag = 0;
 
 volatile uint8_t emg_state = EMG_STATE_DISABLE;
 volatile uint16_t emg_timer = 0; //1tick represent 1ms
