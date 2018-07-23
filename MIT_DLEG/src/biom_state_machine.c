@@ -47,7 +47,7 @@ static void initializeUserWrites(WalkParams *wParams);
 // Splines
 static void initializeLinearSplineParams(LinearSpline *lSpline, Act_s *actx, GainParams gainParams);
 static void calcLinearSpline(LinearSpline *lSpline);
-static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams);
+static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams, float res_factor);
 static void solveTridiagonalMatrix(CubicSpline *cSpline);
 static void calcCubicSpline(CubicSpline *cSpline);
 
@@ -114,14 +114,13 @@ void runFlatGroundFSM(Act_s *actx) {
             //Put anything you want to run ONCE during state entry.
 			if (isTransitioning) {
 				walkParams.virtual_hardstop_tq = 1.0;
-				// initialize linear spline params once
+				// initialize linear spline params once - uncomment the following line for linear spline
 				//initializeLinearSplineParams(&linearSpline, actx, eswGains);
 				// initialize cubic spline params once
-				initializeCubicSplineParams(&cubicSpline, actx, eswGains);
-				solveTridiagonalMatrix(&cubicSpline);
+				initializeCubicSplineParams(&cubicSpline, actx, eswGains, 100.0); // last parameter is res_factor (delta X - time)
 			}
 
-			// Linear Spline
+			// Linear Spline - uncomment the following 2 lines for linear spline
 			//calcLinearSpline(&linearSpline);
 			//eswGains.thetaDes = linearSpline.Y; // new thetaDes after linear spline
 
@@ -491,25 +490,26 @@ static void calcLinearSpline(LinearSpline *lSpline) {
 	lSpline->time_state++;
 }
 
-static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams){
+static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams, float res_factor){
 	cSpline->time_state = 0;
-	cSpline->res_factor = 100.0;
-	cSpline->theta_set_fsm = gainParams.thetaDes;
-	cSpline->xi_1 = 0.0;
+	cSpline->res_factor = res_factor; // delta X (time)
+	cSpline->theta_set_fsm = gainParams.thetaDes; // Initial joint angle - theta_set_fsm = delta Y (joint angle)
+	cSpline->xi_1 = 0.0; // Initial X (time) coordinate
 	cSpline->x_int_1 = (cSpline->res_factor/2.0)*.4;
 	cSpline->xf_1 = cSpline->res_factor/2.0;
-	cSpline->yi_1 = actx->jointAngleDegrees;
+	cSpline->yi_1 = actx->jointAngleDegrees; // Initial Y (joint angle) coordinate
 	cSpline->yf_1 = cSpline->yi_1 + ((cSpline->theta_set_fsm - cSpline->yi_1)/2.0);
 	cSpline->y_int_1 = cSpline->yi_1 - ((cSpline->yi_1 - cSpline->yf_1) * .15);
 	cSpline->xi_2 = cSpline->res_factor/2.0;
 	cSpline->x_int_2 = (cSpline->res_factor-(cSpline->res_factor/2.0))*.6+(cSpline->res_factor/2.0);
-	cSpline->xf_2 = cSpline->res_factor;
+	cSpline->xf_2 = cSpline->res_factor; // Final X (time) coordinate
 	cSpline->yi_2 = cSpline->yi_1 + ((cSpline->theta_set_fsm - cSpline->yi_1)/2.0);
-	cSpline->yf_2 = cSpline->theta_set_fsm;
+	cSpline->yf_2 = cSpline->theta_set_fsm; // Final Y (joint angle) coordinate
 	cSpline->y_int_2 = cSpline->yf_2 + ((cSpline->yi_2 - cSpline->yf_2) * .15);
+	solveTridiagonalMatrix(cSpline);
 }
 
-static void solveTridiagonalMatrix(CubicSpline *cSpline){
+static void solveTridiagonalMatrix(CubicSpline *cSpline){ // Solves the matrix and finds the coefficients for the functions
 	float B[3], A[2], C[2], r[3];
 	float e[3], f[3], g[2];
 	float x[3];
@@ -613,7 +613,7 @@ static void solveTridiagonalMatrix(CubicSpline *cSpline){
 	cSpline->b2_2 = b2;
 }
 
-static void calcCubicSpline(CubicSpline *cSpline){
+static void calcCubicSpline(CubicSpline *cSpline){ // Computes and evaluates the cubic spline trajectory. cSpline->Y is the interpolation value
 	float t;
 	float q[2];
 	float q2[2];
