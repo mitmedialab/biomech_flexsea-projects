@@ -42,7 +42,10 @@ void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Boo
 	}
 
 	//TODO: Consider controller architecture of feedback and feedforward blocks
+	#ifndef MOTOR_FEEDFOWARD_TUNING
 	torqueReference = torqueReference >SLACK_ANKLE_TORQUE?torqueReference:SLACK_ANKLE_TORQUE;//prevent string slack
+	#endif //#ifdef MOTOR_FEEDFOWARD_TUNING
+
 	float motorTorque = ankleTorqueToMotorTorque(torqueReference);
 	motorTorque = motorTorque>0?motorTorque:0;//no negative torque
 	//Calculates the voltage to set using feedforward and/or feedback
@@ -56,6 +59,7 @@ void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Boo
 
 	if(feedFoward)
     {
+		#ifndef MOTOR_FEEDFOWARD_TUNING
 		//vFeedForward = torqueReference*MOT_R/MOT_KT+MOT_KT*omega;
 //		if(motorTorque > TORQUE_EPSILON)
 //		{
@@ -81,6 +85,7 @@ void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Boo
 		{
 			targetV-=DEADBAND;
 		}
+		#endif //#ifndef MOTOR_FEEDFOWARD_TUNING
     }
     if(feedBack)
     {
@@ -123,21 +128,19 @@ void setMotorTorque(float torqueReference, actuation_parameters *act_para)
 	float vFeedForward = 0.0;
 	float omega = act_para->motorAngularVel;
 
-	vFeedForward = torqueReference*K1;
-	if(abs(omega)>OMEGA_THRESHOLD)
-	{
-		vFeedForward += omega*K2;
-	}
+	#ifdef MOTOR_FEEDFOWARD_TUNING
+	vFeedForward = torqueReference*user_data_1.w[1]/1000.;
+	vFeedForward += omega*user_data_1.w[2]/1000.;
 	targetV += vFeedForward;
-
 	if (torqueReference>TORQUE_EPSILON)
 	{
-		targetV+=DEADBAND;
+		targetV+=user_data_1.w[3]/1000.;
 	}
 	else if (torqueReference<-TORQUE_EPSILON)
 	{
-		targetV-=DEADBAND;
-		}
+		targetV-=user_data_1.w[3]/1000.;
+	}
+	#endif //#ifdef MOTOR_FEEDFOWARD_TUNING
 
 	setMotorVoltage(targetV*1000);
 	return;

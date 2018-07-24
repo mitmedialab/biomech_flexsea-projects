@@ -223,7 +223,13 @@ void RunningExo_fsm_1(void)
 			    		rigid1.mn.genVar[2] = torqueCommand*10.0;
 					#endif //CONTROL_STRATEGY == USER_TORQUE_COMMAND
 			    	//Send torque command
-			    	setAnkleTorque(torqueCommand, &act_para, 1,1);
+					#ifdef MOTOR_FEEDFOWARD_TUNING
+					setMotorTorque(torqueCommand, &act_para);
+					#endif //#ifdef MOTOR_FEEDFOWARD_TUNING
+
+					#ifndef MOTOR_FEEDFOWARD_TUNING
+			    	setAnkleTorque(torqueCommand, &act_para, 1,0);
+					#endif //#ifndef MOTOR_FEEDFORWARD_TUNING
 			    }
 				break;
         	default:

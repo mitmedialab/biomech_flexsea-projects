@@ -32,8 +32,11 @@
 #define GAIT_TORQUE_TRACKING 1
 #define USER_TORQUE_COMMAND 2
 #define TRAJECTORY_TORQUE_TRACKING 3
-#define CONTROL_STRATEGY GAIT_TORQUE_TRACKING
+
+//Active control strategy
+#define CONTROL_STRATEGY USER_TORQUE_COMMAND
 //#define PD_TUNING
+#define MOTOR_FEEDFOWARD_TUNING
 
 #if CONTROL_STRATEGY == TRAJECTORY_TORQUE_TRACKING
 	#define TRACK_PERIOD 3
@@ -217,11 +220,17 @@
 //Hand Tuned Feedforward Parameters
 //Values for motor 1
 // V = tau_desired*K1+omega*K2
+
+//Values for motor 1
 #define K1 0.78//Motor Only 0.493
 #define K2 0.1125//Motor only: 0.1135
+#define DEADBAND 0.489
+
+
+//Values for motor 3
+
 #define OMEGA_THRESHOLD 0.2		//Prevent noise
 //#define DEADBAND 0.523
-#define DEADBAND 0.489
 #define EXO_ANKLE_DEADBAND 12.
 #define FRICTION_COMPENSATION 1
 
