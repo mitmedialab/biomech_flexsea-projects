@@ -60,9 +60,9 @@ void setMotorPosition(int32_t i, uint8_t ch);
 //****************************************************************************
 
 //Default:
-#define CTRL_I_KP					100
-#define CTRL_I_KI					20
-#define CTRL_P_KP					200
+#define CTRL_I_KP					15
+#define CTRL_I_KI					15
+#define CTRL_P_KP					0
 
 //****************************************************************************
 // Structure(s)
