@@ -34,9 +34,11 @@
 // Include(s)
 //****************************************************************************
 #include <stdint.h>
-#include "main.h"
-#include "state_variables.h"
 
+#if defined BOARD_TYPE_FLEXSEA_MANAGE
+#include "main.h"
+#endif
+#include "state_variables.h"
 
 //****************************************************************************
 // Shared variable(s)

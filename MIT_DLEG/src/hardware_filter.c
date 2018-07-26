@@ -1,4 +1,7 @@
+#if defined BOARD_TYPE_FLEXSEA_MANAGE
 #include "arm_math.h"
+
+
 #include "hardware_filter.h"
 #include "user-mn.h"
 #include "user-mn-MIT-DLeg.h"
@@ -6,6 +9,7 @@
 #include "user-mn-ActPack.h"
 #include "flexsea_sys_def.h"
 #include "flexsea_system.h"
+#include <stdint.h>
 
 #ifdef LPF1 // Passband 100Hz, Stopband 200Hz
 #define N 26
@@ -138,3 +142,4 @@ float filter_LPF(float val)
 
     return (float)lpf_out;
 }
+#endif
