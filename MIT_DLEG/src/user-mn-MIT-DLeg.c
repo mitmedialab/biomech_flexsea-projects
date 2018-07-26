@@ -30,6 +30,9 @@
 //****************************************************************************
 // Include(s)
 //****************************************************************************
+#if defined BOARD_TYPE_FLEXSEA_MANAGE
+#include "arm_math.h"
+#endif
 
 #include "user-mn.h"
 #include "user-mn-MIT-DLeg.h"
@@ -41,7 +44,6 @@
 #include "flexsea_system.h"
 #include "flexsea_cmd_calibration.h"
 #include "flexsea_user_structs.h"
-#include "arm_math.h"
 //#include "software_filter.h"
 #include "hardware_filter.h"
 #include <flexsea_comm.h>

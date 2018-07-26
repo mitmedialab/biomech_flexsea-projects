@@ -8,7 +8,11 @@
 #ifndef BIOMECH_FLEXSEA_PROJECTS_MIT_DLEG_INC_MIT_FILTERS_H_
 #define BIOMECH_FLEXSEA_PROJECTS_MIT_DLEG_INC_MIT_FILTERS_H_
 
+#if defined BOARD_TYPE_FLEXSEA_MANAGE
 #include "arm_math.h"
+#endif
+
+#include <stdint.h>
 
 //#define LPF1 // Passband 100Hz, Stopband 200Hz
 //#define LPF2 // Passband 50Hz, Stopband 100Hz

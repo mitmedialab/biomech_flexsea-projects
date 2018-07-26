@@ -15,7 +15,7 @@
 	*
 ****************************************************************************/
 
-#ifdef BOARD_TYPE_FLEXSEA_MANAGE
+
 
 
 #ifndef INC_ACTPACK_MN_H
@@ -24,8 +24,9 @@
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-
+#ifdef BOARD_TYPE_FLEXSEA_MANAGE
 #include "main.h"
+#endif
 
 //****************************************************************************
 // Public Function Prototype(s):
@@ -66,5 +67,3 @@ extern int32_t mot_ang_offset;
 extern int32_t ank_ang_offset;
 
 #endif	//INC_ACTPACK_MN_H
-
-#endif //BOARD_TYPE_FLEXSEA_EXECUTE
