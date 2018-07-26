@@ -177,7 +177,7 @@ void MIT_DLeg_fsm_1(void)
 
 		case 1:
 			{
-				if (!safetyLimit()) {
+				if (!isSafetyFlag) {
 					setMotorTorque(&act1, act1.tauDes);
 				}
 
@@ -212,9 +212,9 @@ void MIT_DLeg_fsm_2(void)
  */
 int8_t safetyShutoff(void) {
 
-	commandTimer++;
+	act1.commandTimer++;
 
-	if (commandTimer >= MOTOR_TIMEOUT) {
+	if (act1.commandTimer >= MOTOR_TIMEOUT) {
 		act1.motorOnFlag = 0;
 	}
 

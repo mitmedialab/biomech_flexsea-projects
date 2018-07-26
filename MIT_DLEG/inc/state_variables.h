@@ -37,6 +37,7 @@ typedef struct act_s
     int32_t currentOpLimit; // current throttling limit
     int8_t safetyFlag;		// todo: consider if necessary
     int8_t motorOnFlag;
+    uint16_t commandTimer;
 
 } Act_s;
 

@@ -35,14 +35,14 @@
 //****************************************************************************
 #include <stdint.h>
 #include "main.h"
+#include "state_variables.h"
 
 
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
-extern struct act_s act1;	//define actuator structure shared
+extern Act_s act1;	//define actuator structure shared
 extern int8_t isEnabledUpdateSensors;
-extern uint16_t commandTimer; //be sure to check for new cmd message and reset this to 0
 
 //****************************************************************************
 // Structure(s)
@@ -65,22 +65,22 @@ int8_t safetyShutoff(void); //renamed from safetyFailure(void)
 void   clampCurrent(float* pcurrentDes);
 
 // Mechanical transformations
-void   	getJointAngleKinematic(struct act_s *act_x);
+void   	getJointAngleKinematic(Act_s *act_x);
 float   getJointAngularVelocity(void);
 float   getAxialForce(void);
 float   getLinkageMomentArm(float);
-float   getJointTorque(struct act_s *actx);
-float 	getJointTorqueRate(struct act_s *actx);
-float 	calcRestoringCurrent(struct act_s *actx, float N);
+float   getJointTorque(Act_s *actx);
+float 	getJointTorqueRate(Act_s *actx);
+float 	calcRestoringCurrent(Act_s *actx, float N);
 int16_t getMotorTempSensor(void);
-void    updateSensorValues(struct act_s *actx);
+void    updateSensorValues(Act_s *actx);
 float 	signalFilterSlope(float value, float a, float limit);
-void 	updateJointTorqueRate(struct act_s *actx);
+void 	updateJointTorqueRate(Act_s *actx);
 
 //Control outputs
 float biomCalcImpedance(float k1, float k2, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
-void  setMotorTorque(struct act_s *actx, float tor_d);
-void  packRigidVars(struct act_s *actx);
+void  setMotorTorque(Act_s *actx, float tor_d);
+void  packRigidVars(Act_s *actx);
 
 //Smoothing
 float windowSmoothJoint(int32_t val);
@@ -89,9 +89,9 @@ float windowSmoothAxial(float val);
 //Main FSMs
 void openSpeedFSM(void);
 void twoPositionFSM(void);
-void oneTorqueFSM(struct act_s *actx);
-void twoTorqueFSM(struct act_s *actx);
-void torqueSweepTest(struct act_s *actx);
+void oneTorqueFSM(Act_s *actx);
+void twoTorqueFSM(Act_s *actx);
+void torqueSweepTest(Act_s *actx);
 
 
 //****************************************************************************
@@ -104,6 +104,8 @@ void torqueSweepTest(struct act_s *actx);
 //1. Select joint type
 #define IS_ANKLE
 //#define IS_KNEE
+
+//define joint type here
 
 //2. Select device
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
