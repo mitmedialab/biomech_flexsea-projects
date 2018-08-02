@@ -316,6 +316,11 @@ void updateSensorValues(struct act_s *actx)
 		isTempLimit = 0;
 	}
 
+	//convert values for multipacket
+	actx->intJointAngleDegrees = (int16_t) actx->jointAngleDegrees*100;
+	actx->intJointVelDegrees = (int16_t) actx->jointVelDegrees*100;
+	actx->intJointTorque = (int16_t) actx->jointTorque*100;
+
 }
 
 //The ADC reads the motor Temp sensor - MCP9700 T0-92. This function converts the result to C.

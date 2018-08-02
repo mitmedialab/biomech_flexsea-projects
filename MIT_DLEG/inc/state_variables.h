@@ -39,6 +39,11 @@ typedef struct act_s
     int8_t motorOnFlag;
     uint16_t commandTimer;
 
+    //following values are sent over multipacket and updated in update sensors
+    int16_t intJointAngleDegrees; // all have x100 multiplication when sent over!!
+    int16_t intJointVelDegrees;
+    int16_t intJointTorque;
+
 } Act_s;
 
 
