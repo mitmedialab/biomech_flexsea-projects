@@ -228,6 +228,9 @@
 
 
 //Values for motor 3
+#define K1 0.547
+#define K2 0.119
+#define DEADBAND 0.439
 
 #define OMEGA_THRESHOLD 0.2		//Prevent noise
 //#define DEADBAND 0.523
