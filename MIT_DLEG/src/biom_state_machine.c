@@ -13,6 +13,7 @@ extern "C" {
 #include "flexsea_system.h"
 #include "flexsea.h"
 #include <math.h>
+#include "torqueTrajectoryTracking.h"
 
 WalkingStateMachine stateMachine;
 Act_s act1;
