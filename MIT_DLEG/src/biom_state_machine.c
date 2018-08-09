@@ -20,6 +20,19 @@ Act_s act1;
 WalkParams walkParams;
 CubicSpline cubicSpline;
 
+// torque trajectory tracking variables
+static uint32_t impedance_mode; // careful with initial value
+static float time_stance = 0.0;
+static float previous_stance_period;
+static float previous_swing_period;
+static float time_swing = 0.0;
+static float speedFactor;
+static float percent;
+static uint32_t current_index;
+static float torque_traj_mscaled[TRAJ_SIZE];
+static float torqueCommand;
+
+
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
 GainParams lswGains = {1.5, 1, 0.3, -5.0};
@@ -45,10 +58,14 @@ static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wPa
 static void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
 static void initializeUserWrites(WalkParams *wParams);
 
-//Splines
+// Splines
 static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams, float res_factor);
 static void solveTridiagonalMatrix(CubicSpline *cSpline);
 static void calcCubicSpline(CubicSpline *cSpline);
+
+// Torque trajectory tracking
+static uint32_t checkImpedanceMode();
+static void torqueTracking();
 
 /** Impedance Control Level-ground Walking FSM
 	Based on BiOM ankle and simplified.
@@ -106,6 +123,10 @@ void runFlatGroundFSM(Act_s *actx) {
 
             stateMachine.current_state = STATE_LATE_SWING;
 
+            // torque tracking - scale mass TODO: correct in here?
+            for(int i=0; i<TRAJ_SIZE; i++){
+            	torque_traj_mscaled[i] = torque_traj[i] + ((USER_MASS - 50.0)*massGains[i]); }
+
             break;
 					
         case STATE_EARLY_SWING: //2
@@ -116,6 +137,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				// initialize cubic spline params once
 				initializeCubicSplineParams(&cubicSpline, actx, eswGains, 100.0); // last parameter is res_factor (delta X - time)
+
 			}
 
 			// Cubic Spline
@@ -123,6 +145,9 @@ void runFlatGroundFSM(Act_s *actx) {
 			eswGains.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
             actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
+
+            // torque tracking - time_swing++
+            time_swing++;
 
             //Early Swing transition vectors
             // VECTOR(1): Early Swing -> Late Swing
@@ -142,6 +167,9 @@ void runFlatGroundFSM(Act_s *actx) {
 
 			actx->tauDes = calcJointTorque(lswGains, actx, &walkParams);
 
+			// torque tracking - time_swing++
+			time_swing++;
+
 //			if (MIT_EMG_getState() == 1) windowSmoothEMG0(JIM_LG); //emg signal for Jim's LG
 
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
@@ -156,20 +184,33 @@ void runFlatGroundFSM(Act_s *actx) {
 				else if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
 					stateMachine.current_state = STATE_EARLY_STANCE;
 					walkParams.transition_id = 1;
+					// torque tracking - save time_swing to use it later and time_swing = 0
+					previous_swing_period = time_swing;
+					time_swing = 0.0;
 				}
 				// VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
 				else if (actx->jointTorqueRate > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH) {
 					stateMachine.current_state = STATE_EARLY_STANCE;
 					walkParams.transition_id = 2;
+					// torque tracking - save time_swing to use it later and time_swing = 0
+					previous_swing_period = time_swing;
+					time_swing = 0.0;
+
 				}
 				// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
 				else if (actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH) {
 					stateMachine.current_state = STATE_EARLY_STANCE;
 					walkParams.transition_id = 3;
+					// torque tracking - save time_swing to use it later and time_swing = 0
+					previous_swing_period = time_swing;
+					time_swing = 0.0;
 				}
 				else {
 					stateMachine.current_state = STATE_EARLY_STANCE;
 					walkParams.transition_id = 5;
+					// torque tracking - save time_swing to use it later and time_swing = 0
+					previous_swing_period = time_swing;
+					time_swing = 0.0;
 				}
 			}
 
@@ -190,13 +231,22 @@ void runFlatGroundFSM(Act_s *actx) {
 
 					emgInputPPF = 0;
 					passedStanceThresh = 0;
+
 				}
 
-
 				updateVirtualHardstopTorque(actx, &walkParams);
-				updateImpedanceParams(actx, &walkParams);
 
-				actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
+				// torque tracking - checkImpedanceMode() based on cont_swing, if(impedance_mode)
+				if(checkImpedanceMode()){
+					updateImpedanceParams(actx, &walkParams);
+					actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
+				}
+				// torque tracking - else torqueTracking() time_stance++
+				else{
+					torqueTracking();
+					actx->tauDes = torqueCommand;
+					time_stance++;
+				}
 
 				// VECTOR (1): Early Stance -> Free space EMG
 				//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
@@ -237,6 +287,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 400) {
 					stateMachine.current_state = STATE_LATE_SWING;
+					// torque tracking - previous_swing_period + time_swing ?
 				}
 
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
@@ -266,8 +317,17 @@ void runFlatGroundFSM(Act_s *actx) {
 					actx->tauDes = calcEMGPPF(actx, &walkParams);
 
 				} else {
-					//Linear ramp push off
-					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
+					// torque tracking - if(IMPEDANCE_MODE)
+					if(checkImpedanceMode()){
+						//Linear ramp push off
+						actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
+					}
+					// torque tracking - else torqueTracking() time_stance++
+					else{
+						torqueTracking();
+						actx->tauDes = torqueCommand;
+						time_stance++;
+					}
 				}
 
 
@@ -275,6 +335,10 @@ void runFlatGroundFSM(Act_s *actx) {
 				// VECTOR (1): Late Stance Power -> Early Swing - Condition 1
 				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 100) {
 					stateMachine.current_state = STATE_EARLY_SWING;
+
+					// torque tracking - toe off save time_stance to use it later, previous gait cycle period = cont_stance, and cont_stance = 0
+					previous_stance_period = time_stance;
+					time_stance = 0.0;
 				}
         	}
 
@@ -352,8 +416,6 @@ void runFlatGroundFSM(Act_s *actx) {
 
     //update last state in preparation for next loop
     stateMachine.last_sm_state = stateMachine.on_entry_sm_state;
-
-
 
 }
 
@@ -638,6 +700,19 @@ static void calcCubicSpline(CubicSpline *cSpline){ // Computes and evaluates the
 	cSpline->time_state++;
 }
 
+static uint32_t checkImpedanceMode(){
+	if(time_swing >= IMPEDANCE_MODE_THRESHOLD) impedance_mode = 1;
+	else impedance_mode = 0;
+	return impedance_mode;
+}
+
+static void torqueTracking(){
+	speedFactor = (1 - (previous_stance_period / TRAJ_SIZE)) * 100.0;
+	percent = time_stance / previous_stance_period;
+	if(percent > 1.0) percent = 1.0;
+	current_index = (int) roundf(percent*(float)TRAJ_SIZE);
+	torqueCommand = torque_traj_mscaled[current_index] + (speedFactor*speedGains[current_index]);
+}
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
 
 #ifdef __cplusplus
