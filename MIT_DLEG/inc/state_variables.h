@@ -37,6 +37,8 @@ typedef struct act_s
     int32_t currentOpLimit; // current throttling limit
     int8_t safetyFlag;		// todo: consider if necessary
     int8_t motorOnFlag;
+    int8_t mapWritten;
+    int8_t foundPoles;
     uint16_t commandTimer;
 
     //following values are sent over multipacket and updated in update sensors
