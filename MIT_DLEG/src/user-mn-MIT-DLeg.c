@@ -44,6 +44,7 @@
 #include "flexsea_system.h"
 #include "flexsea_cmd_calibration.h"
 #include "flexsea_user_structs.h"
+#include "flexsea_cmd_biomech.h"
 //#include "software_filter.h"
 #include "hardware_filter.h"
 #include <flexsea_comm.h>
@@ -179,7 +180,7 @@ void MIT_DLeg_fsm_1(void)
 
 		case 1:
 			{
-				if (!isSafetyFlag) {
+				if (!safetyShutoff()) {
 					setMotorTorque(&act1, act1.tauDes);
 				}
 
@@ -253,7 +254,7 @@ int8_t safetyShutoff(void) {
 				break;
 			} else {
 				// This could cause trouble, but seems more safe than an immediate drop in torque. Instead, reduce torque.
-				setMotorTorque(&act1, act1.tauDes * 0.5); // reduce desired torque by 25%
+				setMotorTorque(&act1, act1.tauDes * 0.5); // reduce desired torque by 50%
 			}
 
 			return 1;
@@ -317,9 +318,9 @@ void updateSensorValues(struct act_s *actx)
 	}
 
 	//convert values for multipacket
-	actx->intJointAngleDegrees = (int16_t) actx->jointAngleDegrees*100;
-	actx->intJointVelDegrees = (int16_t) actx->jointVelDegrees*100;
-	actx->intJointTorque = (int16_t) actx->jointTorque*100;
+	actx->intJointAngleDegrees = (int16_t) actx->jointAngleDegrees*INT_SCALING;
+	actx->intJointVelDegrees = (int16_t) actx->jointVelDegrees*INT_SCALING;
+	actx->intJointTorque = (int16_t) actx->jointTorque*INT_SCALING;
 
 }
 
