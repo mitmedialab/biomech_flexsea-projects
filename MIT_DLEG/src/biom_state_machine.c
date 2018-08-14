@@ -70,6 +70,16 @@ void runFlatGroundFSM(Act_s *actx) {
     	initializeUserWrites(&walkParams);
 
     	//USER WRITE INITIALIZATION GOES HERE//////////////
+    	//todo:
+    	// - Cleanup userwrites
+    	// - Hardstop engagement angle (zero point)
+    	// - Hardstop Spring Constant
+    	// - Powered PlantarFlexion Spring Constant (force, velocity?)
+    	// - PPF Set point position
+    	// - Heelstrike stiffness or damping
+    	// - Check on State transitions EST -> LSTP
+    	// - Check on how we ramp force
+
     	user_data_1.w[2] = PF_TORQUE_GAIN; //pfTorqueGain;
     	user_data_1.w[3] = DF_TORQUE_GAIN; //dfTorqueGain;
     	user_data_1.w[4] = 7000; //ROBOT_K; //
@@ -375,6 +385,14 @@ static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wPa
 }
 
 static void updateUserWrites(Act_s *actx, WalkParams *wParams){
+	wParams->earlyStanceK0 = 6.23;
+	wParams->earlyStanceKF = 0.1;
+	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
+	wParams->lstPGDelTics = 1;
+	wParams->earlyStanceKF = 1;
+	wParams->virtualHardstopK = 7;				//7 x 100
+	wParams->virtualHardstopEngagementAngle = 0;	//0.0 x 1
+	wParams->lspEngagementTorque = 80;
 
 }
 
