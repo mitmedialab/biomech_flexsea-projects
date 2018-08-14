@@ -21,17 +21,17 @@ WalkParams walkParams;
 CubicSpline cubicSpline;
 
 // torque trajectory tracking variables
-static uint32_t impedance_mode; // careful with initial value
+static uint32_t impedance_mode;
 static float time_stance = 0.0;
-static float previous_stance_period;
-static float previous_swing_period;
+static float standard_stance_period = 600.0; // TODO: verify this, at 1.25m/s
+static float previous_stance_period = 600.0;
+static float previous_swing_period = 400.0; // TODO: verify this, at 1.25m/s
 static float time_swing = 0.0;
 static float speedFactor;
 static float percent;
 static uint32_t current_index;
-static float torque_traj_mscaled[TRAJ_SIZE];
+static float torque_traj_mscaled[TRAJ_SIZE]; // mass scaled torque trajectory
 static float torqueCommand;
-
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
@@ -65,7 +65,7 @@ static void calcCubicSpline(CubicSpline *cSpline);
 
 // Torque trajectory tracking
 static uint32_t checkImpedanceMode();
-static void torqueTracking();
+static float torqueTracking();
 
 /** Impedance Control Level-ground Walking FSM
 	Based on BiOM ankle and simplified.
@@ -243,8 +243,7 @@ void runFlatGroundFSM(Act_s *actx) {
 				}
 				// torque tracking - else torqueTracking() time_stance++
 				else{
-					torqueTracking();
-					actx->tauDes = torqueCommand;
+					actx->tauDes = torqueTracking();
 					time_stance++;
 				}
 
@@ -285,9 +284,9 @@ void runFlatGroundFSM(Act_s *actx) {
 		            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
 		        }
 
-				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 400) {
+				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 400) { //TODO: maybe get rid off this?
 					stateMachine.current_state = STATE_LATE_SWING;
-					// torque tracking - previous_swing_period + time_swing ?
+					// TODO: torque tracking. previous_swing_period + time_swing ?
 				}
 
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
@@ -324,8 +323,7 @@ void runFlatGroundFSM(Act_s *actx) {
 					}
 					// torque tracking - else torqueTracking() time_stance++
 					else{
-						torqueTracking();
-						actx->tauDes = torqueCommand;
+						actx->tauDes = torqueTracking();
 						time_stance++;
 					}
 				}
@@ -701,17 +699,20 @@ static void calcCubicSpline(CubicSpline *cSpline){ // Computes and evaluates the
 }
 
 static uint32_t checkImpedanceMode(){
-	if(time_swing >= IMPEDANCE_MODE_THRESHOLD) impedance_mode = 1;
+	if(user_data_1.w[0] == 1) impedance_mode = 1; // 1 (impedance), 0(torque tracking)
 	else impedance_mode = 0;
 	return impedance_mode;
 }
 
-static void torqueTracking(){
-	speedFactor = (1 - (previous_stance_period / TRAJ_SIZE)) * 100.0;
+static float torqueTracking(){
+	if(previous_stance_period > standard_stance_period)
+		previous_stance_period = standard_stance_period;
+	speedFactor = (1 - (previous_stance_period / standard_stance_period)) * 100.0;
 	percent = time_stance / previous_stance_period;
 	if(percent > 1.0) percent = 1.0;
-	current_index = (int) roundf(percent*(float)TRAJ_SIZE);
+	current_index = round(percent*(float)TRAJ_SIZE);
 	torqueCommand = torque_traj_mscaled[current_index] + (speedFactor*speedGains[current_index]);
+	return torqueCommand * (float)user_data_1.w[1];
 }
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
 
