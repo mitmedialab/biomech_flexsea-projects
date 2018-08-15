@@ -158,10 +158,10 @@ void runFlatGroundFSM(Act_s *actx) {
 					stateMachine.current_state = STATE_EARLY_STANCE;
 					walkParams.transition_id = 3;
 				}
-				else {
-					stateMachine.current_state = STATE_EARLY_STANCE;
-					walkParams.transition_id = 5;
-				}
+//				else {
+//					stateMachine.current_state = STATE_EARLY_STANCE;
+//					walkParams.transition_id = 5;
+//				}
 			}
 
 
@@ -218,7 +218,7 @@ void runFlatGroundFSM(Act_s *actx) {
 				//---------------------- EARLY STANCE TRANSITION VECTORS ----------------------//
 
 				// VECTOR (A): Early Stance -> Late Stance (foot flat) - Condition 1
-				if (abs(actx->jointAngle) > walkParams.virtualHardstopEngagementAngle){
+				if ((actx->jointAngle) < walkParams.virtualHardstopEngagementAngle){
 					passedStanceThresh = 1;
 				}
 
@@ -369,13 +369,14 @@ static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wPa
 
 static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 
-	actx->safetyTorqueScalar 				= (float) user_data_1.w[0]/100.0;	// Reduce overall torque limit.
-	wParams->virtualHardstopEngagementAngle = (float) user_data_1.w[1]/100.0;	// [Deg]
-	wParams->virtualHardstopK 				= (float) user_data_1.w[2]/100.0;	// [Nm/deg]
-	wParams->lspEngagementTorque 			= (float) user_data_1.w[3]/100.0; 	// [Nm] Late stance power, torque threshhold
-	wParams->lstPGDelTics 					= user_data_1.w[4]; 				// ramping rate
-	lstPowerGains.k1						= (float) user_data_1.w[5] / 100.0;	// [Nm/deg]
-	lstPowerGains.thetaDes 					= (float) user_data_1.w[6] / 100.0;	// [Deg]
+	actx->safetyTorqueScalar 				= ( (float) user_data_1.w[0] ) /100.0;	// Reduce overall torque limit.
+	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
+	wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
+	wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
+	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 				// ramping rate
+	lstPowerGains.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
+	lstPowerGains.thetaDes 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
+	lstPowerGains.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
 }
 
 static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
@@ -383,11 +384,13 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	wParams->earlyStanceK0 = 6.23;
 	wParams->earlyStanceKF = 0.1;
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
-	wParams->lstPGDelTics = 1;
-	wParams->earlyStanceKF = 1;
-	wParams->virtualHardstopK = 7;				//7 x 100
-	wParams->virtualHardstopEngagementAngle = 0;	//0.0 x 1
-	wParams->lspEngagementTorque = 80;
+
+	actx->safetyTorqueScalar = 1.0;
+	wParams->virtualHardstopEngagementAngle = 0.0;	//0.0 x 100
+	wParams->virtualHardstopK = 7.0;				//7 x 100
+	wParams->lspEngagementTorque = 20.0;			// 20 x 100
+	wParams->lstPGDelTics = 1.0;					// 1
+
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
 	//TODO:
@@ -401,13 +404,14 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	// - Check on how we ramp force
 	// - include overall system torque scalar;
 
-	user_data_1.w[0] = (int16_t) actx->safetyTorqueScalar*100; 	// Hardstop Engagement angle
-	user_data_1.w[1] = (int16_t) wParams->virtualHardstopEngagementAngle*100; 	// Hardstop Engagement angle
-	user_data_1.w[2] = (int16_t) wParams->virtualHardstopK*100; 				// Hardstop spring constant
-	user_data_1.w[3] = (int16_t) wParams->lspEngagementTorque*100; 			// Late stance power, torque threshhold
+	user_data_1.w[0] = (int16_t) actx->safetyTorqueScalar*100.0; 	// Hardstop Engagement angle
+	user_data_1.w[1] = (int16_t) wParams->virtualHardstopEngagementAngle*100.0; 	// Hardstop Engagement angle
+	user_data_1.w[2] = (int16_t) wParams->virtualHardstopK*100.0; 				// Hardstop spring constant
+	user_data_1.w[3] = (int16_t) wParams->lspEngagementTorque*100.0; 			// Late stance power, torque threshhold
 	user_data_1.w[4] = (int16_t) wParams->lstPGDelTics; 		// ramping rate
-	user_data_1.w[5] = (int16_t) lstPowerGains.k1 * 100;
-	user_data_1.w[6] = (int16_t) lstPowerGains.thetaDes * 100;
+	user_data_1.w[5] = (int16_t) lstPowerGains.k1 * 100.0;		// 4.5 x 100
+	user_data_1.w[6] = (int16_t) lstPowerGains.thetaDes * 100.0; // 14 x 100
+	user_data_1.w[7] = (int16_t) lstPowerGains.b * 100.0; // 0.1 x 100
 
 	///////////////////////////////////////////////////
 
