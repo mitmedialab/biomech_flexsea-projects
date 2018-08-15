@@ -117,8 +117,10 @@ void runFlatGroundFSM(Act_s *actx) {
 
             //Early Swing transition vectors
             // VECTOR(1): Early Swing -> Late Swing
-            if (time_in_state >= ESW_TO_LSW_DELAY) {
-                stateMachine.current_state = STATE_LATE_SWING;      //Transition occurs even if the early swing motion is not finished
+//            if (time_in_state >= ESW_TO_LSW_DELAY) {
+			if (time_in_state >= 200) {
+            	//                stateMachine.current_state = STATE_LATE_SWING;      //Transition occurs even if the early swing motion is not finished
+                stateMachine.current_state = STATE_EARLY_STANCE;      //Transition occurs even if the early swing motion is not finished
             }
 
             //run any exit code here
@@ -185,7 +187,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 
 				updateVirtualHardstopTorque(actx, &walkParams);
-				updateImpedanceParams(actx, &walkParams);
+//				updateImpedanceParams(actx, &walkParams);
 
 				actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
 
@@ -236,7 +238,7 @@ void runFlatGroundFSM(Act_s *actx) {
 				// TODO: maybe remove this transition?
 				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 800) {
 					// Transition back to safe state, in case foot is lifted.
-					stateMachine.current_state = STATE_LATE_SWING; // i think this should be STATE_EARLY_STANCE
+//					stateMachine.current_state = STATE_LATE_SWING; // i think this should be STATE_EARLY_STANCE
 				}
 
 
