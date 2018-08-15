@@ -21,8 +21,8 @@ CubicSpline cubicSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
-GainParams lswGains = {1.5, 1, 0.3, -5.0};
-GainParams estGains = {0.0, 0.0, 0.1, 0.0};
+GainParams lswGains = {1.5, 0.0, 0.3, -5.0};
+GainParams estGains = {0.0, 0.0, 0.1, 0.0};	// may want to increase this damping, at least.
 GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
 GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
 
@@ -42,7 +42,7 @@ static void updateImpedanceParams(Act_s *actx, WalkParams *wParams);
 static void updateUserWrites(Act_s *actx, WalkParams *wParams);
 static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams);
 static void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
-static void initializeUserWrites(WalkParams *wParams);
+static void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 
 //Splines
 static void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams, float res_factor);
@@ -67,26 +67,8 @@ void runFlatGroundFSM(Act_s *actx) {
 	float torq_thresh = 0;
 
     if (!walkParams.initializedStateMachineVariables){
-    	initializeUserWrites(&walkParams);
+    	initializeUserWrites(actx, &walkParams);
 
-    	//USER WRITE INITIALIZATION GOES HERE//////////////
-    	//todo:
-    	// - Cleanup userwrites
-    	// - Hardstop engagement angle (zero point)
-    	// - Hardstop Spring Constant
-    	// - Powered PlantarFlexion Spring Constant (force, velocity?)
-    	// - PPF Set point position
-    	// - Heelstrike stiffness or damping
-    	// - Check on State transitions EST -> LSTP
-    	// - Check on how we ramp force
-
-    	user_data_1.w[2] = PF_TORQUE_GAIN; //pfTorqueGain;
-    	user_data_1.w[3] = DF_TORQUE_GAIN; //dfTorqueGain;
-    	user_data_1.w[4] = 7000; //ROBOT_K; //
-    	user_data_1.w[5] = 200; //ROBOT_B; // damping/100
-    	user_data_1.w[6] = 800; //BASELINE_K; // damping/100
-    	user_data_1.w[7] = 35;	// torq_thresh/10
-    	///////////////////////////////////////////////////
     }
 
     updateUserWrites(actx, &walkParams);
@@ -236,17 +218,21 @@ void runFlatGroundFSM(Act_s *actx) {
 				//---------------------- EARLY STANCE TRANSITION VECTORS ----------------------//
 
 				// VECTOR (A): Early Stance -> Late Stance (foot flat) - Condition 1
-				if (abs(actx->jointTorque) > 20.0){
+				if (abs(actx->jointAngle) > walkParams.virtualHardstopEngagementAngle){
 					passedStanceThresh = 1;
 				}
 
-				if (actx->jointTorque > walkParams.lspEngagementTorque) {
-		            	stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+				if (passedStanceThresh && actx->jointTorque > walkParams.lspEngagementTorque) {
+					//Transition occurs if passed into dorsiflexion, and torque threshold is met
+	            	stateMachine.current_state = STATE_LATE_STANCE_POWER;
 		        }
 
-				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 400) {
-					stateMachine.current_state = STATE_LATE_SWING;
+				// TODO: maybe remove this transition?
+				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 800) {
+					// Transition back to safe state, in case foot is lifted.
+					stateMachine.current_state = STATE_LATE_SWING; // i think this should be STATE_EARLY_STANCE
 				}
+
 
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 				break;
@@ -276,6 +262,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 				} else {
 					//Linear ramp push off
+					//todo: may change this to remove this first jointTorque value, or even use cubicSpline
 					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
 				}
 
@@ -376,15 +363,23 @@ void runFlatGroundFSM(Act_s *actx) {
 */
 static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams) {
 
-//	if (fabs(actx->jointVelDegrees) > 6){
-		return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
+	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
          - gainParams.b * actx->jointVelDegrees  + wParams->virtual_hardstop_tq;
-//	}else{
-//    	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) + wParams->virtual_hardstop_tq;
-//	}
 }
 
 static void updateUserWrites(Act_s *actx, WalkParams *wParams){
+
+	actx->safetyTorqueScalar 				= (float) user_data_1.w[0]/100.0;	// Reduce overall torque limit.
+	wParams->virtualHardstopEngagementAngle = (float) user_data_1.w[1]/100.0;	// [Deg]
+	wParams->virtualHardstopK 				= (float) user_data_1.w[2]/100.0;	// [Nm/deg]
+	wParams->lspEngagementTorque 			= (float) user_data_1.w[3]/100.0; 	// [Nm] Late stance power, torque threshhold
+	wParams->lstPGDelTics 					= user_data_1.w[4]; 				// ramping rate
+	lstPowerGains.k1						= (float) user_data_1.w[5] / 100.0;	// [Nm/deg]
+	lstPowerGains.thetaDes 					= (float) user_data_1.w[6] / 100.0;	// [Deg]
+}
+
+static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
+
 	wParams->earlyStanceK0 = 6.23;
 	wParams->earlyStanceKF = 0.1;
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
@@ -394,22 +389,33 @@ static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 	wParams->virtualHardstopEngagementAngle = 0;	//0.0 x 1
 	wParams->lspEngagementTorque = 80;
 
+	//USER WRITE INITIALIZATION GOES HERE//////////////
+	//TODO:
+	// - Cleanup userwrites
+	// x Hardstop engagement angle (zero point)
+	// x Hardstop Spring Constant
+	// - Powered PlantarFlexion Spring Constant (force, velocity?)
+	// - PPF Set point position
+	// - Heelstrike stiffness or damping
+	// - Check on State transitions EST -> LSTP
+	// - Check on how we ramp force
+	// - include overall system torque scalar;
+
+	user_data_1.w[0] = (int16_t) actx->safetyTorqueScalar*100; 	// Hardstop Engagement angle
+	user_data_1.w[1] = (int16_t) wParams->virtualHardstopEngagementAngle*100; 	// Hardstop Engagement angle
+	user_data_1.w[2] = (int16_t) wParams->virtualHardstopK*100; 				// Hardstop spring constant
+	user_data_1.w[3] = (int16_t) wParams->lspEngagementTorque*100; 			// Late stance power, torque threshhold
+	user_data_1.w[4] = (int16_t) wParams->lstPGDelTics; 		// ramping rate
+	user_data_1.w[5] = (int16_t) lstPowerGains.k1 * 100;
+	user_data_1.w[6] = (int16_t) lstPowerGains.thetaDes * 100;
+
+	///////////////////////////////////////////////////
+
+	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
 }
 
-static void initializeUserWrites(WalkParams *wParams){
-
-	wParams->earlyStanceK0 = 6.23;
-	wParams->earlyStanceKF = 0.1;
-	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
-	wParams->lstPGDelTics = 1;
-	wParams->earlyStanceKF = 1;
-	wParams->virtualHardstopK = 7;				//7 x 100
-	wParams->virtualHardstopEngagementAngle = 0;	//0.0 x 1
-	wParams->lspEngagementTorque = 80;
-
-	wParams->initializedStateMachineVariables = 1;
-}
-
+// This ramps down the Stiffness of early stance K, picking up the user and bringing them up to estGains.thetaDes
+// NOTE/TODO: Hugh may prefer much more stiffness here, this ramps down teh stiffness.
 static void updateImpedanceParams(Act_s *actx, WalkParams *wParams) {
 
 	wParams->scaleFactor = wParams->scaleFactor * wParams->earlyStanceDecayConstant;

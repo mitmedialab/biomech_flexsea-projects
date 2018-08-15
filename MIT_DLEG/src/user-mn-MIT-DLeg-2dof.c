@@ -158,10 +158,7 @@ void MIT_DLeg_fsm_1(void)
 
 			//reserve for additional initialization
 
-			// to use hardware filter on data use this:
-			// init_LPF();
-			// filter_LPF(rigid1.mn.accel.x);
-			// lpf_result;  // this is the result value. Currently returning values with high offset
+			act1.safetyTorqueScalar = 1.0;
 
 			fsm1State = 1;
 			time = 0;
@@ -187,7 +184,16 @@ void MIT_DLeg_fsm_1(void)
 			    } else {
 			    	runFlatGroundFSM(&act1);
 
-					setMotorTorque(&act1, act1.tauDes);
+			    	// Check that torques are within safety range.
+			    	// todo: Safety Scalar to allow userwrite to change maximum torque val.
+			    	if (act1.tauDes > act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
+			    		act1.tauDes = act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT;
+			    	} else if (act1.tauDes < -act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
+			    		act1.tauDes = - act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT;
+			    	}
+
+//			    	setMotorTorque(&act1, act1.tauDes);
+
 
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
@@ -350,7 +356,7 @@ void getJointAngleKinematic(struct act_s *actx)
 {
 	static int32_t jointAngleCnts = 0;
 	static int32_t jointAngleCntsAbsolute = 0;
-	static float last_jointVel;
+	static float last_jointVel = 0;
 	static float jointAngleAbsolute = 0;
 
 	//ANGLE
@@ -385,7 +391,7 @@ void getJointAngleKinematic(struct act_s *actx)
 	actx->lastJointAngle = actx->jointAngle;
 	//last_jointAngle = joint[0];
 	//last_jointVel = joint[1];
-
+	last_jointVel = actx->jointVel;
 
 
 }
