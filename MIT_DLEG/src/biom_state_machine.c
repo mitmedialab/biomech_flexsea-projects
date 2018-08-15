@@ -218,14 +218,20 @@ void runFlatGroundFSM(Act_s *actx) {
 				//---------------------- EARLY STANCE TRANSITION VECTORS ----------------------//
 
 				// VECTOR (A): Early Stance -> Late Stance (foot flat) - Condition 1
-				if ((actx->jointAngle) < walkParams.virtualHardstopEngagementAngle){
+				if (abs(actx->jointTorque) > 20.0){
 					passedStanceThresh = 1;
 				}
+//				if ((actx->jointAngle) < walkParams.virtualHardstopEngagementAngle){
+//					passedStanceThresh = 1;
+//				}
 
-				if (passedStanceThresh && actx->jointTorque > walkParams.lspEngagementTorque) {
-					//Transition occurs if passed into dorsiflexion, and torque threshold is met
-	            	stateMachine.current_state = STATE_LATE_STANCE_POWER;
-		        }
+				if (actx->jointTorque > walkParams.lspEngagementTorque) {
+					stateMachine.current_state = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+				}
+				//				if (passedStanceThresh && actx->jointTorque > walkParams.lspEngagementTorque) {
+//					//Transition occurs if passed into dorsiflexion, and torque threshold is met
+//	            	stateMachine.current_state = STATE_LATE_STANCE_POWER;
+//		        }
 
 				// TODO: maybe remove this transition?
 				if (passedStanceThresh && abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && time_in_state > 800) {
@@ -263,7 +269,8 @@ void runFlatGroundFSM(Act_s *actx) {
 				} else {
 					//Linear ramp push off
 					//todo: may change this to remove this first jointTorque value, or even use cubicSpline
-					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
+//					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
+					actx->tauDes = (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
 				}
 
 
@@ -377,6 +384,8 @@ static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 	lstPowerGains.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
 	lstPowerGains.thetaDes 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
 	lstPowerGains.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
+	estGains.k1			 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
+	estGains.b			 					= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
 }
 
 static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
@@ -390,7 +399,11 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	wParams->virtualHardstopK = 7.0;				//7 x 100
 	wParams->lspEngagementTorque = 20.0;			// 20 x 100
 	wParams->lstPGDelTics = 1.0;					// 1
-
+	lstPowerGains.k1						= 7.5;	// [Nm/deg]
+	lstPowerGains.thetaDes 					= 14;	// [Deg]
+	lstPowerGains.b		 					= .05;	// [Nm/s]
+	estGains.k1			 					= 1.5;	// [Nm/deg]
+	estGains.b			 					= 0.1;	// [Nm/s]
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
 	//TODO:
@@ -412,6 +425,8 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	user_data_1.w[5] = (int16_t) lstPowerGains.k1 * 100.0;		// 4.5 x 100
 	user_data_1.w[6] = (int16_t) lstPowerGains.thetaDes * 100.0; // 14 x 100
 	user_data_1.w[7] = (int16_t) lstPowerGains.b * 100.0; // 0.1 x 100
+	user_data_1.w[8] = (int16_t) estGains.k1 * 100.0; // 0.1 x 100
+	user_data_1.w[9] = (int16_t) estGains.b * 100.0; // 0.1 x 100
 
 	///////////////////////////////////////////////////
 
