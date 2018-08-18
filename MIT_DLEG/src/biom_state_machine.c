@@ -398,13 +398,13 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
 	actx->safetyTorqueScalar = 1.0;
 	wParams->virtualHardstopEngagementAngle = 0.0;	//0.0 x 100
-	wParams->virtualHardstopK = 5.0;				//7 x 100
-	wParams->lspEngagementTorque = 50.0;			// 20 x 100
-	wParams->lstPGDelTics = 10;					// 1
+	wParams->virtualHardstopK = 4.0;				//7 x 100
+	wParams->lspEngagementTorque = 80.0;			// 20 x 100
+	wParams->lstPGDelTics = 1;					// 1
 	lstPowerGains.k1						= 7.5;	// [Nm/deg]
 	lstPowerGains.thetaDes 					= 14;	// [Deg]
-	lstPowerGains.b		 					= .1;	// [Nm/s]
-	estGains.k1			 					= 1.0;	// [Nm/deg]
+	lstPowerGains.b		 					= .15;	// [Nm/s]
+	estGains.k1			 					= 1.5;	// [Nm/deg]
 	estGains.b			 					= 0.1;	// [Nm/s]
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
@@ -419,16 +419,16 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	// - Check on how we ramp force
 	// - include overall system torque scalar;
 
-	user_data_1.w[0] = (int16_t) actx->safetyTorqueScalar*100.0; 	// Hardstop Engagement angle
-	user_data_1.w[1] = (int16_t) wParams->virtualHardstopEngagementAngle*100.0; 	// Hardstop Engagement angle
-	user_data_1.w[2] = (int16_t) wParams->virtualHardstopK*100.0; 				// Hardstop spring constant
-	user_data_1.w[3] = (int16_t) wParams->lspEngagementTorque*100.0; 			// Late stance power, torque threshhold
-	user_data_1.w[4] = (int16_t) wParams->lstPGDelTics; 		// ramping rate
-	user_data_1.w[5] = (int16_t) lstPowerGains.k1 * 100.0;		// 4.5 x 100
-	user_data_1.w[6] = (int16_t) lstPowerGains.thetaDes * 100.0; // 14 x 100
-	user_data_1.w[7] = (int16_t) lstPowerGains.b * 100.0; // 0.1 x 100
-	user_data_1.w[8] = (int16_t) estGains.k1 * 100.0; // 0.1 x 100
-	user_data_1.w[9] = (int16_t) estGains.b * 100.0; // 0.1 x 100
+	user_data_1.w[0] = ( (int32_t) actx->safetyTorqueScalar*100.0 ); 	// Hardstop Engagement angle
+	user_data_1.w[1] = ( (int32_t) wParams->virtualHardstopEngagementAngle*100.0 ); 	// Hardstop Engagement angle
+	user_data_1.w[2] = ( (int32_t) wParams->virtualHardstopK*100.0 ); 				// Hardstop spring constant
+	user_data_1.w[3] = ( (int32_t) wParams->lspEngagementTorque*100.0 ); 			// Late stance power, torque threshhold
+	user_data_1.w[4] = ( (int32_t) wParams->lstPGDelTics ); 		// ramping rate
+	user_data_1.w[5] = ( (int32_t) lstPowerGains.k1 * 100.0 );		// 4.5 x 100
+	user_data_1.w[6] = ( (int32_t) lstPowerGains.thetaDes * 100.0 ); // 14 x 100
+	user_data_1.w[7] = ( (int32_t) lstPowerGains.b * 100.0 ); // 0.1 x 100
+	user_data_1.w[8] = ( (int32_t) estGains.k1 * 100.0 ); // 0.1 x 100
+	user_data_1.w[9] = ( (int32_t) estGains.b * 100.0 ); // 0.1 x 100
 
 	///////////////////////////////////////////////////
 
