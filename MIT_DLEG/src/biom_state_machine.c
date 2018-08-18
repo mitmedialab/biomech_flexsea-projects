@@ -187,7 +187,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 
 				updateVirtualHardstopTorque(actx, &walkParams);
-//				updateImpedanceParams(actx, &walkParams);
+//				updateImpedanceParams(actx, &walkParams);	//Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
 
 				actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
 
@@ -382,7 +382,7 @@ static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
 	wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
 	wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
-	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 				// ramping rate
+	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
 	lstPowerGains.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
 	lstPowerGains.thetaDes 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
 	lstPowerGains.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
