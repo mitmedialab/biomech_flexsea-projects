@@ -200,7 +200,7 @@ void MIT_DLeg_fsm_1(void)
 //			        rigid1.mn.genVar[0] = startedOverLimit;
 					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
 					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
-// 					rigid1.mn.genVar[3] = (int16_t) walkParams.transition_id;
+ 					rigid1.mn.genVar[3] = (int16_t) (act1.jointVel * 100.0); 	// rad/s
 					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
 					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
 					rigid1.mn.genVar[6] = (int16_t) (JIM_LG); // LG
