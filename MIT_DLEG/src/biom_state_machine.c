@@ -398,13 +398,13 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
 	actx->safetyTorqueScalar = 1.0;
 	wParams->virtualHardstopEngagementAngle = 0.0;	//0.0 x 100
-	wParams->virtualHardstopK = 7.0;				//7 x 100
-	wParams->lspEngagementTorque = 20.0;			// 20 x 100
-	wParams->lstPGDelTics = 1.0;					// 1
+	wParams->virtualHardstopK = 5.0;				//7 x 100
+	wParams->lspEngagementTorque = 50.0;			// 20 x 100
+	wParams->lstPGDelTics = 10;					// 1
 	lstPowerGains.k1						= 7.5;	// [Nm/deg]
 	lstPowerGains.thetaDes 					= 14;	// [Deg]
-	lstPowerGains.b		 					= .05;	// [Nm/s]
-	estGains.k1			 					= 1.5;	// [Nm/deg]
+	lstPowerGains.b		 					= .1;	// [Nm/s]
+	estGains.k1			 					= 1.0;	// [Nm/deg]
 	estGains.b			 					= 0.1;	// [Nm/s]
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
