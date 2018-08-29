@@ -187,7 +187,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 
 				updateVirtualHardstopTorque(actx, &walkParams);
-//				updateImpedanceParams(actx, &walkParams);	//Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
+				updateImpedanceParams(actx, &walkParams);	//Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
 
 				actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
 
