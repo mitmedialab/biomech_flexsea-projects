@@ -157,6 +157,7 @@ void MIT_DLeg_fsm_1(void)
 			isEnabledUpdateSensors = 1;
 
 			//reserve for additional initialization
+			walkParams.initializedStateMachineVariables = 0;
 
 			act1.safetyTorqueScalar = 1.0;
 
