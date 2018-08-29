@@ -396,16 +396,16 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	wParams->earlyStanceKF = 0.1;
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 
-	actx->safetyTorqueScalar = 1.0;
-	wParams->virtualHardstopEngagementAngle = 0.0;	//0.0 x 100
-	wParams->virtualHardstopK = 18.0;				//7 x 100
-	wParams->lspEngagementTorque = 74.0;			// 20 x 100
-	wParams->lstPGDelTics = 30;					// 1
-	lstPowerGains.k1						= 10.0;	// [Nm/deg]
-	lstPowerGains.thetaDes 					= 22;	// [Deg]
-	lstPowerGains.b		 					= 0.30;	// [Nm/s]
-	estGains.k1			 					= 2.0;	// [Nm/deg]
-	estGains.b			 					= 0.30;	// [Nm/s]
+	actx->safetyTorqueScalar 				= 1.0; 	//user_data_1.w[0] = 100
+	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 100  [deg]
+	wParams->virtualHardstopK				= 18.0;	//user_data_1.w[2] = 1800 [Nm/deg]
+	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]
+	wParams->lstPGDelTics 					= 30;	//user_data_1.w[4] = 30
+	lstPowerGains.k1						= 10.0;	//user_data_1.w[5] = 1000 [Nm/deg]
+	lstPowerGains.thetaDes 					= 22;	//user_data_1.w[6] = 2200 [Deg]
+	lstPowerGains.b		 					= 0.30;	//user_data_1.w[7] = 30   [Nm/s]
+	estGains.k1			 					= 2.0;	//user_data_1.w[8] = 200  [Nm/deg]
+	estGains.b			 					= 0.32;	//user_data_1.w[9] = 320  [Nm/s]
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
 	//TODO:
