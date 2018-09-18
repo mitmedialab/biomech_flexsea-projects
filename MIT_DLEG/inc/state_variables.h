@@ -41,10 +41,15 @@ typedef struct act_s
     int8_t foundPoles;
     uint16_t commandTimer;
 
-    //following values are sent over multipacket and updated in update sensors
+    //following values are sent over multipacket
     int16_t intJointAngleDegrees; // all have x100 multiplication when sent over!!
     int16_t intJointVelDegrees;
     int16_t intJointTorque;
+    int16_t desiredJointAngleDeg; //multiplier
+    float	desiredJointAngleDeg_f;
+    uint16_t desiredJointK; //multiplier
+    float 	desiredJointK_f;
+
 
 } Act_s;
 
