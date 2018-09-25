@@ -182,11 +182,17 @@ void MIT_DLeg_fsm_1(void)
 			{
 				if (!safetyShutoff()) {
 					act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
-					setMotorTorque(&act1, act1.tauDes);
+//					setMotorTorque(&act1, act1.tauDes);
 				}
+//				rigid1.mn.genVar[0] = (int16_t) (biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f)*INT_SCALING);
+//				rigid1.mn.genVar[1] = (int16_t) (act1.desiredJointK_f*100);
+//				rigid1.mn.genVar[2] = (int16_t) (act1.desiredJointB_f*100);
+//				rigid1.mn.genVar[3] = (int16_t) (act1.desiredJointAngleDeg_f*100);
 
 				break;
 			}
+
+
 
         	default:
 			//Handle exceptions here
@@ -221,12 +227,12 @@ int8_t safetyShutoff(void) {
 	if (act1.commandTimer >= MOTOR_TIMEOUT) {
 		//hold position for now.
 		act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
-		setMotorTorque(&act1, act1.tauDes);
+//		setMotorTorque(&act1, act1.tauDes);
 	}
 
 	//turn off motors if there's a comm timeout with Odroid
 	if (!act1.motorOnFlag) {
-		setMotorCurrent(0, 0);
+//		setMotorCurrent(0, 0);
 		return 1;
 	}
 

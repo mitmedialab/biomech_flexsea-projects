@@ -232,7 +232,7 @@ void user_fsm_2(void)
 
 		//MIT D-Leg:
 		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-		MIT_DLeg_fsm_2();
+		MIT_DLeg_fsm_1();
 		#endif	//PROJECT_MIT_DLEG
 
 		//MIT Pocket 2xDC / PocketClimb:

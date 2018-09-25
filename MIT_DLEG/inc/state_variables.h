@@ -49,7 +49,7 @@ typedef struct act_s
     float	desiredJointAngleDeg_f;
     uint16_t desiredJointK; //multiplier
     float 	desiredJointK_f;
-    uint16_t desiredJointB;
+    uint16_t desiredJointB; //multiplier
     float	desiredJointB_f;
 
 
