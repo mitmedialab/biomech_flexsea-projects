@@ -181,6 +181,7 @@ void MIT_DLeg_fsm_1(void)
 		case 1:
 			{
 				if (!safetyShutoff()) {
+					act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
 					setMotorTorque(&act1, act1.tauDes);
 				}
 
@@ -218,7 +219,9 @@ int8_t safetyShutoff(void) {
 	act1.commandTimer++;
 
 	if (act1.commandTimer >= MOTOR_TIMEOUT) {
-		act1.motorOnFlag = 0;
+		//hold position for now.
+		act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
+		setMotorTorque(&act1, act1.tauDes);
 	}
 
 	//turn off motors if there's a comm timeout with Odroid
@@ -318,9 +321,9 @@ void updateSensorValues(struct act_s *actx)
 	}
 
 	//convert values for multipacket
-	actx->intJointAngleDegrees = (int16_t) actx->jointAngleDegrees*INT_SCALING;
-	actx->intJointVelDegrees = (int16_t) actx->jointVelDegrees*INT_SCALING;
-	actx->intJointTorque = (int16_t) actx->jointTorque*INT_SCALING;
+	actx->intJointAngleDegrees = (int16_t) (actx->jointAngleDegrees*INT_SCALING);
+	actx->intJointVelDegrees = (int16_t) (actx->jointVelDegrees*INT_SCALING);
+	actx->intJointTorque = (int16_t) (actx->jointTorque*INT_SCALING);
 
 }
 
