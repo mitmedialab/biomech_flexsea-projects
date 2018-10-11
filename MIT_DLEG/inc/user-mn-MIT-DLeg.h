@@ -373,8 +373,8 @@ void torqueSweepTest(Act_s *actx);
 //Safety limits
 #define PCB_TEMP_LIMIT_INIT		70
 #define MOTOR_TEMP_LIMIT_INIT	70
-#define ABS_TORQUE_LIMIT_INIT	150	    // Joint torque [Nm]
-#define CURRENT_LIMIT_INIT		50000		// [mA] useful in this form, 40000 max
+#define ABS_TORQUE_LIMIT_INIT	30	    // Joint torque [Nm]
+#define CURRENT_LIMIT_INIT		15000		// [mA] useful in this form, 40000 max
 #define MOTOR_TIMEOUT   		5		//shutoff motors if no comm from Odroid
 
 // Motor Temp Sensor
@@ -385,9 +385,10 @@ void torqueSweepTest(Act_s *actx);
 enum {
 	SAFETY_OK			=	0,
 	SAFETY_ANGLE		=	1,
-	SAFETY_TORQUE		=	2,
-	SAFETY_FLEX_TEMP	=	3,  //unused
-	SAFETY_TEMP			=	4,
+	SAFETY_TORQUE_POSITIVE = 2,
+	SAFETY_TORQUE_NEGATIVE = 3,
+	SAFETY_FLEX_TEMP	=	4,  //unused
+	SAFETY_TEMP			=	5,
 };
 
 // System constants

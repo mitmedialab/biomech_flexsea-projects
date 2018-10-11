@@ -182,12 +182,14 @@ void MIT_DLeg_fsm_1(void)
 			{
 				if (!safetyShutoff()) {
 					act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
-//					setMotorTorque(&act1, act1.tauDes);
+					setMotorTorque(&act1, act1.tauDes);
 				}
-//				rigid1.mn.genVar[0] = (int16_t) (biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f)*INT_SCALING);
-//				rigid1.mn.genVar[1] = (int16_t) (act1.desiredJointK_f*100);
-//				rigid1.mn.genVar[2] = (int16_t) (act1.desiredJointB_f*100);
-//				rigid1.mn.genVar[3] = (int16_t) (act1.desiredJointAngleDeg_f*100);
+				rigid1.mn.genVar[0] = (int16_t) (biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f)*INT_SCALING);
+				rigid1.mn.genVar[1] = (int16_t) (act1.desiredJointK_f*100);
+				rigid1.mn.genVar[2] = (int16_t) (act1.desiredJointB_f*100);
+				rigid1.mn.genVar[3] = (int16_t) (act1.desiredJointAngleDeg_f*100);
+				rigid1.mn.genVar[4] = (int16_t) (act1.jointAngleDegrees*100);
+				rigid1.mn.genVar[5] = isSafetyFlag;
 
 				break;
 			}
@@ -255,15 +257,30 @@ int8_t safetyShutoff(void) {
 
 			return 0; //continue running FSM
 
-		case SAFETY_TORQUE:
+		case SAFETY_TORQUE_POSITIVE:
 
 			//check if flag is not still active to be released, else do something about problem.
 			if(!isTorqueLimit) {
 				isSafetyFlag = SAFETY_OK;
 				break;
 			} else {
-				// This could cause trouble, but seems more safe than an immediate drop in torque. Instead, reduce torque.
-				setMotorTorque(&act1, act1.tauDes * 0.5); // reduce desired torque by 50%
+				//handled in setMotorTorque
+				act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
+				setMotorTorque(&act1, act1.tauDes);
+			}
+
+			return 1;
+
+		case SAFETY_TORQUE_NEGATIVE:
+
+			//check if flag is not still active to be released, else do something about problem.
+			if(!isTorqueLimit) {
+				isSafetyFlag = SAFETY_OK;
+				break;
+			} else {
+				//handled in setMotorTorque
+				act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
+				setMotorTorque(&act1, act1.tauDes);
 			}
 
 			return 1;
@@ -487,8 +504,11 @@ float getJointTorque(struct act_s *actx)
 
 	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
 
-	if(torque >= ABS_TORQUE_LIMIT_INIT || torque <= -ABS_TORQUE_LIMIT_INIT) {
-		isSafetyFlag = SAFETY_TORQUE;
+	if(torque >= ABS_TORQUE_LIMIT_INIT) {
+		isSafetyFlag = SAFETY_TORQUE_POSITIVE;
+		isTorqueLimit = 1;
+	} else if (torque <= -ABS_TORQUE_LIMIT_INIT) {
+		isSafetyFlag = SAFETY_TORQUE_NEGATIVE;
 		isTorqueLimit = 1;
 	} else {
 		isTorqueLimit = 0;
@@ -550,6 +570,12 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	dtheta_m = actx->motorVel;
 	ddtheta_m = actx->motorAcc;
 
+	if (tau_des > ABS_TORQUE_LIMIT_INIT) {
+		tau_des = ABS_TORQUE_LIMIT_INIT;
+	} else if (tau_des < -ABS_TORQUE_LIMIT_INIT) {
+		tau_des = -ABS_TORQUE_LIMIT_INIT;
+	}
+
 	actx->tauDes = tau_des;				// save in case need to modify in safetyFailure()
 
 	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
@@ -573,7 +599,8 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 
 	//joint velocity must not be 0 (could be symptom of joint position signal outage)
 	} else if (actx->jointVel != 0 && !startedOverLimit) {
-		I = calcRestoringCurrent(actx, N);
+		I = 1/MOT_KT * (tau_ff + tau_PID + tau_motor_comp + calcRestoringCurrent(actx, N)) * currentScalar;
+
 	//if we started beyond soft limits after finding poles, or joint position is out
 	} else {
 		I = 0;
@@ -608,33 +635,34 @@ float calcRestoringCurrent(struct act_s *actx, float N) {
 	//Soft angle limits with virtual spring. Raise flag for safety check.
 
 	float angleDiff = 0;
-	float tauDes = 0;
-	float k = 7; // N/m
-	float b = 0.3; // Ns/m
+	float tauRestoring = 0;
+	float k = 0.2; // N/m
+	float b = 0; // Ns/m
 
 	//Oppose motion using linear spring with damping
 	if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
 
 		angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
+		angleDiff = pow(angleDiff,4);
 
-		if (abs(angleDiff) < 2) {
-			tauDes = -k*angleDiff - b*actx->jointVelDegrees + 2;
-		} else {
-			tauDes = -k*angleDiff - b*actx->jointVelDegrees;
-		}
+//		if (abs(angleDiff) < 2) {
+//			tauDes = -k*angleDiff - b*actx->jointVelDegrees + 2;
+//		} else {
+			tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
+//		}
 
 	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
 
 		angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
-
-		if (abs(angleDiff) < 2) {
-			tauDes = -k*angleDiff - b*actx->jointVelDegrees - 2;
-		} else {
-			tauDes = -k*angleDiff - b*actx->jointVelDegrees;
-		}
+		angleDiff = pow(angleDiff,4);
+//		if (abs(angleDiff) < 2) {
+//			tauDes = -k*angleDiff - b*actx->jointVelDegrees - 2;
+//		} else {
+			tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
+//		}
 	}
 
-	return (tauDes/(N*N_ETA)) * currentScalar/MOT_KT;
+	return tauRestoring;
 
 }
 
