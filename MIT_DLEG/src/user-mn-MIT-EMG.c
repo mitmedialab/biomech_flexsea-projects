@@ -12,7 +12,7 @@
 *****************************************************************************
 	[Change log] (Convention: YYYY-MM-DD | author | comment)
 	* 2018-03-12 | syeon | Initial release
-	*
+	* 2018-03-23 | syeon | Add muscle activation calculation and calibration
 ****************************************************************************/
 
 #include "user-mn.h"
@@ -34,7 +34,7 @@
 //****************************************************************************
 volatile uint8_t emg_peripheral_state = EMG_PERIPH_READY;
 volatile uint8_t emg_on_flag = 1;
-
+volatile uint8_t emg_activation_flag = 1;
 volatile uint8_t emg_state = EMG_STATE_DISABLE;
 volatile uint16_t emg_timer = 0; //1tick represent 1ms
 volatile uint16_t emg_prsc = 0;
@@ -44,13 +44,141 @@ volatile uint8_t emg_ready_flag=0;
 uint16_t emg_timestamp = 0;
 
 int16_t emg_data[8] = {0,0,0,0,0,0,0,0};
+int16_t emg_processed_data[8] = {0,0,0,0,0,0,0,0};
+
+float emg_activation[8] = {0,0,0,0,0,0,0,0};
+float emg_threshold[8][2] = {
+	{USER_MIN_CH1,USER_MAX_CH1},
+	{USER_MIN_CH2,USER_MAX_CH2},
+	{USER_MIN_CH3,USER_MAX_CH3},
+	{USER_MIN_CH4,USER_MAX_CH4},
+	{USER_MIN_CH5,USER_MAX_CH5},
+	{USER_MIN_CH6,USER_MAX_CH6},
+	{USER_MIN_CH7,USER_MAX_CH7},
+	{USER_MIN_CH8,USER_MAX_CH8}
+};
 int16_t emg_misc[3] = {0,0,0};
 extern uint8_t i2c2_dma_tx_buf[24]; //from i2c.c
 extern uint8_t i2c2_dma_rx_buf[24]; //from i2c.c
 extern I2C_HandleTypeDef hi2c2;
+
+uint8_t emg_calibration_muscle = 0xFF;
+uint8_t emg_calibration_state = EMG_CALSTATE_OFF;
 //****************************************************************************
 // Function(s)
 //****************************************************************************
+void MIT_EMG_start_calibration_min(void)
+{
+	for(uint8_t i=0;i<8;i++)
+	{
+		emg_threshold[i][MIT_EMG_MUSCLE_MIN] = 0;
+	}
+
+	emg_calibration_muscle = 0xFF;
+	emg_calibration_state = EMG_CALSTATE_MIN;
+	return;
+}
+
+void MIT_EMG_start_calibration_max(uint8_t muscle_ch)
+{
+	if(muscle_ch >=0 && muscle_ch<8)
+	{
+		emg_calibration_muscle = muscle_ch;
+		emg_threshold[emg_calibration_muscle][MIT_EMG_MUSCLE_MAX] = MIT_EMG_BASELINE_THRESHOLD;
+	}
+	else if(muscle_ch == MIT_EMG_MUSCLE_ALL)
+	{
+		emg_calibration_muscle = muscle_ch;
+	}
+
+	emg_calibration_state = EMG_CALSTATE_MAX;
+	return;
+}
+
+void MIT_EMG_stop_calibration(void)
+{
+	if(emg_calibration_state == EMG_CALSTATE_MIN)
+	{
+		for(uint8_t i=0;i<8;i++)
+			emg_threshold[i][MIT_EMG_MUSCLE_MIN] +=MIT_EMG_BASELINE_THRESHOLD;
+	}
+
+	emg_calibration_muscle = 0xFF;
+	emg_calibration_state = EMG_CALSTATE_OFF;
+	return;
+}
+
+void MIT_EMG_calibration_fsm(void)
+{
+	switch(emg_calibration_state)
+	{
+		case EMG_CALSTATE_OFF:
+			break;
+		case EMG_CALSTATE_MIN:
+			MIT_EMG_calibrate_activation_min();
+			break;
+		case EMG_CALSTATE_MAX:
+			MIT_EMG_calibrate_activation_max();
+			break;
+		default:
+			break;
+	}
+	return;
+}
+
+void MIT_EMG_calibrate_activation_max(void)
+{
+	if(emg_calibration_muscle == MIT_EMG_MUSCLE_ALL)
+	{
+		for(int i = 0; i<8;i++)
+		{
+			if(emg_threshold[i][MIT_EMG_MUSCLE_MAX] < (float)emg_data[i] )
+			{
+				emg_threshold[i][MIT_EMG_MUSCLE_MAX] = (float)emg_data[i];
+			}
+		}
+	}
+	else
+	{
+		if(emg_threshold[emg_calibration_muscle][MIT_EMG_MUSCLE_MAX] < (float)emg_data[emg_calibration_muscle] )
+		{
+			emg_threshold[emg_calibration_muscle][MIT_EMG_MUSCLE_MAX] = (float)emg_data[emg_calibration_muscle];
+		}
+	}
+
+	return;
+}
+
+void MIT_EMG_calibrate_activation_min(void)
+{
+	for(int i = 0; i<8;i++)
+	{
+		if(emg_threshold[i][MIT_EMG_MUSCLE_MIN] < (float)emg_data[i] )
+		{
+			emg_threshold[i][MIT_EMG_MUSCLE_MIN] = (float)emg_data[i];
+		}
+	}
+
+	return;
+}
+
+void MIT_EMG_calculate_activation(void)
+{
+	for(uint8_t i=0;i<8;i++)
+	{
+		emg_activation[i] = ((float)emg_data[i] - emg_threshold[i][MIT_EMG_MUSCLE_MIN]) /(emg_threshold[i][MIT_EMG_MUSCLE_MAX]-emg_threshold[i][MIT_EMG_MUSCLE_MIN]);
+
+		if(emg_activation[i]<0)
+			emg_activation[i] = 0;
+		else if(emg_activation[i]>MIT_EMG_ACTIVATION_MAX)
+			emg_activation[i] = MIT_EMG_ACTIVATION_MAX;
+
+		emg_processed_data[i] = (int16_t)(emg_activation[i]*10000);
+	}
+
+	return;
+}
+
 
 void MIT_EMG_update_status(void)
 {
@@ -126,7 +254,6 @@ void MIT_EMG_i2c2_fsm(void)
 {
 	MIT_EMG_update_status();
 
-
 	switch(emg_state) //emg state machine
 	{
 		case EMG_STATE_DISABLE:
@@ -195,7 +322,7 @@ void MIT_EMG_i2c2_fsm(void)
 
 				if(emg_timer>EMG_TIMER_PRESCALER*5)
 				{
-//					emg_state = EMG_STATE_WAIT; //just go back to wait state
+					//emg_state = EMG_STATE_WAIT; //just go back to wait state
 					emg_state = EMG_STATE_DEINIT; //Reboot I2C peripheral
 					emg_timer = 0;
 					emg_peripheral_state = EMG_PERIPH_READY;
@@ -237,7 +364,13 @@ void MIT_EMG_i2c2_fsm(void)
 		default:
 			break;
 	}
-		emg_timer++;
+
+	MIT_EMG_calibration_fsm();
+
+	if(emg_activation_flag>=1)
+		MIT_EMG_calculate_activation();
+
+	emg_timer++;
 }
 
 uint8_t MIT_EMG_getState(void) //read value when only 1 is returned

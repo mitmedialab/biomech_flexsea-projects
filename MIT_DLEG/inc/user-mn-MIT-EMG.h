@@ -12,7 +12,7 @@
 *****************************************************************************
 	[Change log] (Convention: YYYY-MM-DD | author | comment)
 	* 2018-03-06 | syeon | Initial release
-	*
+  * 2018-03-23 | syeon | Add muscle activation calculation and calibration
 ****************************************************************************/
 
 // how to use this library
@@ -30,6 +30,37 @@
 // Definitions
 //****************************************************************************
 
+#define MIT_EMG_MUSCLE_CH_LG 6
+#define MIT_EMG_MUSCLE_CH_TA 3
+#define MIT_EMG_MUSCLE_CH_PL 5
+#define MIT_EMG_MUSCLE_CH_TP 0
+#define MIT_EMG_MUSCLE_ALL 8
+
+#define MIT_EMG_MUSCLE_MIN 0
+#define MIT_EMG_MUSCLE_MAX 1
+#define MIT_EMG_ACTIVATION_MAX 1 //allow 200% of muscle activation
+
+#define MIT_EMG_BASELINE_THRESHOLD 5 //add 5uV in calibration routine
+// Jim, 0315, 4pm test
+#define USER_MIN_CH1 6
+#define USER_MIN_CH2 100
+#define USER_MIN_CH3 100
+#define USER_MIN_CH4 6
+#define USER_MIN_CH5 100
+#define USER_MIN_CH6 6
+#define USER_MIN_CH7 6
+#define USER_MIN_CH8 100
+
+#define USER_MAX_CH1 28
+#define USER_MAX_CH2 1000
+#define USER_MAX_CH3 1000
+#define USER_MAX_CH4 156
+#define USER_MAX_CH5 1000
+#define USER_MAX_CH6 103
+#define USER_MAX_CH7 63
+#define USER_MAX_CH8 1000
+
+//LG TA TL TP
 //****************************************************************************
 // Include(s)
 //****************************************************************************
@@ -51,6 +82,8 @@ extern int16_t emg_misc[3]; // array of int16_t reserved for various usage
 extern volatile uint8_t emg_on_flag; //this flag decide whether use EMG or not
 extern uint16_t emg_timestamp;
 extern volatile uint16_t emg_error_cnt;
+extern int16_t emg_processed_data[8];
+extern float emg_threshold[8][2];
 //****************************************************************************
 // Prototype(s):
 //****************************************************************************
@@ -64,6 +97,15 @@ void MIT_EMG_i2c2_fsm(void);
 uint8_t MIT_EMG_getState(void); //read value when only 1 is returned
 void MIT_EMG_changeState(uint8_t); //activate / deactive the EMG peripheral
 
+
+void MIT_EMG_start_calibration_min(void);
+void MIT_EMG_start_calibration_max(uint8_t muscle_ch);
+void MIT_EMG_stop_calibration(void);
+void MIT_EMG_calibration_fsm(void);
+void MIT_EMG_calibrate_activation_max(void);
+void MIT_EMG_calibrate_activation_min(void);
+void MIT_EMG_calculate_activation(void);
+
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
@@ -75,7 +117,7 @@ void MIT_EMG_changeState(uint8_t); //activate / deactive the EMG peripheral
 #define EMG_PERIPH_RECEIVE_COMPLETE 2
 
 #define EMG_LINE_THRESHOLD 3475 // 2.8V/3.3V *4096
-#define EMG_TIMER_THRESHOLD 250 //250ms
+#define EMG_TIMER_THRESHOLD 250 //250mV
 #define EMG_TIMER_PRESCALER 1 // comm freq = 1kHz/presc
 
 #ifdef PROJECT_MIT_DLEG
@@ -103,9 +145,14 @@ void MIT_EMG_changeState(uint8_t); //activate / deactive the EMG peripheral
 #define EMG_STATE_INACTIVE 1
 #define EMG_STATE_WAIT 2
 #define EMG_STATE_READ 4
+#define EMG_STATE_CALIBRATION 5
 
 #define EMG_STATE_DEINIT 10
 #define EMG_STATE_RECOVER 11
+
+#define EMG_CALSTATE_OFF 0
+#define EMG_CALSTATE_MIN 1
+#define EMG_CALSTATE_MAX 2
 
 #define EMG_DEINIT_PERIOD 4 //4ms
 #define EMG_I2C_RESET_PERIOD 1000 //1s

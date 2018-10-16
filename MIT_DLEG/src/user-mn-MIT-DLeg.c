@@ -49,7 +49,7 @@
 #include "hardware_filter.h"
 #include <flexsea_comm.h>
 #include <math.h>
-
+#include "calibration_tools.h"
 
 //****************************************************************************
 // Variable(s)
@@ -156,6 +156,10 @@ void MIT_DLeg_fsm_1(void)
 			//sensor update happens in mainFSM2(void) in main_fsm.c
 			isEnabledUpdateSensors = 1;
 
+			///DEBUG
+//			uint8_t flag = 1;
+//			handleCalibrationMessage(&flag);
+
 			//reserve for additional initialization
 
 			// to use hardware filter on data use this:
@@ -171,8 +175,6 @@ void MIT_DLeg_fsm_1(void)
 			/////////////////////////////////////////////////////////
 
 
-
-
 			fsm1State = 1;
 			time = 0;
 
@@ -182,14 +184,18 @@ void MIT_DLeg_fsm_1(void)
 			{
 				if (!safetyShutoff()) {
 					act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
+//					act1.tauDes = biomCalcImpedance((float)user_data_1.w[0]/100., 0, (float)user_data_1.w[1]/100., (float)user_data_1.w[2]);
+//					act1.tauDes = biomCalcImpedance(1, 0, 0, 10);
 					setMotorTorque(&act1, act1.tauDes);
 				}
-				rigid1.mn.genVar[0] = (int16_t) (biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f)*INT_SCALING);
+				rigid1.mn.genVar[0] = (int16_t) (act1.tauDes*INT_SCALING);
 				rigid1.mn.genVar[1] = (int16_t) (act1.desiredJointK_f*100);
 				rigid1.mn.genVar[2] = (int16_t) (act1.desiredJointB_f*100);
 				rigid1.mn.genVar[3] = (int16_t) (act1.desiredJointAngleDeg_f*100);
 				rigid1.mn.genVar[4] = (int16_t) (act1.jointAngleDegrees*100);
 				rigid1.mn.genVar[5] = isSafetyFlag;
+				rigid1.mn.genVar[6] = emg_data[0];
+				rigid1.mn.genVar[7] = emg_data[1];
 
 				break;
 			}
@@ -598,7 +604,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 		I = 1/MOT_KT * (tau_ff + tau_PID + tau_motor_comp) * currentScalar;
 
 	//joint velocity must not be 0 (could be symptom of joint position signal outage)
-	} else if (actx->jointVel != 0 && !startedOverLimit) {
+	} else if (!startedOverLimit) {
 		I = 1/MOT_KT * (tau_ff + tau_PID + tau_motor_comp + calcRestoringCurrent(actx, N)) * currentScalar;
 
 	//if we started beyond soft limits after finding poles, or joint position is out
@@ -643,22 +649,22 @@ float calcRestoringCurrent(struct act_s *actx, float N) {
 	if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
 
 		angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
-		angleDiff = pow(angleDiff,4);
+//		angleDiff = pow(angleDiff,4);
 
 //		if (abs(angleDiff) < 2) {
 //			tauDes = -k*angleDiff - b*actx->jointVelDegrees + 2;
 //		} else {
-			tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
+			tauRestoring = k*abs(angleDiff) - b*actx->jointVelDegrees;
 //		}
 
 	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
 
 		angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
-		angleDiff = pow(angleDiff,4);
+//		angleDiff = pow(angleDiff,4);
 //		if (abs(angleDiff) < 2) {
 //			tauDes = -k*angleDiff - b*actx->jointVelDegrees - 2;
 //		} else {
-			tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
+			tauRestoring = -k*abs(angleDiff) - b*actx->jointVelDegrees;
 //		}
 	}
 
