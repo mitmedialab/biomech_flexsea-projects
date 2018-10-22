@@ -193,12 +193,13 @@ void MIT_DLeg_fsm_1(void)
 			    		act1.tauDes = - act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT;
 			    	}
 
+
 			    	setMotorTorque(&act1, act1.tauDes);
 
 
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
-//			        rigid1.mn.genVar[0] = startedOverLimit;
+			        rigid1.mn.genVar[0] = startedOverLimit;
 					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
 					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
  					rigid1.mn.genVar[3] = (int16_t) (act1.jointVel * 100.0); 	// rad/s
@@ -208,6 +209,9 @@ void MIT_DLeg_fsm_1(void)
 					rigid1.mn.genVar[7] = (int16_t) (JIM_TA); // TA
 					rigid1.mn.genVar[8] = stateMachine.current_state;
 					rigid1.mn.genVar[9] = act1.tauDes*100;
+
+
+
 			    }
 
 

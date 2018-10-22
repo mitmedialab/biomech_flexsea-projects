@@ -22,8 +22,8 @@ CubicSpline cubicSpline;
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
 GainParams lswGains = {1.5, 0.0, 0.3, -5.0};
-GainParams estGains = {0.0, 0.0, 0.1, 0.0};	// may want to increase this damping, at least.
-GainParams lstGains = {0.0, 0.0, 0.0, 0.0}; //currently unused in simple implementation
+GainParams estGains = {0.0, 0.0, 0.2, 0.0};	// may want to increase this damping, at least.
+GainParams lstGains = {0.0, 0.0, 0.2, 0.0}; //currently unused in simple implementation
 GainParams lstPowerGains = {4.5, 0.0, 0.1, 14};
 
 GainParams emgStandGains = {2, 0.025, 0.04, 0};
@@ -95,7 +95,8 @@ void runFlatGroundFSM(Act_s *actx) {
 
         case STATE_INIT: //1
 
-            stateMachine.current_state = STATE_LATE_SWING;
+//            stateMachine.current_state = STATE_LATE_SWING;
+        	stateMachine.current_state = STATE_EARLY_STANCE;
 
             break;
 					
@@ -388,9 +389,13 @@ static void updateUserWrites(Act_s *actx, WalkParams *wParams){
 	lstPowerGains.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
 	estGains.k1			 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
 	estGains.b			 					= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
+
+
 }
 
 static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
+
+
 
 	wParams->earlyStanceK0 = 6.23;
 	wParams->earlyStanceKF = 0.1;
@@ -400,7 +405,7 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 100  [deg]
 	wParams->virtualHardstopK				= 18.0;	//user_data_1.w[2] = 1800 [Nm/deg]
 	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]
-	wParams->lstPGDelTics 					= 30;	//user_data_1.w[4] = 30
+	wParams->lstPGDelTics 					= 30.0;	//user_data_1.w[4] = 30
 	lstPowerGains.k1						= 10.0;	//user_data_1.w[5] = 1000 [Nm/deg]
 	lstPowerGains.thetaDes 					= 22;	//user_data_1.w[6] = 2200 [Deg]
 	lstPowerGains.b		 					= 0.30;	//user_data_1.w[7] = 30   [Nm/s]
@@ -419,16 +424,16 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	// - Check on how we ramp force
 	// - include overall system torque scalar;
 
-	user_data_1.w[0] = ( (int32_t) actx->safetyTorqueScalar*100.0 ); 	// Hardstop Engagement angle
-	user_data_1.w[1] = ( (int32_t) wParams->virtualHardstopEngagementAngle*100.0 ); 	// Hardstop Engagement angle
-	user_data_1.w[2] = ( (int32_t) wParams->virtualHardstopK*100.0 ); 				// Hardstop spring constant
-	user_data_1.w[3] = ( (int32_t) wParams->lspEngagementTorque*100.0 ); 			// Late stance power, torque threshhold
-	user_data_1.w[4] = ( (int32_t) wParams->lstPGDelTics ); 		// ramping rate
-	user_data_1.w[5] = ( (int32_t) lstPowerGains.k1 * 100.0 );		// 4.5 x 100
-	user_data_1.w[6] = ( (int32_t) lstPowerGains.thetaDes * 100.0 ); // 14 x 100
-	user_data_1.w[7] = ( (int32_t) lstPowerGains.b * 100.0 ); // 0.1 x 100
-	user_data_1.w[8] = ( (int32_t) estGains.k1 * 100.0 ); // 0.1 x 100
-	user_data_1.w[9] = ( (int32_t) estGains.b * 100.0 ); // 0.1 x 100
+	user_data_1.w[0] =  (int32_t) ( actx->safetyTorqueScalar*100 ); 	// Hardstop Engagement angle
+	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
+	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
+	user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque*100 ); 			// Late stance power, torque threshhold
+	user_data_1.w[4] =  (int32_t) ( wParams->lstPGDelTics ); 		// ramping rate
+	user_data_1.w[5] =  (int32_t) ( lstPowerGains.k1 * 100 );		// 4.5 x 100
+	user_data_1.w[6] =  (int32_t) ( lstPowerGains.thetaDes * 100 ); // 14 x 100
+	user_data_1.w[7] =  (int32_t) ( lstPowerGains.b * 100 ); // 0.1 x 100
+	user_data_1.w[8] =  (int32_t) ( estGains.k1 * 100 ); // 0.1 x 100
+	user_data_1.w[9] =  (int32_t) ( estGains.b * 100 ); // 0.1 x 100
 
 	///////////////////////////////////////////////////
 
