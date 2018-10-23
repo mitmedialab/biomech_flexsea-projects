@@ -403,14 +403,14 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
 	actx->safetyTorqueScalar 				= 1.0; 	//user_data_1.w[0] = 100
 	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
-	wParams->virtualHardstopK				= 18.0;	//user_data_1.w[2] = 1800 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
+	wParams->virtualHardstopK				= 8.0;	//user_data_1.w[2] = 800 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
 	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]
 	wParams->lstPGDelTics 					= 30.0;	//user_data_1.w[4] = 30
-	lstPowerGains.k1						= 10.0;	//user_data_1.w[5] = 100 [Nm/deg]
+	lstPowerGains.k1						= 10.0;	//user_data_1.w[5] = 1000 [Nm/deg]
 	lstPowerGains.thetaDes 					= 22;	//user_data_1.w[6] = 2200 [Deg]
-	lstPowerGains.b		 					= 0.30;	//user_data_1.w[7] = 30   [Nm/s]
+	lstPowerGains.b		 					= 0.20;	//user_data_1.w[7] = 20   [Nm/s]
 	estGains.k1			 					= 2.0;	//user_data_1.w[8] = 200  [Nm/deg]
-	estGains.b			 					= 0.32;	//user_data_1.w[9] = 320  [Nm/s]
+	estGains.b			 					= 0.10;	//user_data_1.w[9] = 10  [Nm/s]
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
 	//TODO:
