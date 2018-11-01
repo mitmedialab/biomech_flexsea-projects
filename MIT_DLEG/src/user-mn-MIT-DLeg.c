@@ -49,6 +49,7 @@
 #include "hardware_filter.h"
 #include <flexsea_comm.h>
 #include <math.h>
+#include "imu_calculations.h"
 
 
 //****************************************************************************
@@ -184,10 +185,15 @@ void MIT_DLeg_fsm_1(void)
 					act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
 //					setMotorTorque(&act1, act1.tauDes);
 				}
-//				rigid1.mn.genVar[0] = (int16_t) (biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f)*INT_SCALING);
-//				rigid1.mn.genVar[1] = (int16_t) (act1.desiredJointK_f*100);
-//				rigid1.mn.genVar[2] = (int16_t) (act1.desiredJointB_f*100);
-//				rigid1.mn.genVar[3] = (int16_t) (act1.desiredJointAngleDeg_f*100);
+				updateLocalAcc(&rigid1);
+				updateLocalOmega(&rigid1);
+				
+				rigid1.mn.genVar[0] = (int16_t) rigid1.mn.aAccX;
+				rigid1.mn.genVar[1] = (int16_t) rigid1.mn.aAccY;
+				rigid1.mn.genVar[2] = (int16_t) rigid1.mn.aAccZ;
+				rigid1.mn.genVar[3] = (int16_t) rigid1.mn.aOmegaX;
+				rigid1.mn.genVar[4] = (int16_t) rigid1.mn.aOmegaY;
+				rigid1.mn.genVar[5] = (int16_t) rigid1.mn.aOmegaZ;
 
 				break;
 			}

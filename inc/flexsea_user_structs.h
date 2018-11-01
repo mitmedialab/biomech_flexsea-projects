@@ -94,6 +94,13 @@ struct fx_rigid_mn_s
 	struct xyz_s accel;
 	struct xyz_s magneto; 	//Useless
 
+	float aOmegaX;
+	float aOmegaY;
+	float aOmegaZ;
+	float aAccX;
+	float aAccY;
+	float aAccZ;
+
 	uint16_t analog[4];
 	uint16_t status;
 
