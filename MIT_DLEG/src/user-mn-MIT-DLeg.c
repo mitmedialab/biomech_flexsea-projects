@@ -49,7 +49,9 @@
 #include "hardware_filter.h"
 #include <flexsea_comm.h>
 #include <math.h>
+//#include <time.h>
 #include "imu_calculations.h"
+#include "linear_algebra_methods.h"
 
 
 //****************************************************************************
@@ -187,13 +189,47 @@ void MIT_DLeg_fsm_1(void)
 				}
 				updateLocalAcc(&rigid1);
 				updateLocalOmega(&rigid1);
-				
-				rigid1.mn.genVar[0] = (int16_t) rigid1.mn.aAccX;
-				rigid1.mn.genVar[1] = (int16_t) rigid1.mn.aAccY;
-				rigid1.mn.genVar[2] = (int16_t) rigid1.mn.aAccZ;
-				rigid1.mn.genVar[3] = (int16_t) rigid1.mn.aOmegaX;
-				rigid1.mn.genVar[4] = (int16_t) rigid1.mn.aOmegaY;
-				rigid1.mn.genVar[5] = (int16_t) rigid1.mn.aOmegaZ;
+
+				//clock_t t1 = clock();
+				int n = 3;
+		    	float A[] = {1.0, 0.5, 0.7, 0.5, 0.8, 0.6, 0.7, 0.6, 1.0};
+		     	float b[] = {1.76, 1.0, 9.34};
+		    	float* RT = cholesky_decomposition(A, n);
+		  //   	clock_t t2 = clock();
+		     	float* R = transpose(RT, n);
+		  //   	clock_t t3 = clock();
+		     	float* y = forward_substitution(RT,b,n);
+		  //   	clock_t t4 = clock();
+		     	float* x = backward_substitution(R,y,n);
+		  //   	clock_t t5 = clock();
+
+		  //   	double time_cholesky = (double)(t2 - t1) / CLOCKS_PER_SEC;
+		  //   	double time_transpose = (double)(t3 - t2) / CLOCKS_PER_SEC;
+		  //   	double time_backsub = (double)(t4 - t3) / CLOCKS_PER_SEC;
+		  //   	double time_forsub = (double)(t5 - t4) / CLOCKS_PER_SEC;
+
+    	
+				rigid1.mn.genVar[0] = (int16_t) (R[0]*1000.0); //
+				rigid1.mn.genVar[1] = (int16_t) (R[1]*1000.0); //
+				 rigid1.mn.genVar[2] = (int16_t) (R[2]*1000.0); //
+				 rigid1.mn.genVar[3] = (int16_t) (R[3]*1000.0); //
+				 rigid1.mn.genVar[4] = (int16_t) (y[0]*1000.0); //
+				 rigid1.mn.genVar[5] = (int16_t) (y[1]*1000.0); //
+				 rigid1.mn.genVar[6] = (int16_t) (y[2]*1000.0);//
+				rigid1.mn.genVar[7] = (int16_t) (x[0]*1000.0);//
+				rigid1.mn.genVar[8] = (int16_t) (x[1]*1000.0);//
+			 rigid1.mn.genVar[9] = (int16_t) (x[2]*1000.0);//
+				// rigid1.mn.genVar[6] = (int16_t) (time_cholesky*10000.0);
+				// rigid1.mn.genVar[7] = (int16_t) (time_transpose*10000.0);
+				// rigid1.mn.genVar[8] = (int16_t) (time_backsub*10000.0);
+			 // rigid1.mn.genVar[9] = (int16_t) (time_forsub*10000.0);
+
+				//free(A);
+				//free(b);
+				free(R);
+				free(RT);
+				free(y);
+				free(x);
 
 				break;
 			}
@@ -209,15 +245,15 @@ void MIT_DLeg_fsm_1(void)
 }
 
 
-//Second state machine for the DLeg project
-void MIT_DLeg_fsm_2(void)
-{
-	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
+// //Second state machine for the DLeg project
+// void MIT_DLeg_fsm_2(void)
+// {
+// 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
-		//Currently unused - we use ActPack's FSM2 for comm
+// 		//Currently unused - we use ActPack's FSM2 for comm
 
-	#endif	//ACTIVE_PROJECT == PROJECT_MIT_DLEG
-}
+// 	#endif	//ACTIVE_PROJECT == PROJECT_MIT_DLEG
+// }
 
 //****************************************************************************
 // Private Function(s)

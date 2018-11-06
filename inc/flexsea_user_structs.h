@@ -88,6 +88,14 @@ struct decoded_fx_rigid_mn_s
 	struct decoded_xyz_s magneto;
 };
 
+struct classifier_s
+{
+	float feature_means[20][5];
+	float feature_covariances[20][20];
+	float features[20];
+	float scores[5];
+};
+
 struct fx_rigid_mn_s
 {
 	struct xyz_s gyro;
@@ -112,6 +120,12 @@ struct fx_rigid_mn_s
 
 	//Decoded:
 	struct decoded_fx_rigid_mn_s decoded;
+
+	//Classifier:
+	struct classifier_s classifier;
+	
+
+
 };
 
 struct fx_rigid_ex_s
