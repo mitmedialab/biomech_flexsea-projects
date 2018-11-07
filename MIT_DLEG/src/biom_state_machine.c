@@ -190,7 +190,7 @@ void runFlatGroundFSM(Act_s *actx) {
 				updateVirtualHardstopTorque(actx, &walkParams);
 //				updateImpedanceParams(actx, &walkParams);	//Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
 
-				actx->tauDes = calcJointTorque(estGains, actx, &walkParams);
+				actx->tauDes = walkParams.virtual_hardstop_tq + calcJointTorque(estGains, actx, &walkParams);
 
 				// VECTOR (1): Early Stance -> Free space EMG
 				//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
@@ -273,7 +273,7 @@ void runFlatGroundFSM(Act_s *actx) {
 					//Linear ramp push off
 					//todo: may change this to remove this first jointTorque value, or even use cubicSpline
 //					actx->tauDes = -1.0*actx->jointTorque + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
-					actx->tauDes = (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
+					actx->tauDes = walkParams.virtual_hardstop_tq + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
 				}
 
 
@@ -374,7 +374,7 @@ void runFlatGroundFSM(Act_s *actx) {
 static float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams) {
 
 	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
-         - gainParams.b * actx->jointVelDegrees  + wParams->virtual_hardstop_tq;
+         - gainParams.b * actx->jointVelDegrees ;
 }
 
 static void updateUserWrites(Act_s *actx, WalkParams *wParams){
@@ -403,14 +403,14 @@ static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
 	actx->safetyTorqueScalar 				= 1.0; 	//user_data_1.w[0] = 100
 	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
-	wParams->virtualHardstopK				= 8.0;	//user_data_1.w[2] = 800 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
+	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
 	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]
-	wParams->lstPGDelTics 					= 30.0;	//user_data_1.w[4] = 30
-	lstPowerGains.k1						= 10.0;	//user_data_1.w[5] = 1000 [Nm/deg]
-	lstPowerGains.thetaDes 					= 22;	//user_data_1.w[6] = 2200 [Deg]
-	lstPowerGains.b		 					= 0.20;	//user_data_1.w[7] = 20   [Nm/s]
-	estGains.k1			 					= 2.0;	//user_data_1.w[8] = 200  [Nm/deg]
-	estGains.b			 					= 0.10;	//user_data_1.w[9] = 10  [Nm/s]
+	wParams->lstPGDelTics 					= 70.0;	//user_data_1.w[4] = 30
+	lstPowerGains.k1						= 4.0;	//user_data_1.w[5] = 400 [Nm/deg]
+	lstPowerGains.thetaDes 					= 18;	//user_data_1.w[6] = 1800 [Deg]
+	lstPowerGains.b		 					= 0.20;	//user_data_1.w[7] = 30   [Nm/s]
+	estGains.k1			 					= 1.50;	//user_data_1.w[8] = 150  [Nm/deg]
+	estGains.b			 					= 0.30;	//user_data_1.w[9] = 32  [Nm/s]
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
 	//TODO:
