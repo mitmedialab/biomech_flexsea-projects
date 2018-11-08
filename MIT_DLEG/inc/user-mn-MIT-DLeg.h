@@ -66,6 +66,7 @@ void MIT_DLeg_fsm_2(void);
 int8_t safetyShutoff(void); //renamed from safetyFailure(void)
 void   clampCurrent(float* pcurrentDes);
 
+
 // Mechanical transformations
 void   	getJointAngleKinematic(Act_s *act_x);
 float   getJointAngularVelocity(void);
@@ -400,6 +401,22 @@ enum {
 #define JIM_LG					emg_data[5]
 #define JIM_TA					emg_data[3]
 
+
+enum State {
+	STATE_POWER_ON = -2, 
+	STATE_INIT_CURRENT_CONTROLLER = -1,
+	STATE_INIT_GENERAL = 0,
+	STATE_TASK_MACHINE = 1};
+
+enum Task {
+	TASK_FL = 0,
+	TASK_RA = 1,
+	TASK_RD = 2,
+	TASK_SA = 3,
+	TASK_SD = 4
+};
+
+void init_user_writes(void);
 
 #endif	//INC_MIT_DLEG
 

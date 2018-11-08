@@ -49,6 +49,7 @@ struct motortb_s motortb;
 int16_t globvar[10] = {0,0,0,0,0,0,0,0,0,0};
 
 struct rigid_s rigid1, rigid2;
+struct taskmachine_s tm;
 struct pocket_s pocket1;
 
 

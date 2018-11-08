@@ -49,9 +49,14 @@
 #include "hardware_filter.h"
 #include <flexsea_comm.h>
 #include <math.h>
-//#include <time.h>
+#include <sys/time.h>
+#include <time.h>
+#include <stdio.h>
+#include <unistd.h>
+
 #include "imu_calculations.h"
 #include "linear_algebra_methods.h"
+#include "machine_learning_methods.h"
 
 
 //****************************************************************************
@@ -130,58 +135,48 @@ void MIT_DLeg_fsm_1(void)
 {
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
-    static uint32_t time = 0;
+    static uint32_t elapsed_samples = 0;
 
     //Increment time (1 tick = 1ms nominally; need to confirm)
-    time++;
+    elapsed_samples++;
 
     //begin main FSM
 	switch(fsm1State)
 	{
-		case -2:
+		case STATE_POWER_ON:
 			//Same power-on delay as FSM2:
-			if(time >= AP_FSM2_POWER_ON_DELAY ) {
-				fsm1State = -1;
-				time = 0;
+			if(elapsed_samples >= AP_FSM2_POWER_ON_DELAY ) {
+				fsm1State = STATE_INIT_CURRENT_CONTROLLER;
+				elapsed_samples = 0;
 			}
 
 			break;
 
-		case -1:
+		case STATE_INIT_CURRENT_CONTROLLER:
 
 			init_current_controller(0);		//initialize Current Controller with gains
-			fsm1State = 0;
-			time = 0;
+			fsm1State = STATE_INIT_GENERAL;
+			elapsed_samples = 0;
 
 			break;
 
-		case 0:
+		case STATE_INIT_GENERAL:
 			//sensor update happens in mainFSM2(void) in main_fsm.c
 			isEnabledUpdateSensors = 1;
 
-			//reserve for additional initialization
+			
+			init_user_writes();
 
-			// to use hardware filter on data use this:
-			// init_LPF();
-			// filter_LPF(rigid1.mn.accel.x);
-			// lpf_result;  // this is the result value. Currently returning values with high offset
+			init_learner(&(tm.lrn));
+			init_classifier(&(tm.lda));
+			update_classifier(&(tm.lrn), &(tm.lda));
 
-			/////////// USER WRITE INITIALIZE	//////////////////////
-			user_data_1.w[0] = 0; //k; //
-			user_data_1.w[1] = 0; //b; // damping/100
-			user_data_1.w[2] = 0; //Theta
-			user_data_1.w[3] = 0;	//
-			/////////////////////////////////////////////////////////
-
-
-
-
-			fsm1State = 1;
-			time = 0;
+			fsm1State = STATE_TASK_MACHINE;
+			elapsed_samples = 0;
 
 			break;
 
-		case 1:
+		case STATE_TASK_MACHINE:
 			{
 				if (!safetyShutoff()) {
 					act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
@@ -189,47 +184,17 @@ void MIT_DLeg_fsm_1(void)
 				}
 				updateLocalAcc(&rigid1);
 				updateLocalOmega(&rigid1);
-
-				//clock_t t1 = clock();
-				int n = 3;
-		    	float A[] = {1.0, 0.5, 0.7, 0.5, 0.8, 0.6, 0.7, 0.6, 1.0};
-		     	float b[] = {1.76, 1.0, 9.34};
-		    	float* RT = cholesky_decomposition(A, n);
-		  //   	clock_t t2 = clock();
-		     	float* R = transpose(RT, n);
-		  //   	clock_t t3 = clock();
-		     	float* y = forward_substitution(RT,b,n);
-		  //   	clock_t t4 = clock();
-		     	float* x = backward_substitution(R,y,n);
-		  //   	clock_t t5 = clock();
-
-		  //   	double time_cholesky = (double)(t2 - t1) / CLOCKS_PER_SEC;
-		  //   	double time_transpose = (double)(t3 - t2) / CLOCKS_PER_SEC;
-		  //   	double time_backsub = (double)(t4 - t3) / CLOCKS_PER_SEC;
-		  //   	double time_forsub = (double)(t5 - t4) / CLOCKS_PER_SEC;
-
-    	
-				rigid1.mn.genVar[0] = (int16_t) (R[0]*1000.0); //
-				rigid1.mn.genVar[1] = (int16_t) (R[1]*1000.0); //
-				 rigid1.mn.genVar[2] = (int16_t) (R[2]*1000.0); //
-				 rigid1.mn.genVar[3] = (int16_t) (R[3]*1000.0); //
-				 rigid1.mn.genVar[4] = (int16_t) (y[0]*1000.0); //
-				 rigid1.mn.genVar[5] = (int16_t) (y[1]*1000.0); //
-				 rigid1.mn.genVar[6] = (int16_t) (y[2]*1000.0);//
-				rigid1.mn.genVar[7] = (int16_t) (x[0]*1000.0);//
-				rigid1.mn.genVar[8] = (int16_t) (x[1]*1000.0);//
-			 rigid1.mn.genVar[9] = (int16_t) (x[2]*1000.0);//
-				// rigid1.mn.genVar[6] = (int16_t) (time_cholesky*10000.0);
-				// rigid1.mn.genVar[7] = (int16_t) (time_transpose*10000.0);
-				// rigid1.mn.genVar[8] = (int16_t) (time_backsub*10000.0);
-			 // rigid1.mn.genVar[9] = (int16_t) (time_forsub*10000.0);
-
-				//free(A);
-				//free(b);
-				free(R);
-				free(RT);
-				free(y);
-				free(x);
+		     
+				rigid1.mn.genVar[0] = (int16_t) (tm.lrn.sigma[0]*1000.0); //
+				rigid1.mn.genVar[1] = (int16_t) (tm.lrn.mu_k[0]*1000.0); //
+				 rigid1.mn.genVar[2] = (int16_t) (tm.lrn.y[0]*1000.0); //
+				 rigid1.mn.genVar[3] = (int16_t) (tm.lrn.y[1]*1000.0); //
+				 rigid1.mn.genVar[4] = (int16_t) (tm.lda.B[0]*1000.0); //&lda->A[p]
+				 rigid1.mn.genVar[5] = (int16_t) (tm.lda.A[0]*1000.0); //
+				 rigid1.mn.genVar[6] = (int16_t) (tm.lda.A[1]*1000.0);//
+				rigid1.mn.genVar[7] = (int16_t) (tm.lda.A[2]*1000.0);//
+				rigid1.mn.genVar[8] = (int16_t) (tm.lda.A[3]*1000.0);//
+			 rigid1.mn.genVar[9] = (int16_t) (tm.lda.A[4]*1000.0);//
 
 				break;
 			}
@@ -262,6 +227,15 @@ void MIT_DLeg_fsm_1(void)
  * Check for safety flags, and act on them.
  * todo: come up with correct strategies to deal with flags, include thermal limits also
  */
+
+void init_user_writes(void) {
+	user_data_1.w[0] = 0; 
+	user_data_1.w[1] = 0; 
+	user_data_1.w[2] = 0;
+	user_data_1.w[3] = 0;	
+}
+
+
 int8_t safetyShutoff(void) {
 
 	act1.commandTimer++;
