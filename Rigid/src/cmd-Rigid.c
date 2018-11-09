@@ -33,7 +33,7 @@ extern "C" {
 #include "flexsea_user_structs.h"
 #include "user-mn.h"
 #include "cmd-DLeg.h"
-#include "biom_state_machine.h"
+#include "walking_state_machine.h"
 #include "state_variables.h"
 
 #ifdef DEPHY
@@ -319,7 +319,7 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 	uint16_t index = 0;
 	uint8_t offset = 0;
 	struct rigid_s *ri = &rigid1;
-	struct act_s *act = &act1;
+
 	(void)info;
 
 	#ifdef BOARD_TYPE_FLEXSEA_EXECUTE
@@ -350,8 +350,10 @@ void rx_cmd_rigid_rr(uint8_t *buf, uint8_t *info)
 
 	#ifdef BOARD_TYPE_FLEXSEA_PLAN
 
+		struct act_s *act = &act1;
 		index = P_DATA1;
 		offset = buf[index++];
+
 
 		if(offset == 0)
 		{

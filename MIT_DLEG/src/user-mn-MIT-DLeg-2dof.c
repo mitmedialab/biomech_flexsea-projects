@@ -30,22 +30,7 @@
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-
-#include "user-mn.h"
 #include "user-mn-MIT-DLeg-2dof.h"
-#include "user-mn-MIT-EMG.h"
-#include "biom_state_machine.h"
-#include "state_variables.h"
-#include "user-mn-ActPack.h"
-#include "flexsea_sys_def.h"
-#include "flexsea_system.h"
-#include "flexsea_cmd_calibration.h"
-#include "flexsea_user_structs.h"
-#include "arm_math.h"
-//#include "software_filter.h"
-#include "hardware_filter.h"
-#include <flexsea_comm.h>
-#include <math.h>
 
 
 //****************************************************************************
@@ -87,13 +72,9 @@ int32_t motSticPos = MOT_STIC_POS;
 
 //const vars taken from defines (done to speed up computation time)
 static const float angleUnit    = ANG_UNIT;
-static const float jointHSMin   = JOINT_HS_MIN;
-static const float jointHSMax   = JOINT_HS_MAX;
 static const float jointZeroAbs = JOINT_ZERO_ABS;
 static const float jointZero	= JOINT_ZERO;
 
-static const float forceMaxTicks = FORCE_MAX_TICKS;
-static const float forceMinTicks = FORCE_MIN_TICKS;
 static const float forcePerTick  = FORCE_PER_TICK;
 
 static const float nScrew = N_SCREW;
@@ -108,12 +89,6 @@ struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
-
-//Call this function once in main.c, just before the while()
-void init_MIT_DLeg(void)
-{
-
-}
 
 //MIT DLeg Finite State Machine.
 //Call this function in one of the main while time slots.
@@ -158,6 +133,10 @@ void MIT_DLeg_fsm_1(void)
 
 			//reserve for additional initialization
 			walkParams.initializedStateMachineVariables = 0;
+			if (!walkParams.initializedStateMachineVariables){
+				initializeUserWrites(&act1, &walkParams);
+
+			}
 
 			act1.safetyTorqueScalar = 1.0;
 
@@ -183,6 +162,10 @@ void MIT_DLeg_fsm_1(void)
 			    	stateMachine.current_state = STATE_EARLY_STANCE;
 
 			    } else {
+
+
+			        updateUserWrites(&act1, &walkParams);
+
 			    	runFlatGroundFSM(&act1);
 
 			    	// Check that torques are within safety range.
@@ -195,8 +178,6 @@ void MIT_DLeg_fsm_1(void)
 
 
 			    	setMotorTorque(&act1, act1.tauDes);
-
-
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
 			        rigid1.mn.genVar[0] = startedOverLimit;
@@ -227,6 +208,8 @@ void MIT_DLeg_fsm_1(void)
 }
 
 
+
+
 //Second state machine for the DLeg project
 void MIT_DLeg_fsm_2(void)
 {
@@ -240,6 +223,63 @@ void MIT_DLeg_fsm_2(void)
 //****************************************************************************
 // Private Function(s)
 //****************************************************************************
+
+
+
+void updateUserWrites(Act_s *actx, WalkParams *wParams){
+
+	actx->safetyTorqueScalar 				= ( (float) user_data_1.w[0] ) /100.0;	// Reduce overall torque limit.
+	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
+	wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
+	wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
+	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
+	lstPowerGains.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
+	lstPowerGains.thetaDes 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
+	lstPowerGains.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
+	estGains.k1			 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
+	estGains.b			 					= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
+
+
+}
+
+void initializeUserWrites(Act_s *actx, WalkParams *wParams){
+
+	wParams->earlyStanceK0 = 6.23;
+	wParams->earlyStanceKF = 0.1;
+	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
+
+	actx->safetyTorqueScalar 				= 1.0; 	//user_data_1.w[0] = 100
+	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
+	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
+	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]
+	wParams->lstPGDelTics 					= 70.0;	//user_data_1.w[4] = 30
+	lstPowerGains.k1						= 4.0;	//user_data_1.w[5] = 400 [Nm/deg]
+	lstPowerGains.thetaDes 					= 18;	//user_data_1.w[6] = 1800 [Deg]
+	lstPowerGains.b		 					= 0.20;	//user_data_1.w[7] = 30   [Nm/s]
+	estGains.k1			 					= 1.50;	//user_data_1.w[8] = 150  [Nm/deg]
+	estGains.b			 					= 0.30;	//user_data_1.w[9] = 32  [Nm/s]
+
+	//USER WRITE INITIALIZATION GOES HERE//////////////
+
+	user_data_1.w[0] =  (int32_t) ( actx->safetyTorqueScalar*100 ); 	// Hardstop Engagement angle
+	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
+	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
+	user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque*100 ); 			// Late stance power, torque threshhold
+	user_data_1.w[4] =  (int32_t) ( wParams->lstPGDelTics ); 		// ramping rate
+	user_data_1.w[5] =  (int32_t) ( lstPowerGains.k1 * 100 );		// 4.5 x 100
+	user_data_1.w[6] =  (int32_t) ( lstPowerGains.thetaDes * 100 ); // 14 x 100
+	user_data_1.w[7] =  (int32_t) ( lstPowerGains.b * 100 ); // 0.1 x 100
+	user_data_1.w[8] =  (int32_t) ( estGains.k1 * 100 ); // 0.1 x 100
+	user_data_1.w[9] =  (int32_t) ( estGains.b * 100 ); // 0.1 x 100
+
+	///////////////////////////////////////////////////
+
+	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
+}
+
+
+
+
 /*
  * Check for safety flags, and act on them.
  * todo: come up with correct strategies to deal with flags, include thermal limits also
@@ -583,12 +623,6 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 		I = 0;
 	}
 
-	//account for deadzone current (unused due to instability). Unsolved problem according to Russ Tedrake.
-//	if (abs(dtheta_m) < 3 && I < 0) {
-//		I -= motSticNeg; //in mA
-//	} else if (abs(dtheta_m) < 3 && I > 0) {
-//		I += motSticPos;
-//	}
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > currentOpLimit)
@@ -762,262 +796,8 @@ float windowSmoothAxial(float val) {
 }
 
 
-void openSpeedFSM(void)
-{
-	static uint32_t deltaT = 0;
-	static uint8_t fsm1State = 0;
-
-	switch(fsm1State)
-	{
-		case 0:
-			setControlMode(CTRL_OPEN);
-			setMotorVoltage(0);
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 3000)
-			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-			setMotorVoltage(0);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 3000)
-			{
-				deltaT = 0;
-				fsm1State = 1;
-			}
-			setMotorVoltage(1000);
-			break;
-	}
-}
-
-void twoPositionFSM(void)
-{
-	static uint32_t timer = 0, deltaT = 0;
-	static int8_t fsm1State = -1;
-	static int32_t initPos = 0;
-
-	switch(fsm1State)
-	{
-		case -1:
-			//We give FSM2 some time to refresh values
-			timer++;
-			if(timer > 25)
-			{
-				initPos = *(rigid1.ex.enc_ang);
-				fsm1State = 0;
-			}
-			break;
-		case 0:
-			setControlMode(CTRL_POSITION);
-			setControlGains(20, 6, 0, 0);	//kp = 20, ki = 6
-			setMotorPosition(initPos);
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-			setMotorPosition(initPos + 10000);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 1;
-			}
-			setMotorPosition(initPos);
-			break;
-	}
-}
-
-void twoTorqueFSM(struct act_s *actx)
-{
-	static uint32_t timer = 0, deltaT = 0;
-	static int8_t fsm1State = -1;
-	static int32_t initPos = 0;
 
 
-	switch(fsm1State)
-	{
-		case -1:
-			//We give FSM2 some time to refresh values
-			timer++;
-			if(timer > 25)
-			{
-				initPos = actx->jointAngle;
-				fsm1State = 0;
-			}
-			break;
-		case 0:
-//			mit_init_current_controller();
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-			setMotorTorque( actx, 2);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 1;
-			}
-			setMotorTorque( actx, -2);
-			break;
-	}
-}
-
-void oneTorqueFSM(struct act_s *actx)
-{
-	static uint32_t timer = 0, deltaT = 0;
-	static int8_t fsm1State = -1;
-	static int32_t initPos = 0;
-	static int setPt = 0;
-
-
-
-
-	switch(fsm1State)
-	{
-		case -1:
-			//We give FSM2 some time to refresh values
-			timer++;
-			if(timer > 25)
-			{
-				initPos = actx->jointAngle;
-				fsm1State = 0;
-			}
-			break;
-		case 0:
-//			mit_init_current_controller();
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 3000)
-			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-
-			setMotorTorque( actx, setPt);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 3000)
-			{
-				deltaT = 0;
-				fsm1State = 1;
-			}
-			setMotorTorque( actx, 0);
-			break;
-	}
-
-}
-
-
-//control ankle torque by through user_data_1[2] as amplitude and user_data_1[3] as frequency
-void torqueSweepTest(struct act_s *actx) {
-		static int32_t timer = 0;
-		static int32_t stepTimer = 0;
-		static float currentFrequency = 0;
-
-		float torqueAmp = user_data_1.w[0]/10.;
-		float frequency = user_data_1.w[1]/10.;
-		float frequencyEnd = user_data_1.w[2]/10.;
-		float numSteps = user_data_1.w[3];
-
-		timer++;
-
-		// if torqueAmp is ever set to 0, reset sweep test params
-		if (torqueAmp == 0) {
-			stepTimer = 0;
-			currentFrequency = 0;
-		}
-
-		// start check to see what type of sweep desired
-		if (frequency > 0) {
-			float torqueDes = 0;
-
-			//just want to sweep at one frequency
-			if (frequencyEnd == 0 || numSteps == 0) {
-
-				torqueDes = torqueAmp * sin(frequency*timer*2*M_PI/1000);
-				setMotorTorque(actx, torqueDes);
-
-			} else {
-
-				// 2 seconds per intermediate frequency step
-				if (stepTimer <= 2*SECONDS) {
-
-					torqueDes = torqueAmp * sin(currentFrequency*stepTimer*2*M_PI/1000);
-					setMotorTorque(actx, torqueDes);
-
-					stepTimer++;
-					user_data_1.r[0] = 1; //1 if testing
-
-				} else {
-
-					stepTimer = 0;
-					currentFrequency += (frequencyEnd-frequency)/numSteps; //increment frequency step
-					//stop test
-					if (currentFrequency > frequencyEnd) {
-
-						torqueAmp = 0;
-						frequency = 0;
-						frequencyEnd = 0;
-						numSteps = 0;
-						user_data_1.r[0] = 0; //0 if not sweep testing
-
-					}
-				}
-			}
-
-			//pass back for plotting purposes
-			user_data_1.r[2] = torqueDes;
-
-		} else if (frequency == 0){
-			timer = 0;
-			setMotorTorque(actx, torqueAmp);
-
-			stepTimer = 0;
-			currentFrequency = 0;
-			user_data_1.r[2] = torqueAmp;
-		} else {
-			timer = 0;
-			setMotorTorque(actx, 0);
-
-			stepTimer = 0;
-			currentFrequency = 0;
-			user_data_1.r[2] = 0;
-		}
-
-		user_data_1.r[3] = frequency;
-
-//		rigid1.mn.genVar[5] = frequency; //hz
-
-//		rigid1.mn.genVar[9] = user_data_1.r[2]*1000; //mNm
-
-}
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
 #endif //INCLUDE_UPROJ_MIT_DLEG || defined BOARD_TYPE_FLEXSEA_PLAN

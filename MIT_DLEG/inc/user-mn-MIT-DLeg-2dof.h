@@ -35,6 +35,20 @@
 //****************************************************************************
 #include <stdint.h>
 #include "main.h"
+#include "user-mn.h"
+#include "user-mn-MIT-EMG.h"
+#include "walking_state_machine.h"
+#include "state_variables.h"
+#include "user-mn-ActPack.h"
+#include "flexsea_sys_def.h"
+#include "flexsea_system.h"
+#include "flexsea_cmd_calibration.h"
+#include "flexsea_user_structs.h"
+#include "arm_math.h"
+//#include "software_filter.h"
+#include "hardware_filter.h"
+#include <flexsea_comm.h>
+#include <math.h>
 
 
 //****************************************************************************
@@ -51,7 +65,6 @@ extern int8_t isEnabledUpdateSensors;
 // Public Function Prototype(s):
 //****************************************************************************
 
-void init_MIT_DLeg(void);
 void MIT_DLeg_fsm_1(void);
 void MIT_DLeg_fsm_2(void);
 
@@ -95,6 +108,10 @@ void twoPositionFSM(void);
 void oneTorqueFSM(struct act_s *actx);
 void twoTorqueFSM(struct act_s *actx);
 void torqueSweepTest(struct act_s *actx);
+
+//User writes
+void updateUserWrites(Act_s *actx, WalkParams *wParams);
+void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 
 
 //****************************************************************************

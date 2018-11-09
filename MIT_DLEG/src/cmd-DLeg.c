@@ -13,7 +13,7 @@ extern "C" {
 #include <flexsea_cmd_user.h>
 #include "cmd-DLeg.h"
 #include "state_variables.h"
-#include "biom_state_machine.h"
+#include "walking_state_machine.h"
 #include "user-mn.h"
 
 //****************************************************************************
@@ -21,7 +21,7 @@ extern "C" {
 //****************************************************************************
 
 //array used for indexing in cmd-DLeg !ORDER MATTERS!
-GainParams* stateGains[7] = {&eswGains, &lswGains, &estGains, &lstGains, &lstPowerGains, &emgStandGains, &emgFreeGains};
+GainParams* stateGains[7] = {&eswGains, &lswGains, &estGains,  &lstPowerGains};
 int16_t fsm1StatePlan;
 float currentScalarPlan;
 
@@ -166,11 +166,12 @@ void rx_cmd_dleg_rw(uint8_t *buf, uint8_t *info)
 //Gets called when our Slave sends us a Reply to our Read Request
 void rx_cmd_dleg_rr(uint8_t *buf, uint8_t *info)
 {
-    uint16_t index = 0;
-    uint8_t setNumber = 0;
     (void)info;
 
     #ifdef BOARD_TYPE_FLEXSEA_PLAN
+
+		uint16_t index = 0;
+		uint8_t setNumber = 0;
 
         index = P_DATA1;
         setNumber = buf[index++];
