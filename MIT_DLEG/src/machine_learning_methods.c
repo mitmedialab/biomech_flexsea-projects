@@ -10,8 +10,7 @@
 #define NFEATURES_SQ NFEATURES * NFEATURES
 
 void update_classifier(struct learner_s* lrn, struct classifier_s* lda){
-  int i = 0;
-  //for (int i = 0; i < NCLASSES; i++){
+  for (int i = 0; i < NCLASSES; i++){
       int p = i*NFEATURES;
       upper_to_lower_transpose(lrn->T, NFEATURES);
       cholesky_decomposition(lrn->sigma, lrn->T, NFEATURES);
@@ -19,7 +18,7 @@ void update_classifier(struct learner_s* lrn, struct classifier_s* lda){
       lower_to_upper_transpose(lrn->T, NFEATURES);
       backward_substitution(lrn->T,lrn->y, &lda->A[p], NFEATURES);
       lda->B[i] = -0.5*inner_product(&lrn->mu_k[p], &lda->A[p], NFEATURES); //assumes uniform priors
-    //}
+  }
 
 }
 
@@ -35,25 +34,25 @@ void classify(struct classifier_s* lda, float* feats){
 }
 
 
-void update_learner(struct learner_s* lrn){
-  int ind = lrn->k_est*NFEATURES;
+void update_learner(struct learner_s* lrn, float* feats, int k_est){
+  int ind = k_est*NFEATURES;
   float popP1 = lrn->pop + 1.0;
-  float popkP1 = lrn->pop_k[lrn->k_est] + 1.0;
+  float popkP1 = lrn->pop_k[k_est] + 1.0;
 
   //update class mean
-  scaling(&lrn->mu_k[ind], lrn->pop_k[lrn->k_est], &lrn->mu_k[ind], NFEATURES);
-  sum(&lrn->mu_k[ind], lrn->feats_prev, &lrn->mu_k[ind], NFEATURES);
+  scaling(&lrn->mu_k[ind], lrn->pop_k[k_est], &lrn->mu_k[ind], NFEATURES);
+  sum(&lrn->mu_k[ind], feats, &lrn->mu_k[ind], NFEATURES);
   scaling (&lrn->mu_k[ind], 1.0/popkP1, &lrn->mu_k[ind], NFEATURES);
 
   //update overall mean
-  assignment(lrn->mu_prev, lrn->mu, NFEATURES);
+  assignment(lrn->mu, lrn->mu_prev, NFEATURES);
   scaling(lrn->mu, lrn->pop, lrn->mu, NFEATURES);
-  sum(lrn->mu, lrn->feats_prev, lrn->mu, NFEATURES);
+  sum(lrn->mu, feats, lrn->mu, NFEATURES);
   scaling(lrn->mu, 1.0/popP1, lrn->mu, NFEATURES);
 
   //update covariance
-  diff(lrn->feats_prev, lrn->mu, lrn->x, NFEATURES);
-  diff(lrn->feats_prev, lrn->mu_prev, lrn->y, NFEATURES);
+  diff(feats, lrn->mu, lrn->x, NFEATURES);
+  diff(feats, lrn->mu_prev, lrn->y, NFEATURES);
   outer_product(lrn->x, lrn->y, lrn->A, NFEATURES);
   scaling(lrn->sigma, lrn->pop, lrn->sigma, NFEATURES_SQ);
   sum(lrn->sigma, lrn->A, lrn->sigma, NFEATURES_SQ);
@@ -61,7 +60,7 @@ void update_learner(struct learner_s* lrn){
 
   //update populations
   lrn->pop = popP1;
-  lrn->pop_k[lrn->k_est] = popkP1;
+  lrn->pop_k[k_est] = popkP1;
 
 }
 
@@ -73,11 +72,8 @@ void init_learner(struct learner_s* lrn){
   lrn->mu  = (float*)calloc( NFEATURES, sizeof(float));
   lrn->sigma = (float*)calloc(NFEATURES_SQ, sizeof(float));
 
-  lrn->feats_prev = (float*)calloc(NFEATURES, sizeof(float));
   lrn->pop_k = (float*)calloc(NCLASSES, sizeof(float));
   lrn->pop = 0.0;
-
-  lrn->k_est = 0;
 
   // for (int i = 0; i < NFEATURES; i++){
   //   lrn->sigma[NFEATURES*i + i] = 1.000000;
@@ -85,8 +81,8 @@ void init_learner(struct learner_s* lrn){
   float temp[] = {1.041590, -0.413954, 1.307654, -0.095655, 0.667191, -0.413954, 2.179066, 2.607505, 1.630967, 1.479780, 1.307654, 2.607505, 6.822377, 2.177769, 3.701085, -0.095655, 1.630967, 2.177769, 2.736470, 2.290576, 0.667191, 1.479780, 3.701085, 2.290576, 2.903727};
   for (int i = 0; i < NFEATURES_SQ; i++)
     lrn->sigma[i] = temp[i];
-  float temp2[] = {-0.4624,   -0.4098,   -0.5035,    1.2333,    0.6103};
-  for (int i = 0; i < NFEATURES; i++)
+  float temp2[] = {-0.593642, 0.436375, -0.504362, 0.102108, 1.196251, 0.120283, -1.036843, -0.857103, -0.169874, -0.191668, -0.865815, 0.180664, 1.266528, -0.251169, -0.204570, -2.201522, -0.774513, -1.393273, -0.386235, 0.525586, 1.523269, 1.798494, -0.116884, -0.320196, 0.817516};
+  for (int i = 0; i < NFEATURES*NCLASSES; i++)
     lrn->mu_k[i] = temp2[i];
   //init intermediary matrices
   lrn->T = (float*)calloc(NFEATURES_SQ, sizeof(float));

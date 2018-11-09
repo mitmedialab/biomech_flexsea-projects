@@ -169,6 +169,13 @@ void MIT_DLeg_fsm_1(void)
 
 			init_learner(&(tm.lrn));
 			init_classifier(&(tm.lda));
+			
+
+			float feats1[] = {0.4902,0.7653,0.7783,-1.4803,0.5404};
+			update_learner(&(tm.lrn),feats1, 0);
+			update_classifier(&(tm.lrn), &(tm.lda));
+			float feats2[] = {-0.0915,-0.7603,-0.6936,1.2815,-0.8097};
+			update_learner(&(tm.lrn),feats2, 0);
 			update_classifier(&(tm.lrn), &(tm.lda));
 
 			fsm1State = STATE_TASK_MACHINE;
@@ -186,15 +193,15 @@ void MIT_DLeg_fsm_1(void)
 				updateLocalOmega(&rigid1);
 		     
 				rigid1.mn.genVar[0] = (int16_t) (tm.lrn.sigma[0]*1000.0); //
-				rigid1.mn.genVar[1] = (int16_t) (tm.lrn.mu_k[0]*1000.0); //
-				 rigid1.mn.genVar[2] = (int16_t) (tm.lrn.y[0]*1000.0); //
-				 rigid1.mn.genVar[3] = (int16_t) (tm.lrn.y[1]*1000.0); //
-				 rigid1.mn.genVar[4] = (int16_t) (tm.lda.B[0]*1000.0); //&lda->A[p]
-				 rigid1.mn.genVar[5] = (int16_t) (tm.lda.A[0]*1000.0); //
-				 rigid1.mn.genVar[6] = (int16_t) (tm.lda.A[1]*1000.0);//
-				rigid1.mn.genVar[7] = (int16_t) (tm.lda.A[2]*1000.0);//
-				rigid1.mn.genVar[8] = (int16_t) (tm.lda.A[3]*1000.0);//
-			 rigid1.mn.genVar[9] = (int16_t) (tm.lda.A[4]*1000.0);//
+				rigid1.mn.genVar[1] = (int16_t) (tm.lrn.sigma[1]*1000.0); //
+				 rigid1.mn.genVar[2] = (int16_t) (tm.lrn.sigma[2]*1000.0); //
+				 rigid1.mn.genVar[3] = (int16_t) (tm.lrn.sigma[3]*1000.0); //
+				 rigid1.mn.genVar[4] = (int16_t) (tm.lrn.sigma[4]*1000.0); //&lda->A[p]
+				 rigid1.mn.genVar[5] = (int16_t) (tm.lrn.sigma[5]*1000.0); //
+				 rigid1.mn.genVar[6] = (int16_t) (tm.lrn.sigma[6]*1000.0);//
+				rigid1.mn.genVar[7] = (int16_t) (tm.lrn.sigma[7]*1000.0);//
+				rigid1.mn.genVar[8] = (int16_t) (tm.lrn.sigma[8]*1000.0);//
+			 rigid1.mn.genVar[9] = (int16_t) (tm.lrn.sigma[9]*1000.0);//
 
 				break;
 			}

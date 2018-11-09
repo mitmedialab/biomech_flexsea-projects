@@ -10,7 +10,7 @@
 
 extern void update_classifier(struct learner_s* lrn, struct classifier_s* lda);
 extern void classify(struct classifier_s* lda, float* feats);
-extern void update_learner(struct learner_s* lrn);
+extern void update_learner(struct learner_s* lrn, float* feats, int k_est);
 extern void init_learner(struct learner_s* lrn);
 extern void init_classifier(struct classifier_s* lda);
 

@@ -107,12 +107,9 @@ struct learner_s
 	float* mu;
 	float* sigma;
 
-	float* feats_prev;
 	float* pop_k;
 	float pop;
 	
-	int k_est;
-
 	//Intermediate matrix holders
     float* T;
     float* A;
