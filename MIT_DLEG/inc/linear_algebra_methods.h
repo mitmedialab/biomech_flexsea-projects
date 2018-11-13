@@ -4,11 +4,12 @@
  
 
 extern void cholesky_decomposition(float* A, float* LT, int n);
+extern void segmented_cholesky_decomposition(float* A, float* LT, int n, int current_feature);
 extern void backward_substitution (float *A, float *b, float *x, int n);
 extern void forward_substitution (float *A, float *b, float *x, int n);
 extern void transpose(float *A, float *B, int n);
 extern void upper_to_lower_transpose(float *R, int n);
-extern void lower_to_upper_transpose(float *R, int n);
+extern void lower_to_upper_transpose(float *LT, float *UT, int n);
 
 extern float inner_product (float* x, float* y, int n);
 extern void outer_product (float* x, float* y, float* P, int n);

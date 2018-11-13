@@ -111,7 +111,8 @@ struct learner_s
 	float pop;
 	
 	//Intermediate matrix holders
-    float* T;
+    float* UT;
+    float* LT;
     float* A;
     float* x;
     float* y;

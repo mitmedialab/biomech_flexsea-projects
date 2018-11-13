@@ -133,10 +133,15 @@ void init_MIT_DLeg(void)
 //Call this function in one of the main while time slots.
 void MIT_DLeg_fsm_1(void)
 {
+
+	static int status = 1;
+	static int currentStride = 0;
+	static int indicator = 0;
+
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
     static uint32_t elapsed_samples = 0;
-
+    static uint32_t iter = 0;
     //Increment time (1 tick = 1ms nominally; need to confirm)
     elapsed_samples++;
 
@@ -171,12 +176,7 @@ void MIT_DLeg_fsm_1(void)
 			init_classifier(&(tm.lda));
 			
 
-			float feats1[] = {0.4902,0.7653,0.7783,-1.4803,0.5404};
-			update_learner(&(tm.lrn),feats1, 0);
-			update_classifier(&(tm.lrn), &(tm.lda));
-			float feats2[] = {-0.0915,-0.7603,-0.6936,1.2815,-0.8097};
-			update_learner(&(tm.lrn),feats2, 0);
-			update_classifier(&(tm.lrn), &(tm.lda));
+			
 
 			fsm1State = STATE_TASK_MACHINE;
 			elapsed_samples = 0;
@@ -184,27 +184,57 @@ void MIT_DLeg_fsm_1(void)
 			break;
 
 		case STATE_TASK_MACHINE:
-			{
-				if (!safetyShutoff()) {
-					act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
-//					setMotorTorque(&act1, act1.tauDes);
-				}
+			
+// 				if (!safetyShutoff()) {
+// 					act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
+// //					setMotorTorque(&act1, act1.tauDes);
+// 				}
 				updateLocalAcc(&rigid1);
 				updateLocalOmega(&rigid1);
-		     
-				rigid1.mn.genVar[0] = (int16_t) (tm.lrn.sigma[0]*1000.0); //
-				rigid1.mn.genVar[1] = (int16_t) (tm.lrn.sigma[1]*1000.0); //
-				 rigid1.mn.genVar[2] = (int16_t) (tm.lrn.sigma[2]*1000.0); //
-				 rigid1.mn.genVar[3] = (int16_t) (tm.lrn.sigma[3]*1000.0); //
-				 rigid1.mn.genVar[4] = (int16_t) (tm.lrn.sigma[4]*1000.0); //&lda->A[p]
-				 rigid1.mn.genVar[5] = (int16_t) (tm.lrn.sigma[5]*1000.0); //
-				 rigid1.mn.genVar[6] = (int16_t) (tm.lrn.sigma[6]*1000.0);//
-				rigid1.mn.genVar[7] = (int16_t) (tm.lrn.sigma[7]*1000.0);//
-				rigid1.mn.genVar[8] = (int16_t) (tm.lrn.sigma[8]*1000.0);//
-			 rigid1.mn.genVar[9] = (int16_t) (tm.lrn.sigma[9]*1000.0);//
+
+				float feats1[] = {-2.978544, -0.041625, 1.116083, -0.814018, -0.172849, 1.308042, 0.190903, 0.316937, 0.719706, 1.462060, -2.978544, -0.041625, 1.116083, -0.814018, -0.172849, 1.308042, 0.190903, 0.316937, 0.719706, 1.462060};
+				float feats2[] = {-0.301313, -0.614966, -0.845713, 0.792021, -1.976099, 0.287502, -0.024970, 1.270801, 0.184187, -0.292704, -0.301313, -0.614966, -0.845713, 0.792021, -1.976099, 0.287502, -0.024970, 1.270801, 0.184187, -0.292704};
+				float feats3[] = {0.786085, -0.308695, -1.884058, -1.352904, 1.329331, -0.185039, 0.694670, 1.083490, 0.369153, 0.003411, 0.786085, -0.308695, -1.884058, -1.352904, 1.329331, -0.185039, 0.694670, 1.083490, 0.369153, 0.003411}; 
+
+			if (status){
+				indicator = 1-indicator;
+				reset_learning_demux();
+				currentStride++;
+				if (currentStride == 4)
+					currentStride = 1;
+			}
+			if (currentStride == 1){
+				status = learning_demux(&(tm.lrn), &(tm.lda), feats1, 0);
+			}else if (currentStride == 2){
+				status = learning_demux(&(tm.lrn), &(tm.lda), feats2, 0);
+			}else if (currentStride == 3){
+				status = learning_demux(&(tm.lrn), &(tm.lda), feats3, 0);
+			}
+			
+
+			
+			
+
+				// float arg = 1.23128234243;
+				// int c = 2342;
+				// for (int i= 1.0; i < 50.0; i= i+1.0)
+				// 	answer = asinf(i);
+			// float feats2[] = {    -0.189902, -1.032914, -0.323292};
+			// update_learner(&(tm.lrn),feats2, 0);
+			// update_classifier(&(tm.lrn), &(tm.lda));
+			iter++;
+			rigid1.mn.genVar[0] = (int16_t) (iter); //
+			rigid1.mn.genVar[1] = (int16_t) (indicator); //
+			 rigid1.mn.genVar[2] = (int16_t) (tm.lda.A[0]*1000.0); //
+			 rigid1.mn.genVar[3] = (int16_t) (tm.lda.A[1]*1000.0); //
+			 rigid1.mn.genVar[4] = (int16_t) (tm.lda.A[2]*1000.0); //
+			  rigid1.mn.genVar[5] = (int16_t) (tm.lda.A[3]*1000.0); //
+			  rigid1.mn.genVar[6] = (int16_t) (tm.lda.A[4]*1000.0);//
+			  rigid1.mn.genVar[7] = (int16_t) (tm.lda.A[5]*1000.0);//
+			 rigid1.mn.genVar[8] = (int16_t) (tm.lda.A[6]*1000.0);//
+		  	rigid1.mn.genVar[9] = (int16_t) (tm.lda.A[7]*1000.0);//
 
 				break;
-			}
 
 
 
@@ -468,32 +498,39 @@ float getAxialForce(void)
 // return moment arm projected length  [m]
 float getLinkageMomentArm(float theta)
 {
-	static float a = 0, b = 0, T = 0, F = 0;
+	static float a = 147.6787, b = 42.9535, T = 0.3239, F = 1.1384;
 	static float A = 0, c = 0, r = 0, C_ang = 0;
 //	theta_r = ANG_UNIT % 360 ? (theta*M_PI/180) : theta; 	// convert deg to radians if necessary.
 //	theta_r = theta * M_PI / 180;	// convert deg to radians.
 
-    const float t = 47; 	// [mm] tibial offset
-    const float t_k = 140; 	// [mm] offset from knee along tibia
-    const float f = 39;  	// [mm] femur offset
-    const float f_k = 18;	// [mm] offset from knee along femur
+    // const float t = 47; 	// [mm] tibial offset
+    // const float t_k = 140; 	// [mm] offset from knee along tibia
+    // const float f = 39;  	// [mm] femur offset
+    // const float f_k = 18;	// [mm] offset from knee along femur
 
-    const float aIn = t*t + t_k*t_k;
-    a = sqrt(aIn);
-    const float bIn = f*f + f_k*f_k;
-    b = sqrt(bIn);
+    // const float aIn = t*t + t_k*t_k;
+    // a = sqrt(aIn);
+    // const float bIn = f*f + f_k*f_k;
+    // b = sqrt(bIn);
 
-    const float Tin = t/t_k;
-    T = atan(Tin);
-    const float Fin = f/f_k;
-    F = atan(Fin);
 
-    C_ang = M_PI - theta - (T + F); 	// angle
-    c = sqrt( a*a + b*b - 2*a*b*cos(C_ang) );  // length of actuator from pivot to output
-    A = acos( (a*a - (c*c + b*b)) / (-2*b*c) );
-    r = b * sin(A);
 
-    return r/1000;
+    // const float Tin = t/t_k;
+    // T = atan(Tin);
+    // const float Fin = f/f_k;
+    // F = atan(Fin);
+
+	C_ang = M_PI - theta - (1.4623); 	// angle
+	c = sqrtf( 21809. + 1845. - 12687.0*cosf(C_ang) );
+	A = acosf( (21809. - (c*c + 1845.)) / (-85.9070*c) );
+    r = 0.0429535 * sinf(A);
+
+    //C_ang = M_PI - theta - (T + F); 	// angle
+    //c = sqrt( a*a + b*b - 2*a*b*cos(C_ang) );  // length of actuator from pivot to output
+    //A = acos( (a*a - (c*c + b*b)) / (-2*b*c) );
+    //r = b * sin(A);
+
+    return r;
 }
 
 /*
