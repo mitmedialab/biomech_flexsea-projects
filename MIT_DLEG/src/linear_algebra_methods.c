@@ -20,18 +20,45 @@ void cholesky_decomposition(float* A, float* LT, int n) {
     }
 }
 
-void segmented_cholesky_decomposition(float* A, float* LT, int n, int current_feature) {
+void segmented_cholesky_decomposition(float* A, float* LT, int n, int segment) {
  
-    int i_times_n = current_feature*n;
-    for (int j = 0; j <= current_feature; j++) {
+    int segment_times_n = segment*n;
+    int segment_times_n_p_1 = segment_times_n + segment;
+    for (int j = 0; j <= segment; j++) {
         int j_times_n = j*n;
-        float s = 0;
+        float s = 0.0;
         for (int k = 0; k < j; k++)
-            s += LT[i_times_n + k] * LT[j_times_n + k];
-        LT[i_times_n + j] = (current_feature == j) ?
-                       sqrt(A[i_times_n + current_feature] - s) :
-                       (1.0 / LT[j_times_n + j] * (A[i_times_n + j] - s));
+            s += LT[segment_times_n + k] * LT[j_times_n + k];
+        LT[segment_times_n + j] = (segment == j) ?
+                       sqrt(A[segment_times_n_p_1] - s) :
+                       (1.0 / LT[j_times_n + j] * (A[segment_times_n + j] - s));
     } 
+}
+
+void super_segmented_cholesky_decomposition(float* A, float* LT, int n, int segment1, int segment2) {
+ 
+    int segment1_times_n = segment1*n;
+    int segment1_times_n_p_1 = segment1_times_n + segment1;
+
+        int j = segment2;
+        int j_times_n = j*n;
+        float s = 0.0;
+        for (int k = 0; k < j; k++)
+            s += LT[segment1_times_n + k] * LT[j_times_n + k];
+        LT[segment1_times_n + j] = (segment1 == j) ?
+                       sqrt(A[segment1_times_n_p_1] - s) :
+                       (1.0 / LT[j_times_n + j] * (A[segment1_times_n + j] - s));
+
+        j = segment1-segment2;
+        if (j == segment2)
+            return;
+        j_times_n = j*n;
+        s = 0.0;
+        for (int k = 0; k < j; k++)
+            s += LT[segment1_times_n + k] * LT[j_times_n + k];
+        LT[segment1_times_n + j] = (segment1 == j) ?
+                       sqrt(A[segment1_times_n_p_1] - s) :
+                       (1.0 / LT[j_times_n + j] * (A[segment1_times_n + j] - s));
 }
  
 void transpose(float *A, float* B, int n)
@@ -60,6 +87,7 @@ void upper_to_lower_transpose(float *R, int n)
     }
 }
 
+
 void lower_to_upper_transpose(float *LT, float *UT, int n)
 {
 
@@ -72,6 +100,16 @@ void lower_to_upper_transpose(float *LT, float *UT, int n)
             UT[i_times_n + j] = LT[j_times_n + i];
         }
     }
+}
+
+void segmented_lower_to_upper_transpose(float *LT, float *UT, int n, int segment)
+{
+        int segment_times_n = segment*n;
+        for (int j = segment;j < n; j++)
+        {
+            int j_times_n = j*n;
+            UT[segment_times_n + j] = LT[j_times_n + segment];
+        }
 }
 
 
@@ -122,6 +160,12 @@ void outer_product (float* x, float* y, float* P, int n){
     for (int i = 0; i < n; i++)
         for (int j = 0; j < n; j++)
             P[i*n+j] = x[i]*y[j];
+}
+
+void segmented_outer_product (float* x, float* y, float* P, int n, int segment){
+    int segment_times_n = segment*n;
+    for (int j = 0; j < n; j++)
+        P[segment_times_n+j] = x[segment]*y[j];
 }
 
 void sum (float* x, float* y, float* z, int n){

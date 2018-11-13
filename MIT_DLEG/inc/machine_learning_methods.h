@@ -16,16 +16,25 @@ extern void classify(struct classifier_s* lda, float* feats);
 extern void init_learner(struct learner_s* lrn);
 extern void init_classifier(struct classifier_s* lda);
 
+// enum Learning_States {
+// 	UPDATE_CLASS_MEAN	= 0,
+// 	UPDATE_OVERALL_MEAN	= 1,
+// 	UPDATE_COVARIANCE_1	= 2,
+// 	UPDATE_COVARIANCE_2	= 3, 
+// 	UPDATE_COVARIANCE_3 = 4,
+// 	UPDATE_COVARIANCE_4 = 5,
+// 	DO_CHOLESKY = 6,
+// 	GET_TRANSPOSE = 7,
+// 	GET_LDA_PARAMS = 8,
+// };
 enum Learning_States {
 	UPDATE_CLASS_MEAN	= 0,
 	UPDATE_OVERALL_MEAN	= 1,
-	UPDATE_COVARIANCE_1	= 2,
-	UPDATE_COVARIANCE_2	= 3, 
-	UPDATE_COVARIANCE_3 = 4,
-	UPDATE_COVARIANCE_4 = 5,
-	DO_CHOLESKY = 6,
-	GET_TRANSPOSE = 7,
-	GET_LDA_PARAMS = 8,
+	GET_DEVIATIONS_FROM_MEAN = 2,
+	UPDATE_COVARIANCE = 3,
+	DO_CHOLESKY = 4,
+	GET_TRANSPOSE = 5,
+	GET_LDA_PARAMS = 6,
 };
 
 #endif
