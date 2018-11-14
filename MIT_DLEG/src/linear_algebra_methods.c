@@ -35,6 +35,20 @@ void segmented_cholesky_decomposition(float* A, float* LT, int n, int segment) {
     } 
 }
 
+void super_segmented_cholesky_decomposition_v2(float* A, float* LT, int n, int segment, int subsegment) {
+ 
+    int segment_times_n = segment*n;
+    int segment_times_n_p_1 = segment_times_n + segment;
+    int j = subsegment;
+    int j_times_n = j*n;
+    float s = 0.0;
+    for (int k = 0; k < j; k++)
+        s += LT[segment_times_n + k] * LT[j_times_n + k];
+    LT[segment_times_n + j] = (segment == j) ?
+                   sqrt(A[segment_times_n_p_1] - s) :
+                   (1.0 / LT[j_times_n + j] * (A[segment_times_n + j] - s));
+}
+
 void super_segmented_cholesky_decomposition(float* A, float* LT, int n, int segment1, int segment2) {
  
     int segment1_times_n = segment1*n;
@@ -96,8 +110,7 @@ void lower_to_upper_transpose(float *LT, float *UT, int n)
         int i_times_n = i*n;
         for (int j = i;j < n; j++)
         {
-            int j_times_n = j*n;
-            UT[i_times_n + j] = LT[j_times_n + i];
+            UT[i_times_n + j] = LT[j*n + i];
         }
     }
 }
@@ -107,8 +120,7 @@ void segmented_lower_to_upper_transpose(float *LT, float *UT, int n, int segment
         int segment_times_n = segment*n;
         for (int j = segment;j < n; j++)
         {
-            int j_times_n = j*n;
-            UT[segment_times_n + j] = LT[j_times_n + segment];
+            UT[segment_times_n + j] = LT[j*n + segment];
         }
 }
 
@@ -131,6 +143,20 @@ void backward_substitution(float *A, float *b, float* x, int n)
     }; 
 }
 
+void segmented_backward_substitution(float *A, float *b, float* x, int n, int segment)
+{
+    if (segment == n-2)
+        x[n-1] = b[n-1]/A[(n-1)*(n+1)];
+
+    int segment_times_n = segment*n;
+    x[segment] = b[segment];        
+    for (int j=segment+1; j<n; j++)
+    {
+        x[segment] -= A[segment_times_n + j]*x[j];
+    };             
+    x[segment] = x[segment] / A[segment_times_n + segment];
+}
+
 void forward_substitution(float *A, float *b, float* x, int n){
     
     x[0] = b[0]/A[0];
@@ -146,6 +172,20 @@ void forward_substitution(float *A, float *b, float* x, int n){
 
         x[i]= x[i] / A[i_times_n + i];
     }
+}
+
+void segmented_forward_substitution(float *A, float *b, float* x, int n, int segment){
+    if (segment == 1)
+        x[0] = b[0]/A[0];
+
+    int segment_times_n = segment*n;
+    x[segment] = b[segment];
+    for (int j = 0; j < segment; j++)
+    {
+        x[segment] -= A[segment_times_n + j]*x[j];
+    }
+
+    x[segment]= x[segment] / A[segment_times_n + segment];
 }
 
 float inner_product (float* x, float* y, int n){

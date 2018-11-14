@@ -6,8 +6,11 @@
 extern void cholesky_decomposition(float* A, float* LT, int n);
 extern void segmented_cholesky_decomposition(float* A, float* LT, int n, int current_feature);
 extern void super_segmented_cholesky_decomposition(float* A, float* LT, int n, int segment1, int segment2);
+extern void super_segmented_cholesky_decomposition_v2(float* A, float* LT, int n, int segment, int subsegment);
 extern void backward_substitution (float *A, float *b, float *x, int n);
+extern void segmented_backward_substitution(float *A, float *b, float* x, int n, int segment);
 extern void forward_substitution (float *A, float *b, float *x, int n);
+extern void segmented_forward_substitution(float *A, float *b, float* x, int n, int segment);
 extern void transpose(float *A, float *B, int n);
 extern void upper_to_lower_transpose(float *R, int n);
 extern void lower_to_upper_transpose(float *LT, float *UT, int n);
