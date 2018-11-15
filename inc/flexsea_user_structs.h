@@ -103,8 +103,10 @@ struct classifier_s
 struct learner_s
 {
 	float* mu_k;
+	float* sum_k;
 	float* mu_prev;
 	float* mu;
+	float* sum;
 	float* sigma;
 
 	float* pop_k;

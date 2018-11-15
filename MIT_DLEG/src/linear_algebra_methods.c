@@ -3,7 +3,7 @@
 #include <math.h>
 #include "linear_algebra_methods.h"
  
-void cholesky_decomposition(float* A, float* LT, int n) {
+void cholesky(float* A, float* LT, int n) {
  
     for (int i = 0; i < n; i++){
         int i_times_n = i*n;
@@ -14,13 +14,13 @@ void cholesky_decomposition(float* A, float* LT, int n) {
             for (int k = 0; k < j; k++)
                 s += LT[i_times_n + k] * LT[j_times_n + k];
             LT[i_times_n + j] = (i == j) ?
-                           sqrt(A[i_times_n + i] - s) :
+                           sqrtf(A[i_times_n + i] - s) :
                            (1.0 / LT[j_times_n + j] * (A[i_times_n + j] - s));
         } 
     }
 }
 
-void segmented_cholesky_decomposition(float* A, float* LT, int n, int segment) {
+void segmented_cholesky(float* A, float* LT, int n, int segment) {
  
     int segment_times_n = segment*n;
     int segment_times_n_p_1 = segment_times_n + segment;
@@ -30,12 +30,12 @@ void segmented_cholesky_decomposition(float* A, float* LT, int n, int segment) {
         for (int k = 0; k < j; k++)
             s += LT[segment_times_n + k] * LT[j_times_n + k];
         LT[segment_times_n + j] = (segment == j) ?
-                       sqrt(A[segment_times_n_p_1] - s) :
+                       sqrtf(A[segment_times_n_p_1] - s) :
                        (1.0 / LT[j_times_n + j] * (A[segment_times_n + j] - s));
     } 
 }
 
-void super_segmented_cholesky_decomposition_v2(float* A, float* LT, int n, int segment, int subsegment) {
+void super_segmented_cholesky(float* A, float* LT, int n, int segment, int subsegment) {
  
     int segment_times_n = segment*n;
     int segment_times_n_p_1 = segment_times_n + segment;
@@ -45,34 +45,8 @@ void super_segmented_cholesky_decomposition_v2(float* A, float* LT, int n, int s
     for (int k = 0; k < j; k++)
         s += LT[segment_times_n + k] * LT[j_times_n + k];
     LT[segment_times_n + j] = (segment == j) ?
-                   sqrt(A[segment_times_n_p_1] - s) :
+                   sqrtf(A[segment_times_n_p_1] - s) :
                    (1.0 / LT[j_times_n + j] * (A[segment_times_n + j] - s));
-}
-
-void super_segmented_cholesky_decomposition(float* A, float* LT, int n, int segment1, int segment2) {
- 
-    int segment1_times_n = segment1*n;
-    int segment1_times_n_p_1 = segment1_times_n + segment1;
-
-        int j = segment2;
-        int j_times_n = j*n;
-        float s = 0.0;
-        for (int k = 0; k < j; k++)
-            s += LT[segment1_times_n + k] * LT[j_times_n + k];
-        LT[segment1_times_n + j] = (segment1 == j) ?
-                       sqrt(A[segment1_times_n_p_1] - s) :
-                       (1.0 / LT[j_times_n + j] * (A[segment1_times_n + j] - s));
-
-        j = segment1-segment2;
-        if (j == segment2)
-            return;
-        j_times_n = j*n;
-        s = 0.0;
-        for (int k = 0; k < j; k++)
-            s += LT[segment1_times_n + k] * LT[j_times_n + k];
-        LT[segment1_times_n + j] = (segment1 == j) ?
-                       sqrt(A[segment1_times_n_p_1] - s) :
-                       (1.0 / LT[j_times_n + j] * (A[segment1_times_n + j] - s));
 }
  
 void transpose(float *A, float* B, int n)

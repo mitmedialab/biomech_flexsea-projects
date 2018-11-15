@@ -3,10 +3,9 @@
 #define __LINEARALGEBRAMETHODS_H__
  
 
-extern void cholesky_decomposition(float* A, float* LT, int n);
-extern void segmented_cholesky_decomposition(float* A, float* LT, int n, int current_feature);
-extern void super_segmented_cholesky_decomposition(float* A, float* LT, int n, int segment1, int segment2);
-extern void super_segmented_cholesky_decomposition_v2(float* A, float* LT, int n, int segment, int subsegment);
+extern void cholesky(float* A, float* LT, int n);
+extern void segmented_cholesky(float* A, float* LT, int n, int current_feature);
+extern void super_segmented_cholesky(float* A, float* LT, int n, int segment, int subsegment);
 extern void backward_substitution (float *A, float *b, float *x, int n);
 extern void segmented_backward_substitution(float *A, float *b, float* x, int n, int segment);
 extern void forward_substitution (float *A, float *b, float *x, int n);
