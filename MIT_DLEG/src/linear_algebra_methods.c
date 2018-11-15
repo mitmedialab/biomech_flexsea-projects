@@ -41,9 +41,7 @@ void super_segmented_cholesky(float* A, float* LT, int n, int segment, int subse
     int segment_times_n_p_1 = segment_times_n + segment;
     int j = subsegment;
     int j_times_n = j*n;
-    float s = 0.0;
-    for (int k = 0; k < j; k++)
-        s += LT[segment_times_n + k] * LT[j_times_n + k];
+    float s = inner_product(&LT[segment_times_n],&LT[j_times_n],j);
     LT[segment_times_n + j] = (segment == j) ?
                    sqrtf(A[segment_times_n_p_1] - s) :
                    (1.0 / LT[j_times_n + j] * (A[segment_times_n + j] - s));
