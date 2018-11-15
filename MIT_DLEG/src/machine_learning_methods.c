@@ -43,7 +43,6 @@ int learning_demux(struct learner_s* lrn, struct classifier_s* lda, float* feats
         int segment_section = segment*NFEATURES;
         segmented_outer_product(lrn->x, lrn->y, lrn->A, NFEATURES, segment); //f flops
         sum(&lrn->sum_sigma[segment_section], &lrn->A[segment_section], &lrn->sum_sigma[segment_section], NFEATURES);//f flops
-        scaling(&lrn->sum_sigma[segment_section], 1.0/(lrn->pop + 1.0), &lrn->sigma[segment_section], NFEATURES);//f flops
         segment++;
         if (segment == NFEATURES){
           learning_demux_state++; 
@@ -71,7 +70,7 @@ int learning_demux(struct learner_s* lrn, struct classifier_s* lda, float* feats
       // break;
       case DO_CHOLESKY: // f(f+1)/2 samples
 
-        super_segmented_cholesky(lrn->sigma, lrn->LT, NFEATURES, segment, subsegment);
+        super_segmented_cholesky(lrn->sum_sigma, lrn->LT, NFEATURES, segment, subsegment);
         subsegment++;
         if (subsegment > segment){
           subsegment = 0;
@@ -97,7 +96,7 @@ int learning_demux(struct learner_s* lrn, struct classifier_s* lda, float* feats
       {
         int class_times_n_features = current_updating_class*NFEATURES;
         if (doing_forward_substitution){
-          segmented_forward_substitution(lrn->LT, &lrn->mu_k[class_times_n_features], lrn->y, NFEATURES, segment); // roughly 1/2 f^2 flops
+          segmented_forward_substitution(lrn->LT, &lrn->sum_k[class_times_n_features], lrn->y, NFEATURES, segment); // roughly 1/2 f^2 flops
           segment++;
           if (segment == NFEATURES){
             segment = NFEATURES-2;
@@ -108,7 +107,7 @@ int learning_demux(struct learner_s* lrn, struct classifier_s* lda, float* feats
           segmented_backward_substitution(lrn->UT, lrn->y, &lda->A[class_times_n_features], NFEATURES, segment); // roughly 1/2 f^2 flops
           segment--;
           if (segment == -1){
-            lda->B[current_updating_class] = -0.5*inner_product(&lrn->mu_k[class_times_n_features], &lda->A[class_times_n_features], NFEATURES);
+            lda->B[current_updating_class] = -0.5*inner_product(&lrn->sum_k[class_times_n_features], &lda->A[class_times_n_features], NFEATURES);
             segment = 1;
             doing_forward_substitution = 1;
             current_updating_class++;
