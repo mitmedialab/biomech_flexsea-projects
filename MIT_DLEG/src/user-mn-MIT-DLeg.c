@@ -638,13 +638,13 @@ status = learning_demux(&(tm.lrn), &(tm.lda), feats100, 4);
 			rigid1.mn.genVar[0] = (int16_t) (iter); //
 			rigid1.mn.genVar[1] = (int16_t) (indicator); //
 			 rigid1.mn.genVar[2] = (int16_t) (currentStride); //
-			 rigid1.mn.genVar[3] = (int16_t) (tm.lda.A[120]*1000.0); //
-			 rigid1.mn.genVar[4] = (int16_t) (tm.lda.A[121]*1000.0); //
-			  rigid1.mn.genVar[5] = (int16_t) (tm.lda.A[122]*1000.0); //
-			  rigid1.mn.genVar[6] = (int16_t) (tm.lda.A[123]*1000.0);//
-			  rigid1.mn.genVar[7] = (int16_t) (tm.lda.A[124]*1000.0);//
-			  rigid1.mn.genVar[8] = (int16_t) (tm.lda.A[125]*1000.0);//
-		   	rigid1.mn.genVar[9] = (int16_t) (tm.lda.A[126]*1000.0);//
+			 rigid1.mn.genVar[3] = (int16_t) (tm.lda.A[100]*1000.0); //
+			 rigid1.mn.genVar[4] = (int16_t) (tm.lda.A[101]*1000.0); //
+			  rigid1.mn.genVar[5] = (int16_t) (tm.lda.A[102]*1000.0); //
+			  rigid1.mn.genVar[6] = (int16_t) (tm.lda.A[103]*1000.0);//
+			  rigid1.mn.genVar[7] = (int16_t) (tm.lda.A[104]*1000.0);//
+			  rigid1.mn.genVar[8] = (int16_t) (tm.lda.A[105]*1000.0);//
+		   	rigid1.mn.genVar[9] = (int16_t) (tm.lda.A[106]*1000.0);//
 
 				break;
 

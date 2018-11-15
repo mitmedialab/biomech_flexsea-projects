@@ -108,7 +108,8 @@ struct learner_s
 	float* mu;
 	float* sum;
 	float* sigma;
-
+	float* sum_sigma;
+	
 	float* pop_k;
 	float pop;
 	
