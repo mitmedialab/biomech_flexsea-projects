@@ -88,60 +88,12 @@ struct decoded_fx_rigid_mn_s
 	struct decoded_xyz_s magneto;
 };
 
-//Assumes uniform priors at the moment
-struct classifier_s
-{
-	float* A;
-	float* B;
-	float* score_k;
-	int k_pred;
-};
-
-
-
-//Assumes uniform priors at the moment
-struct learner_s
-{
-	float* mu_k;
-	float* sum_k;
-	float* mu_prev;
-	float* mu;
-	float* sum;
-	float* sigma;
-	float* sum_sigma;
-	
-	float* pop_k;
-	float pop;
-	
-	//Intermediate matrix holders
-    float* UT;
-    float* LT;
-    float* A;
-    float* x;
-    float* y;
-};
-
-struct taskmachine_s
-{
-	struct classifier_s lda;
-	struct learner_s lrn;
-	int nFeats;
-	float* feats;
-};
-
 
 struct fx_rigid_mn_s
 {
 	struct xyz_s gyro;
 	struct xyz_s accel;
 	struct xyz_s magneto; 	//Useless
-
-	float aOmegaX;
-	float aOmegaY;
-	float aOmegaZ;
-	float aAccX;
-	float aAccY;
-	float aAccZ;
 
 	uint16_t analog[4];
 	uint16_t status;
@@ -154,9 +106,6 @@ struct fx_rigid_mn_s
 
 	//Decoded:
 	struct decoded_fx_rigid_mn_s decoded;
-
-	//Classifier:
-	struct learner_s learner;
 	
 
 
@@ -227,7 +176,7 @@ struct pocket_s
 // Shared variable(s)
 //****************************************************************************
 
-extern struct taskmachine_s tm;
+
 extern struct motortb_s motortb;
 extern int16_t globvar[10];
 extern struct rigid_s rigid1, rigid2;

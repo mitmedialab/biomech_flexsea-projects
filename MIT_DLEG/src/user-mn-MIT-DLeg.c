@@ -55,7 +55,6 @@
 #include <unistd.h>
 
 #include "imu_calculations.h"
-#include "linear_algebra_methods.h"
 #include "machine_learning_methods.h"
 
 
@@ -377,12 +376,6 @@ void MIT_DLeg_fsm_1(void)
 			
 			init_user_writes();
 
-			init_learner(&(tm.lrn));
-			init_classifier(&(tm.lda));
-			
-
-			
-
 			fsm1State = STATE_TASK_MACHINE;
 			elapsed_samples = 0;
 
@@ -394,244 +387,221 @@ void MIT_DLeg_fsm_1(void)
 // 					act1.tauDes = biomCalcImpedance(act1.desiredJointK_f, 0, act1.desiredJointB_f, act1.desiredJointAngleDeg_f);
 // //					setMotorTorque(&act1, act1.tauDes);
 // 				}
-				updateLocalAcc(&rigid1);
-				updateLocalOmega(&rigid1);
-
-				//f = 15
-
-				//f = 30
-				// float feats1[] = {-2.978544, -0.041625, 1.116083, -0.814018, -0.172849, 1.308042, 0.190903, 0.316937, 0.719706, 1.462060, -2.978544, -0.041625, 1.116083, -0.814018, -0.172849, 1.308042, 0.190903, 0.316937, 0.719706, 1.462060, -2.978544, -0.041625, 1.116083, -0.814018, -0.172849, 1.308042, 0.190903, 0.316937, 0.719706, 1.462060};
-				// float feats2[] = {-0.301313, -0.614966, -0.845713, 0.792021, -1.976099, 0.287502, -0.024970, 1.270801, 0.184187, -0.292704, -0.301313, -0.614966, -0.845713, 0.792021, -1.976099, 0.287502, -0.024970, 1.270801, 0.184187, -0.292704, -0.301313, -0.614966, -0.845713, 0.792021, -1.976099, 0.287502, -0.024970, 1.270801, 0.184187, -0.292704};
-				// float feats3[] = {0.786085, -0.308695, -1.884058, -1.352904, 1.329331, -0.185039, 0.694670, 1.083490, 0.369153, 0.003411, 0.786085, -0.308695, -1.884058, -1.352904, 1.329331, -0.185039, 0.694670, 1.083490, 0.369153, 0.003411, 0.786085, -0.308695, -1.884058, -1.352904, 1.329331, -0.185039, 0.694670, 1.083490, 0.369153, 0.003411}; 
 				
-				//f = 6
-				// float feats1[] = {1.308042, 1.116083, -0.814018, -0.172849, 1.308042, 3.123122};
-				// float feats2[] = { 0.287502, 0.287502, -0.024970, 1.270801, 0.184187, 0.123412};
-				// float feats3[] = {0.786085, -0.369153, 01.083490, 0.369153, 0.003411, 0.457455};
-				//f = 5
-				// float feats1[] = {1.308042, 1.116083, -0.814018, -0.172849, 1.308042};
-				// float feats2[] = { 0.287502, 0.287502, -0.024970, 1.270801, 0.184187};
-				// float feats3[] = {0.786085, -0.369153, 01.083490, 0.369153, 0.003411};
-			if (status == 8){
-				indicator = 1-indicator;
-				reset_learning_demux();
-				currentStride++;
-				//  if (currentStride == 1001)
-				// // 	currentStride = 1;
-			}
-			if (currentStride == 1)
-status = learning_demux(&(tm.lrn), &(tm.lda), feats1, 4);
-// else if (currentStride == 2)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats2, 4);
-// else if (currentStride == 3)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats3, 4);
-// else if (currentStride == 4)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats4, 4);
-// else if (currentStride == 5)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats5, 4);
-// else if (currentStride == 6)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats6, 4);
-// else if (currentStride == 7)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats7, 4);
-// else if (currentStride == 8)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats8, 4);
-// else if (currentStride == 9)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats9, 4);
-// else if (currentStride == 10)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats10, 4);
-// else if (currentStride == 11)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats11, 4);
-// else if (currentStride == 12)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats12, 4);
-// else if (currentStride == 13)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats13, 4);
-// else if (currentStride == 14)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats14, 4);
-// else if (currentStride == 15)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats15, 4);
-// else if (currentStride == 16)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats16, 4);
-// else if (currentStride == 17)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats17, 4);
-// else if (currentStride == 18)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats18, 4);
-// else if (currentStride == 19)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats19, 4);
-// else if (currentStride == 20)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats20, 4);
-// else if (currentStride == 21)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats21, 4);
-// else if (currentStride == 22)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats22, 4);
-// else if (currentStride == 23)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats23, 4);
-// else if (currentStride == 24)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats24, 4);
-// else if (currentStride == 25)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats25, 4);
-// else if (currentStride == 26)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats26, 4);
-// else if (currentStride == 27)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats27, 4);
-// else if (currentStride == 28)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats28, 4);
-// else if (currentStride == 29)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats29, 4);
-// else if (currentStride == 30)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats30, 4);
-// else if (currentStride == 31)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats31, 4);
-// else if (currentStride == 32)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats32, 4);
-// else if (currentStride == 33)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats33, 4);
-// else if (currentStride == 34)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats34, 4);
-// else if (currentStride == 35)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats35, 4);
-// else if (currentStride == 36)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats36, 4);
-// else if (currentStride == 37)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats37, 4);
-// else if (currentStride == 38)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats38, 4);
-// else if (currentStride == 39)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats39, 4);
-// else if (currentStride == 40)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats40, 4);
-// else if (currentStride == 41)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats41, 4);
-// else if (currentStride == 42)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats42, 4);
-// else if (currentStride == 43)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats43, 4);
-// else if (currentStride == 44)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats44, 4);
-// else if (currentStride == 45)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats45, 4);
-// else if (currentStride == 46)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats46, 4);
-// else if (currentStride == 47)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats47, 4);
-// else if (currentStride == 48)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats48, 4);
-// else if (currentStride == 49)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats49, 4);
-// else if (currentStride == 50)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats50, 4);
-// else if (currentStride == 51)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats51, 4);
-// else if (currentStride == 52)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats52, 4);
-// else if (currentStride == 53)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats53, 4);
-// else if (currentStride == 54)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats54, 4);
-// else if (currentStride == 55)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats55, 4);
-// else if (currentStride == 56)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats56, 4);
-// else if (currentStride == 57)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats57, 4);
-// else if (currentStride == 58)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats58, 4);
-// else if (currentStride == 59)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats59, 4);
-// else if (currentStride == 60)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats60, 4);
-// else if (currentStride == 61)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats61, 4);
-// else if (currentStride == 62)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats62, 4);
-// else if (currentStride == 63)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats63, 4);
-// else if (currentStride == 64)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats64, 4);
-// else if (currentStride == 65)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats65, 4);
-// else if (currentStride == 66)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats66, 4);
-// else if (currentStride == 67)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats67, 4);
-// else if (currentStride == 68)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats68, 4);
-// else if (currentStride == 69)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats69, 4);
-// else if (currentStride == 70)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats70, 4);
-// else if (currentStride == 71)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats71, 4);
-// else if (currentStride == 72)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats72, 4);
-// else if (currentStride == 73)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats73, 4);
-// else if (currentStride == 74)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats74, 4);
-// else if (currentStride == 75)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats75, 4);
-// else if (currentStride == 76)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats76, 4);
-// else if (currentStride == 77)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats77, 4);
-// else if (currentStride == 78)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats78, 4);
-// else if (currentStride == 79)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats79, 4);
-// else if (currentStride == 80)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats80, 4);
-// else if (currentStride == 81)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats81, 4);
-// else if (currentStride == 82)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats82, 4);
-// else if (currentStride == 83)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats83, 4);
-// else if (currentStride == 84)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats84, 4);
-// else if (currentStride == 85)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats85, 4);
-// else if (currentStride == 86)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats86, 4);
-// else if (currentStride == 87)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats87, 4);
-// else if (currentStride == 88)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats88, 4);
-// else if (currentStride == 89)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats89, 4);
-// else if (currentStride == 90)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats90, 4);
-// else if (currentStride == 91)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats91, 4);
-// else if (currentStride == 92)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats92, 4);
-// else if (currentStride == 93)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats93, 4);
-// else if (currentStride == 94)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats94, 4);
-// else if (currentStride == 95)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats95, 4);
-// else if (currentStride == 96)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats96, 4);
-// else if (currentStride == 97)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats97, 4);
-// else if (currentStride == 98)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats98, 4);
-// else if (currentStride == 99)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats99, 4);
-// else if (currentStride == 100)
-// status = learning_demux(&(tm.lrn), &(tm.lda), feats100, 4);
+
+			status = task_machine_demux(&rigid1);
+			
+			// if (status == 8){
+			// 	indicator = 1-indicator;
+			// 	reset_learning_demux();
+			// 	currentStride++;
+			// 	//  if (currentStride == 1001)
+			// 	// // 	currentStride = 1;
+			// }
+			// if (currentStride == 1)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats1, 4);
+			// else if (currentStride == 2)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats2, 4);
+			// else if (currentStride == 3)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats3, 4);
+			// else if (currentStride == 4)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats4, 4);
+			// else if (currentStride == 5)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats5, 4);
+			// else if (currentStride == 6)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats6, 4);
+			// else if (currentStride == 7)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats7, 4);
+			// else if (currentStride == 8)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats8, 4);
+			// else if (currentStride == 9)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats9, 4);
+			// else if (currentStride == 10)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats10, 4);
+			// else if (currentStride == 11)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats11, 4);
+			// else if (currentStride == 12)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats12, 4);
+			// else if (currentStride == 13)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats13, 4);
+			// else if (currentStride == 14)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats14, 4);
+			// else if (currentStride == 15)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats15, 4);
+			// else if (currentStride == 16)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats16, 4);
+			// else if (currentStride == 17)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats17, 4);
+			// else if (currentStride == 18)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats18, 4);
+			// else if (currentStride == 19)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats19, 4);
+			// else if (currentStride == 20)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats20, 4);
+			// else if (currentStride == 21)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats21, 4);
+			// else if (currentStride == 22)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats22, 4);
+			// else if (currentStride == 23)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats23, 4);
+			// else if (currentStride == 24)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats24, 4);
+			// else if (currentStride == 25)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats25, 4);
+			// else if (currentStride == 26)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats26, 4);
+			// else if (currentStride == 27)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats27, 4);
+			// else if (currentStride == 28)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats28, 4);
+			// else if (currentStride == 29)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats29, 4);
+			// else if (currentStride == 30)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats30, 4);
+			// else if (currentStride == 31)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats31, 4);
+			// else if (currentStride == 32)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats32, 4);
+			// else if (currentStride == 33)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats33, 4);
+			// else if (currentStride == 34)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats34, 4);
+			// else if (currentStride == 35)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats35, 4);
+			// else if (currentStride == 36)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats36, 4);
+			// else if (currentStride == 37)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats37, 4);
+			// else if (currentStride == 38)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats38, 4);
+			// else if (currentStride == 39)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats39, 4);
+			// else if (currentStride == 40)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats40, 4);
+			// else if (currentStride == 41)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats41, 4);
+			// else if (currentStride == 42)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats42, 4);
+			// else if (currentStride == 43)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats43, 4);
+			// else if (currentStride == 44)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats44, 4);
+			// else if (currentStride == 45)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats45, 4);
+			// else if (currentStride == 46)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats46, 4);
+			// else if (currentStride == 47)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats47, 4);
+			// else if (currentStride == 48)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats48, 4);
+			// else if (currentStride == 49)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats49, 4);
+			// else if (currentStride == 50)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats50, 4);
+			// else if (currentStride == 51)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats51, 4);
+			// else if (currentStride == 52)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats52, 4);
+			// else if (currentStride == 53)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats53, 4);
+			// else if (currentStride == 54)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats54, 4);
+			// else if (currentStride == 55)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats55, 4);
+			// else if (currentStride == 56)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats56, 4);
+			// else if (currentStride == 57)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats57, 4);
+			// else if (currentStride == 58)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats58, 4);
+			// else if (currentStride == 59)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats59, 4);
+			// else if (currentStride == 60)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats60, 4);
+			// else if (currentStride == 61)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats61, 4);
+			// else if (currentStride == 62)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats62, 4);
+			// else if (currentStride == 63)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats63, 4);
+			// else if (currentStride == 64)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats64, 4);
+			// else if (currentStride == 65)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats65, 4);
+			// else if (currentStride == 66)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats66, 4);
+			// else if (currentStride == 67)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats67, 4);
+			// else if (currentStride == 68)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats68, 4);
+			// else if (currentStride == 69)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats69, 4);
+			// else if (currentStride == 70)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats70, 4);
+			// else if (currentStride == 71)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats71, 4);
+			// else if (currentStride == 72)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats72, 4);
+			// else if (currentStride == 73)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats73, 4);
+			// else if (currentStride == 74)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats74, 4);
+			// else if (currentStride == 75)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats75, 4);
+			// else if (currentStride == 76)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats76, 4);
+			// else if (currentStride == 77)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats77, 4);
+			// else if (currentStride == 78)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats78, 4);
+			// else if (currentStride == 79)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats79, 4);
+			// else if (currentStride == 80)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats80, 4);
+			// else if (currentStride == 81)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats81, 4);
+			// else if (currentStride == 82)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats82, 4);
+			// else if (currentStride == 83)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats83, 4);
+			// else if (currentStride == 84)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats84, 4);
+			// else if (currentStride == 85)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats85, 4);
+			// else if (currentStride == 86)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats86, 4);
+			// else if (currentStride == 87)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats87, 4);
+			// else if (currentStride == 88)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats88, 4);
+			// else if (currentStride == 89)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats89, 4);
+			// else if (currentStride == 90)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats90, 4);
+			// else if (currentStride == 91)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats91, 4);
+			// else if (currentStride == 92)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats92, 4);
+			// else if (currentStride == 93)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats93, 4);
+			// else if (currentStride == 94)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats94, 4);
+			// else if (currentStride == 95)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats95, 4);
+			// else if (currentStride == 96)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats96, 4);
+			// else if (currentStride == 97)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats97, 4);
+			// else if (currentStride == 98)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats98, 4);
+			// else if (currentStride == 99)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats99, 4);
+			// else if (currentStride == 100)
+			// status = learning_demux(&(tm.lrn), &(tm.lda), feats100, 4);
 
 			
 
 			
-			
-
-				// float arg = 1.23128234243;
-				// int c = 2342;
-				// for (int i= 1.0; i < 50.0; i= i+1.0)
-				// 	answer = asinf(i);
-			// float feats2[] = {    -0.189902, -1.032914, -0.323292};
-			// update_learner(&(tm.lrn),feats2, 0);
-			// update_classifier(&(tm.lrn), &(tm.lda));
 			iter++;
 			if (iter > 30000)
 				iter = 0;
