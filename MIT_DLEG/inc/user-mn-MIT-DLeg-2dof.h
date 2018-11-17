@@ -407,9 +407,20 @@ enum {
 #define ANG_UNIT				2*M_PI 		// Use Radians 2*M_PI
 #define DEG_PER_RAD 			57.2957795 // degree to rad conversion
 
+// Constants for moment arm calculation
+// see matlab script and matt's notes
+// todo: how many digits are actually usable?  should this be single precision 6-9 sig digits? using 8 digits for now
+#define MA_TF 			1.46228042	// original value 1.462280429971271
+#define MA_A2B2			23654
+#define MA_TWOAB		12686.6236	// 1.268662366431668e+04
+#define MA_A2MINUSB2	19964
+#define MA_B			42.95346318	// 42.953463189829060
+
 // EMG channels
 #define JIM_LG					emg_data[5]
 #define JIM_TA					emg_data[3]
+
+
 
 
 #endif	//INC_MIT_DLEG

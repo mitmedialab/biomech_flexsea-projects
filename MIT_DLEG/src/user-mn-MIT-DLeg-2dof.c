@@ -117,13 +117,13 @@ void MIT_DLeg_fsm_1(void)
 		case -1:
 			stateMachine.current_state = STATE_INIT;
 			//turned off for testing without Motor usage
-			if(findPoles()) {
-				mit_init_current_controller();		//initialize Current Controller with gains
-				fsm1State = 0;
-				time = 0;
-			}
+//			if(findPoles()) {
+//				mit_init_current_controller();		//initialize Current Controller with gains
+//				fsm1State = 0;
+//				time = 0;
+//			}
 			//for testing
-//			fsm1State = 0;
+			fsm1State = 0;
 
 			break;
 
@@ -177,10 +177,10 @@ void MIT_DLeg_fsm_1(void)
 			    	}
 
 
-			    	setMotorTorque(&act1, act1.tauDes);
+//			    	setMotorTorque(&act1, act1.tauDes);
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100., user_data_1.w[3]);
 
-			        rigid1.mn.genVar[0] = startedOverLimit;
+			        rigid1.mn.genVar[0] = (int16_t) (act1.linkageMomentArm *1000.0); //startedOverLimit;
 					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
 					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
  					rigid1.mn.genVar[3] = (int16_t) (act1.jointVel * 100.0); 	// rad/s
@@ -484,38 +484,25 @@ float getAxialForce(void)
 	return axialForce;
 }
 
+
 // Linear Actuator Actual Moment Arm,
 // input( jointAngle, theta [rad] )
 // return moment arm projected length  [m]
+//float getLinkageMomentArm(float theta)
 float getLinkageMomentArm(float theta)
 {
-	static float a = 0, b = 0, T = 0, F = 0;
-	static float A = 0, c = 0, r = 0, C_ang = 0;
-//	theta_r = ANG_UNIT % 360 ? (theta*M_PI/180) : theta; 	// convert deg to radians if necessary.
-//	theta_r = theta * M_PI / 180;	// convert deg to radians.
+	static float A=0, c = 0, c2 = 0, r = 0, C_ang = 0;
 
-    const float t = 47; 	// [mm] tibial offset
-    const float t_k = 140; 	// [mm] offset from knee along tibia
-    const float f = 39;  	// [mm] femur offset
-    const float f_k = 18;	// [mm] offset from knee along femur
+    C_ang = M_PI - theta - (MA_TF); 	// angle
+    c2 = MA_A2B2 - MA_TWOAB* cosf(C_ang);
+    c = sqrtf(c2);  // length of actuator from pivot to output
+    A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
 
-    const float aIn = t*t + t_k*t_k;
-    a = sqrt(aIn);
-    const float bIn = f*f + f_k*f_k;
-    b = sqrt(bIn);
-
-    const float Tin = t/t_k;
-    T = atan(Tin);
-    const float Fin = f/f_k;
-    F = atan(Fin);
-
-    C_ang = M_PI - theta - (T + F); 	// angle
-    c = sqrt( a*a + b*b - 2*a*b*cos(C_ang) );  // length of actuator from pivot to output
-    A = acos( (a*a - (c*c + b*b)) / (-2*b*c) );
-    r = b * sin(A);
+    r = MA_B * sinf(A);
 
     return r/1000;
 }
+
 
 /*
  *  Determine torque at joint due to moment arm and axial force
