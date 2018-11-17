@@ -5,12 +5,13 @@ extern "C" {
 #include "walking_state_machine.h"
 #include "state_variables.h"
 #include "user-mn-MIT-DLeg-2dof.h"
-#include "user-mn-MIT-EMG.h"
+//#include "user-mn-MIT-EMG.h"
 #include "flexsea_user_structs.h"
 #include "cmd-DLeg.h"
 #include "flexsea_system.h"
 #include "flexsea.h"
 #include "spline_functions.h"
+#include "main.h"
 #include <math.h>
 
 WalkingStateMachine stateMachine;
