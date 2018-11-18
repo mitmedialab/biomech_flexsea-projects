@@ -101,20 +101,20 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 
 //2. Select device
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
+//#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
 //#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
-//#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
+#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
 
 
 //Begin device specific configurations
 
 //Transmission
 #ifdef IS_ANKLE					// Might UPDATE THIS WITH NEW SCREWs ankle = 0.002
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
+#define N_SCREW			1257	// == (2*M_PI/0.005)	// Ballscrew ratio
 #define N_ETA			0.9		// Transmission efficiency
 #endif
 #ifdef IS_KNEE
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
+#define N_SCREW			1257 	// == (2*M_PI/0.005)	// Ballscrew ratio
 #endif
 
 #ifdef DEVICE_TF08_A01
@@ -124,12 +124,13 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define JOINT_ENC_DIR 		-1		// Encoder orientation. CW = 1 (knee orientation), CCW = -1
 #define JOINT_ANGLE_DIR 	1		// Joint angle direction. RHR convention is Ankle: Dorsiflexion (-), Plantarflexion (+) with value == 1
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
-#define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
-#define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
-#define JOINT_MIN_ABS		11644//9636		//9293// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
-#define JOINT_MAX_ABS		6033//4020		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
+#define JOINT_CPDEG			45.5111	// Counts per degree (JOINT_CPR/360)
+#define JOINT_HS_MIN		1365	// == ( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
+#define JOINT_HS_MAX		4096	// ==( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
+#define JOINT_MIN_ABS		11644	// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
+#define JOINT_MAX_ABS		6033	// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
 #define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
-#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
+#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPDEG 	// counts for actual angle.
 
 //Force Sensor
 #define FORCE_DIR			-1		// Direction of positive force, Dorsiflexion (-), Plantarflex (+) with value == -1
@@ -138,9 +139,9 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define FORCE_EXCIT			5		// Excitation Voltage
 #define FORCE_RATED_OUTPUT	0.002	// 2mV/V, Rated Output
 #define FORCE_MAX			4448	// Newtons, for LCM300 load cell
-#define FORCE_MAX_TICKS		( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
-#define FORCE_MIN_TICKS		( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
-#define FORCE_PER_TICK		( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
+#define FORCE_MAX_TICKS		59322.282	// == ( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
+#define FORCE_MIN_TICKS		6212.717999 // == ( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
+#define FORCE_PER_TICK		0.167502787	// == ( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
 #define TORQ_CALIB_M		1.0978	// y=Mx+b, from collected data set, applied load
 #define TORQ_CALIB_B		0.0656	// y=Mx+b, from collected data set, applied load
 
@@ -173,12 +174,13 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define JOINT_ENC_DIR 		-1		// Encoder orientation. CW = 1 (knee orientation), CCW = -1
 #define JOINT_ANGLE_DIR 	1		// Joint angle direction. RHR convention is Ankle: Dorsiflexion (-), Plantarflexion (+) with value == 1
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
-#define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
-#define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
+#define JOINT_CPDEG			45.5111	// Counts per degree (JOINT_CPR/360)
+#define JOINT_HS_MIN		1365	// == ( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
+#define JOINT_HS_MAX		4096	// ==( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
 #define JOINT_MIN_ABS		14550 //15020		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
 #define JOINT_MAX_ABS		8995 //9441		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
 #define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
-#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
+#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPDEG 	// counts for actual angle.
 
 //Force Sensor
 #define FORCE_DIR			-1		// Direction of positive force, Dorsiflexion (-), Plantarflex (+) with value == -1
@@ -187,9 +189,9 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define FORCE_EXCIT			5		// Excitation Voltage
 #define FORCE_RATED_OUTPUT	0.002	// 2mV/V, Rated Output
 #define FORCE_MAX			4448	// Newtons, for LCM300 load cell
-#define FORCE_MAX_TICKS		( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
-#define FORCE_MIN_TICKS		( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
-#define FORCE_PER_TICK		( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
+#define FORCE_MAX_TICKS		59322.282	// == ( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
+#define FORCE_MIN_TICKS		6212.717999 // == ( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
+#define FORCE_PER_TICK		0.167502787	// == ( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
 #define TORQ_CALIB_M		1.0978	// y=Mx+b, from collected data set, applied load
 #define TORQ_CALIB_B		0.0656	// y=Mx+b, from collected data set, applied load
 
@@ -213,16 +215,6 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define ACTRL_I_KI_INIT		15
 #define ACTRL_I_KD_INIT		0
 
-//Transmission
-#ifdef IS_ANKLE					//UPDATE THIS WITH NEW SCREWs ankle = 0.002
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
-#define N_ETA			0.9		// Transmission efficiency
-#endif
-#ifdef IS_KNEE
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
-#endif
-
-
 #endif // DEFINED DEVICE_TF08_A02
 
 
@@ -233,12 +225,13 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define JOINT_ENC_DIR 		-1		// Encoder orientation. CW = 1 (knee orientation), CCW = -1
 #define JOINT_ANGLE_DIR 	1		// Joint angle direction. RHR convention is Ankle: Dorsiflexion (-), Plantarflexion (+) with value == 1
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
-#define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
-#define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
+#define JOINT_CPDEG			45.5111	// Counts per degree (JOINT_CPR/360)
+#define JOINT_HS_MIN		1365	// == ( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
+#define JOINT_HS_MAX		4096	// ==( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
 #define JOINT_MIN_ABS		16475		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
 #define JOINT_MAX_ABS		10829		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
 #define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
-#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
+#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPDEG 	// counts for actual angle.
 
 //Force Sensor
 #define FORCE_DIR			-1		// Direction of positive force, Dorsiflexion (-), Plantarflex (+) with value == -1
@@ -247,9 +240,9 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define FORCE_EXCIT			5		// Excitation Voltage
 #define FORCE_RATED_OUTPUT	0.002	// 2mV/V, Rated Output
 #define FORCE_MAX			4448	// Newtons, for LCM300 load cell
-#define FORCE_MAX_TICKS		( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
-#define FORCE_MIN_TICKS		( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
-#define FORCE_PER_TICK		( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
+#define FORCE_MAX_TICKS		59322.282	// == ( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
+#define FORCE_MIN_TICKS		6212.717999 // == ( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
+#define FORCE_PER_TICK		0.167502787	// == ( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
 #define TORQ_CALIB_M		1.0978	// y=Mx+b, from collected data set, applied load
 #define TORQ_CALIB_B		0.0656	// y=Mx+b, from collected data set, applied load
 
@@ -272,16 +265,6 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define ACTRL_I_KP_INIT		15
 #define ACTRL_I_KI_INIT		15
 #define ACTRL_I_KD_INIT		0
-
-//Transmission
-#ifdef IS_ANKLE					//UPDATE THIS WITH NEW SCREWs ankle = 0.002
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
-#define N_ETA			0.9		// Transmission efficiency
-#endif
-#ifdef IS_KNEE
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
-#endif
-
 
 #endif // DEFINED DEVICE_TF08_A03
 
@@ -292,12 +275,13 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define JOINT_ENC_DIR 		-1		// Encoder orientation. CW = 1 (knee orientation), CCW = -1
 #define JOINT_ANGLE_DIR 	1		// Joint angle direction. RHR convention is Ankle: Dorsiflexion (-), Plantarflexion (+) with value == 1
 #define JOINT_CPR 			16384	// Counts per revolution (todo: is it (2^14 - 1)?)
-#define JOINT_HS_MIN		( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
-#define JOINT_HS_MAX		( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
+#define JOINT_CPDEG			45.5111	// Counts per degree (JOINT_CPR/360)
+#define JOINT_HS_MIN		1365	// == ( 30 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in dorsiflexion)
+#define JOINT_HS_MAX		4096	// ==( 90 * JOINT_CPR/360 )		// Joint hard stop angle [deg] in plantarflexion)
 #define JOINT_MIN_ABS		14569		// Absolute encoder at MIN (Max dorsiflexion, 30Deg)
 #define JOINT_MAX_ABS		9007		// Absolute encoder reading at MAX (Max Plantarflexion, 90Deg)
 #define JOINT_ZERO_ABS		JOINT_MIN_ABS + JOINT_ENC_DIR * JOINT_HS_MIN 	// Absolute reading of Actuator Zero as designed in CAD
-#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPR/360 	// counts for actual angle.
+#define JOINT_ZERO 			JOINT_ZERO_ABS + JOINT_ENC_DIR * JOINT_ZERO_OFFSET *JOINT_CPDEG 	// counts for actual angle.
 
 //Force Sensor
 #define FORCE_DIR			-1		// Direction of positive force, Dorsiflexion (-), Plantarflex (+) with value == -1
@@ -306,9 +290,9 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define FORCE_EXCIT			5		// Excitation Voltage
 #define FORCE_RATED_OUTPUT	0.002	// 2mV/V, Rated Output
 #define FORCE_MAX			4448	// Newtons, for LCM300 load cell
-#define FORCE_MAX_TICKS		( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
-#define FORCE_MIN_TICKS		( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
-#define FORCE_PER_TICK		( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
+#define FORCE_MAX_TICKS		59322.282	// == ( (FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT + FORCE_STRAIN_BIAS)/5 * 65535 )	// max ticks expected
+#define FORCE_MIN_TICKS		6212.717999 // == ( (FORCE_STRAIN_BIAS - FORCE_STRAIN_GAIN * FORCE_EXCIT * FORCE_RATED_OUTPUT)/5 * 65535 )	// min ticks expected
+#define FORCE_PER_TICK		0.167502787	// == ( ( 2 * FORCE_MAX  ) / (FORCE_MAX_TICKS - FORCE_MIN_TICKS)	)	// Newtons/Tick
 #define TORQ_CALIB_M		1.0978	// y=Mx+b, from collected data set, applied load
 #define TORQ_CALIB_B		0.0656	// y=Mx+b, from collected data set, applied load
 
@@ -332,28 +316,18 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 #define ACTRL_I_KI_INIT		15
 #define ACTRL_I_KD_INIT		0
 
-//Transmission
-#ifdef IS_ANKLE					//UPDATE THIS WITH NEW SCREWs ankle = 0.002
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
-#define N_ETA			0.9		// Transmission efficiency
-#endif
-#ifdef IS_KNEE
-#define N_SCREW			(2*M_PI/0.005)	// Ballscrew ratio
-#endif
-
-
 #endif // DEFINED DEVICE_TF08_A04
 
 
 //Joint software limits [Degrees]
 #ifdef IS_ANKLE
-#define JOINT_MIN_SOFT		-25	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg dorsiflexion
-#define JOINT_MAX_SOFT		45	* (ANG_UNIT)/360	// [deg] Actuator physical limit  max = 90deg plantarflex
+#define JOINT_MIN_SOFT		-25	* RAD_PER_DEG	// [deg] Actuator physical limit min = -30deg dorsiflexion
+#define JOINT_MAX_SOFT		45	* RAD_PER_DEG	// [deg] Actuator physical limit  max = 90deg plantarflex
 #endif
 
 #ifdef IS_KNEE
-#define JOINT_MIN_SOFT		-20	* (ANG_UNIT)/360	// [deg] Actuator physical limit min = -30deg extension
-#define JOINT_MAX_SOFT		20	* (ANG_UNIT)/360	// [deg] Actuator physical limit max = +90deg flexion
+#define JOINT_MIN_SOFT		-20	* RAD_PER_DEG	// [deg] Actuator physical limit min = -30deg extension
+#define JOINT_MAX_SOFT		20	* RAD_PER_DEG	// [deg] Actuator physical limit max = +90deg flexion
 #endif
 
 //Safety limits
@@ -378,8 +352,9 @@ enum {
 // System constants
 #define SECONDS					1000		// Scale seconds to ms
 #define CURRENT_SCALAR_INIT		1000		// Scale Amps to mAmps
-#define ANG_UNIT				2*M_PI 		// Use Radians 2*M_PI
-#define DEG_PER_RAD 			57.2957795 // degree to rad conversion
+#define ANG_UNIT				6.28318531 	// == 2*M_PI 		// Use Radians 2*M_PI
+#define RAD_PER_DEG				0.01745329	// == 2PI/360, 0.017453292519943
+#define DEG_PER_RAD 			57.2957795 	// degree to rad conversion
 
 // Constants for moment arm calculation
 // see matlab script and matt's notes
