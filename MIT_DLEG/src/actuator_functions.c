@@ -14,6 +14,7 @@
 //****************************************************************************
 #include "user-mn-MIT-DLeg-2dof.h"
 #include "actuator_functions.h"
+#include "user-mn-MIT-DLeg-2dof.h"
 
 
 

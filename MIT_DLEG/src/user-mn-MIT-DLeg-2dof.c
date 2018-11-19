@@ -83,13 +83,13 @@ void MIT_DLeg_fsm_1(void)
 		case -1:
 			stateMachine.current_state = STATE_INIT;
 			//turned off for testing without Motor usage
-//			if(findPoles()) {
-//				mit_init_current_controller();		//initialize Current Controller with gains
-//				fsm1State = 0;
-//				time = 0;
-//			}
+			if(findPoles()) {
+				mit_init_current_controller();		//initialize Current Controller with gains
+				fsm1State = 0;
+				time = 0;
+			}
 			//for testing
-			fsm1State = 0;
+//			fsm1State = 0;
 
 			break;
 
@@ -134,7 +134,7 @@ void MIT_DLeg_fsm_1(void)
 
 			        updateUserWrites(&act1, &walkParams);
 
-			    	runFlatGroundFSM(&act1);
+//			    	runFlatGroundFSM(&act1);
 
 			    	// Check that torques are within safety range.
 			    	if (act1.tauDes > act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
@@ -144,9 +144,10 @@ void MIT_DLeg_fsm_1(void)
 			    	}
 
 
-//			    	setMotorTorque(&act1, act1.tauDes);
-//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100.);
 
+//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100.);
+			    	act1.tauDes = biomCalcImpedance(.5, .1, 0);
+			    	setMotorTorque(&act1, act1.tauDes);
 
 			    	/* Output variables live here. Use this as the main reference
 			    	 * NOTE: the communication Offsets are defined in /Rigid/src/cmd-rigid.c
