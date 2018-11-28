@@ -12,16 +12,13 @@
 #include <float.h>
 
 void reset_learning_demux();
-int learning_demux();
+int learning_demux(int k_est);
 void update_features(struct kinematics_s* kin);
-void reset_features();
 void classify();
-float* init_features();
-struct learner_s* init_learner();
-struct classifier_s* init_classifier();
+void init_learning_structs();
 struct learner_s* get_learner();
 struct classifier_s* get_classifier();
-float* get_features();
+float* get_curr_features();
 
 enum Learning_States {
 	UPDATE_CLASS_MEAN	= 0,
@@ -32,6 +29,7 @@ enum Learning_States {
 	UPDATE_TRANSPOSE = 5,
 	UPDATE_LDA_A_PARAMS = 6,
 	UPDATE_LDA_B_PARAMS = 7,
+	READY_TO_LEARN = 8,
 };
 
 enum Features {
@@ -65,6 +63,8 @@ struct learner_s
 	
 	float* pop_k;
 	float pop;
+
+	int k_est;
 	
 	//Intermediate matrix holders
     float* UT;

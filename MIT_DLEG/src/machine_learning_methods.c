@@ -8,7 +8,7 @@
 #define NFEATURES_SQ NFEATURES * NFEATURES
 
 
-static int learning_demux_state = 0;
+static int learning_demux_state = READY_TO_LEARN;
 static int current_updating_class = 0;
 static int segment = 0;
 static int subsegment = 0;
@@ -16,13 +16,14 @@ static int doing_forward_substitution = 1;
 
 static struct classifier_s lda;
 static struct learner_s lrn;
-static float* feats;
-static int k_est;
+static float* curr_feats;
+static float* prev_feats;
 
-static void update_class_mean(){
+
+static void update_class_mean(int k_est){
   int ind = k_est*NFEATURES;
   float popkP1 = lrn.pop_k[k_est] + 1.0; //1 flop
-  sum(&lrn.sum_k[ind], feats, &lrn.sum_k[ind], NFEATURES); // f flops
+  sum(&lrn.sum_k[ind], prev_feats, &lrn.sum_k[ind], NFEATURES); // f flops
   scaling (&lrn.sum_k[ind], 1.0/popkP1, &lrn.mu_k[ind], NFEATURES); // f flops
   lrn.pop_k[k_est] = popkP1;
 
@@ -30,8 +31,21 @@ static void update_class_mean(){
 
 static void update_overall_mean(){
   assignment(lrn.mu, lrn.mu_prev, NFEATURES);// assignment
-  sum(lrn.sum, feats, lrn.sum, NFEATURES); // f flops
+  sum(lrn.sum, prev_feats, lrn.sum, NFEATURES); // f flops
   scaling(lrn.sum, 1.0/(lrn.pop + 1.0), lrn.mu, NFEATURES); // f flops
+}
+
+//Just temporarily populated. NEEDS TO BE CHANGED
+static void reset_features(){
+  for (int i = 0; i < NFEATURES; i++){
+    prev_feats[i] = curr_feats[i];
+  }
+  curr_feats[PAZ_MAX] = FLT_MIN;
+  curr_feats[PAZ_MEAN] = 0.0f;
+  curr_feats[VAZ_MIN] = FLT_MAX;
+  curr_feats[PITCH_RANGE] = 0.0f;
+  curr_feats[OMX_MAX] = FLT_MIN;
+  curr_feats[ACCY_MEAN] = 0.0f;
 }
 
 void reset_learning_demux(){
@@ -42,19 +56,19 @@ void reset_learning_demux(){
   doing_forward_substitution = 1;
 }
 
-int learning_demux(){
+int learning_demux(int k_est){
     switch (learning_demux_state){
       case UPDATE_CLASS_MEAN: //1 sample
-        update_class_mean(lrn, feats, k_est); //2f flops
+        update_class_mean(k_est); //2f flops
         learning_demux_state++;
       break;
       case UPDATE_OVERALL_MEAN: // 1 sample
-        update_overall_mean(lrn, feats); //2f flops
+        update_overall_mean(); //2f flops
         learning_demux_state++;
       break;
       case GET_DEVIATIONS_FROM_MEAN: // 1 sample
-        diff(feats, lrn.mu, lrn.x, NFEATURES);//f flops
-        diff(feats, lrn.mu_prev, lrn.y, NFEATURES); //f flops
+        diff(prev_feats, lrn.mu, lrn.x, NFEATURES);//f flops
+        diff(prev_feats, lrn.mu_prev, lrn.y, NFEATURES); //f flops
         learning_demux_state++;
       break;
       case UPDATE_COVARIANCE: // f samples
@@ -130,6 +144,8 @@ int learning_demux(){
         }  
       }    
       break;
+      case READY_TO_LEARN:
+      break;
     }
      return learning_demux_state;
 } 
@@ -138,45 +154,38 @@ int learning_demux(){
 
 //Just temporarily populated. NEEDS TO BE CHANGED
 void update_features(struct kinematics_s* kin){
-  feats[PAZ_MAX] = MAX(kin->pAz, feats[PAZ_MAX]);
-  feats[PAZ_MEAN] = feats[PAZ_MEAN] + kin->pAz;
-  feats[VAZ_MIN] = MIN(kin->pAz, feats[VAZ_MIN]);
-  feats[PITCH_RANGE] = MAX(kin->pAz, feats[PITCH_RANGE]);
-  feats[OMX_MAX] = MAX(kin->pAz, feats[PAZ_MAX]);
-  feats[ACCY_MEAN] = feats[ACCY_MEAN] + kin->aAccY;}
-
-//Just temporarily populated. NEEDS TO BE CHANGED
-void reset_features(){
-
-    feats[PAZ_MAX] = FLT_MIN;
-    feats[PAZ_MEAN] = 0.0f;
-    feats[VAZ_MIN] = FLT_MAX;
-    feats[PITCH_RANGE] = 0.0f;
-    feats[OMX_MAX] = FLT_MIN;
-    feats[ACCY_MEAN] = 0.0f;
+  curr_feats[PAZ_MAX] = MAX(kin->pAz, curr_feats[PAZ_MAX]);
+  curr_feats[PAZ_MEAN] = curr_feats[PAZ_MEAN] + kin->pAz;
+  curr_feats[VAZ_MIN] = MIN(kin->pAz, curr_feats[VAZ_MIN]);
+  curr_feats[PITCH_RANGE] = MAX(kin->pAz, curr_feats[PITCH_RANGE]);
+  curr_feats[OMX_MAX] = MAX(kin->pAz, curr_feats[PAZ_MAX]);
+  curr_feats[ACCY_MEAN] = curr_feats[ACCY_MEAN] + kin->aAccY;
 }
+
+
 
 void classify(){
   float maxScore = -1000000000.0;
   for (int i = 0; i < 5; i++){
-    lda.score_k[i] = inner_product(&lda.A[i*NFEATURES], feats, NFEATURES) + lda.B[i];
+    lda.score_k[i] = inner_product(&lda.A[i*NFEATURES], curr_feats, NFEATURES) + lda.B[i];
     if (lda.score_k[i] > maxScore){
       maxScore = lda.score_k[i];
       lda.k_pred = i;
     }
   }
+  reset_features();
 }
 
 
 
 
 
-float* init_features(){
-  feats = (float*)calloc(NFEATURES, sizeof(float));
-  return feats;
+static void init_features(){
+  curr_feats = (float*)calloc(NFEATURES, sizeof(float));
+  prev_feats = (float*)calloc(NFEATURES, sizeof(float));
 }
 
-struct learner_s*  init_learner(){
+static void init_learner(){
 
   lrn.mu_k = (float*)calloc(NCLASSES * NFEATURES, sizeof(float));
   lrn.sum_k = (float*)calloc(NCLASSES * NFEATURES, sizeof(float));
@@ -204,17 +213,20 @@ struct learner_s*  init_learner(){
   lrn.A = (float*)calloc(NFEATURES_SQ, sizeof(float));
   lrn.x  = (float*)calloc( NFEATURES, sizeof(float));
   lrn.y  = (float*)calloc( NFEATURES, sizeof(float));
-
-  return &lrn;
-
 }
 
-struct classifier_s*  init_classifier(){
+static void init_classifier(){
   lda.A = (float*)calloc(NCLASSES * NFEATURES, sizeof(float));
   lda.B = (float*)calloc(NCLASSES, sizeof(float));
   lda.score_k = (float*)calloc(NCLASSES, sizeof(float));
   lda.k_pred = 0;
   return &lda;
+}
+
+void init_learning_structs(){
+  init_classifier();
+  init_learner();
+  init_features();
 }
 
 struct learner_s* get_learner(){
@@ -225,8 +237,12 @@ struct classifier_s*  get_classifier(){
   return &lda;
 }
 
-float* get_features(){
-  return feats;
+float* get_prev_features(){
+  return prev_feats;
+}
+
+float* get_curr_features(){
+  return curr_feats;
 }
 
 // int16_t updateMaxWithTime(float *currentMax, float *currentTMax, float sensorValue){
