@@ -54,9 +54,9 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#include "imu_calculations.h"
+#include "task_machine.h"
+#include "kinematics_methods.h"
 #include "machine_learning_methods.h"
-
 
 //****************************************************************************
 // Variable(s)
@@ -222,9 +222,9 @@ struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
 
 
 //25
-float feats1[] = {1.045475, 1.558323, -0.378157, 0.431730, 1.523136, 2.478041, -0.528372, 0.923000, 0.087233, 0.497231, -0.389693, 1.273962, -0.916692, 0.508610, 1.130468, -0.622034, -1.436208, -1.327154, 0.481001, 1.602118, -2.535646, -0.106315, -0.197936, -0.647344, 0.754496, };
-float feats2[] = {-1.073226, 1.195811, 1.038126, 0.215679, -1.285151, 0.710919, -1.047455, 0.025188, -0.249855, 1.178430, -1.528154, 0.759257, 0.770601, 0.381037, 0.315047, 0.136835, 1.085871, 0.450129, -2.368598, 0.751311, 1.182550, -0.201728, -0.498337, 0.597158, -0.882788, };
-float feats3[] = {1.303193, -0.506239, -0.295215, -1.227791, 3.169268, 1.025653, -0.058240, 0.136130, -0.290448, 0.381011, -0.397671, -0.079618, -0.275441, 0.269815, -0.122072, -1.113989, -0.453744, -0.215008, 0.348762, 0.563648, 1.226773, -0.120098, 0.407349, -0.726289, 1.400704, };
+// float feats1[] = {1.045475, 1.558323, -0.378157, 0.431730, 1.523136, 2.478041, -0.528372, 0.923000, 0.087233, 0.497231, -0.389693, 1.273962, -0.916692, 0.508610, 1.130468, -0.622034, -1.436208, -1.327154, 0.481001, 1.602118, -2.535646, -0.106315, -0.197936, -0.647344, 0.754496, };
+// float feats2[] = {-1.073226, 1.195811, 1.038126, 0.215679, -1.285151, 0.710919, -1.047455, 0.025188, -0.249855, 1.178430, -1.528154, 0.759257, 0.770601, 0.381037, 0.315047, 0.136835, 1.085871, 0.450129, -2.368598, 0.751311, 1.182550, -0.201728, -0.498337, 0.597158, -0.882788, };
+// float feats3[] = {1.303193, -0.506239, -0.295215, -1.227791, 3.169268, 1.025653, -0.058240, 0.136130, -0.290448, 0.381011, -0.397671, -0.079618, -0.275441, 0.269815, -0.122072, -1.113989, -0.453744, -0.215008, 0.348762, 0.563648, 1.226773, -0.120098, 0.407349, -0.726289, 1.400704, };
 // float feats4[] = {-0.655953, 0.313070, -1.748821, -0.676758, -1.125742, 0.497428, 1.803801, 0.235774, 1.576310, -0.771856, -2.121330, -0.559549, -1.695163, -1.533648, -0.261328, 0.297886, -0.909343, -1.472655, 0.665251, -1.052022, 1.661939, 0.806317, 0.086420, 0.409944, -0.297965, };
 // float feats5[] = {2.087741, -0.263315, -0.152821, -0.841444, -0.781998, -0.101841, -0.629504, 0.157538, 0.308078, 1.023473, 1.199330, 2.136724, -1.749642, 1.203790, -0.610830, -0.411829, -0.490774, 0.073176, -0.067725, -1.286602, 1.240041, 0.533956, 0.432277, -0.038995, -0.508849, };
 // float feats6[] = {-1.034942, 0.208132, -0.327991, -0.067287, -0.091060, 0.258262, 1.643207, 2.840797, -0.310333, 0.711094, -1.392845, 2.043514, 0.182407, -0.171657, 0.122690, -1.739725, -1.318046, -1.000340, -0.265695, 0.537028, 0.269482, -0.078189, 4.229977, 0.089240, -2.150075, };
@@ -335,12 +335,13 @@ void init_MIT_DLeg(void)
 
 //MIT DLeg Finite State Machine.
 //Call this function in one of the main while time slots.
+
 void MIT_DLeg_fsm_1(void)
 {
 
-	static int status = 8;
-	static int currentStride = 0;
-	static int indicator = 0;
+	// static int status = 8;
+	// static int currentStride = 0;
+	// static int indicator = 0;
 
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
@@ -389,8 +390,9 @@ void MIT_DLeg_fsm_1(void)
 // 				}
 				
 
-			status = task_machine_demux(&rigid1);
 			
+			
+
 			// if (status == 8){
 			// 	indicator = 1-indicator;
 			// 	reset_learning_demux();
@@ -601,20 +603,22 @@ void MIT_DLeg_fsm_1(void)
 
 			
 
-			
+			task_machine_demux(&rigid1);
+
 			iter++;
 			if (iter > 30000)
 				iter = 0;
 			rigid1.mn.genVar[0] = (int16_t) (iter); //
-			rigid1.mn.genVar[1] = (int16_t) (indicator); //
-			 rigid1.mn.genVar[2] = (int16_t) (currentStride); //
-			 rigid1.mn.genVar[3] = (int16_t) (tm.lda.A[118]*1000.0); //
-			 rigid1.mn.genVar[4] = (int16_t) (tm.lda.A[119]*1000.0); //
-			  rigid1.mn.genVar[5] = (int16_t) (tm.lda.A[120]*1000.0); //
-			  rigid1.mn.genVar[6] = (int16_t) (tm.lda.A[121]*1000.0);//
-			  rigid1.mn.genVar[7] = (int16_t) (tm.lda.A[122]*1000.0);//
-			  rigid1.mn.genVar[8] = (int16_t) (tm.lda.A[123]*1000.0);//
-		   	rigid1.mn.genVar[9] = (int16_t) (tm.lda.A[124]*1000.0);//
+			rigid1.mn.genVar[1] = (int16_t) (get_task_machine()->inSwing); //
+			rigid1.mn.genVar[2] = (int16_t) (get_task_machine()->tq); //
+			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->accNormSq*10.0); //
+			rigid1.mn.genVar[4] = (int16_t) (get_kinematics()->vAz); //
+			rigid1.mn.genVar[5] = (int16_t) (get_task_machine()->resetTrigger); //
+			//   rigid1.mn.genVar[5] = (int16_t) (tm.lda->A[120]*1000.0); //
+			//   rigid1.mn.genVar[6] = (int16_t) (tm.lda->A[121]*1000.0);//
+			//   rigid1.mn.genVar[7] = (int16_t) (tm.lda->A[122]*1000.0);//
+			//   rigid1.mn.genVar[8] = (int16_t) (tm.lda->A[123]*1000.0);//
+		 //   	rigid1.mn.genVar[9] = (int16_t) (tm.lda->A[124]*1000.0);//
 
 				break;
 
@@ -880,7 +884,7 @@ float getAxialForce(void)
 // return moment arm projected length  [m]
 float getLinkageMomentArm(float theta)
 {
-	static float a = 147.6787, b = 42.9535, T = 0.3239, F = 1.1384;
+	//static float a = 147.6787, b = 42.9535, T = 0.3239, F = 1.1384;
 	static float A = 0, c = 0, r = 0, C_ang = 0;
 //	theta_r = ANG_UNIT % 360 ? (theta*M_PI/180) : theta; 	// convert deg to radians if necessary.
 //	theta_r = theta * M_PI / 180;	// convert deg to radians.

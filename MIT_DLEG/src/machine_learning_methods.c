@@ -14,9 +14,25 @@ static int segment = 0;
 static int subsegment = 0;
 static int doing_forward_substitution = 1;
 
-struct classifier_s lda;
-struct learner_s lrn;
-float* feats;
+static struct classifier_s lda;
+static struct learner_s lrn;
+static float* feats;
+static int k_est;
+
+static void update_class_mean(){
+  int ind = k_est*NFEATURES;
+  float popkP1 = lrn.pop_k[k_est] + 1.0; //1 flop
+  sum(&lrn.sum_k[ind], feats, &lrn.sum_k[ind], NFEATURES); // f flops
+  scaling (&lrn.sum_k[ind], 1.0/popkP1, &lrn.mu_k[ind], NFEATURES); // f flops
+  lrn.pop_k[k_est] = popkP1;
+
+}
+
+static void update_overall_mean(){
+  assignment(lrn.mu, lrn.mu_prev, NFEATURES);// assignment
+  sum(lrn.sum, feats, lrn.sum, NFEATURES); // f flops
+  scaling(lrn.sum, 1.0/(lrn.pop + 1.0), lrn.mu, NFEATURES); // f flops
+}
 
 void reset_learning_demux(){
   learning_demux_state = 0;
@@ -118,29 +134,26 @@ int learning_demux(){
      return learning_demux_state;
 } 
 
-void update_class_mean(){
-  int ind = k_est*NFEATURES;
-  float popkP1 = lrn.pop_k[k_est] + 1.0; //1 flop
-  sum(&lrn.sum_k[ind], feats, &lrn.sum_k[ind], NFEATURES); // f flops
-  scaling (&lrn.sum_k[ind], 1.0/popkP1, &lrn.mu_k[ind], NFEATURES); // f flops
-  lrn.pop_k[k_est] = popkP1;
 
-}
-
-void update_overall_mean(){
-  assignment(lrn.mu, lrn.mu_prev, NFEATURES);// assignment
-  sum(lrn.sum, feats, lrn.sum, NFEATURES); // f flops
-  scaling(lrn.sum, 1.0/(lrn.pop + 1.0), lrn.mu, NFEATURES); // f flops
-}
 
 //Just temporarily populated. NEEDS TO BE CHANGED
 void update_features(struct kinematics_s* kin){
-  feats[PAZ_MAX] = max(kin->pAz, feats[PAZ_MAX]);
-  feats[PAZ_MEAN] = max(kin->pAz, feats[PAZ_MAX]);
-  feats[VAZ_MIN] = max(kin->pAz, feats[PAZ_MAX]);
-  feats[PITCH_RANGE] = max(kin->pAz, feats[PAZ_MAX]);
-  feats[OMX_MAX] = max(kin->pAz, feats[PAZ_MAX]);
-  feats[ACCY_MEAN] = max(kin->pAz, feats[PAZ_MAX]);
+  feats[PAZ_MAX] = MAX(kin->pAz, feats[PAZ_MAX]);
+  feats[PAZ_MEAN] = feats[PAZ_MEAN] + kin->pAz;
+  feats[VAZ_MIN] = MIN(kin->pAz, feats[VAZ_MIN]);
+  feats[PITCH_RANGE] = MAX(kin->pAz, feats[PITCH_RANGE]);
+  feats[OMX_MAX] = MAX(kin->pAz, feats[PAZ_MAX]);
+  feats[ACCY_MEAN] = feats[ACCY_MEAN] + kin->aAccY;}
+
+//Just temporarily populated. NEEDS TO BE CHANGED
+void reset_features(){
+
+    feats[PAZ_MAX] = FLT_MIN;
+    feats[PAZ_MEAN] = 0.0f;
+    feats[VAZ_MIN] = FLT_MAX;
+    feats[PITCH_RANGE] = 0.0f;
+    feats[OMX_MAX] = FLT_MIN;
+    feats[ACCY_MEAN] = 0.0f;
 }
 
 void classify(){
@@ -154,11 +167,16 @@ void classify(){
   }
 }
 
-void init_features(){
+
+
+
+
+float* init_features(){
   feats = (float*)calloc(NFEATURES, sizeof(float));
+  return feats;
 }
 
-void init_learner(){
+struct learner_s*  init_learner(){
 
   lrn.mu_k = (float*)calloc(NCLASSES * NFEATURES, sizeof(float));
   lrn.sum_k = (float*)calloc(NCLASSES * NFEATURES, sizeof(float));
@@ -187,21 +205,28 @@ void init_learner(){
   lrn.x  = (float*)calloc( NFEATURES, sizeof(float));
   lrn.y  = (float*)calloc( NFEATURES, sizeof(float));
 
+  return &lrn;
+
 }
 
-void init_classifier(){
+struct classifier_s*  init_classifier(){
   lda.A = (float*)calloc(NCLASSES * NFEATURES, sizeof(float));
   lda.B = (float*)calloc(NCLASSES, sizeof(float));
   lda.score_k = (float*)calloc(NCLASSES, sizeof(float));
   lda.k_pred = 0;
+  return &lda;
 }
 
-void get_learner(){
+struct learner_s* get_learner(){
   return &lrn;
 }
 
-void get_classifier(){
+struct classifier_s*  get_classifier(){
   return &lda;
+}
+
+float* get_features(){
+  return feats;
 }
 
 // int16_t updateMaxWithTime(float *currentMax, float *currentTMax, float sensorValue){
@@ -409,24 +434,3 @@ void get_classifier(){
 
 //     return 0;
 //  }
-
-// int16_t resetFeatures(void){
-
-//     feats.aAz_sum = 0.0f;
-//      feats.vAz_sum = 0.0f;
-//      feats.aOmegaX_sum_EXTRA = 0.0f;
-//      feats.vAz_max = BIG_NEGATIVE_NUMBER;
-//      feats.aAccZ_final = 0.0f;
-//      feats.iaAccZ_min = BIG_POSITIVE_NUMBER;
-//      feats.vAy_final = 0.0f;
-//      feats.r1_max = BIG_NEGATIVE_NUMBER;
-//      feats.vAz_first = 0.0f;
-//      //feats.daAccZ_range
-//      feats.daAccZ_max = BIG_NEGATIVE_NUMBER;
-//      feats.daAccZ_min = BIG_POSITIVE_NUMBER;
-//      feats.pAy_first = 0.0f;
-//      feats.aOmegaZ_first = 0.0f;
-     
-
-//   return 0;
-// }

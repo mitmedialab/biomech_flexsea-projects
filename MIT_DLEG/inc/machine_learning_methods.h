@@ -6,21 +6,22 @@
 // #include "flexsea_user_structs.h"
 #include "user-mn-MIT-DLeg.h"
 #include "linear_algebra_methods.h"
-#include "kinematics_calculations.h"
-// #include "task_machine.h"
+#include "kinematics_methods.h"
+#include "flexsea.h"
 #include <stdio.h>
+#include <float.h>
 
-extern void reset_learning_demux();
-extern int learning_demux();
-void update_class_mean();
-void update_overall_mean();
-extern void update_features(struct kinematics_s* kin);
-extern void classify();
-extern void init_features();
-extern void init_learner();
-extern void init_classifier();
-extern void get_learner();
-extern void get_classifier();
+void reset_learning_demux();
+int learning_demux();
+void update_features(struct kinematics_s* kin);
+void reset_features();
+void classify();
+float* init_features();
+struct learner_s* init_learner();
+struct classifier_s* init_classifier();
+struct learner_s* get_learner();
+struct classifier_s* get_classifier();
+float* get_features();
 
 enum Learning_States {
 	UPDATE_CLASS_MEAN	= 0,
@@ -73,9 +74,6 @@ struct learner_s
     float* y;
 };
 
-extern struct classifier_s lda;
-extern struct learner_s lrn;
-extern float* feats;
-extern int k_est;
+
 
 #endif

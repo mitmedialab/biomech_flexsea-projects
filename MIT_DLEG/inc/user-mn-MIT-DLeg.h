@@ -408,13 +408,6 @@ enum State {
 	STATE_INIT_GENERAL = 0,
 	STATE_TASK_MACHINE = 1};
 
-enum Task {
-	TASK_FL = 0,
-	TASK_RA = 1,
-	TASK_RD = 2,
-	TASK_SA = 3,
-	TASK_SD = 4
-};
 
 void init_user_writes(void);
 
