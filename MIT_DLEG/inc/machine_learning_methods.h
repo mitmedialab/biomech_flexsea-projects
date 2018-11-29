@@ -7,29 +7,31 @@
 #include "user-mn-MIT-DLeg.h"
 #include "linear_algebra_methods.h"
 #include "kinematics_methods.h"
+#include "task_machine.h"
 #include "flexsea.h"
 #include <stdio.h>
 #include <float.h>
 
-void reset_learning_demux();
-int learning_demux(int k_est);
+void learning_demux(struct back_estimator_s* be, int latest_foot_off_samples, int learning_reset_trigger);
 void update_features(struct kinematics_s* kin);
 void classify();
 void init_learning_structs();
 struct learner_s* get_learner();
 struct classifier_s* get_classifier();
+float* get_prev_features();
 float* get_curr_features();
 
 enum Learning_States {
-	UPDATE_CLASS_MEAN	= 0,
-	UPDATE_OVERALL_MEAN	= 1,
-	GET_DEVIATIONS_FROM_MEAN = 2,
-	UPDATE_COVARIANCE = 3,
-	DO_CHOLESKY = 4,
-	UPDATE_TRANSPOSE = 5,
-	UPDATE_LDA_A_PARAMS = 6,
-	UPDATE_LDA_B_PARAMS = 7,
-	READY_TO_LEARN = 8,
+	BACK_ESTIMATE = 0,
+	UPDATE_CLASS_MEAN	= 1,
+	UPDATE_OVERALL_MEAN	= 2,
+	GET_DEVIATIONS_FROM_MEAN = 3,
+	UPDATE_COVARIANCE = 4,
+	DO_CHOLESKY = 5,
+	UPDATE_TRANSPOSE = 6,
+	UPDATE_LDA_A_PARAMS = 7,
+	UPDATE_LDA_B_PARAMS = 8,
+	READY_TO_LEARN = 9,
 };
 
 enum Features {

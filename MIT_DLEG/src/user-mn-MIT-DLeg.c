@@ -609,11 +609,11 @@ void MIT_DLeg_fsm_1(void)
 			if (iter > 30000)
 				iter = 0;
 			rigid1.mn.genVar[0] = (int16_t) (iter); //
-			rigid1.mn.genVar[1] = (int16_t) (get_task_machine()->inSwing); //
+			rigid1.mn.genVar[1] = (int16_t) (get_task_machine()->in_swing); //
 			rigid1.mn.genVar[2] = (int16_t) (get_task_machine()->tq); //
 			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->accNormSq*10.0); //
 			rigid1.mn.genVar[4] = (int16_t) (get_kinematics()->pAz); //
-			rigid1.mn.genVar[5] = (int16_t) (get_task_machine()->resetTrigger); //
+			rigid1.mn.genVar[5] = (int16_t) (get_task_machine()->translation_reset_trigger); //
 			//   rigid1.mn.genVar[5] = (int16_t) (tm.lda->A[120]*1000.0); //
 			//   rigid1.mn.genVar[6] = (int16_t) (tm.lda->A[121]*1000.0);//
 			//   rigid1.mn.genVar[7] = (int16_t) (tm.lda->A[122]*1000.0);//

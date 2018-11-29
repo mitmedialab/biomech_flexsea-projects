@@ -8,18 +8,19 @@
 #include <stdio.h>
 
 
+//TODO: These constants need to be checked!!!!!
+
 //Swing/stance thresholds
 #define MAX_SAMPLES_FROM_MAX_TQ 100
 #define MIN_TQ_FOR_FOOT_ON 12.0000f
 #define N_MIN_TQ_FOR_FOOT_ON -12.0000f
-#define MIN_SWING_SAMPLES 200
 #define MIN_STANCE_SAMPLES 200
 #define MIN_STRIDE_SAMPLES 500
 
 //Foot static thresholds
 #define UPPER_ACCNORM_THRESH_SQ 106.0900f
 #define LOWER_ACCNORM_THRESH_SQ 86.49000f
-#define MIN_TQ_FOR_FOOT_STATIC 40.0000f
+#define MIN_TQ_FOR_FOOT_STATIC_NM 15.0000f
 #define DEFAULT_STANCE_RESET_SAMPLES 100
 #define MIN_TQDOT_FOR_FOOT_STATIC -0.1f
 #define STANCE_RESET_EXPIRY_SAMPLES 1000
@@ -58,18 +59,24 @@ struct taskmachine_s
 	int latest_foot_off_samples;
 
 	int foundFirstZvupAfterFootOn;
-	int taskPredicted;
-	int inSwing;
-	int achievedMinTorqueForStance;
+	int in_swing;
+	int reached_classification_time;
 
 
-	int resetTrigger;
+	int translation_reset_trigger;
+	int calc_translations;
+	int learning_reset_trigger;
+	int do_learning_for_stride;
 
-	float tqDot;
 	float tq;
 	float theta;
 
-	//Back estimation variables
+	
+
+};
+
+struct back_estimator_s 
+{
 	float mean_stance_theta;
 	float max_stance_tq;
 	float max_stance_tq_ind;
@@ -78,9 +85,6 @@ struct taskmachine_s
 	float max_swing_z;
 	float max_swing_z_samples;
 	float prev_stance_samples;
-	int k_est;
-	int do_learning;
-
 };
 
 struct taskmachine_s* get_task_machine();
@@ -91,25 +95,25 @@ enum Task_Machine_States {
 	INIT_TASK_MACHINE,
 	INIT_LEARNING,
 	INIT_KINEMATICS,
-	RUN_TASK_MACHINE
+	RUN_TASK_MACHINE,
 };
 
 enum Walking_Tasks {
-    TASK_FL = 1,
-    TASK_UR = 2,
-    TASK_DR = 3,
-    TASK_US = 4,
-    TASK_DS = 5,
+    TASK_FL = 0,
+    TASK_UR = 1,
+    TASK_DR = 2,
+    TASK_US = 3,
+    TASK_DS = 4,
 };
 
 enum Walking_Modes {
-    MODE_FL = 1,
-    MODE_UR = 2,
-    MODE_DR = 3,
-    MODE_US = 4,
-    MODE_DS = 5,
-    MODE_PR = 6,
-    MODE_SW = 7
+    MODE_FL = 0,
+    MODE_UR = 1,
+    MODE_DR = 2,
+    MODE_US = 3,
+    MODE_DS = 4,
+    MODE_PR = 5,
+    MODE_SW = 6,
 };
 
 
