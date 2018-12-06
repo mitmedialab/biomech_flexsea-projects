@@ -49,8 +49,7 @@
 // Variable(s)
 //****************************************************************************
 
-
-
+int8_t fsm1StateDleg = -2;
 
 //****************************************************************************
 // Public Function(s)
@@ -68,13 +67,13 @@ void MIT_DLeg_fsm_1(void)
     time++;
 
     //begin main FSM
-	switch(fsm1State)
+	switch(fsm1StateDleg)
 	{
 		case -2:
 			stateMachine.current_state = STATE_IDLE;
 			//Same power-on delay as FSM2:
 			if(time >= AP_FSM2_POWER_ON_DELAY ) {
-				fsm1State = -1;
+				fsm1StateDleg = -1;
 				time = 0;
 			}
 
@@ -85,11 +84,11 @@ void MIT_DLeg_fsm_1(void)
 			//turned off for testing without Motor usage
 			if(findPoles()) {
 				mit_init_current_controller();		//initialize Current Controller with gains
-				fsm1State = 0;
+				fsm1StateDleg = 0;
 				time = 0;
 			}
 			//for testing
-//			fsm1State = 0;
+//			fsm1StateDleg = 0;
 
 			break;
 
@@ -108,7 +107,7 @@ void MIT_DLeg_fsm_1(void)
 
 			act1.safetyTorqueScalar = 1.0;
 
-			fsm1State = 1;
+			fsm1StateDleg = 1;
 			time = 0;
 
 			break;
@@ -152,7 +151,7 @@ void MIT_DLeg_fsm_1(void)
 			    	/* Output variables live here. Use this as the main reference
 			    	 * NOTE: the communication Offsets are defined in /Rigid/src/cmd-rigid.c
 			    	 */
-			        rigid1.mn.genVar[0] = (int16_t) (act1.linkageMomentArm *1000.0); //startedOverLimit;
+			        rigid1.mn.genVar[0] = (int16_t) (act1.safetyFlag); //startedOverLimit;
 					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
 					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
  					rigid1.mn.genVar[3] = (int16_t) (act1.jointVel * 100.0); 	// rad/s
@@ -160,7 +159,7 @@ void MIT_DLeg_fsm_1(void)
 					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
 					rigid1.mn.genVar[6] = (int16_t) rigid1.ex.mot_current; // LG
 					rigid1.mn.genVar[7] = (int16_t) rigid1.ex.mot_volt; // TA
-					rigid1.mn.genVar[8] = stateMachine.current_state;
+					rigid1.mn.genVar[8] = fsm1StateDleg; //stateMachine.current_state;
 					rigid1.mn.genVar[9] = act1.tauDes*100;
 			    }
 
