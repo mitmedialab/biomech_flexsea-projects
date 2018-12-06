@@ -120,6 +120,14 @@ struct fx_rigid_ex_s
 	uint16_t status;
 
 	struct ctrl_s ctrl;
+
+	// --- all those pointer members need to be switched to actual members...
+	int32_t _enc_ang_;
+	int32_t _enc_ang_vel_;
+
+	int16_t _joint_ang_;
+	int16_t _joint_ang_vel_;
+	int16_t _joint_ang_from_mot_;
 };
 
 struct fx_rigid_ctrl_s
@@ -163,6 +171,15 @@ struct dual_utt_s
 	int16_t val[2][10];
 };
 
+struct pocket_s
+{
+	struct fx_rigid_re_s re;
+	struct fx_rigid_mn_s mn;
+	struct fx_rigid_ex_s ex[2];
+	struct fx_rigid_ctrl_s	ctrl;
+	uint8_t lastOffsetDecoded;
+};
+
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
@@ -170,7 +187,6 @@ struct dual_utt_s
 extern struct motortb_s motortb;
 extern int16_t globvar[10];
 extern struct rigid_s rigid1, rigid2;
-extern int16_t globvar[10];
 extern struct dual_utt_s utt;
 
 //****************************************************************************

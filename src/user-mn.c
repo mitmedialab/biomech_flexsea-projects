@@ -35,6 +35,7 @@
 //****************************************************************************
 
 #include "user-mn.h"
+#include "flexsea_user_structs.h"
 
 //Barebone Rigid:
 #if(ACTIVE_PROJECT == PROJECT_BB_RIGID)
@@ -49,9 +50,13 @@
 #endif	//PROJECT_UMICH_KNEE
 
 #if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-#include <user-mn-MIT-DLeg-2dof.h>
+#include "user-mn-MIT-DLeg-2dof.h"
 #include "user-mn-MIT-EMG.h"
 #include <software_filter.h>
+#endif
+
+#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+#include "user-mn-MIT-PocketClimb.h"
 #endif
 
 //Dephy's Actuator Package (ActPack)
@@ -162,6 +167,11 @@ void user_fsm_1(void)
 		MIT_DLeg_fsm_1();
 		#endif	//PROJECT_MIT_DLEG
 
+		//MIT Pocket 2xDC / PocketClimb:
+		#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+		MIT_PocketClimb_fsm_1();
+		#endif	//PROJECT_POCKET_2XDC
+
 		//Dephy's Actuator Package (ActPack)
 		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 		ActPack_fsm_1();
@@ -201,6 +211,16 @@ void user_fsm_2(void)
 		//ToDo: switch to their fsm2
 		#endif	//PROJECT_UMICH_KNEE
 
+		//MIT D-Leg:
+		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
+		MIT_DLeg_fsm_1();
+		#endif	//PROJECT_MIT_DLEG
+
+		//MIT Pocket 2xDC / PocketClimb:
+		#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
+		MIT_PocketClimb_fsm_2();
+		#endif	//PROJECT_POCKET_2XDC
+
 		//Dephy's Actuator Package (ActPack)
 		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 		ActPack_fsm_2();
@@ -213,8 +233,25 @@ void user_fsm_2(void)
 	#endif	//(RUNTIME_FSM2 == ENABLED)
 }
 
+void reset_user_code(void)
+{
+	#ifdef DEPHY
+	reset_dephy();
+	#endif
+}
+
 //****************************************************************************
 // Private Function(s)
 //****************************************************************************
+
+static void init_user_common(void)
+{
+	rigid1.ctrl.timestamp = 0;
+}
+
+inline static void user_fsm2_common(void)
+{
+	rigid1.ctrl.timestamp++;
+}
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE
