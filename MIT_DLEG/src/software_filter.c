@@ -15,8 +15,7 @@
 	*
 ****************************************************************************/
 
-#if defined BOARD_TYPE_FLEXSEA_MANAGE
-#include "software_filter.h"
+#include <software_filter.h>
 #include "user-mn.h"
 
 //****************************************************************************
@@ -161,4 +160,3 @@ void MIT_FIR_latchInput(float n)
 	fir_input[fir_index+N] = n;
 	return;
 }
-#endif

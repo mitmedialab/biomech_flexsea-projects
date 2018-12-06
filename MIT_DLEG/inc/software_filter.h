@@ -32,15 +32,11 @@
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-#if defined BOARD_TYPE_FLEXSEA_MANAGE
 #include "main.h"
-#include "stm32f4xx.h"
-#include "rigid.h"
-#endif
-
 #include "flexsea_global_structs.h"
 #include <stdlib.h>
-
+#include "stm32f4xx.h"
+#include "rigid.h"
 
 //****************************************************************************
 // Shared variable(s)
