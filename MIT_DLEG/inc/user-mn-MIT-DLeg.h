@@ -40,7 +40,7 @@
 #include "flexsea_sys_def.h"
 #include "flexsea_system.h"
 #include "flexsea_cmd_calibration.h"
-#include "flexsea_cmd_biomech.h"
+//#include "flexsea_cmd_biomech.h"
 #include "flexsea_user_structs.h"
 
 #include <math.h>
