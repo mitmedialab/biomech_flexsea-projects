@@ -140,7 +140,7 @@ void MIT_DLeg_fsm_1(void)
 
 			        updateUserWrites(&act1, &walkParams);
 
-//			    	runFlatGroundFSM(&act1);
+			    	runFlatGroundFSM(&act1);
 
 			    	// Check that torques are within safety range.
 			    	if (act1.tauDes > act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
@@ -152,7 +152,7 @@ void MIT_DLeg_fsm_1(void)
 
 
 //			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100.);
-			    	act1.tauDes = biomCalcImpedance(.5, .1, 0);
+//			    	act1.tauDes = biomCalcImpedance(.5, .1, 0);
 			    	setMotorTorque(&act1, act1.tauDes);
 
 			    	/* Output variables live here. Use this as the main reference
