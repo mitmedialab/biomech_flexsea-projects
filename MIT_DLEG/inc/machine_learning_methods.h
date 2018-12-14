@@ -34,13 +34,15 @@ enum Learning_States {
 	READY_TO_LEARN = 9,
 };
 
-enum Features {
+ enum Features {
 	PAZ_MAX,
-	PAZ_MEAN,
+	PAZ_SUM,
 	VAZ_MIN,
 	PITCH_RANGE,
 	OMX_MAX,
-	ACCY_MEAN,
+	ACCY_SUM,
+	PITCH_MAX, //this is where intermediate/assistive features begin
+	PITCH_MIN,
 };
 
 //Assumes uniform priors at the moment

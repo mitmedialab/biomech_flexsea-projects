@@ -57,11 +57,13 @@ static void reset_features(){
     prev_feats[i] = curr_feats[i];
   }
   curr_feats[PAZ_MAX] = FLT_MIN;
-  curr_feats[PAZ_MEAN] = 0.0f;
+  curr_feats[PAZ_SUM] = 0.0f;
   curr_feats[VAZ_MIN] = FLT_MAX;
   curr_feats[PITCH_RANGE] = 0.0f;
   curr_feats[OMX_MAX] = FLT_MIN;
-  curr_feats[ACCY_MEAN] = 0.0f;
+  curr_feats[ACCY_SUM] = 0.0f;
+  curr_feats[PITCH_MAX] = FLT_MIN;
+  curr_feats[PITCH_MIN] = FLT_MAX;
 }
 
 static void reset_learning_demux(){
@@ -221,14 +223,20 @@ void learning_demux(struct back_estimator_s* be, int latest_foot_off_samples, in
 //Just temporarily populated. NEEDS TO BE CHANGED
 void update_features(struct kinematics_s* kin){
     curr_feats[PAZ_MAX] = MAX(kin->pAz, curr_feats[PAZ_MAX]);
-    curr_feats[PAZ_MEAN] = curr_feats[PAZ_MEAN] + kin->pAz;
-    curr_feats[VAZ_MIN] = MIN(kin->pAz, curr_feats[VAZ_MIN]);
-    curr_feats[PITCH_RANGE] = MAX(kin->pAz, curr_feats[PITCH_RANGE]);
-    curr_feats[OMX_MAX] = MAX(kin->pAz, curr_feats[PAZ_MAX]);
-    curr_feats[ACCY_MEAN] = curr_feats[ACCY_MEAN] + kin->aAccY;
+    curr_feats[PAZ_SUM] = curr_feats[PAZ_SUM] + kin->pAz;
+    curr_feats[VAZ_MIN] = MIN(kin->vAz, curr_feats[VAZ_MIN]);
+    //curr_feats[PITCH_RANGE] = MAX(kin->pAz, curr_feats[PITCH_RANGE]);
+    curr_feats[OMX_MAX] = MAX(kin->aOmegaX, curr_feats[OMX_MAX]);
+    curr_feats[ACCY_SUM] = curr_feats[ACCY_SUM] + kin->aAccY;
+
+    curr_feats[PITCH_MAX] = MAX(kin->rot[0], curr_feats[PITCH_MAX]);
+    curr_feats[PITCH_MIN] = MIN(kin->rot[0], curr_feats[PITCH_MIN]);
 }
 
 void classify(){
+
+  curr_feats[PITCH_RANGE] = curr_feats[PITCH_MAX] - curr_feats[PITCH_MIN];
+
   float maxScore = FLT_MIN;
   for (int i = 0; i < 5; i++){
     lda.score_k[i] = inner_product(&lda.A[i*NFEATURES], curr_feats, NFEATURES) + lda.B[i];
@@ -261,209 +269,3 @@ float* get_prev_features(){
 float* get_curr_features(){
   return curr_feats;
 }
-
-// int16_t updateMaxWithTime(float *currentMax, float *currentTMax, float sensorValue){
-//   if (sensorValue > *currentMax){
-//     *currentMax = sensorValue;
-//     *currentTMax = (FLOAT32_T)(tm.loopcount - tm.latestFootOffTime)/3.0;
-//   }
-//   return 0;
-// }
-
-// int16_t updateMinWithTime(float* currentMin, float* currentTMin, float sensorValue){
-//   if (sensorValue < *currentMin){
-//     *currentMin = sensorValue;
-//     *currentTMin = (FLOAT32_T)(tm.loopcount - tm.latestFootOffTime)/3.0;
-//   }
-//   return 0;
-// }
-
-// int16_t updateMax(float* currentMax, float sensorValue){
-//   if (sensorValue > *currentMax){
-//     *currentMax = sensorValue;
-//   }
-//   return 0;
-// }
-
-// int16_t updateMin(float* currentMin,  float sensorValue){
-//   if (sensorValue < *currentMin){
-//     *currentMin = sensorValue;
-//   }
-//   return 0;
-// }
-
-// int16_t solveDiscriminantFunction1(void){
-
-//    tm.tempHolder[0] = feats.daAccZ_max - feats.daAccZ_min;
-
-//   tm.lrnFuncs[0] = A1_1*feats.vAz_sum + A1_2*feats.aOmegaX_sum_EXTRA + A1_3*feats.vAz_max + 
-//   A1_4*feats.aAccZ_final + A1_5*feats.iaAccZ_min + A1_6*feats.vAy_final + 
-//   A1_7*feats.r1_max + A1_8*feats.vAz_first + A1_9*tm.tempHolder[0] + 
-//   A1_10*feats.pAy_first + A1_11*feats.aOmegaZ_first +A1_12*feats.aAz_sum +
-//   + B1;
-
-//   tm.taskPredicted = tm.taskPredicted + 1;
-//   return 0;
-// }
-// int16_t solveDiscriminantFunction2(void){
-
-//   tm.lrnFuncs[1] = A2_1*feats.vAz_sum + A2_2*feats.aOmegaX_sum_EXTRA + A2_3*feats.vAz_max + 
-//   A2_4*feats.aAccZ_final + A2_5*feats.iaAccZ_min + A2_6*feats.vAy_final + 
-//   A2_7*feats.r1_max + A2_8*feats.vAz_first + A2_9*tm.tempHolder[0] + 
-//   A2_10*feats.pAy_first + A2_11*feats.aOmegaZ_first +A2_12*feats.aAz_sum +
-//   + B2;
-//   tm.taskPredicted = tm.taskPredicted + 1;
-//   return 0;
-// }
-// int16_t solveDiscriminantFunction3(void){
-//   tm.lrnFuncs[2] = A3_1*feats.vAz_sum + A3_2*feats.aOmegaX_sum_EXTRA + A3_3*feats.vAz_max + 
-//   A3_4*feats.aAccZ_final + A3_5*feats.iaAccZ_min + A3_6*feats.vAy_final + 
-//   A3_7*feats.r1_max + A3_8*feats.vAz_first + A3_9*tm.tempHolder[0] + 
-//   A3_10*feats.pAy_first + A3_11*feats.aOmegaZ_first +A3_12*feats.aAz_sum +
-//   + B3;
-//   tm.taskPredicted = tm.taskPredicted + 1;
-//   return 0;
-// }
-// int16_t solveDiscriminantFunction4(void){
-
-// tm.lrnFuncs[3] = A4_1*feats.vAz_sum + A4_2*feats.aOmegaX_sum_EXTRA + A4_3*feats.vAz_max + 
-//   A4_4*feats.aAccZ_final + A4_5*feats.iaAccZ_min + A4_6*feats.vAy_final + 
-//   A4_7*feats.r1_max + A4_8*feats.vAz_first + A4_9*tm.tempHolder[0] + 
-//   A4_10*feats.pAy_first + A4_11*feats.aOmegaZ_first +A4_12*feats.aAz_sum +
-//   + B4;
-//   tm.taskPredicted = tm.taskPredicted + 1;
-//   return 0;
-// }
-// int16_t solveDiscriminantFunction5(void){
-//   tm.lrnFuncs[4] = A5_1*feats.vAz_sum + A5_2*feats.aOmegaX_sum_EXTRA + A5_3*feats.vAz_max + 
-//   A5_4*feats.aAccZ_final + A5_5*feats.iaAccZ_min + A5_6*feats.vAy_final + 
-//   A5_7*feats.r1_max + A5_8*feats.vAz_first + A5_9*tm.tempHolder[0] + 
-//   A5_10*feats.pAy_first + A5_11*feats.aOmegaZ_first +A5_12*feats.aAz_sum +
-//   + B5;
-
-//   tm.taskPredicted = tm.taskPredicted + 1;
-//   return 0;
-// }
-
-// int16_t makePrediction(void){
-//   tm.iter = 0;
-//   tm.prediction = 1;
-//   tm.tempHolder[0] = tm.lrnFuncs[tm.iter];
-//   while (tm.iter < 5){
-//     tm.iter = tm.iter + 1;
-//     if (tm.lrnFuncs[tm.iter] > tm.tempHolder[0]){
-//       tm.tempHolder[0] = tm.lrnFuncs[tm.iter];
-//       tm.prediction = tm.iter+1;
-//     }
-    
-//   }
-//   tm.taskPredicted = tm.taskPredicted + 1;
-
-//     return 0;
-// }
-
-// int16_t solveDiscriminantFunction(void){
-
-//   if (tm.mode < MODE_PR){
-//     tm.prediction = tm.mode;
-//     tm.taskPredicted = 7;
-//     switchTask();
-//     return 0;
-//   }
-
-//   switch(tm.taskPredicted){
-//     case 1:
-//       solveDiscriminantFunction1();
-//     break;
-//     case 2:
-//       solveDiscriminantFunction2();
-//     break;
-//     case 3:
-//       solveDiscriminantFunction3();
-//     break;
-//     case 4:
-//       solveDiscriminantFunction4();
-//     break;
-//     case 5:
-//       solveDiscriminantFunction5();
-//     break;
-//     case 6:
-//       makePrediction();
-//       if (tm.mode == MODE_SW){
-//         switchTask();
-//       }
-//     break;
-//   }
-
-  
-//   return 0;
-// }
-
-// int16_t switchTask(void){
-//   tm.task = tm.prediction;
-//   switch (tm.task){
-//     case TASK_FL:
-//       WS_SET_NEW_STATE(STATE_LATE_SWING, STID_EARLY_SWING_DONE);
-//     break;
-//     case TASK_UR:
-//       WS_SET_NEW_STATE(STATE_LATE_SWING, STID_EARLY_SWING_DONE);
-//     break;
-//     case TASK_DR:
-//       WS_SET_NEW_STATE(STATE_LATE_SWING_DR, STID_EARLY_SWING_DONE);
-//     break;
-//     case TASK_US:
-//       WS_SET_NEW_STATE(STATE_LATE_SWING_US, STID_EARLY_SWING_DONE);
-//     break;
-//     case TASK_DS:
-//       WS_SET_NEW_STATE(STATE_LATE_SWING_DS, STID_SWING_2ES_FOOTSTRIKE);
-//     break;
-//   }
-//   return 0;
-// }
-
-
-
-
-//  int16_t updateFeatures(void){
-
-
-//      if (tm.inSwing){
-
-//           ///if(tm.iter3){
-//             updateMax(&feats.daAccZ_max, sigs.daAccZ);
-//             updateMin(&feats.iaAccZ_min, sigs.iaAccZ);
-//             updateMin(&feats.daAccZ_min, sigs.daAccZ);
-//             if (tm.loopcount - tm.latestFootOffTime < BEGINNING_CUTOFF){
-//               feats.aOmegaZ_first = feats.aOmegaZ_first + sigs.aOmegaZ;
-//             }
-//             if (tm.loopcount - tm.latestFootOffTime > ENDING_START){
-//               feats.aAccZ_final = feats.aAccZ_final + sigs.aAccZ;
-//             }
-//          // }
-
-//           //if(tm.iter1){
-//             feats.vAz_sum = feats.vAz_sum + sigs.vAz;
-//             feats.aAz_sum = feats.aAz_sum + sigs.aAz;
- 
-//             updateMax(&feats.vAz_max, sigs.vAz);
-//             updateMax(&feats.r1_max, sigs.rot[1]);
-         
-//             if (tm.loopcount - tm.latestFootOffTime < BEGINNING_CUTOFF){
-//              feats.pAy_first = feats.pAy_first + sigs.pAy;
-//              feats.vAz_first = feats.vAz_first + sigs.vAz;
-//             }
-         
-//            if (tm.loopcount - tm.latestFootOffTime > ENDING_START){
-//              feats.vAy_final = feats.vAy_final + sigs.vAy;    
-//             }
-//           //}
-//      }
-//     // if (tm.iter3){
-//         if (tm.loopcount <= PREDICTION_CUTOFF){
-//           //aOmegaX_sum_EXTRA
-//           feats.aOmegaX_sum_EXTRA = feats.aOmegaX_sum_EXTRA + sigs.aOmegaX;
-//         }
-//      // }
-
-//     return 0;
-//  }

@@ -29,13 +29,13 @@
 static struct kinematics_s kin;
 
 static void update_rotation_matrix(){
-	kin.rotprev[0] = kin.rot[0];
-	kin.rotprev[2] = kin.rot[2];
+	float rotprev0 = kin.rot[0];
+	float rotprev2 = kin.rot[2];
 
 	kin.rot[0] = kin.rot[0] + kin.rot[1]*kin.aOmegaX;
-	kin.rot[1] = kin.rot[1] - kin.rotprev[0]*kin.aOmegaX;
+	kin.rot[1] = kin.rot[1] - rotprev0*kin.aOmegaX;
 	kin.rot[2] = kin.rot[2] + kin.rot[3]*kin.aOmegaX;
-	kin.rot[3] = kin.rot[3] - kin.rotprev[2]*kin.aOmegaX;
+	kin.rot[3] = kin.rot[3] - rotprev2*kin.aOmegaX;
 
 	//kin.aOmegaDot = kin.daOmegaX * 166.666667;
 }
@@ -91,9 +91,9 @@ static void update_integrals_and_derivatives(){
 }
 
 static void reset_rotation_matrix(){
-	kin.accNormReciprocal = 1.0/sqrtf(kin.accNormSq);
-	float costheta = (kin.aAccZ + kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M)*kin.accNormReciprocal;
-	float sintheta = (kin.aAccY + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_TO_IMU_SAGITTAL_PLANE_M)*kin.accNormReciprocal;
+	float accNormReciprocal = 1.0/sqrtf(kin.accNormSq);
+	float costheta = (kin.aAccZ + kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M)*accNormReciprocal;
+	float sintheta = (kin.aAccY + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_TO_IMU_SAGITTAL_PLANE_M)*accNormReciprocal;
 	kin.rot[0] = costheta;
 	kin.rot[1] = -1.0*sintheta;
 	kin.rot[2] = sintheta;
@@ -138,21 +138,20 @@ static void reset_kinematics(){
 
 struct kinematics_s* init_kinematics(){
 	kin.rot = (float*)calloc(4, sizeof(float));
-	kin.rotprev = (float*)calloc(4, sizeof(float));
 	return &kin;
 }
 
-void update_kinematics(struct fx_rigid_mn_s* mn, int* reset_trigger, int* reached_classification_time){
-	update_acc(mn);
-	update_omega(mn);
-	update_integrals_and_derivatives();
-	if(!reached_classification_time){
+void update_kinematics(struct fx_rigid_mn_s* mn, int* translation_reset_trigger, int* reached_classification_time){
+	if(!*reached_classification_time){
+		update_acc(mn);
+		update_omega(mn);
+		update_integrals_and_derivatives();
 		update_rotation_matrix();
 		update_ankle_translations();
 	}
-	if (*reset_trigger){
+	if (*translation_reset_trigger){
 		reset_kinematics();
-		*reset_trigger = 0;
+		*translation_reset_trigger = 0;
 		*reached_classification_time = 0;
 	}
 }

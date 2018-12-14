@@ -11,18 +11,14 @@
 //TODO: These constants need to be checked!!!!!
 
 //Swing/stance thresholds
-#define MAX_SAMPLES_FROM_MAX_TQ 100
 #define MIN_TQ_FOR_FOOT_ON 12.0000f
-#define N_MIN_TQ_FOR_FOOT_ON -12.0000f
 #define MIN_STANCE_SAMPLES 200
-#define MIN_STRIDE_SAMPLES 500
 
 //Foot static thresholds
-#define UPPER_ACCNORM_THRESH_SQ 106.0900f
-#define LOWER_ACCNORM_THRESH_SQ 86.49000f
+#define UPPER_ACCNORM_THRESH_SQ 102.01f
+#define LOWER_ACCNORM_THRESH_SQ 90.25f
 #define MIN_TQ_FOR_FOOT_STATIC_NM 15.0000f
-#define DEFAULT_STANCE_RESET_SAMPLES 100
-#define MIN_TQDOT_FOR_FOOT_STATIC -0.1f
+#define DEFAULT_STANCE_RESET_SAMPLES 50
 #define STANCE_RESET_EXPIRY_SAMPLES 1000
 
 //Prediction thresholds
@@ -45,9 +41,6 @@
 #define DR_Z_THRESH -0.05f
 #define DR_MEAN_THETA_THRESH 1.6f
 
-
-
-
 struct taskmachine_s
 {
 	
@@ -58,15 +51,14 @@ struct taskmachine_s
 	int elapsed_samples;
 	int latest_foot_off_samples;
 
-	int foundFirstZvupAfterFootOn;
+	int found_optimal_foot_static;
 	int in_swing;
 	int reached_classification_time;
-
+	int stride_classified;
+	int do_learning_for_stride;
 
 	int translation_reset_trigger;
-	int calc_translations;
 	int learning_reset_trigger;
-	int do_learning_for_stride;
 
 	float tq;
 	float theta;
@@ -84,7 +76,6 @@ struct back_estimator_s
 	float min_swing_z;
 	float max_swing_z;
 	float max_swing_z_samples;
-	float prev_stance_samples;
 };
 
 struct taskmachine_s* get_task_machine();

@@ -8,7 +8,7 @@
 #include "task_machine.h"
 
 struct kinematics_s* init_kinematics();
-void update_kinematics(struct fx_rigid_mn_s* mn, int* reset_trigger, int* reached_classification_time);
+void update_kinematics(struct fx_rigid_mn_s* mn, int* translation_reset_trigger, int* reached_classification_time);
 struct kinematics_s* get_kinematics();
 
 struct kinematics_s
@@ -27,7 +27,6 @@ struct kinematics_s
     float aOmegaXprev;
 
     float* rot;
-    float* rotprev;
 
     float SaAy;
     float SaAz;
@@ -40,9 +39,7 @@ struct kinematics_s
 
     float accNormReciprocal;
     float accNormSq;
-    float accNorm;
 
-    int calculateTranslations;
 };
 
 
