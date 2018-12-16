@@ -101,8 +101,8 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 //#define IS_KNEE
 
 //2. Select device
-#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-//#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
+//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
 //#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
 

@@ -47,8 +47,11 @@ void   mit_init_current_controller(void);
 void   	getJointAngleKinematic(struct act_s *act_x);
 float   getJointAngularVelocity(void);
 float   getAxialForce(void);
-float   getLinkageMomentArm(float);
+//float   getLinkageMomentArm(float);
+float 	getLinkageMomentArm(struct act_s *actx);
 float   getJointTorque(struct act_s *actx);
+float 	getJointTorque2(struct act_s *actx);	// determine joint torque based on motor deflection.
+void	initializeMotorAngle(struct act_s *actx);	// save expected initialMotorAngle
 float 	getJointTorqueRate(struct act_s *actx);
 float 	calcRestoringCurrent(struct act_s *actx, float N);
 int16_t getMotorTempSensor(void);

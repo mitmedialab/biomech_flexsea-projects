@@ -149,7 +149,7 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
 	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
-	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
+	actx->linkageMomentArm = getLinkageMomentArm(actx);
 	actx->axialForce = 0.8*actx->axialForce + 0.2*getAxialForce();
 
 	actx->jointTorque = getJointTorque(actx);
@@ -293,16 +293,17 @@ float getAxialForce(void)
 // input( jointAngle, theta [rad] )
 // return moment arm projected length  [m]
 //float getLinkageMomentArm(float theta)
-float getLinkageMomentArm(float theta)
+float getLinkageMomentArm(struct act_s *actx)
 {
 	static float A=0, c = 0, c2 = 0, r = 0, C_ang = 0;
 
-    C_ang = M_PI - theta - (MA_TF); 	// angle
+    C_ang = M_PI - actx->jointAngle - (MA_TF); 	// angle
     c2 = MA_A2B2 - MA_TWOAB* cosf(C_ang);
     c = sqrtf(c2);  // length of actuator from pivot to output
     A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
 
     r = MA_B * sinf(A);
+    actx->screwLength = c;	// save screw length to determine joint torque;
 
     return r/1000;
 }
@@ -330,6 +331,46 @@ float getJointTorque(struct act_s *actx)
 	}
 
 	return torque;
+}
+
+/*
+ *  Determine torque at joint due to expected screw length
+ *  input:	struct act_s
+ *  return: joint torque [Nm]
+ *  todo:IN PROGRESS
+  */
+float getJointTorque2(struct act_s *actx)
+{
+	float torque = 0;
+	static int32_t currentMotorPosition = 0;
+	static int32_t diffScrew = 0;
+
+	currentMotorPosition = *rigid1.ex.enc_ang;
+	diffScrew = actx->screwLength - 0; // this is not right. need to finish.
+	torque = actx->linkageMomentArm * actx->axialForce;
+
+	// look at current joint position, and calculate expected screw length
+	// determine where length is based on initialize motor position, compared to current motor position.
+	// should work for a locked joint, but what happens when joint is what has moved?
+
+
+	if(torque >= ABS_TORQUE_LIMIT_INIT || torque <= -ABS_TORQUE_LIMIT_INIT) {
+		isSafetyFlag = SAFETY_TORQUE;
+		isTorqueLimit = 1;
+	} else {
+		isTorqueLimit = 0;
+	}
+
+	return torque;
+}
+/*
+ *  Save initial motor angle. will use to determine expected number of rotations
+ */
+
+void initializeMotorAngle(struct act_s *actx)
+{
+	actx->initialMotorAngle = *rigid1.ex.enc_ang;
+	actx->initialJointAngle = *rigid1.ex.joint_ang;
 }
 
 /*

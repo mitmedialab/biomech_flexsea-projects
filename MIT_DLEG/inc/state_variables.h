@@ -58,8 +58,11 @@ typedef struct act_s
     float tauDes;           // FSM des torque - tauMeas
     float lastJointAngle;
     float lastJointTorque;
-    float jointTorqueRate;  // Joint torque rate
+    float jointTorqueRate;  	// Joint torque rate
     float safetyTorqueScalar;	// Scalar value to reduce overall allowed torque generated.
+    float screwLength;			// expected screw length for specified joint angle - to be used with torque measurement.
+    int32_t initialMotorAngle;	// save initialized motor angle.
+    int16_t initialJointAngle;	// save initialized joint angle.
 
     int32_t motorVel;		// motor velocity [rad/s]
     int32_t motorAcc;		// motor acceleration [rad/s/s]
