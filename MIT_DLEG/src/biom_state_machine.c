@@ -21,12 +21,12 @@ WalkParams walkParams;
 CubicSpline cubicSpline;
 
 // torque trajectory tracking variables
-static uint32_t impedance_mode;
-static float time_stance = 0.0;
+static uint32_t impedance_mode; // flag for impedance mode
+static float time_stance = 0.0; // time in stance phase
 static float standard_stance_period = 600.0; // TODO: verify this, at 1.25m/s
 static float previous_stance_period = 600.0;
 static float previous_swing_period = 400.0; // TODO: verify this, at 1.25m/s
-static float time_swing = 0.0;
+static float time_swing = 0.0; // time in swing phase
 static float speedFactor;
 static float percent;
 static uint32_t current_index;
@@ -123,7 +123,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
             stateMachine.current_state = STATE_LATE_SWING;
 
-            // torque tracking - scale mass TODO: correct in here?
+            // torque tracking - scale mass
             for(int i=0; i<TRAJ_SIZE; i++){
             	torque_traj_mscaled[i] = torque_traj[i] + ((USER_MASS - 50.0)*massGains[i]); }
 
@@ -712,7 +712,7 @@ static float torqueTracking(){
 	if(percent > 1.0) percent = 1.0;
 	current_index = round(percent*(float)TRAJ_SIZE);
 	torqueCommand = torque_traj_mscaled[current_index] + (speedFactor*speedGains[current_index]);
-	return torqueCommand * (float)user_data_1.w[1];
+	return torqueCommand * (float)user_data_1.w[1]; //put a value lees than 1 in user_data_1.w to reduce the torque magnitude
 }
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
 
