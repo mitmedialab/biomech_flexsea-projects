@@ -8,11 +8,15 @@
 #define NFEATURES_SQ NFEATURES * NFEATURES
 
 
-static int learning_demux_state = READY_TO_LEARN;
+static int update_learner_demux_state = READY_TO_UPDATE_LEARNER;
+static int update_classifier_demux_state = READY_TO_UPDATE_CLASSIFIER;
 static int current_updating_class = 0;
 static int segment = 0;
 static int subsegment = 0;
 static int doing_forward_substitution = 1;
+static int making_matrix_copy  = 0;
+
+static int matrix_copy_segment = 0;
 
 static struct classifier_s lda;
 static struct learner_s lrn;
@@ -66,12 +70,19 @@ static void reset_features(){
   curr_feats[PITCH_MIN] = FLT_MAX;
 }
 
-static void reset_learning_demux(){
-  learning_demux_state = BACK_ESTIMATE;
+static void reset_learner_update_demux(){
+  update_learner_demux_state = BACK_ESTIMATE;
   current_updating_class = 0;
   segment = 0;
   subsegment = 0;
   doing_forward_substitution = 1;
+}
+
+static void reset_classifier_update_demux(){
+  update_classifier_demux_state = COPY_SUM_SIGMA;
+  matrix_copy_segment = 0;
+  making_matrix_copy = 1;
+
 }
 
 static void init_features(){
@@ -101,9 +112,9 @@ static void init_learner(){
 
   lrn.pop = 1.0;
 
+  lrn.n_updates = 0;
+
   //init intermediary matrices
-  lrn.UT = (float*)calloc(NFEATURES_SQ, sizeof(float));
-  lrn.LT = (float*)calloc(NFEATURES_SQ, sizeof(float));
   lrn.A = (float*)calloc(NFEATURES_SQ, sizeof(float));
   lrn.x  = (float*)calloc( NFEATURES, sizeof(float));
   lrn.y  = (float*)calloc( NFEATURES, sizeof(float));
@@ -115,47 +126,78 @@ static void init_classifier(){
   lda.B = (float*)calloc(NCLASSES, sizeof(float));
   lda.score_k = (float*)calloc(NCLASSES, sizeof(float));
   lda.k_pred = TASK_FL;
+  lda.latest_sum_sigma = (float*)calloc(NFEATURES_SQ, sizeof(float));
+  //init intermediary matrices
+  lda.UT = (float*)calloc(NFEATURES_SQ, sizeof(float));
+  lda.LT = (float*)calloc(NFEATURES_SQ, sizeof(float));
+  lda.x  = (float*)calloc( NFEATURES, sizeof(float));
+  lda.y  = (float*)calloc( NFEATURES, sizeof(float));
   
 }
 
 
 
-void learning_demux(struct back_estimator_s* be, int latest_foot_off_samples, int learning_reset_trigger){
-    switch (learning_demux_state){
+void update_learner_demux(struct back_estimator_s* be, int latest_foot_off_samples, int learner_update_reset_trigger){
+    switch (update_learner_demux_state){
       case BACK_ESTIMATE:
         back_estimate(be, latest_foot_off_samples);
-        learning_demux_state++;
+        update_learner_demux_state++;
       break;
       case UPDATE_CLASS_MEAN: //1 sample
         update_class_mean(); //2f flops
-        learning_demux_state++;
+        update_learner_demux_state++;
       break;
       case UPDATE_OVERALL_MEAN: // 1 sample
         update_overall_mean(); //2f flops
-        learning_demux_state++;
+        update_learner_demux_state++;
       break;
-      case GET_DEVIATIONS_FROM_MEAN: // 1 sample
+      case GET_DEVIATION_FROM_CURR_MEAN: // 1 sample
         diff(prev_feats, lrn.mu, lrn.x, NFEATURES);//f flops
+        update_learner_demux_state++;
+      break;
+      case GET_DEVIATION_FROM_PREV_MEAN: // 1 sample
         diff(prev_feats, lrn.mu_prev, lrn.y, NFEATURES); //f flops
-        learning_demux_state++;
+        update_learner_demux_state++;
       break;
       case UPDATE_COVARIANCE: // f samples
       {
+        if (making_matrix_copy)
+          return;
         int segment_section = segment*NFEATURES;
         segmented_outer_product(lrn.x, lrn.y, lrn.A, NFEATURES, segment); //2f flops
         sum(&lrn.sum_sigma[segment_section], &lrn.A[segment_section], &lrn.sum_sigma[segment_section], NFEATURES);//f flops
+
         segment++;
         if (segment == NFEATURES){
-          learning_demux_state++; 
+          update_learner_demux_state++; 
+          lrn.n_updates++;
           segment = 0;
           subsegment = 0;
           lrn.pop = lrn.pop + 1.0;
         }
       }
       break;
+      case READY_TO_UPDATE_LEARNER:
+        if (learner_update_reset_trigger)
+          reset_learner_update_demux();
+      break;
+    }
+  }
+
+void update_classifier_demux(){
+
+      switch (update_classifier_demux_state){
+      case COPY_SUM_SIGMA:
+          assignment(&lrn.sum_sigma[matrix_copy_segment], &lda.latest_sum_sigma[matrix_copy_segment], NFEATURES);// assignment
+          matrix_copy_segment = matrix_copy_segment + NFEATURES;
+          if (matrix_copy_segment == NFEATURES_SQ){
+            making_matrix_copy = 0;
+            update_classifier_demux_state++;
+          }
+      break;
       case DO_CHOLESKY: // f(f+1)/2 samples
 
-        super_segmented_cholesky(lrn.sum_sigma, lrn.LT, NFEATURES, segment, subsegment);
+        super_segmented_cholesky(lda.latest_sum_sigma, lda.LT, NFEATURES, segment, subsegment);
         subsegment++;
         if (subsegment > segment){
           subsegment = 0;
@@ -163,15 +205,15 @@ void learning_demux(struct back_estimator_s* be, int latest_foot_off_samples, in
         }
 
         if (segment == NFEATURES){
-          learning_demux_state++; 
+          update_classifier_demux_state++; 
           segment = 0;
         }
       break;
       case UPDATE_TRANSPOSE: //f samples
-        segmented_lower_to_upper_transpose(lrn.LT, lrn.UT, NFEATURES, segment);
+        segmented_lower_to_upper_transpose(lda.LT, lda.UT, NFEATURES, segment);
         segment++;
         if (segment == NFEATURES){
-          learning_demux_state++;
+          update_classifier_demux_state++;
           segment = 1;
         }
       break;
@@ -179,7 +221,7 @@ void learning_demux(struct back_estimator_s* be, int latest_foot_off_samples, in
       {
         int class_times_n_features = current_updating_class*NFEATURES;
         if (doing_forward_substitution){
-          segmented_forward_substitution(lrn.LT, &lrn.sum_k[class_times_n_features], lrn.y, NFEATURES, segment); // roughly 1/2 f^2 flops
+          segmented_forward_substitution(lda.LT, &lrn.sum_k[class_times_n_features], lda.y, NFEATURES, segment); // roughly 1/2 f^2 flops
           segment++;
           if (segment == NFEATURES){
             segment = NFEATURES-2;
@@ -187,7 +229,7 @@ void learning_demux(struct back_estimator_s* be, int latest_foot_off_samples, in
           }
         }
         else{
-          segmented_backward_substitution(lrn.UT, lrn.y, &lda.A[class_times_n_features], NFEATURES, segment); // roughly 1/2 f^2 flops
+          segmented_backward_substitution(lda.UT, lda.y, &lda.A[class_times_n_features], NFEATURES, segment); // roughly 1/2 f^2 flops
           segment--;
           if (segment == -1){
             //lda.B[current_updating_class] = -0.5*inner_product(&lrn.sum_k[class_times_n_features], &lda.A[class_times_n_features], NFEATURES);
@@ -197,7 +239,7 @@ void learning_demux(struct back_estimator_s* be, int latest_foot_off_samples, in
           }
         }
         if (current_updating_class == NCLASSES){
-          learning_demux_state++; 
+          update_classifier_demux_state++; 
           current_updating_class = 0;
         }  
       }
@@ -208,17 +250,12 @@ void learning_demux(struct back_estimator_s* be, int latest_foot_off_samples, in
         lda.B[current_updating_class] = -0.5*inner_product(&lrn.mu_k[class_times_n_features], &lda.A[class_times_n_features], NFEATURES);
         current_updating_class++;
         if (current_updating_class == NCLASSES){
-          learning_demux_state++; 
+          reset_classifier_update_demux();
         }  
       }    
       break;
-      case READY_TO_LEARN:
-        if (learning_reset_trigger)
-          reset_learning_demux();
-      break;
-    }
-    
-} 
+  }
+}
 
 //Just temporarily populated. NEEDS TO BE CHANGED
 void update_features(struct kinematics_s* kin){

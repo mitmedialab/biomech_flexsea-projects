@@ -144,7 +144,8 @@ void task_machine_demux(struct rigid_s* rigid){
         else
           update_features(get_kinematics());
 
-        learning_demux(&be, tm.latest_foot_off_samples, tm.learning_reset_trigger);
+        update_learner_demux(&be, tm.latest_foot_off_samples, tm.learning_reset_trigger);
+        update_classifier_demux();
         state_machine_demux(rigid, get_classifier()->k_pred);
 
     break;
