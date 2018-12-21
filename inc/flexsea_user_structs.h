@@ -99,6 +99,10 @@ struct fx_rigid_mn_s
 
 	int16_t genVar[20];
 
+	//Biomech added:
+	int16_t mot_temp;
+	int32_t userVar[20];
+
 	//Decoded:
 	struct decoded_fx_rigid_mn_s decoded;
 };

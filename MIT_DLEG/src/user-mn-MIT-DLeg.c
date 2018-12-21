@@ -1,7 +1,7 @@
 /****************************************************************************
 	[Project] FlexSEA: Flexible & Scalable Electronics Architecture
-	[Sub-project] 'flexsea-projects' User projects
-	Copyright (C) 2018 Dephy, Inc. <http://dephy.com/>
+	[Sub-project] 'flexsea-user' User projects
+	Copyright (C) 2016 Dephy, Inc. <http://dephy.com/>
 
 	This program is free software: you can redistribute it and/or modify
 	it under the terms of the GNU General Public License as published by
@@ -16,127 +16,172 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************
-	[Lead developer] Jean-Francois Duval, jfduval at dephy dot com.
+	[Lead developer] Luke Mooney, lmooney at dephy dot com.
 	[Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
 	Biomechatronics research group <http://biomech.media.mit.edu/>
-	[Contributors]
+	[Contributors] Tony Shu, tony shu at mit dot edu, Matthew Carney mcarney at mit dot edu
 *****************************************************************************
-	[This file] user-mn-MIT-DLeg: Demo state machine for DLeg
-*****************************************************************************
-	[Change log] (Convention: YYYY-MM-DD | author | comment)
-	* 2018-02-24 | jfduval | New release
-****************************************************************************/
+	[This file] user-mn-MIT_DLeg_2dof: User code running on Manage
+*****************************************************************************/
 
-#ifdef INCLUDE_UPROJ_MIT_DLEG
-#ifdef BOARD_TYPE_FLEXSEA_MANAGE
+#if defined INCLUDE_UPROJ_MIT_DLEG || defined BOARD_TYPE_FLEXSEA_PLAN
+#if defined BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-
+#include <stdint.h>
+#include "main.h"
 #include "user-mn.h"
-#include "user-mn-MIT-DLeg.h"
 #include "user-mn-ActPack.h"
-#include <flexsea_comm.h>
-#include <math.h>
 #include "flexsea_sys_def.h"
 #include "flexsea_system.h"
 #include "flexsea_cmd_calibration.h"
+#include "flexsea_user_structs.h"
+#include <math.h>
+
+#include <user-mn-MIT-DLeg.h>
+#include "actuator_functions.h"
+#include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
+
 
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
 
-uint8_t mitDlegInfo[2] = {PORT_RS485_2, PORT_RS485_2};
 
-//****************************************************************************
-// Private Function Prototype(s):
-//****************************************************************************
 
-static void openSpeedFSM(void);
-static void twoPositionFSM(void);
 
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
 
-//Call this function once in main.c, just before the while()
-void init_MIT_DLeg(void)
-{
+//MIT DLeg Finite State Machine.
+
+void init_MIT_DLeg(void) {
+
 
 }
 
-//MIT DLeg Finite State Machine.
 //Call this function in one of the main while time slots.
 void MIT_DLeg_fsm_1(void)
 {
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
-    static uint32_t time = 0, state = 0;
+    static uint32_t time = 0;
 
-    //Increment time (1 tick = 1ms)
+    //Increment time (1 tick = 1ms nominally; need to confirm)
     time++;
 
-	switch(state)
+    //begin main FSM
+	switch(fsm1State)
 	{
-		case 0:
+		case -2:
+			stateMachine.current_state = STATE_IDLE;
 			//Same power-on delay as FSM2:
-			if(time >= AP_FSM2_POWER_ON_DELAY)
-			{
-				state = 1;
+			if(time >= AP_FSM2_POWER_ON_DELAY ) {
+				fsm1State = -1;
 				time = 0;
 			}
 
 			break;
 
-		case 1:
-			//Disable FSM2:
-			disableActPackFSM2();
-			if(time > 10)
-			{
-				state = 2;
+		case -1:
+			stateMachine.current_state = STATE_INIT;
+			//turned off for testing without Motor usage
+			if(findPoles()) {
+				mit_init_current_controller();		//initialize Current Controller with gains
+				fsm1State = 0;
 				time = 0;
 			}
+			//for testing
+//			fsm1State = 0;
 
 			break;
 
-		case 2:
-			//Send Find Poles command:
+		case 0:
+			//sensor update happens in mainFSM2(void) in main_fsm.c
+			isEnabledUpdateSensors = 1;
 
-			tx_cmd_calibration_mode_rw(TX_N_DEFAULT, CALIBRATION_FIND_POLES);
-			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitDlegInfo, SEND_TO_SLAVE);
-			state = 3;
+			/*reserve for additional initialization*/
+
+			//Set usewrites to initial values
+			walkParams.initializedStateMachineVariables = 0;
+			if (!walkParams.initializedStateMachineVariables){
+				initializeUserWrites(&act1, &walkParams);
+
+			}
+
+			act1.safetyTorqueScalar = 1.0;
+
+			fsm1State = 1;
 			time = 0;
 
 			break;
 
-		case 3:
-			//Wait 60s... (conservative)
-
-			if(time >= 60000)
+		case 1:
 			{
-				//Enable FSM2, position controller
-				enableActPackFSM2();
-				state = 4;
-				time = 0;
+
+				//populate rigid1.mn.genVars to send to Plan
+				packRigidVars(&act1);
+
+				//begin safety check
+			    if (safetyShutoff()) {
+			    	/*motor behavior changes based on failure mode.
+			    	  Bypasses the switch statement if return true
+			    	  but sensors check still runs and has a chance
+			    	  to allow code to move past this block.
+			    	  Only update the walking FSM, but don't output torque.
+			    	*/
+			    	stateMachine.current_state = STATE_EARLY_STANCE;
+
+			    } else {
+
+
+			        updateUserWrites(&act1, &walkParams);
+
+			    	runFlatGroundFSM(&act1);
+
+			    	// Check that torques are within safety range.
+			    	if (act1.tauDes > act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
+			    		act1.tauDes = act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT;
+			    	} else if (act1.tauDes < -act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
+			    		act1.tauDes = - act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT;
+			    	}
+
+
+
+//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100.);
+//			    	act1.tauDes = biomCalcImpedance(.5, .1, 0);
+			    	setMotorTorque(&act1, act1.tauDes);
+
+			    	/* Output variables live here. Use this as the main reference
+			    	 * NOTE: the communication Offsets are defined in /Rigid/src/cmd-rigid.c
+			    	 */
+			        rigid1.mn.genVar[0] = (int16_t) (act1.linkageMomentArm *1000.0); //startedOverLimit;
+					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
+					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
+ 					rigid1.mn.genVar[3] = (int16_t) (act1.jointVel * 100.0); 	// rad/s
+					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
+					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
+					rigid1.mn.genVar[6] = (int16_t) rigid1.ex.mot_current; // LG
+					rigid1.mn.genVar[7] = (int16_t) rigid1.ex.mot_volt; // TA
+					rigid1.mn.genVar[8] = stateMachine.current_state;
+					rigid1.mn.genVar[9] = act1.tauDes*100;
+			    }
+
+				break;
 			}
 
-			break;
-
-		case 4:
-			//Pick one of those demos:
-			//openSpeedFSM();
-			//twoPositionFSM();
-			//If nothing is enabled in case 4 the user can control the motor from the GUI
-			break;
-
-        default:
+        	default:
 			//Handle exceptions here
 			break;
 	}
 
 	#endif	//ACTIVE_PROJECT == PROJECT_ANKLE_2DOF
 }
+
+
 
 
 //Second state machine for the DLeg project
@@ -153,84 +198,69 @@ void MIT_DLeg_fsm_2(void)
 // Private Function(s)
 //****************************************************************************
 
-static void openSpeedFSM(void)
-{
-	static uint32_t timer = 0, deltaT = 0;
-	static uint8_t fsm1State = 0;
+/*UserWrites are inputs from Plan. They are initailized to teh values shown below.
+ * Their values are then used by udpateUserWrites to set function values.
+ * These can be updated as necessary.
+ * Do keep care to initialize and upate correctly.
+ * Also note, the initial values will not show up in Plan, that must be manually entered*/
 
-	switch(fsm1State)
-	{
-		case 0:
-			setControlMode(CTRL_OPEN, 0);
-			setMotorVoltage(0, 0);
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 3000)
-			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-			setMotorVoltage(0, 0);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 3000)
-			{
-				deltaT = 0;
-				fsm1State = 1;
-			}
-			setMotorVoltage(1000, 0);
-			break;
-	}
+void updateUserWrites(Act_s *actx, WalkParams *wParams){
+
+	actx->safetyTorqueScalar 				= ( (float) user_data_1.w[0] ) /100.0;	// Reduce overall torque limit.
+	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
+	wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
+	wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
+	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
+	lstPowerGains.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
+	lstPowerGains.thetaDes 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
+	lstPowerGains.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
+	estGains.k1			 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
+	estGains.b			 					= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
+
+
 }
 
-static void twoPositionFSM(void)
-{
-	static uint32_t timer = 0, deltaT = 0;
-	static int8_t fsm1State = -1;
-	static int32_t initPos = 0;
+void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
-	switch(fsm1State)
-	{
-		case -1:
-			//We give FSM2 some time to refresh values
-			timer++;
-			if(timer > 25)
-			{
-				initPos = *(rigid1.ex.enc_ang);
-				fsm1State = 0;
-			}
-			break;
-		case 0:
-			setControlMode(CTRL_POSITION, 0);
-			setControlGains(20, 6, 0, 0, 0);	//kp = 20, ki = 6
-			setMotorPosition(initPos, 0);
-			fsm1State = 1;
-			deltaT = 0;
-			break;
-		case 1:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 2;
-			}
-			setMotorPosition(initPos + 10000, 0);
-			break;
-		case 2:
-			deltaT++;
-			if(deltaT > 1000)
-			{
-				deltaT = 0;
-				fsm1State = 1;
-			}
-			setMotorPosition(initPos, 0);
-			break;
-	}
+	wParams->earlyStanceK0 = 6.23;
+	wParams->earlyStanceKF = 0.1;
+	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
+
+	actx->safetyTorqueScalar 				= 1.0; 	//user_data_1.w[0] = 100
+	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
+	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
+	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]
+	wParams->lstPGDelTics 					= 70.0;	//user_data_1.w[4] = 30
+	lstPowerGains.k1						= 4.0;	//user_data_1.w[5] = 400 [Nm/deg]
+	lstPowerGains.thetaDes 					= 18;	//user_data_1.w[6] = 1800 [Deg]
+	lstPowerGains.b		 					= 0.20;	//user_data_1.w[7] = 30   [Nm/s]
+	estGains.k1			 					= 1.50;	//user_data_1.w[8] = 150  [Nm/deg]
+	estGains.b			 					= 0.30;	//user_data_1.w[9] = 32  [Nm/s]
+
+	//USER WRITE INITIALIZATION GOES HERE//////////////
+
+	user_data_1.w[0] =  (int32_t) ( actx->safetyTorqueScalar*100 ); 	// Hardstop Engagement angle
+	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
+	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
+	user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque*100 ); 			// Late stance power, torque threshhold
+	user_data_1.w[4] =  (int32_t) ( wParams->lstPGDelTics ); 		// ramping rate
+	user_data_1.w[5] =  (int32_t) ( lstPowerGains.k1 * 100 );		// 4.5 x 100
+	user_data_1.w[6] =  (int32_t) ( lstPowerGains.thetaDes * 100 ); // 14 x 100
+	user_data_1.w[7] =  (int32_t) ( lstPowerGains.b * 100 ); // 0.1 x 100
+	user_data_1.w[8] =  (int32_t) ( estGains.k1 * 100 ); // 0.1 x 100
+	user_data_1.w[9] =  (int32_t) ( estGains.b * 100 ); // 0.1 x 100
+
+	///////////////////////////////////////////////////
+
+	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
 }
 
-#endif 	//BOARD_TYPE_FLEXSEA_MANAGE
-#endif //INCLUDE_UPROJ_MIT_DLEG
+
+
+
+
+
+
+
+#endif 	//BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
+#endif //INCLUDE_UPROJ_MIT_DLEG || defined BOARD_TYPE_FLEXSEA_PLAN

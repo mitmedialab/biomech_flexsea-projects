@@ -51,6 +51,8 @@
 
 #if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 #include "user-mn-MIT-DLeg.h"
+#include "user-mn-MIT-EMG.h"
+#include <software_filter.h>
 #endif
 
 #if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
@@ -230,7 +232,7 @@ void user_fsm_2(void)
 
 		//MIT D-Leg:
 		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-		MIT_DLeg_fsm_2();
+		MIT_DLeg_fsm_1();
 		#endif	//PROJECT_MIT_DLEG
 
 		//MIT Pocket 2xDC / PocketClimb:
