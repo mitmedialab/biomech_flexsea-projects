@@ -8,14 +8,14 @@
  //Kinematics constants (copied from matlab pil)
 #define PI 3.14159
 #define GRAVITY_MPS2 9.8
-#define GRAVITY_SQ GRAVITY_MPS2^2
+#define GRAVITY_SQ GRAVITY_MPS2*GRAVITY_MPS2
 #define RAD_PER_DEG PI/180.0
 #define GYRO_LSB_PER_DPS 32.8  //per http://dephy.com/wiki/flexsea/doku.php?id=units
 #define ACCEL_LSB_PER_G 8192.0   //per http://dephy.com/wiki/flexsea/doku.php?id=units
 #define ANKLE_POS_IMU_FRAME_X_M 0.0  //Frontal axis (medial->lateral)
 #define ANKLE_POS_IMU_FRAME_Y_M -0.00445  //Longitudinal axis (bottom->top)
 #define ANKLE_POS_IMU_FRAME_Z_M -0.0605  //Sagittal axis (back->front)
-#define ANKLE_TO_IMU_SAGITTAL_PLANE_M sqrtf(ANKLE_POS_IMU_FRAME_Y_M^2 + ANKLE_POS_IMU_FRAME_Z_M^2)
+#define ANKLE_TO_IMU_SAGITTAL_PLANE_M ANKLE_POS_IMU_FRAME_Y_M*ANKLE_POS_IMU_FRAME_Y_M + ANKLE_POS_IMU_FRAME_Z_M*ANKLE_POS_IMU_FRAME_Z_M //TO DO NEEDS A SQUARE ROOT AROUND IT!!!!!!!!
 #define ACCEL_MPS2_PER_LSB  0.98 * GRAVITY_MPS2 / ACCEL_LSB_PER_G
 #define N_ACCEL_MPS2_PER_LSB -0.98 * ACCEL_MPS2_PER_LSB
 #define GYRO_RPS_PER_LSB RAD_PER_DEG / GYRO_LSB_PER_DPS
@@ -39,7 +39,7 @@ static void update_ankle_translations(){
 
 	float vAySq = kin.vAy*kin.vAy;
     float vAzSq = kin.vAz*kin.vAz;
-    kin.sinSqAttackAngle = (((kin.vAz > 0) - (kin.vAz < 0))*vAzSq)./(vAySq+vAzSq);
+    kin.sinSqAttackAngle = (((kin.vAz > 0) - (kin.vAz < 0))*vAzSq)/(vAySq+vAzSq);
 
 
 }
@@ -49,7 +49,7 @@ static void update_ankle_translations(){
 static void reset_rotation_matrix_old_way(){
 	float zAccWithCentripetalAccCompensation = (kin.aAccZ + kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
 	float yAccWithTangentialAccCompensation = (kin.aAccY + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
-	float accNormReciprocal	= 1.0/sqrtf(yAccWithTangentialAccCompensation^2 + zAccWithCentripetalAccCompensation^2);
+	float accNormReciprocal	= 1.0/sqrtf(yAccWithTangentialAccCompensation*yAccWithTangentialAccCompensation + zAccWithCentripetalAccCompensation*zAccWithCentripetalAccCompensation);
 	float costheta = zAccWithCentripetalAccCompensation*accNormReciprocal;
 	float sintheta = yAccWithTangentialAccCompensation*accNormReciprocal;
 	
@@ -123,7 +123,7 @@ static void update_rotation_matrix(){
 	kin.rot4 = kin.rot4 - rotprev3*kin.aOmegaX * SAMPLE_PERIOD;
 }
 
-void update_kinematics(struct fx_rigid_mn_s* mn, struct task_machine_s* tm){
+void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm){
 	update_acc(mn);
 	update_omega(mn);
 	correct_gyro_bias();
@@ -132,10 +132,9 @@ void update_kinematics(struct fx_rigid_mn_s* mn, struct task_machine_s* tm){
 	update_rotation_matrix();
 	update_ankle_translations();
 
-	if (tm.gait_event_trigger == GAIT_EVENT_FOOT_ON || 
-	    tm.gait_event_trigger == GAIT_EVENT_FOOT_STATIC) 
+	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON ||  tm->gait_event_trigger == GAIT_EVENT_FOOT_STATIC)
 	    reset_kinematics();
-	end
+
 }
 
 

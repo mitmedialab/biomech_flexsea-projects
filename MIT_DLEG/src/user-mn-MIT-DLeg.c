@@ -185,7 +185,7 @@ void MIT_DLeg_fsm_1(void)
 
 			//task_machine_demux(&rigid1);
 
-			rigid1.mn.genVar[0] = (int16_t) (get_learner()->); //
+			//rigid1.mn.genVar[0] = (int16_t) (get_learner()->); //
 			rigid1.mn.genVar[1] = (int16_t) (rigid1.mn.gyro.y); //			
 			rigid1.mn.genVar[2] = (int16_t) (rigid1.mn.gyro.z); //
 			rigid1.mn.genVar[3] = (int16_t) (rigid1.mn.accel.x); //

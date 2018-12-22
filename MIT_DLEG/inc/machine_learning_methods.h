@@ -8,19 +8,23 @@
 #include "linear_algebra_methods.h"
 #include "kinematics_methods.h"
 #include "task_machine.h"
+#include "back_estimation_methods.h"
 #include "flexsea.h"
 #include <stdio.h>
 #include <float.h>
 
-void update_learner_demux(struct taskmachine_s* tm, struct back_estimator_s* be);
+void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin);
+void update_learner_demux(struct taskmachine_s* tm);
 void update_classifier_demux();
 void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* kin);
 void classify();
 void init_learning_structs();
+
+//Getters
 struct learner_s* get_learner();
 struct classifier_s* get_classifier();
-float* get_prev_features();
-float* get_curr_features();
+struct features_s* get_prev_features();
+struct features_s* get_curr_features();
 
 //copied from matlab pil
 enum Prediction_Signals {
@@ -79,7 +83,7 @@ struct features_s
 	float* min;
 	float* rng;
 	float* fin;
-}
+};
 
 
 //copied from matlab pil
@@ -92,13 +96,17 @@ struct learner_s
 	float* sum;
 	float* sum_sigma;
 	float* pop_k;
-	float* pop;
+	float pop;
 
 	//init intermediary matrices
+	float* temp;
 	float* x;
 	float* y;
+
 	uint8_t k_est;
 
+
+	//Segmentation, state,and mutex variables
 	uint8_t updating_learner_matrices;
 	int demux_state;		
 	int segment;
@@ -109,8 +117,7 @@ struct learner_s
 //copied from matlab pil
 struct classifier_s
 {
-	float* Atemp;
-	float* Btemp;
+
 	float* A;
 	float* B;
 	float* score_k;
@@ -122,11 +129,17 @@ struct classifier_s
 	float* latest_sum_sigma;
 	float* latest_mu_k;
 
+	//init intermediary matrices
+	float* Atemp;
+	float* Btemp;
+	float* y;
+
+	//Segmentation, state,and mutex variables
 	uint8_t copying_learner_matrices;
 	int demux_state;
-	float* segment;
-	float* subsegment;
-	float* doing_forward_substittion
+	int segment;
+	int subsegment;
+	uint8_t doing_forward_substitution;
 };
 
 

@@ -4,6 +4,7 @@
 #include "flexsea_user_structs.h"
 #include "kinematics_methods.h"
 #include "machine_learning_methods.h"
+#include "back_estimation_methods.h"
 #include "user-mn-MIT-DLeg.h"
 #include <stdio.h>
 #include <math.h>
@@ -14,7 +15,7 @@
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 50
 #define MIN_TQ_FOR_FOOT_STATIC 5.0
 #define AA_DOT_AOMEGA_ERROR_THRESH 0.6
-#define PREDICTION_CUTOFF_SAMPLES 250
+#define PREDICTION_CUTOFF_SAMPLES 250.0
 
  //Timing constants
 #define SAMPLE_RATE_HZ 1000.0
@@ -45,7 +46,7 @@ struct taskmachine_s
     uint8_t stride_classified;
     uint8_t do_learning_for_stride;
 
-    uint8_t geit_event_trigger;  
+    uint8_t gait_event_trigger;  
     uint8_t reset_back_estimator_trigger;
 
     int low_torque_counter;
@@ -64,20 +65,6 @@ struct taskmachine_s
 
 };
 
-//Copied from matlab pil simulation
-struct back_estimator_s 
-{
-	float sum_sin_sq_attack_angle;
-    float prev_mean_sin_sq_attack_angle;
-    float min_stance_theta;
-    float max_stance_theta;
-    float prev_min_stance_theta;
-    int prev_passed_ds_z_thresh_samples;
-    int passed_ds_z_thresh_samples;
-    uint8_t passed_us_z_thresh;
-    uint8_t passed_ds_z_thresh;
-    uint8_t completed_back_estimation;
-};
 
 struct taskmachine_s* get_task_machine();
 void task_machine_demux(struct rigid_s* rigid);
