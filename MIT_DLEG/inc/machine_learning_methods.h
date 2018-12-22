@@ -67,6 +67,12 @@ struct classifier_s
     
     float* x;
     float* y;
+
+    //Segmentation flags
+    int segment;
+    int subsegment;
+    int doing_forward_substitution;
+    int current_updating_class;
 };
 
 //Assumes uniform priors at the moment
@@ -90,6 +96,9 @@ struct learner_s
     float* A;
     float* x;
     float* y;
+
+    //Segmentation flag
+    int segment;
 
 };
 

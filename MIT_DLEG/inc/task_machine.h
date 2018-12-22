@@ -41,8 +41,6 @@
 #define DR_Z_THRESH -0.05f
 #define DR_MEAN_THETA_THRESH 1.6f
 
-#define N_LEARNER_UPDATES_PER_CLASSIFIER_UPDATE 10
-
 struct taskmachine_s
 {
 	
