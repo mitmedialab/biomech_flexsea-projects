@@ -22,17 +22,7 @@
 
 static struct kinematics_s kin;
 
-static void update_rotation_matrix(){
-	float rotprev0 = kin.rot[0];
-	float rotprev2 = kin.rot[2];
 
-	kin.rot[0] = kin.rot[0] + kin.rot[1]*kin.aOmegaX;
-	kin.rot[1] = kin.rot[1] - rotprev0*kin.aOmegaX;
-	kin.rot[2] = kin.rot[2] + kin.rot[3]*kin.aOmegaX;
-	kin.rot[3] = kin.rot[3] - rotprev2*kin.aOmegaX;
-
-	//kin.aOmegaDot = kin.daOmegaX * 166.666667;
-}
 
 static void update_ankle_translations(){
 	
@@ -52,39 +42,28 @@ static void update_ankle_translations(){
     kin.pAy = kin.pAy + SAMPLE_PERIOD*kin.vAy;	
 	kin.pAz = kin.pAz + SAMPLE_PERIOD*kin.vAz;
 
-}
-
-static void update_acc( struct fx_rigid_mn_s* mn){
-
-	kin.aAccZprev = kin.aAccZ;
-
-
-	kin.aAccX = ACCEL_MPS2_PER_LSB * (float) mn->accel.x;
-	kin.aAccZ = N_ACCEL_MPS2_PER_LSB * (float) mn->accel.y;
-	kin.aAccY = ACCEL_MPS2_PER_LSB * (float) mn->accel.z;
-
-    kin.accNormSq = kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
-
-}
-
-static void update_omega(struct fx_rigid_mn_s* mn){
+	// Om = [0 -1*cn.SAMPLE_PERIOD*kin.aOmegaX(i); cn.SAMPLE_PERIOD*kin.aOmegaX(i) 0];
+ //    SaA = [kin.aAccY(i); kin.aAccZ(i)] + ...
+ //        Om*Om*[cn.ANKLE_POS_IMU_FRAME_Y_M; cn.ANKLE_POS_IMU_FRAME_Z_M] + ...
+ //        cn.SAMPLE_RATE_HZ * kin.daOmegaX(i)*[cn.ANKLE_POS_IMU_FRAME_Y_M; cn.ANKLE_POS_IMU_FRAME_Z_M];
+ //    kin.aAy(i) = [kin.rot1(i) kin.rot2(i)]*SaA;
+ //    kin.aAz(i) = [kin.rot3(i) kin.rot4(i)]*SaA - cn.GRAVITY_MPS2;
+ //    kin.vAy(i) = kin.vAy(i) + cn.SAMPLE_PERIOD*kin.aAy(i);
+ //    kin.vAz(i) = kin.vAz(i) + cn.SAMPLE_PERIOD*kin.aAz(i);
+ //    kin.pAy(i) = kin.pAy(i) + cn.SAMPLE_PERIOD*kin.vAy(i);
+ //    kin.pAz(i) = kin.pAz(i) + cn.SAMPLE_PERIOD*kin.vAz(i);
+    
+ //    vAySq = kin.vAy(i)*kin.vAy(i);
+ //    vAzSq = kin.vAz(i)*kin.vAz(i);
+ //    kin.sinSqAttackAngle(i) = (sign(kin.vAz(i))*vAzSq)./(vAySq+vAzSq);
 
 
-	kin.aOmegaXprev = kin.aOmegaX;
-
-	kin.aOmegaX = GYRO_RPS_PER_LSB * (float) mn->gyro.x;
-	kin.aOmegaZ = GYRO_RPS_PER_LSB * (float) mn->gyro.y;
-	kin.aOmegaY = GYRO_RPS_PER_LSB * (float) mn->gyro.z;
 
 }
 
-static void update_integrals_and_derivatives(){
-	kin.iaAccZ = kin.iaAccZ + kin.aAccZ;
-    kin.daAccZ = FILTA*kin.daAccZ + FILTB*(kin.aAccZ - kin.aAccZprev);
-    kin.daOmegaX = FILTA*kin.daOmegaX + FILTB*(kin.aOmegaX - kin.aOmegaXprev);
-}
 
-static void reset_rotation_matrix(){
+
+static void reset_rotation_matrix_old_way(){
 	float accNormReciprocal = 1.0/sqrtf(kin.accNormSq);
 	float costheta = (kin.aAccZ + kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M)*accNormReciprocal;
 	float sintheta = (kin.aAccY + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_TO_IMU_SAGITTAL_PLANE_M)*accNormReciprocal;
@@ -118,13 +97,7 @@ static void reset_integrals(){
 }
 
 static void reset_kinematics(){
-	// if (!tm.resetFlag)
-	// 	return 0;
-	// if (tm.resetFlag == 1){
-		
-	//}
-	//tm.latestFootStaticTime = tm.loopcount;
-	reset_rotation_matrix();
+	reset_rotation_matrix_old_way();
 	reset_ankle_translations();
 	reset_integrals();
 }
@@ -167,19 +140,61 @@ struct kinematics_s* init_kinematics(){
 	return &kin;
 }
 
-void update_kinematics(struct fx_rigid_mn_s* mn, int* translation_reset_trigger, int* reached_classification_time){
-	if(!*reached_classification_time){
-		update_acc(mn);
-		update_omega(mn);
-		update_integrals_and_derivatives();
-		update_rotation_matrix();
-		update_ankle_translations();
-	}
-	if (*translation_reset_trigger){
-		reset_kinematics();
-		*translation_reset_trigger = 0;
-		*reached_classification_time = 0;
-	}
+
+static void update_acc( struct fx_rigid_mn_s* mn){
+	kin.aAccYprev = kin.aAccZ;
+	kin.aAccZprev = kin.aAccZ;
+	kin.aAccX = FILTA*kin.aAccX + FILTB * (ACCEL_MPS2_PER_LSB * (float) mn->accel.x);
+	kin.aAccY = FILTA*kin.aAccY  + FILTB * (ACCEL_MPS2_PER_LSB * (float) mn->accel.z);
+	kin.aAccZ = FILTA*kin.aAccZ  + FILTB * (N_ACCEL_MPS2_PER_LSB * (float) mn->accel.y);
+	kin.accNormSq = kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
+}
+
+static void update_omega(struct fx_rigid_mn_s* mn){
+	kin.aOmegaXprev = kin.aOmegaX;
+	kin.aOmegaX = FILTA*kin.aOmegaX + FILTB*(GYRO_RPS_PER_LSB * (float) mn->gyro.x + kin.aOmegaXbias);
+	kin.aOmegaY = FILTA*kin.aOmegaY + FILTB*(GYRO_RPS_PER_LSB * (float) mn->gyro.z + kin.aOmegaYbias);
+	kin.aOmegaZ = FILTA*kin.aOmegaZ + FILTB*(GYRO_RPS_PER_LSB * (float) mn->gyro.y + kin.aOmegaZbias);
+}
+
+static void correct_gyro_bias(){
+	kin.aOmegaXbias = FILTC*kin.aOmegaXbias - FILTD*kin.aOmegaX;
+	kin.aOmegaYbias = FILTC*kin.aOmegaYbias - FILTD*kin.aOmegaY;
+	kin.aOmegaZbias = FILTC*kin.aOmegaZbias - FILTD*kin.aOmegaZ;
+}
+static void update_integrals_and_derivatives(){
+	kin.iaAccY = kin.iaAccY + kin.aAccY;
+	kin.daAccY = FILTA*kin.daAccY + FILTB*(kin.aAccY - kin.aAccYprev);
+	kin.iaAccZ = kin.iaAccZ + kin.aAccZ;
+	kin.daAccZ = FILTA*kin.daAccZ + FILTB*(kin.aAccZ - kin.aAccZprev);
+	kin.iaOmegaX = kin.iaOmegaX - kin.aOmegaX;
+	kin.daOmegaX = FILTA*kin.daOmegaX + FILTB*(kin.aOmegaX - kin.aOmegaXprev);
+}
+
+
+static void update_rotation_matrix(){
+	float rotprev1 = kin.rot1;
+	float rotprev3 = kin.rot3;
+
+	kin.rot1 = kin.rot1 + kin.rot2*kin.aOmegaX * SAMPLE_PERIOD;
+	kin.rot2 = kin.rot2 - rotprev1*kin.aOmegaX * SAMPLE_PERIOD;
+	kin.rot3 = kin.rot3 + kin.rot4*kin.aOmegaX * SAMPLE_PERIOD;
+	kin.rot4 = kin.rot4 - rotprev3*kin.aOmegaX * SAMPLE_PERIOD;
+}
+
+void update_kinematics(struct fx_rigid_mn_s* mn, struct task_machine_s* tm){
+	update_acc(mn);
+	update_omega(mn);
+	correct_gyro_bias();
+
+	update_integrals_and_derivatives();
+	update_rotation_matrix();
+	update_ankle_translations();
+
+	if (tm.gait_event_trigger == GAIT_EVENT_FOOT_ON || 
+	    tm.gait_event_trigger == GAIT_EVENT_FOOT_STATIC) 
+	    reset_kinematics();
+	end
 }
 
 
