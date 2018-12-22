@@ -8,7 +8,7 @@
 #include "task_machine.h"
 
 struct kinematics_s* init_kinematics();
-void update_kinematics(struct fx_rigid_mn_s* mn, int* translation_reset_trigger, int* reached_classification_time);
+void update_kinematics(struct fx_rigid_mn_s* mn, struct task_machine_s* tm);
 struct kinematics_s* get_kinematics();
 
 //Copied from matlab pil simulation

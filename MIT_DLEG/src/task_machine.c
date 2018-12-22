@@ -136,11 +136,11 @@ void task_machine_demux(struct rigid_s* rigid){
 
 
     update_gait_events();
-    // update_kinematics(sv, tm,kin, cn, i);
-    // update_learner_demux(tm, lrn, lda, prevfeats, be, cn, i);
-    // update_classifier_demux(lda,lrn,cn);
+    update_kinematics(&rigid->mn,&tm);
+    update_learner_demux(&tm, &be);
+    update_classifier_demux();
     // update_back_estimation_features(tm,kin, be, cn, i);
-    // update_prediction_features(tm,kin,currfeats,cn,i);
+    update_prediction_features(&tm, get_kinematics())
     // predict_task(currfeats, prevfeats, tm, kin, lda, cn, i);
 
 

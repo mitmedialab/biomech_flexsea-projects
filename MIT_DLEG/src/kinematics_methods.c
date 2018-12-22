@@ -5,7 +5,7 @@
 
 
 
- //Kinematics constants
+ //Kinematics constants (copied from matlab pil)
 #define PI 3.14159
 #define GRAVITY_MPS2 9.8
 #define GRAVITY_SQ GRAVITY_MPS2^2
@@ -22,19 +22,14 @@
 
 static struct kinematics_s kin;
 
-
-
 static void update_ankle_translations(){
 	
-	//CHAGNED FOR NOW BECAUSE kin.aOmegaDot EVALUATED TO 0 IN SIMULATION
-	//kin.SaAy = kin.aAccY - kin.aOmegaX*kin.aOmegaX*RAY - kin.aOmegaDot*RAZ;
-	//kin.SaAz = kin.aAccZ - kin.aOmegaX*kin.aOmegaX*RAZ + kin.aOmegaDot*RAY;
 	float aOmegaXSquared = kin.aOmegaX*kin.aOmegaX;
-	kin.SaAy = kin.aAccY - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Y_M + SAMPLE_RATE_HZ*ANKLE_POS_IMU_FRAME_Y_M*kin.daOmegaX;
-	kin.SaAz = kin.aAccZ - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Z_M + SAMPLE_RATE_HZ*ANKLE_POS_IMU_FRAME_Z_M*kin.daOmegaX;
+	float SaAy = kin.aAccY - ANKLE_POS_IMU_FRAME_Y_M*(aOmegaXSquared - SAMPLE_RATE_HZ*kin.daOmegaX);
+	float SaAz = kin.aAccZ - ANKLE_POS_IMU_FRAME_Z_M*(aOmegaXSquared - SAMPLE_RATE_HZ*kin.daOmegaX);
 
-	kin.aAy = kin.rot[0]*kin.SaAy + kin.rot[1]*kin.SaAz;
-	kin.aAz = kin.rot[2]*kin.SaAy + kin.rot[3]*kin.SaAz - GRAVITY_MPS2;
+	kin.aAy = kin.rot1*SaAy + kin.rot2*SaAz;
+	kin.aAz = kin.rot3*SaAy + kin.rot4*SaAz - GRAVITY_MPS2;
 
 	kin.vAy = kin.vAy + SAMPLE_PERIOD*kin.aAy;	
 	kin.vAz = kin.vAz + SAMPLE_PERIOD*kin.aAz;	
@@ -42,21 +37,9 @@ static void update_ankle_translations(){
     kin.pAy = kin.pAy + SAMPLE_PERIOD*kin.vAy;	
 	kin.pAz = kin.pAz + SAMPLE_PERIOD*kin.vAz;
 
-	// Om = [0 -1*cn.SAMPLE_PERIOD*kin.aOmegaX(i); cn.SAMPLE_PERIOD*kin.aOmegaX(i) 0];
- //    SaA = [kin.aAccY(i); kin.aAccZ(i)] + ...
- //        Om*Om*[cn.ANKLE_POS_IMU_FRAME_Y_M; cn.ANKLE_POS_IMU_FRAME_Z_M] + ...
- //        cn.SAMPLE_RATE_HZ * kin.daOmegaX(i)*[cn.ANKLE_POS_IMU_FRAME_Y_M; cn.ANKLE_POS_IMU_FRAME_Z_M];
- //    kin.aAy(i) = [kin.rot1(i) kin.rot2(i)]*SaA;
- //    kin.aAz(i) = [kin.rot3(i) kin.rot4(i)]*SaA - cn.GRAVITY_MPS2;
- //    kin.vAy(i) = kin.vAy(i) + cn.SAMPLE_PERIOD*kin.aAy(i);
- //    kin.vAz(i) = kin.vAz(i) + cn.SAMPLE_PERIOD*kin.aAz(i);
- //    kin.pAy(i) = kin.pAy(i) + cn.SAMPLE_PERIOD*kin.vAy(i);
- //    kin.pAz(i) = kin.pAz(i) + cn.SAMPLE_PERIOD*kin.vAz(i);
-    
- //    vAySq = kin.vAy(i)*kin.vAy(i);
- //    vAzSq = kin.vAz(i)*kin.vAz(i);
- //    kin.sinSqAttackAngle(i) = (sign(kin.vAz(i))*vAzSq)./(vAySq+vAzSq);
-
+	float vAySq = kin.vAy*kin.vAy;
+    float vAzSq = kin.vAz*kin.vAz;
+    kin.sinSqAttackAngle = (((kin.vAz > 0) - (kin.vAz < 0))*vAzSq)./(vAySq+vAzSq);
 
 
 }
@@ -64,13 +47,17 @@ static void update_ankle_translations(){
 
 
 static void reset_rotation_matrix_old_way(){
-	float accNormReciprocal = 1.0/sqrtf(kin.accNormSq);
-	float costheta = (kin.aAccZ + kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M)*accNormReciprocal;
-	float sintheta = (kin.aAccY + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_TO_IMU_SAGITTAL_PLANE_M)*accNormReciprocal;
-	kin.rot[0] = costheta;
-	kin.rot[1] = -1.0*sintheta;
-	kin.rot[2] = sintheta;
-	kin.rot[3] = costheta;
+	float zAccWithCentripetalAccCompensation = (kin.aAccZ + kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
+	float yAccWithTangentialAccCompensation = (kin.aAccY + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
+	float accNormReciprocal	= 1.0/sqrtf(yAccWithTangentialAccCompensation^2 + zAccWithCentripetalAccCompensation^2);
+	float costheta = zAccWithCentripetalAccCompensation*accNormReciprocal;
+	float sintheta = yAccWithTangentialAccCompensation*accNormReciprocal;
+	
+	kin.rot1 = costheta;
+	kin.rot2 = -1.0*sintheta;
+	kin.rot3 = sintheta;
+	kin.rot4 = costheta;
+
 }
 
 static void reset_ankle_translations(){
@@ -81,19 +68,9 @@ static void reset_ankle_translations(){
 }
 
 static void reset_integrals(){
-	kin.iaAccZ = 0.0f;
-	// kin.iaAccX = 0.0;
- //    kin.iaAccY = 0.0;
-   //    kin.iaAccZ = 0.000f;
- //    kin.iaOmegaX = 0.0;
- //    kin.iaOmegaY = 0.0;
- //    kin.iaOmegaZ = 0.0;
- //    kin.i2aAccX = 0.0;
- //    kin.i2aAccY = 0.0;
- //    kin.i2aAccZ = 0.0;
- //    kin.i2aOmegaX = 0.0;
- //    kin.i2aOmegaY = 0.0;
- //    kin.i2aOmegaZ = 0.0;
+	kin.iaOmegaX = 0.0;
+	kin.iaAccY = 0.0;
+	kin.iaAccZ = 0.0;
 }
 
 static void reset_kinematics(){
@@ -102,43 +79,7 @@ static void reset_kinematics(){
 	reset_integrals();
 }
 
-//Copied from matlab pil simulation
-struct kinematics_s* init_kinematics(){
-	kin.aOmegaX = 0;
-    kin.aOmegaY = 0;
-    kin.aOmegaZ = 0;
-    kin.aAccX = 0;
-    kin.aAccY = 0;
-    kin.aAccZ = 0;
-    kin.iaAccY = 0;
-    kin.daAccY = 0;
-    kin.iaAccZ = 0;
-    kin.daAccZ = 0;
-    kin.iaOmegaX = 0;
-    kin.daOmegaX = 0;
-    kin.aAccYprev = 0;
-    kin.aAccZprev = 0;
-    kin.aOmegaXprev = 0;
-    kin.rot1 = 0;
-    kin.rot2 = 0;
-    kin.rot3 = 0;
-    kin.rot4 = 0;
-    kin.accNormSq = 0;
-    kin.sinSqAttackAngle =  0;
 
-    kin.aOmegaXbias = 0;
-    kin.aOmegaYbias = 0;
-    kin.aOmegaZbias = 0;
-
-    kin.aAy = 0;
-    kin.aAz = 0;
-    kin.vAy = 0;
-    kin.vAz = 0;
-    kin.pAy = 0;
-    kin.pAz = 0;
-
-	return &kin;
-}
 
 
 static void update_acc( struct fx_rigid_mn_s* mn){
@@ -199,7 +140,43 @@ void update_kinematics(struct fx_rigid_mn_s* mn, struct task_machine_s* tm){
 
 
 
+//Copied from matlab pil simulation
+struct kinematics_s* init_kinematics(){
+	kin.aOmegaX = 0;
+    kin.aOmegaY = 0;
+    kin.aOmegaZ = 0;
+    kin.aAccX = 0;
+    kin.aAccY = 0;
+    kin.aAccZ = 0;
+    kin.iaAccY = 0;
+    kin.daAccY = 0;
+    kin.iaAccZ = 0;
+    kin.daAccZ = 0;
+    kin.iaOmegaX = 0;
+    kin.daOmegaX = 0;
+    kin.aAccYprev = 0;
+    kin.aAccZprev = 0;
+    kin.aOmegaXprev = 0;
+    kin.rot1 = 0;
+    kin.rot2 = 0;
+    kin.rot3 = 0;
+    kin.rot4 = 0;
+    kin.accNormSq = 0;
+    kin.sinSqAttackAngle =  0;
 
+    kin.aOmegaXbias = 0;
+    kin.aOmegaYbias = 0;
+    kin.aOmegaZbias = 0;
+
+    kin.aAy = 0;
+    kin.aAz = 0;
+    kin.vAy = 0;
+    kin.vAz = 0;
+    kin.pAy = 0;
+    kin.pAz = 0;
+
+	return &kin;
+}
 
 struct kinematics_s* get_kinematics(){
 	return &kin;

@@ -12,9 +12,9 @@
 #include <stdio.h>
 #include <float.h>
 
-void update_learner_demux(struct back_estimator_s* be, int latest_foot_off_samples, int learner_update_reset_trigger);
+void update_learner_demux(struct taskmachine_s* tm, struct back_estimator_s* be);
 void update_classifier_demux();
-void update_features(struct kinematics_s* kin);
+void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* kin);
 void classify();
 void init_learning_structs();
 struct learner_s* get_learner();
@@ -22,6 +22,7 @@ struct classifier_s* get_classifier();
 float* get_prev_features();
 float* get_curr_features();
 
+//copied from matlab pil
 enum Prediction_Signals {
 	ROT3 = 1,
 	AOMEGAX = 2,
@@ -49,6 +50,7 @@ enum Prediction_Signals {
 	DAACCZ = 24,
 };
 
+//copied from matlab pil
 enum Update_Learner_States {
 	LRN_BACK_ESTIMATE = 0,
 	LRN_UPDATE_CLASS_MEAN = 1,
@@ -59,6 +61,7 @@ enum Update_Learner_States {
 	LRN_READY_TO_UPDATE_LEARNER = 6,
 };
 
+//copied from matlab pil
 enum Update_Classifier_States {
 	LDA_COPY_MU_K = 0,
 	LDA_COPY_SUM_SIGMA = 1,
@@ -69,31 +72,17 @@ enum Update_Classifier_States {
 	LDA_UPDATE_PARAMS = 6,
 };
 
-
-//Assumes uniform priors at the moment
-struct classifier_s
+//copied from matlab pil
+struct features_s
 {
-	float* A;
-	float* B;
-	float* score_k;
-	int k_pred;
-	float* latest_sum_sigma;
+	float* max;
+	float* min;
+	float* rng;
+	float* fin;
+}
 
-	//Intermediary matrix holders
-	float* UT;
-    float* LT;
-    
-    float* x;
-    float* y;
 
-    //Segmentation flags
-    int segment;
-    int subsegment;
-    int doing_forward_substitution;
-    int current_updating_class;
-};
-
-//Assumes uniform priors at the moment
+//copied from matlab pil
 struct learner_s
 {
 	float* mu_k;
@@ -101,23 +90,43 @@ struct learner_s
 	float* mu_prev;
 	float* mu;
 	float* sum;
-	float* sigma;
 	float* sum_sigma;
-	
 	float* pop_k;
-	float pop;
+	float* pop;
 
-	int k_est;
-	
-	int n_updates;
-	//Intermediate matrix holders
-    float* A;
-    float* x;
-    float* y;
+	//init intermediary matrices
+	float* x;
+	float* y;
+	uint8_t k_est;
 
-    //Segmentation flag
-    int segment;
+	uint8_t updating_learner_matrices;
+	int demux_state;		
+	int segment;
 
+
+};
+
+//copied from matlab pil
+struct classifier_s
+{
+	float* Atemp;
+	float* Btemp;
+	float* A;
+	float* B;
+	float* score_k;
+	uint8_t k_pred;
+
+	float* UT;
+	float* LT;
+
+	float* latest_sum_sigma;
+	float* latest_mu_k;
+
+	uint8_t copying_learner_matrices;
+	int demux_state;
+	float* segment;
+	float* subsegment;
+	float* doing_forward_substittion
 };
 
 
