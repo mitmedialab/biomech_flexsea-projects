@@ -6,76 +6,77 @@
 #include "machine_learning_methods.h"
 #include "user-mn-MIT-DLeg.h"
 #include <stdio.h>
+#include <math.h>
 
+//Copied from matlab pil simulation
+ //Gait event thresholds
+#define MIN_TQ_FOR_FOOT_ON 1.0
+#define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 50
+#define MIN_TQ_FOR_FOOT_STATIC 5.0
+#define AA_DOT_AOMEGA_ERROR_THRESH 0.6
+#define PREDICTION_CUTOFF_SAMPLES 250
 
-//TODO: These constants need to be checked!!!!!
-
-//Swing/stance thresholds
-#define MIN_TQ_FOR_FOOT_ON 12.0000f
-#define MIN_STANCE_SAMPLES 200
-
-//Foot static thresholds
-#define UPPER_ACCNORM_THRESH_SQ 102.01f
-#define LOWER_ACCNORM_THRESH_SQ 90.25f
-#define MIN_TQ_FOR_FOOT_STATIC_NM 15.0000f
-#define DEFAULT_STANCE_RESET_SAMPLES 50
-#define STANCE_RESET_EXPIRY_SAMPLES 1000
-
-//Prediction thresholds
-#define PREDICTION_CUTOFF_SAMPLES 200
-
-//Timing constants
+ //Timing constants
 #define SAMPLE_RATE_HZ 1000.0
 #define SAMPLE_PERIOD 1.0/SAMPLE_RATE_HZ
 
-//Back estimation constants
-#define US_Z_THRESH 0.303f
-#define US_MAX_SAMPLES_TO_Z_THRESH 1400
+ //Default filter coefficients
+#define FILTA 0.95
+#define FILTB 0.05
+#define FILTC 0.999
+#define FILTD 0.001
 
-#define UR_Z_THRESH 0.05f
-#define UR_MEAN_THETA_THRESH -8.0f
+ //Gait events
+#define GAIT_EVENT_FOOT_ON 1
+#define GAIT_EVENT_FOOT_STATIC 2
+#define GAIT_EVENT_FOOT_OFF 3
+#define GAIT_EVENT_WINDOW_CLOSE 4
 
-#define DS_Z_THRESH -0.13f
-#define DS_TQ_THRESH 50.0
+ 
 
-#define DR_Z_THRESH -0.05f
-#define DR_MEAN_THETA_THRESH 1.6f
-
+//Copied from matlab pil simulation
 struct taskmachine_s
 {
 	
-	int mode;
-	int task;
-
 	int latest_foot_static_samples;
-	int elapsed_samples;
-	int latest_foot_off_samples;
+    int elapsed_samples;
+    int latest_foot_off_samples;
+    uint8_t in_swing;
+    uint8_t stride_classified;
+    uint8_t do_learning_for_stride;
 
-	int found_optimal_foot_static;
-	int in_swing;
-	int reached_classification_time;
-	int stride_classified;
-	int do_learning_for_stride;
+    uint8_t geit_event_trigger;  
+    uint8_t reset_back_estimator_trigger;
 
-	int translation_reset_trigger;
-	int learning_reset_trigger;
+    int low_torque_counter;
 
-	float tq;
-	float theta;
+    float tq;
+    float tq_dot;
+    float aa;
+    float aa_dot;
+    float aa_dot_aOmegaX_error;
 
-	
+	int demux_state;
+
+    float tq_prev;
+    float aa_prev;
+    float aa_dot_aOmegaX_error_prev ;
 
 };
 
+//Copied from matlab pil simulation
 struct back_estimator_s 
 {
-	float mean_stance_theta;
-	float max_stance_tq;
-	float max_stance_tq_ind;
-	float prev_max_stance_tq;
-	float min_swing_z;
-	float max_swing_z;
-	float max_swing_z_samples;
+	float sum_sin_sq_attack_angle;
+    float prev_mean_sin_sq_attack_angle;
+    float min_stance_theta;
+    float max_stance_theta;
+    float prev_min_stance_theta;
+    int prev_passed_ds_z_thresh_samples;
+    int passed_ds_z_thresh_samples;
+    uint8_t passed_us_z_thresh;
+    uint8_t passed_ds_z_thresh;
+    uint8_t completed_back_estimation;
 };
 
 struct taskmachine_s* get_task_machine();

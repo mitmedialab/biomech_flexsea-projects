@@ -22,35 +22,53 @@ struct classifier_s* get_classifier();
 float* get_prev_features();
 float* get_curr_features();
 
+enum Prediction_Signals {
+	ROT3 = 1,
+	AOMEGAX = 2,
+	AOMEGAY = 3,
+	AOMEGAZ = 4,
+	AACCX = 5,
+	AACCY = 6,
+	AACCZ = 7,
+	AAY = 8,
+	VAY = 9,
+	PAY = 10,
+	AAZ = 11,
+	VAZ = 12,
+	PAZ = 13,
+	SINSQATTACK = 14,
+	AA = 15,
+	TQ = 16,
+	AADOT = 17,
+	TQDOT = 18,
+	IAOMEGAX = 19,
+	IAACCY = 20,
+	IAACCZ = 21,
+	DAOMEGAX = 22,
+	DAACCY = 23,
+	DAACCZ = 24,
+};
+
 enum Update_Learner_States {
-	BACK_ESTIMATE = 0,
-	UPDATE_CLASS_MEAN	= 1,
-	UPDATE_OVERALL_MEAN	= 2,
-	GET_DEVIATION_FROM_CURR_MEAN = 3,
-	GET_DEVIATION_FROM_PREV_MEAN
-	UPDATE_COVARIANCE = 4,
-	READY_TO_UPDATE_LEARNER = 5,
+	LRN_BACK_ESTIMATE = 0,
+	LRN_UPDATE_CLASS_MEAN = 1,
+	LRN_UPDATE_OVERALL_MEAN = 2,
+	LRN_GET_DEVIATION_FROM_CURR_MEAN = 3,
+	LRN_GET_DEVIATION_FROM_PREV_MEAN = 4,
+	LRN_UPDATE_COVARIANCE = 5,
+	LRN_READY_TO_UPDATE_LEARNER = 6,
 };
 
 enum Update_Classifier_States {
-	COPY_SUM_SIGMA = 0,
-	DO_CHOLESKY = 1,
-	UPDATE_TRANSPOSE = 2,
-	UPDATE_LDA_A_PARAMS = 3,
-	UPDATE_LDA_B_PARAMS = 4,
-	READY_TO_UPDATE_CLASSIFIER = 5,
+	LDA_COPY_MU_K = 0,
+	LDA_COPY_SUM_SIGMA = 1,
+	LDA_DO_CHOLESKY = 2,
+	LDA_UPDATE_TRANSPOSE = 3,
+	LDA_CALC_A_PARAMS = 4,
+	LDA_CALC_B_PARAMS = 5,
+	LDA_UPDATE_PARAMS = 6,
 };
 
- enum Features {
-	PAZ_MAX,
-	PAZ_SUM,
-	VAZ_MIN,
-	PITCH_RANGE,
-	OMX_MAX,
-	ACCY_SUM,
-	PITCH_MAX, //this is where intermediate/assistive features begin
-	PITCH_MIN,
-};
 
 //Assumes uniform priors at the moment
 struct classifier_s

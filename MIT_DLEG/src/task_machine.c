@@ -6,96 +6,97 @@
 static struct taskmachine_s tm;
 static struct back_estimator_s be;
 
+//Copied from matlab pil simulation
 static void init_task_machine(){
 
-    tm.mode = MODE_DS;
-    tm.task = TASK_DS;
-
     tm.latest_foot_static_samples = 0;
-    tm.elapsed_samples = 0;
+    tm.elapsed_samples = 0
     tm.latest_foot_off_samples = 10000;
-
-    tm.found_optimal_foot_static = 0;
     tm.in_swing = 0;
-    tm.reached_classification_time = 0;
     tm.stride_classified = 0;
     tm.do_learning_for_stride = 0;
 
+    tm.geit_event_trigger = 0;  
+    tm.reset_back_estimator_trigger = 0;
 
-    tm.translation_reset_trigger = 0;    
-    tm.learning_reset_trigger = 0;
+    tm.low_torque_counter = 0;
 
-    tm.tq = 0.0f;
-    tm.theta = 0.0f;
+    tm.tq = 0;
+    tm.tq_dot = 0;
+    tm.aa = 0;
+    tm.aa_dot = 0;
+    tm.aa_dot_aOmegaX_error = 0;
+
+    tm.tq_prev = 0;
+    tm.aa_prev = 0;
+    tm.aa_dot_aOmegaX_error_prev = 0;
 
 }
 
+//Copied from matlab pil simulation
 static void init_back_estimator(){
-    be.mean_stance_theta = 0.0;
-    be.max_stance_tq = 0.0;
-    be.max_stance_tq_ind = 0.0;
-    be.prev_max_stance_tq = 0.0;
-    be.min_swing_z = 0.0;
-    be.max_swing_z = 0.0;
-    be.max_swing_z_samples = 0.0;
+    be.sum_sin_sq_attack_angle = 0;
+    be.prev_mean_sin_sq_attack_angle = 0;
+    be.min_stance_theta = 0;
+    be.max_stance_theta = 0;
+    be.prev_min_stance_theta = 0;
+    be.prev_passed_ds_z_thresh_samples = 0;
+    be.passed_ds_z_thresh_samples = 0;
+    be.passed_us_z_thresh = 0;
+    be.passed_ds_z_thresh = 0;
+    be.completed_back_estimation = 0;
 }
 
-
-static void activate_reset_trigger(int translation_reset_trigger){
-  tm.translation_reset_trigger = translation_reset_trigger;
-  tm.latest_foot_static_samples = tm.elapsed_samples;
-}
-
+//Copied over from pil simulation
 static void update_gait_events(){
+
+    tm.gait_event_trigger = 0;
+
+    tm.tq_prev = tm.tq;
+    tm.aa_prev = tm.aa;
+    tm.aa_dot_aOmegaX_error_prev = tm.aa_dot_aOmegaX_error;
+    tm.tq = FILTA*tm.tq + FILTB*sv.torqueRaw;
+    tm.tq_dot = FILTA * tm.tq_dot + FILTB* (tm.tq - tm.tq_prev);
+    tm.aa = FILTA*tm.aa + FILTB*sv.angleRaw;
+    tm.aa_dot = FILTA*tm.aa_dot + FILTB*(tm.aa - tm.aa_prev)*17.45329;
+    tm.aa_dot_aOmegaX_error = FILTA *tm.aa_dot_aOmegaX_error + FILTB*(tm.aa_dot - get_kinematics()->aOmegaX);
 
     if (tm.in_swing){
 
-      if (tm.elapsed_samples - tm.latest_foot_off_samples >= PREDICTION_CUTOFF_SAMPLES){
-           tm.reached_classification_time = 1;
-           tm.do_learning_for_stride = 1;    
-      }
-        //Swing to stance transition condition
-      if (tm.tq >= MIN_TQ_FOR_FOOT_ON){
-          tm.elapsed_samples = 0;
-          tm.found_optimal_foot_static = 0;
-          tm.stride_classified = 0;
-          tm.in_swing = 0;
-          be.max_stance_tq = tm.tq;
-          activate_reset_trigger(1);
-      }
+          if (tm.elapsed_samples - tm.latest_foot_off_samples >= PREDICTION_CUTOFF_SAMPLES && !tm.stride_classified){
+              tm.do_learning_for_stride = 1; 
+              tm.gait_event_trigger = GAIT_EVENT_WINDOW_CLOSE; 
+              return;  
+          }
+            //Swing to stance transition condition
+          if (fabs(tm.tq) >= MIN_TQ_FOR_FOOT_ON){
+              tm.elapsed_samples = 0;
+              tm.in_swing = 0;
+              tm.low_torque_counter = 0;
+              tm.gait_event_trigger = GAIT_EVENT_FOOT_ON; 
+              tm.latest_foot_static_samples = tm.elapsed_samples;
+          }
     }
     else{
-          be.max_stance_tq = MAX(be.max_stance_tq, tm.tq);
-          be.mean_stance_theta = be.mean_stance_theta + tm.theta;
-
-          if (fabs(tm.tq) > MIN_TQ_FOR_FOOT_STATIC_NM){
-
-              //default foot static condition
-              if (tm.elapsed_samples - tm.latest_foot_static_samples > DEFAULT_STANCE_RESET_SAMPLES && 
-                      !tm.found_optimal_foot_static)
-                  activate_reset_trigger(1);
-
-              //optimal foot static condition
-              if (get_kinematics()->accNormSq < UPPER_ACCNORM_THRESH_SQ && 
-                  get_kinematics()->accNormSq > LOWER_ACCNORM_THRESH_SQ){
-                      tm.found_optimal_foot_static = 1;
-                      activate_reset_trigger(2);
-              }  
+          float abserr = fabs(tm.aa_dot_aOmegaX_error);
+          float abstq = fabs(tm.tq);
+          if (abserr < fabs(tm.aa_dot_aOmegaX_error_prev) &&
+              abserr < AA_DOT_AOMEGA_ERROR_THRESH && abstq > MIN_TQ_FOR_FOOT_STATIC){
+            tm.gait_event_trigger = GAIT_EVENT_FOOT_STATIC;
+            tm.latest_foot_static_samples = elapsed_samples;
           }
-          
-          if (tm.elapsed_samples - tm.latest_foot_static_samples > STANCE_RESET_EXPIRY_SAMPLES){
-                  tm.found_optimal_foot_static = 0;
-                  activate_reset_trigger(1);
-          }
-          
+
+          if (abstq < MIN_TQ_FOR_FOOT_ON)
+            tm.low_torque_counter = tm.low_torque_counter + 1;
+          else
+            tm.low_torque_counter = 0;
+
           //Stance to swing transition condition
-          if (tm.elapsed_samples > MIN_STANCE_SAMPLES &&
-              fabs(tm.tq) < MIN_TQ_FOR_FOOT_ON){
-              tm.in_swing = 1;
-              tm.latest_foot_off_samples = tm.elapsed_samples;
-              if (tm.do_learning_for_stride)
-                tm.learning_reset_trigger = 1;
-              tm.do_learning_for_stride = 0;
+          if (tm.low_torque_counter > MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION){
+            tm.in_swing = 1;
+            tm.latest_foot_off_samples = tm.elapsed_samples;
+            tm.stride_classified = 0;
+            tm.gait_event_trigger = GAIT_EVENT_FOOT_OFF;    
           }
       }
 
@@ -117,36 +118,34 @@ struct taskmachine_s* get_task_machine(){
 void task_machine_demux(struct rigid_s* rigid){
 
   
-  switch (task_machine_demux_state){
+  switch (tm.demux_state){
     case INIT_TASK_MACHINE:
         init_task_machine();
         init_back_estimator();
-        task_machine_demux_state++;
+        tm.demux_state = INIT_LEARNING;
     break;
     case INIT_LEARNING:
         init_learning_structs();
-        task_machine_demux_state++;
+        tm.demux_state = INIT_KINEMATICS;
     break;
     case INIT_KINEMATICS:
         init_kinematics();
-        task_machine_demux_state++;
+        tm.demux_state = RUN_TASK_MACHINE;
     break;
     case RUN_TASK_MACHINE:
-        simulate_ankle_torque(); //just for non-hil testing
-        update_gait_events();
-        update_kinematics(&rigid->mn, &tm.translation_reset_trigger, &tm.reached_classification_time);
-        if (tm.reached_classification_time){
-          if (!tm.stride_classified){
-            classify();
-            tm.stride_classified = 1;
-          }
-        }
-        else
-          update_features(get_kinematics());
 
-        update_learner_demux(&be, tm.latest_foot_off_samples, tm.learning_reset_trigger);
-        update_classifier_demux();
-        state_machine_demux(rigid, get_classifier()->k_pred);
+
+    update_gait_events();
+    // update_kinematics(sv, tm,kin, cn, i);
+    // update_learner_demux(tm, lrn, lda, prevfeats, be, cn, i);
+    // update_classifier_demux(lda,lrn,cn);
+    // update_back_estimation_features(tm,kin, be, cn, i);
+    // update_prediction_features(tm,kin,currfeats,cn,i);
+    // predict_task(currfeats, prevfeats, tm, kin, lda, cn, i);
+
+
+        
+    // state_machine_demux(rigid, get_classifier()->k_pred);
 
     break;
   }

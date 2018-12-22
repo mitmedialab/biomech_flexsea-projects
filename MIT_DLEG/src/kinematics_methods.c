@@ -5,25 +5,19 @@
 
 
 
-#define PI 3.14
+ //Kinematics constants
+#define PI 3.14159
 #define GRAVITY_MPS2 9.8
+#define GRAVITY_SQ GRAVITY_MPS2^2
 #define RAD_PER_DEG PI/180.0
-
-//System constants
-#define GYRO_LSB_PER_DPS 32.8 //%per http://dephy.com/wiki/flexsea/doku.php?id=units
-#define ACCEL_LSB_PER_G 8192.0  //per http://dephy.com/wiki/flexsea/doku.php?id=units
-
-#define ANKLE_POS_IMU_FRAME_X_M 0.0 //Frontal axis (medial->lateral)
-#define ANKLE_POS_IMU_FRAME_Y_M -0.00445 //Longitudinal axis (bottom->top)
-#define ANKLE_POS_IMU_FRAME_Z_M -0.0605 //Sagittal axis (back->front)
-#define ANKLE_TO_IMU_SAGITTAL_PLANE_M sqrtf(powf(ANKLE_POS_IMU_FRAME_Y_M,2.0) + powf(ANKLE_POS_IMU_FRAME_Z_M,2.0))
-
-//Default filter coefficients
-#define FILTA 0.95
-#define FILTB 0.05
-
-#define ACCEL_MPS2_PER_LSB GRAVITY_MPS2 / ACCEL_LSB_PER_G
-#define N_ACCEL_MPS2_PER_LSB -1.0 * ACCEL_MPS2_PER_LSB
+#define GYRO_LSB_PER_DPS 32.8  //per http://dephy.com/wiki/flexsea/doku.php?id=units
+#define ACCEL_LSB_PER_G 8192.0   //per http://dephy.com/wiki/flexsea/doku.php?id=units
+#define ANKLE_POS_IMU_FRAME_X_M 0.0  //Frontal axis (medial->lateral)
+#define ANKLE_POS_IMU_FRAME_Y_M -0.00445  //Longitudinal axis (bottom->top)
+#define ANKLE_POS_IMU_FRAME_Z_M -0.0605  //Sagittal axis (back->front)
+#define ANKLE_TO_IMU_SAGITTAL_PLANE_M sqrtf(ANKLE_POS_IMU_FRAME_Y_M^2 + ANKLE_POS_IMU_FRAME_Z_M^2)
+#define ACCEL_MPS2_PER_LSB  0.98 * GRAVITY_MPS2 / ACCEL_LSB_PER_G
+#define N_ACCEL_MPS2_PER_LSB -0.98 * ACCEL_MPS2_PER_LSB
 #define GYRO_RPS_PER_LSB RAD_PER_DEG / GYRO_LSB_PER_DPS
 
 static struct kinematics_s kin;
@@ -135,9 +129,41 @@ static void reset_kinematics(){
 	reset_integrals();
 }
 
-
+//Copied from matlab pil simulation
 struct kinematics_s* init_kinematics(){
-	kin.rot = (float*)calloc(4, sizeof(float));
+	kin.aOmegaX = 0;
+    kin.aOmegaY = 0;
+    kin.aOmegaZ = 0;
+    kin.aAccX = 0;
+    kin.aAccY = 0;
+    kin.aAccZ = 0;
+    kin.iaAccY = 0;
+    kin.daAccY = 0;
+    kin.iaAccZ = 0;
+    kin.daAccZ = 0;
+    kin.iaOmegaX = 0;
+    kin.daOmegaX = 0;
+    kin.aAccYprev = 0;
+    kin.aAccZprev = 0;
+    kin.aOmegaXprev = 0;
+    kin.rot1 = 0;
+    kin.rot2 = 0;
+    kin.rot3 = 0;
+    kin.rot4 = 0;
+    kin.accNormSq = 0;
+    kin.sinSqAttackAngle =  0;
+
+    kin.aOmegaXbias = 0;
+    kin.aOmegaYbias = 0;
+    kin.aOmegaZbias = 0;
+
+    kin.aAy = 0;
+    kin.aAz = 0;
+    kin.vAy = 0;
+    kin.vAz = 0;
+    kin.pAy = 0;
+    kin.pAz = 0;
+
 	return &kin;
 }
 

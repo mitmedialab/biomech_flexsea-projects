@@ -3,9 +3,21 @@
 
 #include "machine_learning_methods.h"
 
-#define NCLASSES 5
-#define NFEATURES 25
-#define NFEATURES_SQ NFEATURES * NFEATURES
+ //Machine learning
+#define N_CLASSES 5
+#define N_PREDICTION_SIGNALS 18
+#define N_PREDICTION_FEATURES 4
+#define N_FEATURES N_PREDICTION_SIGNALS * N_PREDICTION_FEATURES
+#define N_FEATURES_SQ N_FEATURES * N_FEATURES
+
+ //Back estimation constants
+#define US_Z_THRESH 0.1
+#define DS_Z_THRESH -0.25
+#define DS_Z_SAMPLE_THRESH 500
+#define UR_ANKLE_ANGLE_THRESH -20.0
+#define DR_ANKLE_ANGLE_THRESH 8.0
+#define DS_ANKLE_ANGLE_THRESH -10.0
+#define US_SIN_SQ_ATTACK_ANGLE_THRESH 0.2
 
 
 static struct classifier_s lda;
