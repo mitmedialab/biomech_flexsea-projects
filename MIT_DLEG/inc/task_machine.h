@@ -79,21 +79,21 @@ enum Task_Machine_States {
 };
 
 enum Walking_Tasks {
-    TASK_FL = 1,
-    TASK_UR = 2,
-    TASK_DR = 3,
-    TASK_US = 4,
-    TASK_DS = 5,
+    TASK_FL = 0,
+    TASK_UR = 1,
+    TASK_DR = 2,
+    TASK_US = 3,
+    TASK_DS = 4,
 };
 
 enum Walking_Modes {
-    MODE_FL = 1,
-    MODE_UR = 2,
-    MODE_DR = 3,
-    MODE_US = 4,
-    MODE_DS = 5,
-    MODE_PR = 6,
-    MODE_SW = 7,
+    MODE_FL = 0,
+    MODE_UR = 1,
+    MODE_DR = 2,
+    MODE_US = 3,
+    MODE_DS = 4,
+    MODE_PR = 5,
+    MODE_SW = 6,
 };
 
 

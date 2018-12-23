@@ -30,28 +30,24 @@ static void update_class_mean(){
   int ind_min = ind+MIN_FEATURES_START_IND;
   int ind_rng = ind+RNG_FEATURES_START_IND;
   int ind_fin = ind+FIN_FEATURES_START_IND;
-  float popkP1 = lrn.pop_k[lrn.k_est] + 1.0; //1 flop
+  lrn.pop_k[lrn.k_est] = lrn.pop_k[lrn.k_est] + 1.0; //1 flop
   sum(&lrn.sum_k[ind_max], prevfeats.max, &lrn.sum_k[ind_max], N_PREDICTION_SIGNALS); // f flops
   sum(&lrn.sum_k[ind_min], prevfeats.min, &lrn.sum_k[ind_min], N_PREDICTION_SIGNALS); // f flops
   sum(&lrn.sum_k[ind_rng], prevfeats.rng, &lrn.sum_k[ind_rng], N_PREDICTION_SIGNALS); // f flops
   sum(&lrn.sum_k[ind_fin], prevfeats.fin, &lrn.sum_k[ind_fin], N_PREDICTION_SIGNALS); // f flops
 
-  scaling (&lrn.sum_k[ind_max], 1.0/popkP1, &lrn.mu_k[ind_max], N_PREDICTION_SIGNALS); // f flops
-  scaling (&lrn.sum_k[ind_min], 1.0/popkP1, &lrn.mu_k[ind_min], N_PREDICTION_SIGNALS); // f flops
-  scaling (&lrn.sum_k[ind_rng], 1.0/popkP1, &lrn.mu_k[ind_rng], N_PREDICTION_SIGNALS); // f flops
-  scaling (&lrn.sum_k[ind_fin], 1.0/popkP1, &lrn.mu_k[ind_fin], N_PREDICTION_SIGNALS); // f flops
-
-  lrn.pop_k[lrn.k_est] = popkP1;
+  scaling (lrn.sum_k, 1.0/lrn.pop_k[lrn.k_est], lrn.mu_k, N_FEATURES); // f flops
 
 }
 
 static void update_overall_mean(){
   assignment(lrn.mu, lrn.mu_prev, N_FEATURES);// assignment
+  lrn.pop = lrn.pop + 1.0;
   sum(&lrn.sum[MAX_FEATURES_START_IND], prevfeats.max, &lrn.sum[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f flops
   sum(&lrn.sum[MIN_FEATURES_START_IND], prevfeats.min, &lrn.sum[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f flops
   sum(&lrn.sum[RNG_FEATURES_START_IND], prevfeats.rng, &lrn.sum[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f flops
   sum(&lrn.sum[FIN_FEATURES_START_IND], prevfeats.fin, &lrn.sum[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f flops
-  scaling(lrn.sum, 1.0/(lrn.pop + 1.0), lrn.mu, N_FEATURES); // f flops
+  scaling(lrn.sum, 1.0/lrn.pop, lrn.mu, N_FEATURES); // f flops
 }
 
 //copied from matlab pil
@@ -68,11 +64,15 @@ static void reset_features(){
 }
 
 //copied from matlab pil
-static void init_features(struct features_s* feats){
-  feats->max = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
-  feats->min = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
-  feats->rng = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
-  feats->fin = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
+static void init_features(){
+  currfeats.max = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
+  currfeats.min = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
+  currfeats.rng = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
+  currfeats.fin = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
+  prevfeats.max = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
+  prevfeats.min = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
+  prevfeats.rng = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
+  prevfeats.fin = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
 }
 
 //copied from matlab pil
@@ -150,20 +150,20 @@ void update_learner_demux(struct taskmachine_s* tm){
       break;
       case LRN_UPDATE_OVERALL_MEAN: // 1 sample
         update_overall_mean(); //2f flops
-        lrn.demux_state = LRN_GET_DEVIATION_FROM_CURR_MEAN;
-      break;
-      case LRN_GET_DEVIATION_FROM_CURR_MEAN: // 1 sample
-        diff(prevfeats.max, lrn.mu, lrn.x, N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.min, lrn.mu, lrn.x, N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.rng, lrn.mu, lrn.x, N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.fin, lrn.mu, lrn.x, N_PREDICTION_SIGNALS);//f flops
         lrn.demux_state = LRN_GET_DEVIATION_FROM_PREV_MEAN;
       break;
       case LRN_GET_DEVIATION_FROM_PREV_MEAN: // 1 sample
-        diff(prevfeats.max, lrn.mu_prev, lrn.y, N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.min, lrn.mu_prev, lrn.y, N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.rng, lrn.mu_prev, lrn.y, N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.fin, lrn.mu_prev, lrn.y, N_PREDICTION_SIGNALS);//f flops
+        diff(prevfeats.max, &lrn.mu_prev[MAX_FEATURES_START_IND], &lrn.x[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
+        diff(prevfeats.min, &lrn.mu_prev[MIN_FEATURES_START_IND], &lrn.x[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
+        diff(prevfeats.rng, &lrn.mu_prev[RNG_FEATURES_START_IND], &lrn.x[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
+        diff(prevfeats.fin, &lrn.mu_prev[FIN_FEATURES_START_IND], &lrn.x[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
+        lrn.demux_state = LRN_GET_DEVIATION_FROM_CURR_MEAN;
+      break;
+      case LRN_GET_DEVIATION_FROM_CURR_MEAN: // 1 sample
+        diff(prevfeats.max, &lrn.mu[MAX_FEATURES_START_IND], &lrn.y[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
+        diff(prevfeats.min, &lrn.mu[MIN_FEATURES_START_IND], &lrn.y[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
+        diff(prevfeats.rng, &lrn.mu[RNG_FEATURES_START_IND], &lrn.y[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
+        diff(prevfeats.fin, &lrn.mu[FIN_FEATURES_START_IND], &lrn.y[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
         lrn.demux_state = LRN_UPDATE_COVARIANCE;
       break;
       case LRN_UPDATE_COVARIANCE: // f samples
@@ -342,29 +342,14 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
 
 //copied from matlab pil
 void init_learning_structs(){
-  init_features(&currfeats);
-  init_features(&prevfeats);
+  init_features();
   init_learner();
   init_classifier();
 }
 
 
 
-struct learner_s* get_learner(){
-  return &lrn;
-}
 
-struct classifier_s*  get_classifier(){
-  return &lda;
-}
-
-struct features_s* get_prev_features(){
-  return &prevfeats;
-}
-
-struct features_s*  get_curr_features(){
-  return &currfeats;
-}
 
 
 
@@ -373,6 +358,8 @@ void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin){
     if (tm->stride_classified || tm->gait_event_trigger != GAIT_EVENT_WINDOW_CLOSE)
         return;
     
+
+
     for (int j=0; j < N_PREDICTION_SIGNALS; j++){
         currfeats.rng[j] = currfeats.max[j] - currfeats.min[j];
     }
@@ -395,6 +382,11 @@ void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin){
     // currfeats.fin[TQ] = tm->tq;
     // currfeats.fin[AADOT] = tm->aa_dot;
     // currfeats.fin[TQDOT] = tm->tq_dot;
+
+    //TESTING ONLY
+    reset_features();
+    tm->stride_classified = 1;
+    return;
     
     float maxScore = FLT_MIN;
     for (int j=0; j < N_CLASSES; j++){
@@ -406,7 +398,7 @@ void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin){
 
       if (lda.score_k[j] > maxScore){
           maxScore = lda.score_k[j];
-          lda.k_pred = j+1;
+          lda.k_pred = j;
       }
     }
     
@@ -417,4 +409,18 @@ void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin){
 
 
 
+struct learner_s* get_learner(){
+  return &lrn;
+}
 
+struct classifier_s*  get_classifier(){
+  return &lda;
+}
+
+struct features_s* get_prev_features(){
+  return &prevfeats;
+}
+
+struct features_s*  get_curr_features(){
+  return &currfeats;
+}
