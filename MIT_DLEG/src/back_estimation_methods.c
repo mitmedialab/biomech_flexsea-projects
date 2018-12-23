@@ -80,12 +80,12 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 
 //Copied from matlab pil simulation
 void init_back_estimator(){
-    be.sum_sin_sq_attack_angle = 0;
-    be.prev_mean_sin_sq_attack_angle = 0;
-    be.min_stance_theta = 0;
-    be.max_stance_theta = 0;
-    be.prev_min_stance_theta = 0;
-    be.prev_passed_ds_z_thresh_samples = 0;
+    be.sum_sin_sq_attack_angle = 0.0;
+    be.prev_mean_sin_sq_attack_angle = 0.0;
+    be.min_stance_theta = 0.0;
+    be.max_stance_theta = 0.0;
+    be.prev_min_stance_theta = 0.0;
+    be.prev_passed_ds_z_thresh_samples = 0.0;
     be.passed_ds_z_thresh_samples = 0;
     be.passed_us_z_thresh = 0;
     be.passed_ds_z_thresh = 0;

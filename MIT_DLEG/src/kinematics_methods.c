@@ -143,44 +143,42 @@ void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm){
 
 
 //Copied from matlab pil simulation
-struct kinematics_s* init_kinematics(){
+void init_kinematics(){
 
 	ANKLE_TO_IMU_SAGITTAL_PLANE_M = sqrtf(ANKLE_POS_IMU_FRAME_Y_M*ANKLE_POS_IMU_FRAME_Y_M + ANKLE_POS_IMU_FRAME_Z_M*ANKLE_POS_IMU_FRAME_Z_M);
 
-	kin.aOmegaX = 0;
-    kin.aOmegaY = 0;
-    kin.aOmegaZ = 0;
-    kin.aAccX = 0;
-    kin.aAccY = 0;
-    kin.aAccZ = 0;
-    kin.iaAccY = 0;
-    kin.daAccY = 0;
-    kin.iaAccZ = 0;
-    kin.daAccZ = 0;
-    kin.iaOmegaX = 0;
-    kin.daOmegaX = 0;
-    kin.aAccYprev = 0;
-    kin.aAccZprev = 0;
-    kin.aOmegaXprev = 0;
-    kin.rot1 = 0;
-    kin.rot2 = 0;
-    kin.rot3 = 0;
-    kin.rot4 = 0;
-    kin.accNormSq = 0;
+	kin.aOmegaX = 0.0;
+    kin.aOmegaY = 0.0;
+    kin.aOmegaZ = 0.0;
+    kin.aAccX = 0.0;
+    kin.aAccY = 0.0;
+    kin.aAccZ = 0.0;
+    kin.iaAccY = 0.0;
+    kin.daAccY = 0.0;
+    kin.iaAccZ = 0.0;
+    kin.daAccZ = 0.0;
+    kin.iaOmegaX = 0.0;
+    kin.daOmegaX = 0.0;
+    kin.aAccYprev = 0.0;
+    kin.aAccZprev = 0.0;
+    kin.aOmegaXprev = 0.0;
+    kin.rot1 = 0.0;
+    kin.rot2 = 0.0;
+    kin.rot3 = 0.0;
+    kin.rot4 = 0.0;
+    kin.accNormSq = 0.0;
     kin.sinSqAttackAngle =  0;
 
-    kin.aOmegaXbias = 0;
-    kin.aOmegaYbias = 0;
-    kin.aOmegaZbias = 0;
+    kin.aOmegaXbias = 0.0;
+    kin.aOmegaYbias = 0.0;
+    kin.aOmegaZbias = 0.0;
 
-    kin.aAy = 0;
-    kin.aAz = 0;
-    kin.vAy = 0;
-    kin.vAz = 0;
-    kin.pAy = 0;
-    kin.pAz = 0;
-
-	return &kin;
+    kin.aAy = 0.0;
+    kin.aAz = 0.0;
+    kin.vAy = 0.0;
+    kin.vAz = 0.0;
+    kin.pAy = 0.0;
+    kin.pAz = 0.0;
 }
 
 struct kinematics_s* get_kinematics(){

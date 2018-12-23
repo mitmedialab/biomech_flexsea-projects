@@ -39,9 +39,9 @@
 struct taskmachine_s
 {
 	
-	int latest_foot_static_samples;
-    int elapsed_samples;
-    int latest_foot_off_samples;
+	float latest_foot_static_samples;
+    float elapsed_samples;
+    float latest_foot_off_samples;
     uint8_t in_swing;
     uint8_t stride_classified;
     uint8_t do_learning_for_stride;
@@ -56,8 +56,6 @@ struct taskmachine_s
     float aa;
     float aa_dot;
     float aa_dot_aOmegaX_error;
-
-	int demux_state;
 
     float tq_prev;
     float aa_prev;
@@ -81,21 +79,21 @@ enum Task_Machine_States {
 };
 
 enum Walking_Tasks {
-    TASK_FL = 0,
-    TASK_UR = 1,
-    TASK_DR = 2,
-    TASK_US = 3,
-    TASK_DS = 4,
+    TASK_FL = 1,
+    TASK_UR = 2,
+    TASK_DR = 3,
+    TASK_US = 4,
+    TASK_DS = 5,
 };
 
 enum Walking_Modes {
-    MODE_FL = 0,
-    MODE_UR = 1,
-    MODE_DR = 2,
-    MODE_US = 3,
-    MODE_DS = 4,
-    MODE_PR = 5,
-    MODE_SW = 6,
+    MODE_FL = 1,
+    MODE_UR = 2,
+    MODE_DR = 3,
+    MODE_US = 4,
+    MODE_DS = 5,
+    MODE_PR = 6,
+    MODE_SW = 7,
 };
 
 

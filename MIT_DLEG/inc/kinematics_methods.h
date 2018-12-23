@@ -7,7 +7,7 @@
 #include "flexsea_user_structs.h"
 #include "task_machine.h"
 
-struct kinematics_s* init_kinematics();
+void init_kinematics();
 void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm);
 
 //Getters

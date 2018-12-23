@@ -185,11 +185,11 @@ void MIT_DLeg_fsm_1(void)
 
 			task_machine_demux(&rigid1);
 
-			rigid1.mn.genVar[0] = (int16_t) (10000.0*get_kinematics()->pAz); //
-			rigid1.mn.genVar[1] = (int16_t) (10000.0*get_kinematics()->pAy); //			
-			rigid1.mn.genVar[2] = (int16_t) (10000.0*get_kinematics()->rot1); //
-			rigid1.mn.genVar[3] = (int16_t) (10000.0*get_kinematics()->rot2); //
-			rigid1.mn.genVar[4] = (int16_t) (10000.0*get_kinematics()->sinSqAttackAngle); //			
+			rigid1.mn.genVar[0] = (int16_t) (10000.0*get_learner()->sum_sigma[0]); //
+			rigid1.mn.genVar[1] = (int16_t) (10000.0*get_learner()->sum_sigma[1]); //
+			rigid1.mn.genVar[2] = (int16_t) (10000.0*get_learner()->sum_sigma[2]); //
+			rigid1.mn.genVar[3] = (int16_t) (10000.0*get_learner()->sum_sigma[3]); //
+			rigid1.mn.genVar[4] = (int16_t) (10000.0*get_learner()->sum_sigma[4]); //
 			rigid1.mn.genVar[5] = (int16_t) (iter); //
 			rigid1.mn.genVar[6] = (int16_t) (100.0*get_task_machine()->torque_raw); //
 			rigid1.mn.genVar[7] = (int16_t) (100.0*get_task_machine()->angle_raw); //

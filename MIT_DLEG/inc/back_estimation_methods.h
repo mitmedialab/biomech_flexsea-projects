@@ -20,7 +20,7 @@ struct back_estimator_s
     float min_stance_theta;
     float max_stance_theta;
     float prev_min_stance_theta;
-    int prev_passed_ds_z_thresh_samples;
+    float prev_passed_ds_z_thresh_samples;
     int passed_ds_z_thresh_samples;
     uint8_t passed_us_z_thresh;
     uint8_t passed_ds_z_thresh;

@@ -17,7 +17,6 @@ void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin);
 void update_learner_demux(struct taskmachine_s* tm);
 void update_classifier_demux();
 void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* kin);
-void classify();
 void init_learning_structs();
 
 //Getters
