@@ -19,6 +19,10 @@ void back_estimate(struct taskmachine_s* tm, struct learner_s* lrn){
   
 	 tm->reset_back_estimator_trigger = 1;
 
+	 //TESTING ONLY
+	lrn->k_est = 0;
+	return;
+
 	if (be.max_stance_theta > DR_ANKLE_ANGLE_THRESH){
 	    lrn->k_est = TASK_DR;
 	    return;
@@ -71,7 +75,7 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 	    be.sum_sin_sq_attack_angle = 0;
 	    be.passed_us_z_thresh = 0;
 	    be.passed_ds_z_thresh = 0;
-	    be.max_stance_theta = FLT_MIN;
+	    be.max_stance_theta = -FLT_MAX;
 	    be.prev_min_stance_theta = be.min_stance_theta;
 	    be.min_stance_theta = FLT_MAX;
 	}

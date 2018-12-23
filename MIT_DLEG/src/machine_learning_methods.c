@@ -31,10 +31,10 @@ static void update_class_mean(){
   int ind_rng = ind+RNG_FEATURES_START_IND;
   int ind_fin = ind+FIN_FEATURES_START_IND;
   lrn.pop_k[lrn.k_est] = lrn.pop_k[lrn.k_est] + 1.0; //1 flop
-  sum(&lrn.sum_k[ind_max], prevfeats.max, &lrn.sum_k[ind_max], N_PREDICTION_SIGNALS); // f flops
-  sum(&lrn.sum_k[ind_min], prevfeats.min, &lrn.sum_k[ind_min], N_PREDICTION_SIGNALS); // f flops
-  sum(&lrn.sum_k[ind_rng], prevfeats.rng, &lrn.sum_k[ind_rng], N_PREDICTION_SIGNALS); // f flops
-  sum(&lrn.sum_k[ind_fin], prevfeats.fin, &lrn.sum_k[ind_fin], N_PREDICTION_SIGNALS); // f flops
+  sum(&lrn.sum_k[ind_max], prevfeats.max, &lrn.sum_k[ind_max], N_PREDICTION_SIGNALS); // f/4 flops
+  sum(&lrn.sum_k[ind_min], prevfeats.min, &lrn.sum_k[ind_min], N_PREDICTION_SIGNALS); // f/4 flops
+  sum(&lrn.sum_k[ind_rng], prevfeats.rng, &lrn.sum_k[ind_rng], N_PREDICTION_SIGNALS); // f/4 flops
+  sum(&lrn.sum_k[ind_fin], prevfeats.fin, &lrn.sum_k[ind_fin], N_PREDICTION_SIGNALS); // f/4 flops
 
   scaling (lrn.sum_k, 1.0/lrn.pop_k[lrn.k_est], lrn.mu_k, N_FEATURES); // f flops
 
@@ -43,10 +43,10 @@ static void update_class_mean(){
 static void update_overall_mean(){
   assignment(lrn.mu, lrn.mu_prev, N_FEATURES);// assignment
   lrn.pop = lrn.pop + 1.0;
-  sum(&lrn.sum[MAX_FEATURES_START_IND], prevfeats.max, &lrn.sum[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f flops
-  sum(&lrn.sum[MIN_FEATURES_START_IND], prevfeats.min, &lrn.sum[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f flops
-  sum(&lrn.sum[RNG_FEATURES_START_IND], prevfeats.rng, &lrn.sum[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f flops
-  sum(&lrn.sum[FIN_FEATURES_START_IND], prevfeats.fin, &lrn.sum[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f flops
+  sum(&lrn.sum[MAX_FEATURES_START_IND], prevfeats.max, &lrn.sum[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
+  sum(&lrn.sum[MIN_FEATURES_START_IND], prevfeats.min, &lrn.sum[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
+  sum(&lrn.sum[RNG_FEATURES_START_IND], prevfeats.rng, &lrn.sum[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
+  sum(&lrn.sum[FIN_FEATURES_START_IND], prevfeats.fin, &lrn.sum[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   scaling(lrn.sum, 1.0/lrn.pop, lrn.mu, N_FEATURES); // f flops
 }
 
@@ -57,7 +57,7 @@ static void reset_features(){
     assignment(currfeats.rng, prevfeats.rng, N_PREDICTION_SIGNALS);
     assignment(currfeats.fin, prevfeats.fin, N_PREDICTION_SIGNALS);
     for (int j=0; j < N_PREDICTION_SIGNALS; j++){
-        currfeats.max[j] = FLT_MIN;
+        currfeats.max[j] = -FLT_MAX;
         currfeats.min[j] = FLT_MAX;
     }
 
@@ -124,7 +124,7 @@ static void init_classifier(){
 
   lda.Atemp = (float*)calloc(N_CLASSES * N_FEATURES, sizeof(float));
   lda.Btemp = (float*)calloc(N_CLASSES, sizeof(float));
-  lrn.y  = (float*)calloc( N_FEATURES, sizeof(float));
+  lda.y  = (float*)calloc( N_FEATURES, sizeof(float));
 
   lda.copying_learner_matrices = 0;
   lda.demux_state = LDA_COPY_MU_K;
@@ -145,6 +145,7 @@ void update_learner_demux(struct taskmachine_s* tm){
       case LRN_UPDATE_CLASS_MEAN: 
           if (lda.copying_learner_matrices)
               return;
+          lrn.updating_learner_matrices = 1;
           update_class_mean();
           lrn.demux_state = LRN_UPDATE_OVERALL_MEAN;
       break;
@@ -246,10 +247,10 @@ void update_classifier_demux(){
       {
         int ind = lda.segment*N_FEATURES;
         if (lda.doing_forward_substitution){
-          segmented_forward_substitution(lda.LT, &lrn.sum_k[ind], lda.y, N_FEATURES, lda.subsegment); // roughly 1/2 f^2 flops
+          segmented_forward_substitution(lda.LT, &lrn.mu_k[ind], lda.y, N_FEATURES, lda.subsegment); // roughly 1/2 f^2 flops
           lda.subsegment++;
           if (lda.subsegment == N_FEATURES){
-            lda.subsegment = N_FEATURES-2;
+            lda.subsegment = N_FEATURES-1;
             lda.doing_forward_substitution = 0;
           }
         }
@@ -283,10 +284,14 @@ void update_classifier_demux(){
       case LDA_UPDATE_PARAMS:
           for (int j = 0; j < N_CLASSES; j++){
             int ind = j*N_FEATURES;
-            assignment(&lda.Atemp[ind+MAX_FEATURES_START_IND], &lda.A[ind+MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
-            assignment(&lda.Atemp[ind+MIN_FEATURES_START_IND], &lda.A[ind+MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
-            assignment(&lda.Atemp[ind+RNG_FEATURES_START_IND], &lda.A[ind+RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);
-            assignment(&lda.Atemp[ind+FIN_FEATURES_START_IND], &lda.A[ind+FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+            int ind_max = ind+MAX_FEATURES_START_IND;
+            int ind_min = ind+MIN_FEATURES_START_IND;
+            int ind_rng = ind+RNG_FEATURES_START_IND;
+            int ind_fin = ind+FIN_FEATURES_START_IND;
+            assignment(&lda.Atemp[ind_max], &lda.A[ind_max], N_PREDICTION_SIGNALS);
+            assignment(&lda.Atemp[ind_min], &lda.A[ind_min], N_PREDICTION_SIGNALS);
+            assignment(&lda.Atemp[ind_rng], &lda.A[ind_rng], N_PREDICTION_SIGNALS);
+            assignment(&lda.Atemp[ind_fin], &lda.A[ind_fin], N_PREDICTION_SIGNALS);
           }
           assignment(lda.Btemp, lda.B, N_CLASSES);
           lda.demux_state = LDA_COPY_MU_K; 
@@ -388,7 +393,7 @@ void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin){
     tm->stride_classified = 1;
     return;
     
-    float maxScore = FLT_MIN;
+    float maxScore = -FLT_MAX;
     for (int j=0; j < N_CLASSES; j++){
       lda.score_k[j] = 0;
       lda.score_k[j] += inner_product(&lda.A[MAX_FEATURES_START_IND], currfeats.max, N_PREDICTION_SIGNALS);
