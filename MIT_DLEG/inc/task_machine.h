@@ -63,6 +63,9 @@ struct taskmachine_s
     float aa_prev;
     float aa_dot_aOmegaX_error_prev ;
 
+    float torque_raw; //testing purposes only
+    float angle_raw; //testing purposes only
+
 };
 
 

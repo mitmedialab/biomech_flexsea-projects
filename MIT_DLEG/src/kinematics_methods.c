@@ -15,12 +15,15 @@
 #define ANKLE_POS_IMU_FRAME_X_M 0.0  //Frontal axis (medial->lateral)
 #define ANKLE_POS_IMU_FRAME_Y_M -0.00445  //Longitudinal axis (bottom->top)
 #define ANKLE_POS_IMU_FRAME_Z_M -0.0605  //Sagittal axis (back->front)
-#define ANKLE_TO_IMU_SAGITTAL_PLANE_M ANKLE_POS_IMU_FRAME_Y_M*ANKLE_POS_IMU_FRAME_Y_M + ANKLE_POS_IMU_FRAME_Z_M*ANKLE_POS_IMU_FRAME_Z_M //TO DO NEEDS A SQUARE ROOT AROUND IT!!!!!!!!
+// #define ANKLE_TO_IMU_SAGITTAL_PLANE_M ANKLE_POS_IMU_FRAME_Y_M*ANKLE_POS_IMU_FRAME_Y_M + ANKLE_POS_IMU_FRAME_Z_M*ANKLE_POS_IMU_FRAME_Z_M //TO DO NEEDS A SQUARE ROOT AROUND IT!!!!!!!!
 #define ACCEL_MPS2_PER_LSB  0.98 * GRAVITY_MPS2 / ACCEL_LSB_PER_G
 #define N_ACCEL_MPS2_PER_LSB -0.98 * ACCEL_MPS2_PER_LSB
 #define GYRO_RPS_PER_LSB RAD_PER_DEG / GYRO_LSB_PER_DPS
 
+
 static struct kinematics_s kin;
+
+static float ANKLE_TO_IMU_SAGITTAL_PLANE_M;
 
 static void update_ankle_translations(){
 	
@@ -141,6 +144,9 @@ void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm){
 
 //Copied from matlab pil simulation
 struct kinematics_s* init_kinematics(){
+
+	ANKLE_TO_IMU_SAGITTAL_PLANE_M = sqrtf(ANKLE_POS_IMU_FRAME_Y_M*ANKLE_POS_IMU_FRAME_Y_M + ANKLE_POS_IMU_FRAME_Z_M*ANKLE_POS_IMU_FRAME_Z_M);
+
 	kin.aOmegaX = 0;
     kin.aOmegaY = 0;
     kin.aOmegaZ = 0;

@@ -213,7 +213,7 @@ void update_classifier_demux(){
       {
           int ind = lda.segment*N_FEATURES;
           assignment(&lrn.sum_sigma[ind], &lda.latest_sum_sigma[ind], N_FEATURES);
-          lda.segment = lda.segment++;
+          lda.segment++;
           if (lda.segment == N_FEATURES){
             lda.copying_learner_matrices = 0;
             lda.demux_state = LDA_DO_CHOLESKY;
@@ -280,20 +280,17 @@ void update_classifier_demux(){
         }  
       }    
       break;
-      lda.segment = lda.segment + 1;
-
       case LDA_UPDATE_PARAMS:
-      {
-          int ind = lda.segment*N_FEATURES;
-          assignment(&lda.Atemp[ind], &lda.A[ind], N_FEATURES);  
-          lda.segment++;
-          if (lda.segment == N_CLASSES){
-            assignment(lda.Btemp, lda.B, N_CLASSES);
-            lda.segment = 0;
-            lda.demux_state = LDA_COPY_MU_K; 
-            lda.copying_learner_matrices = 1;
+          for (int j = 0; j < N_CLASSES; j++){
+            int ind = j*N_FEATURES;
+            assignment(&lda.Atemp[ind+MAX_FEATURES_START_IND], &lda.A[ind+MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+            assignment(&lda.Atemp[ind+MIN_FEATURES_START_IND], &lda.A[ind+MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+            assignment(&lda.Atemp[ind+RNG_FEATURES_START_IND], &lda.A[ind+RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+            assignment(&lda.Atemp[ind+FIN_FEATURES_START_IND], &lda.A[ind+FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
           }
-      } 
+          assignment(lda.Btemp, lda.B, N_CLASSES);
+          lda.demux_state = LDA_COPY_MU_K; 
+          lda.copying_learner_matrices = 1;
       break;
   }
 }
