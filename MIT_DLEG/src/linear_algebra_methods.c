@@ -6,45 +6,44 @@
 void cholesky(float* A, float* LT, int n) {
  
     for (int i = 0; i < n; i++){
-        int i_times_n = i*n;
+        int i_x_n = i*n;
 
         for (int j = 0; j < (i+1); j++) {
-            int j_times_n = j*n;
+            int j_x_n = j*n;
             float s = 0;
             for (int k = 0; k < j; k++)
-                s += LT[i_times_n + k] * LT[j_times_n + k];
-            LT[i_times_n + j] = (i == j) ?
-                           sqrtf(A[i_times_n + i] - s) :
-                           (1.0 / LT[j_times_n + j] * (A[i_times_n + j] - s));
+                s += LT[i_x_n + k] * LT[j_x_n + k];
+            LT[i_x_n + j] = (i == j) ?
+                           sqrtf(A[i_x_n + i] - s) :
+                           (1.0 / LT[j_x_n + j] * (A[i_x_n + j] - s));
         } 
     }
 }
 
-void segmented_cholesky(float* A, float* LT, int n, int segment) {
+void segmented_cholesky(float* A, float* LT, int n, int i) {
  
-    int segment_times_n = segment*n;
-    int segment_times_n_p_1 = segment_times_n + segment;
-    for (int j = 0; j <= segment; j++) {
-        int j_times_n = j*n;
+    int i_x_n = i*n;
+    int i_x_n_p_1 = i_x_n + i;
+    for (int j = 0; j <= i; j++) {
+        int j_x_n = j*n;
         float s = 0.0;
         for (int k = 0; k < j; k++)
-            s += LT[segment_times_n + k] * LT[j_times_n + k];
-        LT[segment_times_n + j] = (segment == j) ?
-                       sqrtf(A[segment_times_n_p_1] - s) :
-                       (1.0 / LT[j_times_n + j] * (A[segment_times_n + j] - s));
+            s += LT[i_x_n + k] * LT[j_x_n + k];
+        LT[i_x_n + j] = (i == j) ?
+                       sqrtf(A[i_x_n_p_1] - s) :
+                       (1.0 / LT[j_x_n + j] * (A[i_x_n + j] - s));
     } 
 }
 
-void super_segmented_cholesky(float* A, float* LT, int n, int segment, int subsegment) {
+void super_segmented_cholesky(float* A, float* LT, int n, int i, int j) {
  
-    int segment_times_n = segment*n;
-    int segment_times_n_p_1 = segment_times_n + segment;
-    int j = subsegment;
-    int j_times_n = j*n;
-    float s = inner_product(&LT[segment_times_n],&LT[j_times_n],j);
-    LT[segment_times_n + j] = (segment == j) ?
-                   sqrtf(A[segment_times_n_p_1] - s) :
-                   (1.0 / LT[j_times_n + j] * (A[segment_times_n + j] - s));
+    int i_x_n = i*n;
+    int i_x_n_p_1 = i_x_n + i;
+    int j_x_n = j*n;
+    float s = inner_product(&LT[i_x_n],&LT[j_x_n],j);
+    LT[i_x_n + j] = (i == j) ?
+                   sqrtf(A[i_x_n_p_1] - s) :
+                   (1.0 / LT[j_x_n + j] * (A[i_x_n + j] - s));
 }
  
 void transpose(float *A, float* B, int n)
@@ -64,11 +63,11 @@ void upper_to_lower_transpose(float *R, int n)
 
     for (int i = 0;i < n; i++)
     {
-        int i_times_n = i*n;
+        int i_x_n = i*n;
         for (int j = i+1;j < n; j++)
         {
-            R[j*n + i] = R[i_times_n + j];
-            R[i_times_n + j] = 0.0;
+            R[j*n + i] = R[i_x_n + j];
+            R[i_x_n + j] = 0.0;
         }
     }
 }
@@ -79,20 +78,24 @@ void lower_to_upper_transpose(float *LT, float *UT, int n)
 
     for (int i = 0;i < n; i++)
     {
-        int i_times_n = i*n;
+        int i_x_n = i*n;
         for (int j = i;j < n; j++)
         {
-            UT[i_times_n + j] = LT[j*n + i];
+            UT[i_x_n + j] = LT[j*n + i];
         }
     }
 }
 
-void segmented_lower_to_upper_transpose(float *LT, float *UT, int n, int segment)
+void segmented_lower_to_upper_transpose(float *LT, float *UT, int n, int i)
 {
-        int segment_times_n = segment*n;
-        for (int j = segment;j < n; j++)
+        int i_x_n = i*n;
+        int ind = i_x_n - n + i;
+        int startval = i_x_n + i;
+        int endval = i_x_n + n;
+        for (int j = startval; j < endval; j++)
         {
-            UT[segment_times_n + j] = LT[j*n + segment];
+            ind = ind+n;
+            UT[j] = LT[ind];
         }
 }
 
@@ -105,13 +108,13 @@ void backward_substitution(float *A, float *b, float* x, int n)
 
     for (int i=n-2; i>=0; i--)
     {
-        int i_times_n = i*n;
+        int i_x_n = i*n;
         x[i] = b[i];        
         for (int j=i+1; j<n; j++)
         {
-            x[i] -= A[i_times_n + j]*x[j];
+            x[i] -= A[i_x_n + j]*x[j];
         };             
-        x[i] = x[i] / A[i_times_n + i];
+        x[i] = x[i] / A[i_x_n + i];
     }; 
 }
 
@@ -122,13 +125,13 @@ void segmented_backward_substitution(float *A, float *b, float* x, int n, int i)
         return;
     }
 
-    int i_times_n = i*n;
+    int i_x_n = i*n;
     x[i] = b[i];        
     for (int j=i+1; j<n; j++)
     {
-        x[i] -= A[i_times_n + j]*x[j];
+        x[i] -= A[i_x_n + j]*x[j];
     };             
-    x[i] = x[i] / A[i_times_n + i];
+    x[i] = x[i] / A[i_x_n + i];
 }
 
 void forward_substitution(float *A, float *b, float* x, int n){
@@ -137,14 +140,14 @@ void forward_substitution(float *A, float *b, float* x, int n){
 
     for (int i = 1; i < n; i++)
     {
-        int i_times_n = i*n;
+        int i_x_n = i*n;
         x[i] = b[i];
         for (int j = 0; j < i; j++)
         {
-            x[i] -= A[i_times_n + j]*x[j];
+            x[i] -= A[i_x_n + j]*x[j];
         }
 
-        x[i]= x[i] / A[i_times_n + i];
+        x[i]= x[i] / A[i_x_n + i];
     }
 }
 
@@ -154,14 +157,14 @@ void segmented_forward_substitution(float *A, float *b, float* x, int n, int i){
         return;
     }
 
-    int i_times_n = i*n;
+    int i_x_n = i*n;
     x[i] = b[i];
     for (int j = 0; j < i; j++)
     {
-        x[i] -= A[i_times_n + j]*x[j];
+        x[i] -= A[i_x_n + j]*x[j];
     }
 
-    x[i]= x[i] / A[i_times_n + i];
+    x[i]= x[i] / A[i_x_n + i];
 }
 
 float inner_product (float* x, float* y, int n){
@@ -178,10 +181,10 @@ void outer_product (float* x, float* y, float* P, int n){
             P[i*n+j] = x[i]*y[j];
 }
 
-void segmented_outer_product (float* x, float* y, float* P, int n, int segment){
-    int segment_times_n = segment*n;
+void segmented_outer_product (float* x, float* y, float* P, int n, int i){
+    int i_x_n = i*n;
     for (int j = 0; j < n; j++)
-        P[segment_times_n+j] = x[segment]*y[j];
+        P[i_x_n+j] = x[i]*y[j];
 }
 
 void sum (float* x, float* y, float* z, int n){

@@ -56,12 +56,15 @@ enum Prediction_Signals {
 //copied from matlab pil
 enum Update_Learner_States {
 	LRN_BACK_ESTIMATE = 0,
-	LRN_UPDATE_CLASS_MEAN = 1,
-	LRN_UPDATE_OVERALL_MEAN = 2,
-	LRN_GET_DEVIATION_FROM_PREV_MEAN = 3,
-	LRN_GET_DEVIATION_FROM_CURR_MEAN = 4,
-	LRN_UPDATE_COVARIANCE = 5,
-	LRN_READY_TO_UPDATE_LEARNER = 6,
+	LRN_UPDATE_CLASS_SUM = 1,
+	LRN_UPDATE_CLASS_MEAN = 2,
+	LRN_UPDATE_OVERALL_SUM = 3,
+	LRN_UPDATE_OVERALL_MEAN = 4,
+	LRN_GET_DEVIATION_FROM_PREV_MEAN = 5,
+	LRN_GET_DEVIATION_FROM_CURR_MEAN = 6,
+	LRN_UPDATE_MEAN_DEVIATION_OUTER_PRODUCT = 7,
+	LRN_UPDATE_COVARIANCE = 8,
+	LRN_READY_TO_UPDATE_LEARNER = 9,
 };
 
 //copied from matlab pil
@@ -109,6 +112,7 @@ struct learner_s
 	uint8_t updating_learner_matrices;
 	int demux_state;		
 	int segment;
+	int subsegment;
 
 
 };

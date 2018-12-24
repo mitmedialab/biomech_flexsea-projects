@@ -5,7 +5,7 @@
 
  //Machine learning (copied from matlab pil)
 #define N_CLASSES 5
-#define N_PREDICTION_SIGNALS 4
+#define N_PREDICTION_SIGNALS 18
 #define N_PREDICTION_FEATURES 4
 #define N_FEATURES N_PREDICTION_SIGNALS * N_PREDICTION_FEATURES
 #define N_FEATURES_SQ N_FEATURES * N_FEATURES
@@ -24,7 +24,7 @@ static struct features_s currfeats;
 static struct features_s prevfeats;
 
 
-static void update_class_mean(){
+static void update_class_sum(){
   int ind = lrn.k_est*N_FEATURES;
   int ind_max = ind+MAX_FEATURES_START_IND;
   int ind_min = ind+MIN_FEATURES_START_IND;
@@ -36,18 +36,16 @@ static void update_class_mean(){
   sum(&lrn.sum_k[ind_rng], prevfeats.rng, &lrn.sum_k[ind_rng], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&lrn.sum_k[ind_fin], prevfeats.fin, &lrn.sum_k[ind_fin], N_PREDICTION_SIGNALS); // f/4 flops
 
-  scaling (&lrn.sum_k[ind], 1.0/lrn.pop_k[lrn.k_est], &lrn.mu_k[ind], N_FEATURES); // f flops
-
 }
 
-static void update_overall_mean(){
+static void update_overall_sum(){
   assignment(lrn.mu, lrn.mu_prev, N_FEATURES);// assignment
   lrn.pop = lrn.pop + 1.0;
   sum(&lrn.sum[MAX_FEATURES_START_IND], prevfeats.max, &lrn.sum[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&lrn.sum[MIN_FEATURES_START_IND], prevfeats.min, &lrn.sum[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&lrn.sum[RNG_FEATURES_START_IND], prevfeats.rng, &lrn.sum[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&lrn.sum[FIN_FEATURES_START_IND], prevfeats.fin, &lrn.sum[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
-  scaling(lrn.sum, 1.0/lrn.pop, lrn.mu, N_FEATURES); // f flops
+  
 }
 
 //copied from matlab pil
@@ -105,6 +103,7 @@ static void init_learner(){
   lrn.updating_learner_matrices = 1;
   lrn.demux_state = LRN_READY_TO_UPDATE_LEARNER;
   lrn.segment = 0;
+  lrn.subsegment = 0;
 
 }
 
@@ -137,40 +136,61 @@ static void init_classifier(){
 //copied from matlab pil
 void update_learner_demux(struct taskmachine_s* tm){
     switch (lrn.demux_state){
-      case LRN_BACK_ESTIMATE:
+      case LRN_BACK_ESTIMATE: //constant flops
           lrn.k_est = TASK_FL;
           back_estimate(tm, &lrn);
-          lrn.demux_state = LRN_UPDATE_CLASS_MEAN;
+          lrn.demux_state = LRN_UPDATE_CLASS_SUM;
       break;
-      case LRN_UPDATE_CLASS_MEAN: 
+      case LRN_UPDATE_CLASS_SUM: //f flops per cycle
           if (lda.copying_learner_matrices)
               return;
           lrn.updating_learner_matrices = 1;
-          update_class_mean();
+          update_class_sum();
+          lrn.demux_state = LRN_UPDATE_CLASS_MEAN;
+      break;
+      case LRN_UPDATE_CLASS_MEAN: // f flops per cycle
+      {
+    	int ind = lrn.k_est*N_FEATURES;
+        scaling (&lrn.sum_k[ind], 1.0/lrn.pop_k[lrn.k_est], &lrn.mu_k[ind], N_FEATURES);
+        lrn.demux_state = LRN_UPDATE_OVERALL_SUM;
+      }
+      break;
+      case LRN_UPDATE_OVERALL_SUM: //f flops per cycle
+          update_overall_sum();
           lrn.demux_state = LRN_UPDATE_OVERALL_MEAN;
       break;
-      case LRN_UPDATE_OVERALL_MEAN: // 1 sample
-        update_overall_mean(); //2f flops
+      case LRN_UPDATE_OVERALL_MEAN: // f flops per cycle
+        scaling(lrn.sum, 1.0/lrn.pop, lrn.mu, N_FEATURES);
         lrn.demux_state = LRN_GET_DEVIATION_FROM_PREV_MEAN;
       break;
-      case LRN_GET_DEVIATION_FROM_PREV_MEAN: // 1 sample
-        diff(prevfeats.max, &lrn.mu_prev[MAX_FEATURES_START_IND], &lrn.x[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.min, &lrn.mu_prev[MIN_FEATURES_START_IND], &lrn.x[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.rng, &lrn.mu_prev[RNG_FEATURES_START_IND], &lrn.x[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.fin, &lrn.mu_prev[FIN_FEATURES_START_IND], &lrn.x[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
+      case LRN_GET_DEVIATION_FROM_PREV_MEAN: // f flops per cycle
+        diff(prevfeats.max, &lrn.mu_prev[MAX_FEATURES_START_IND], &lrn.x[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+        diff(prevfeats.min, &lrn.mu_prev[MIN_FEATURES_START_IND], &lrn.x[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+        diff(prevfeats.rng, &lrn.mu_prev[RNG_FEATURES_START_IND], &lrn.x[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+        diff(prevfeats.fin, &lrn.mu_prev[FIN_FEATURES_START_IND], &lrn.x[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         lrn.demux_state = LRN_GET_DEVIATION_FROM_CURR_MEAN;
       break;
-      case LRN_GET_DEVIATION_FROM_CURR_MEAN: // 1 sample
-        diff(prevfeats.max, &lrn.mu[MAX_FEATURES_START_IND], &lrn.y[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.min, &lrn.mu[MIN_FEATURES_START_IND], &lrn.y[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.rng, &lrn.mu[RNG_FEATURES_START_IND], &lrn.y[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
-        diff(prevfeats.fin, &lrn.mu[FIN_FEATURES_START_IND], &lrn.y[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);//f flops
-        lrn.demux_state = LRN_UPDATE_COVARIANCE;
+      case LRN_GET_DEVIATION_FROM_CURR_MEAN: // f flops per cycle
+        diff(prevfeats.max, &lrn.mu[MAX_FEATURES_START_IND], &lrn.y[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+        diff(prevfeats.min, &lrn.mu[MIN_FEATURES_START_IND], &lrn.y[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+        diff(prevfeats.rng, &lrn.mu[RNG_FEATURES_START_IND], &lrn.y[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+        diff(prevfeats.fin, &lrn.mu[FIN_FEATURES_START_IND], &lrn.y[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+        lrn.demux_state = LRN_UPDATE_MEAN_DEVIATION_OUTER_PRODUCT;
       break;
-      case LRN_UPDATE_COVARIANCE: // f samples
+      case LRN_UPDATE_MEAN_DEVIATION_OUTER_PRODUCT: // f flops per cycle
       {
         int segment_section = lrn.segment*N_FEATURES;
-        segmented_outer_product(lrn.x, lrn.y, lrn.temp, N_FEATURES, lrn.segment); //2f flops
+        segmented_outer_product(lrn.x, lrn.y, lrn.temp, N_FEATURES, lrn.segment); //f flops
+        lrn.segment++;
+        if (lrn.segment == N_FEATURES){
+          lrn.demux_state = LRN_UPDATE_COVARIANCE; 
+          lrn.segment = 0;
+        }
+      }
+      break;
+      case LRN_UPDATE_COVARIANCE: // f flops per cycle
+      {
+        int segment_section = lrn.segment*N_FEATURES;
         sum(&lrn.sum_sigma[segment_section], &lrn.temp[segment_section], &lrn.sum_sigma[segment_section], N_FEATURES);//f flops
         lrn.segment++;
         if (lrn.segment == N_FEATURES){
@@ -180,7 +200,7 @@ void update_learner_demux(struct taskmachine_s* tm){
         }
       }
       break;
-      case LRN_READY_TO_UPDATE_LEARNER:
+      case LRN_READY_TO_UPDATE_LEARNER: //constant flops
         if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
                if (tm->do_learning_for_stride){
                    tm->do_learning_for_stride = 0;
@@ -195,7 +215,7 @@ void update_learner_demux(struct taskmachine_s* tm){
 void update_classifier_demux(){
 
       switch (lda.demux_state){
-      case LDA_COPY_MU_K:
+      case LDA_COPY_MU_K://f assignments per cycle, 5 cycles
         {
           if (lrn.updating_learner_matrices)
               return;
@@ -210,7 +230,7 @@ void update_classifier_demux(){
         }
       break;
 
-      case LDA_COPY_SUM_SIGMA:
+      case LDA_COPY_SUM_SIGMA: //f assignments per cycle, f cycles
       {
           int ind = lda.segment*N_FEATURES;
           assignment(&lrn.sum_sigma[ind], &lda.latest_sum_sigma[ind], N_FEATURES);
@@ -222,7 +242,7 @@ void update_classifier_demux(){
           }
         }
       break;
-      case LDA_DO_CHOLESKY: // f(f+1)/2 samples
+      case LDA_DO_CHOLESKY: // max f flops per cycle, f(f+1)/2 cycles
         super_segmented_cholesky(lda.latest_sum_sigma, lda.LT, N_FEATURES, lda.segment, lda.subsegment);
         lda.subsegment++;
         if (lda.subsegment > lda.segment){
@@ -235,7 +255,7 @@ void update_classifier_demux(){
           lda.segment = 0;
         }
       break;
-      case LDA_UPDATE_TRANSPOSE: //f samples
+      case LDA_UPDATE_TRANSPOSE: //f flops per cycle, f cycles
         segmented_lower_to_upper_transpose(lda.LT, lda.UT, N_FEATURES, lda.segment);
         lda.segment++;
         if (lda.segment == N_FEATURES){
@@ -243,7 +263,7 @@ void update_classifier_demux(){
           lda.segment = 0;
         }
       break;
-      case LDA_CALC_A_PARAMS: //2*c*f
+      case LDA_CALC_A_PARAMS: //f flops per cycle max, 10*f cycles
       {
         int ind = lda.segment*N_FEATURES;
         if (lda.doing_forward_substitution){
@@ -269,7 +289,7 @@ void update_classifier_demux(){
         }  
       }
       break;
-      case LDA_CALC_B_PARAMS:
+      case LDA_CALC_B_PARAMS: //2f flops, 5 cycles
       {
         int ind = lda.segment*N_FEATURES;
         lda.Btemp[lda.segment] = -0.5*inner_product(&lda.latest_mu_k[ind], &lda.A[ind], N_FEATURES);
@@ -308,39 +328,39 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
     currfeats.max[AOMEGAX] = MAX(currfeats.max[AOMEGAX], kin->aOmegaX);
     currfeats.max[AOMEGAY] = MAX(currfeats.max[AOMEGAY], kin->aOmegaY);
     currfeats.max[AOMEGAZ] = MAX(currfeats.max[AOMEGAZ], kin->aOmegaZ);
-    // currfeats.max[AACCX] = MAX(currfeats.max[AACCX], kin->aAccX);
-    // currfeats.max[AACCY] = MAX(currfeats.max[AACCY], kin->aAccY);
-    // currfeats.max[AACCZ] = MAX(currfeats.max[AACCZ], kin->aAccZ);
-    // currfeats.max[AAY] = MAX(currfeats.max[AAY], kin->aAy);
-    // currfeats.max[VAY] = MAX(currfeats.max[VAY], kin->vAy);
-    // currfeats.max[PAY] = MAX(currfeats.max[PAY], kin->pAy);
-    // currfeats.max[AAZ] = MAX(currfeats.max[AAZ], kin->aAz);
-    // currfeats.max[VAZ] = MAX(currfeats.max[VAZ], kin->vAz);
-    // currfeats.max[PAZ] = MAX(currfeats.max[PAZ], kin->pAz);
-    // currfeats.max[SINSQATTACK] = MAX(currfeats.max[SINSQATTACK], kin->sinSqAttackAngle);
-    // currfeats.max[AA] = MAX(currfeats.max[AA], tm->aa);
-    // currfeats.max[TQ] = MAX(currfeats.max[TQ], tm->tq);
-    // currfeats.max[AADOT] = MAX(currfeats.max[AADOT], tm->aa_dot);
-    // currfeats.max[TQDOT] = MAX(currfeats.max[TQDOT], tm->tq_dot);
+    currfeats.max[AACCX] = MAX(currfeats.max[AACCX], kin->aAccX);
+    currfeats.max[AACCY] = MAX(currfeats.max[AACCY], kin->aAccY);
+    currfeats.max[AACCZ] = MAX(currfeats.max[AACCZ], kin->aAccZ);
+    currfeats.max[AAY] = MAX(currfeats.max[AAY], kin->aAy);
+    currfeats.max[VAY] = MAX(currfeats.max[VAY], kin->vAy);
+    currfeats.max[PAY] = MAX(currfeats.max[PAY], kin->pAy);
+    currfeats.max[AAZ] = MAX(currfeats.max[AAZ], kin->aAz);
+    currfeats.max[VAZ] = MAX(currfeats.max[VAZ], kin->vAz);
+    currfeats.max[PAZ] = MAX(currfeats.max[PAZ], kin->pAz);
+    currfeats.max[SINSQATTACK] = MAX(currfeats.max[SINSQATTACK], kin->sinSqAttackAngle);
+    currfeats.max[AA] = MAX(currfeats.max[AA], tm->aa);
+    currfeats.max[TQ] = MAX(currfeats.max[TQ], tm->tq);
+    currfeats.max[AADOT] = MAX(currfeats.max[AADOT], tm->aa_dot);
+    currfeats.max[TQDOT] = MAX(currfeats.max[TQDOT], tm->tq_dot);
 
     currfeats.min[ROT3] = MIN(currfeats.min[ROT3], kin->rot3);
     currfeats.min[AOMEGAX] = MIN(currfeats.min[AOMEGAX], kin->aOmegaX);
     currfeats.min[AOMEGAY] = MIN(currfeats.min[AOMEGAY], kin->aOmegaY);
     currfeats.min[AOMEGAZ] = MIN(currfeats.min[AOMEGAZ], kin->aOmegaZ);
-    // currfeats.min[AACCX] = MIN(currfeats.min[AACCX], kin->aAccX);
-    // currfeats.min[AACCY] = MIN(currfeats.min[AACCY], kin->aAccY);
-    // currfeats.min[AACCZ] = MIN(currfeats.min[AACCZ], kin->aAccZ);
-    // currfeats.min[AAY] = MIN(currfeats.min[AAY], kin->aAy);
-    // currfeats.min[VAY] = MIN(currfeats.min[VAY], kin->vAy);
-    // currfeats.min[PAY] = MIN(currfeats.min[PAY], kin->pAy);
-    // currfeats.min[AAZ] = MIN(currfeats.min[AAZ], kin->aAz);
-    // currfeats.min[VAZ] = MIN(currfeats.min[VAZ], kin->vAz);
-    // currfeats.min[PAZ] = MIN(currfeats.min[PAZ], kin->pAz);
-    // currfeats.min[SINSQATTACK] = MIN(currfeats.min[SINSQATTACK], kin->sinSqAttackAngle);
-    // currfeats.min[AA] = MIN(currfeats.min[AA], tm->aa);
-    // currfeats.min[TQ] = MIN(currfeats.min[TQ], tm->tq);
-    // currfeats.min[AADOT] = MIN(currfeats.min[AADOT], tm->aa_dot);
-    // currfeats.min[TQDOT] = MIN(currfeats.min[TQDOT], tm->tq_dot);
+    currfeats.min[AACCX] = MIN(currfeats.min[AACCX], kin->aAccX);
+    currfeats.min[AACCY] = MIN(currfeats.min[AACCY], kin->aAccY);
+    currfeats.min[AACCZ] = MIN(currfeats.min[AACCZ], kin->aAccZ);
+    currfeats.min[AAY] = MIN(currfeats.min[AAY], kin->aAy);
+    currfeats.min[VAY] = MIN(currfeats.min[VAY], kin->vAy);
+    currfeats.min[PAY] = MIN(currfeats.min[PAY], kin->pAy);
+    currfeats.min[AAZ] = MIN(currfeats.min[AAZ], kin->aAz);
+    currfeats.min[VAZ] = MIN(currfeats.min[VAZ], kin->vAz);
+    currfeats.min[PAZ] = MIN(currfeats.min[PAZ], kin->pAz);
+    currfeats.min[SINSQATTACK] = MIN(currfeats.min[SINSQATTACK], kin->sinSqAttackAngle);
+    currfeats.min[AA] = MIN(currfeats.min[AA], tm->aa);
+    currfeats.min[TQ] = MIN(currfeats.min[TQ], tm->tq);
+    currfeats.min[AADOT] = MIN(currfeats.min[AADOT], tm->aa_dot);
+    currfeats.min[TQDOT] = MIN(currfeats.min[TQDOT], tm->tq_dot);
 
 }
 
@@ -372,20 +392,20 @@ void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin){
     currfeats.fin[AOMEGAX] = kin->aOmegaX;
     currfeats.fin[AOMEGAY] = kin->aOmegaY;
     currfeats.fin[AOMEGAZ] = kin->aOmegaZ;
-    // currfeats.fin[AACCX] = kin->aAccX;
-    // currfeats.fin[AACCY] = kin->aAccY;
-    // currfeats.fin[AACCZ] = kin->aAccZ;
-    // currfeats.fin[AAY] = kin->aAy;
-    // currfeats.fin[VAY] = kin->vAy;
-    // currfeats.fin[PAY] = kin->pAy;
-    // currfeats.fin[AAZ] = kin->aAz;
-    // currfeats.fin[VAZ] = kin->vAz;
-    // currfeats.fin[PAZ] = kin->pAz;
-    // currfeats.fin[SINSQATTACK] = kin->sinSqAttackAngle;
-    // currfeats.fin[AA] = tm->aa;
-    // currfeats.fin[TQ] = tm->tq;
-    // currfeats.fin[AADOT] = tm->aa_dot;
-    // currfeats.fin[TQDOT] = tm->tq_dot;
+    currfeats.fin[AACCX] = kin->aAccX;
+    currfeats.fin[AACCY] = kin->aAccY;
+    currfeats.fin[AACCZ] = kin->aAccZ;
+    currfeats.fin[AAY] = kin->aAy;
+    currfeats.fin[VAY] = kin->vAy;
+    currfeats.fin[PAY] = kin->pAy;
+    currfeats.fin[AAZ] = kin->aAz;
+    currfeats.fin[VAZ] = kin->vAz;
+    currfeats.fin[PAZ] = kin->pAz;
+    currfeats.fin[SINSQATTACK] = kin->sinSqAttackAngle;
+    currfeats.fin[AA] = tm->aa;
+    currfeats.fin[TQ] = tm->tq;
+    currfeats.fin[AADOT] = tm->aa_dot;
+    currfeats.fin[TQDOT] = tm->tq_dot;
 
     //TESTING ONLY
     // reset_features();
