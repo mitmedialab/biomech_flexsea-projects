@@ -258,7 +258,6 @@ void update_classifier_demux(){
           segmented_backward_substitution(lda.UT, lda.y, &lda.Atemp[ind], N_FEATURES, lda.subsegment); // roughly 1/2 f^2 flops
           lda.subsegment--;
           if (lda.subsegment == -1){
-            //lda.B[lda.current_updating_class] = -0.5*inner_product(&lrn.sum_k[ind], &lda.A[ind], N_FEATURES);
             lda.subsegment = 0;
             lda.doing_forward_substitution = 1;
             lda.segment++;
@@ -389,17 +388,22 @@ void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin){
     // currfeats.fin[TQDOT] = tm->tq_dot;
 
     //TESTING ONLY
-    reset_features();
-    tm->stride_classified = 1;
-    return;
+    // reset_features();
+    // tm->stride_classified = 1;
+    // return;
     
     float maxScore = -FLT_MAX;
     for (int j=0; j < N_CLASSES; j++){
       lda.score_k[j] = 0;
-      lda.score_k[j] += inner_product(&lda.A[MAX_FEATURES_START_IND], currfeats.max, N_PREDICTION_SIGNALS);
-      lda.score_k[j] += inner_product(&lda.A[MIN_FEATURES_START_IND], currfeats.min, N_PREDICTION_SIGNALS);
-      lda.score_k[j] += inner_product(&lda.A[RNG_FEATURES_START_IND], currfeats.rng, N_PREDICTION_SIGNALS);
-      lda.score_k[j] += inner_product(&lda.A[FIN_FEATURES_START_IND], currfeats.fin, N_PREDICTION_SIGNALS);
+      int ind = j*N_FEATURES;
+      int ind_max = ind+MAX_FEATURES_START_IND;
+      int ind_min = ind+MIN_FEATURES_START_IND;
+      int ind_rng = ind+RNG_FEATURES_START_IND;
+      int ind_fin = ind+FIN_FEATURES_START_IND;
+      lda.score_k[j] += inner_product(&lda.A[ind_max], currfeats.max, N_PREDICTION_SIGNALS);
+      lda.score_k[j] += inner_product(&lda.A[ind_min], currfeats.min, N_PREDICTION_SIGNALS);
+      lda.score_k[j] += inner_product(&lda.A[ind_rng], currfeats.rng, N_PREDICTION_SIGNALS);
+      lda.score_k[j] += inner_product(&lda.A[ind_fin], currfeats.fin, N_PREDICTION_SIGNALS);
 
       if (lda.score_k[j] > maxScore){
           maxScore = lda.score_k[j];
