@@ -36,7 +36,7 @@ static void update_class_mean(){
   sum(&lrn.sum_k[ind_rng], prevfeats.rng, &lrn.sum_k[ind_rng], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&lrn.sum_k[ind_fin], prevfeats.fin, &lrn.sum_k[ind_fin], N_PREDICTION_SIGNALS); // f/4 flops
 
-  scaling (lrn.sum_k, 1.0/lrn.pop_k[lrn.k_est], lrn.mu_k, N_FEATURES); // f flops
+  scaling (&lrn.sum_k[ind], 1.0/lrn.pop_k[lrn.k_est], &lrn.mu_k[ind], N_FEATURES); // f flops
 
 }
 
@@ -247,7 +247,7 @@ void update_classifier_demux(){
       {
         int ind = lda.segment*N_FEATURES;
         if (lda.doing_forward_substitution){
-          segmented_forward_substitution(lda.LT, &lrn.mu_k[ind], lda.y, N_FEATURES, lda.subsegment); // roughly 1/2 f^2 flops
+          segmented_forward_substitution(lda.LT, &lda.latest_mu_k[ind], lda.y, N_FEATURES, lda.subsegment); // roughly 1/2 f^2 flops
           lda.subsegment++;
           if (lda.subsegment == N_FEATURES){
             lda.subsegment = N_FEATURES-1;
