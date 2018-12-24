@@ -5,7 +5,7 @@
 
  //Machine learning (copied from matlab pil)
 #define N_CLASSES 5
-#define N_PREDICTION_SIGNALS 2
+#define N_PREDICTION_SIGNALS 4
 #define N_PREDICTION_FEATURES 4
 #define N_FEATURES N_PREDICTION_SIGNALS * N_PREDICTION_FEATURES
 #define N_FEATURES_SQ N_FEATURES * N_FEATURES
@@ -306,8 +306,8 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
 
     currfeats.max[ROT3] = MAX(currfeats.max[ROT3], kin->rot3);
     currfeats.max[AOMEGAX] = MAX(currfeats.max[AOMEGAX], kin->aOmegaX);
-    // currfeats.max[AOMEGAY] = MAX(currfeats.max[AOMEGAY], kin->aOmegaY);
-    // currfeats.max[AOMEGAZ] = MAX(currfeats.max[AOMEGAZ], kin->aOmegaZ);
+    currfeats.max[AOMEGAY] = MAX(currfeats.max[AOMEGAY], kin->aOmegaY);
+    currfeats.max[AOMEGAZ] = MAX(currfeats.max[AOMEGAZ], kin->aOmegaZ);
     // currfeats.max[AACCX] = MAX(currfeats.max[AACCX], kin->aAccX);
     // currfeats.max[AACCY] = MAX(currfeats.max[AACCY], kin->aAccY);
     // currfeats.max[AACCZ] = MAX(currfeats.max[AACCZ], kin->aAccZ);
@@ -325,8 +325,8 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
 
     currfeats.min[ROT3] = MIN(currfeats.min[ROT3], kin->rot3);
     currfeats.min[AOMEGAX] = MIN(currfeats.min[AOMEGAX], kin->aOmegaX);
-    // currfeats.min[AOMEGAY] = MIN(currfeats.min[AOMEGAY], kin->aOmegaY);
-    // currfeats.min[AOMEGAZ] = MIN(currfeats.min[AOMEGAZ], kin->aOmegaZ);
+    currfeats.min[AOMEGAY] = MIN(currfeats.min[AOMEGAY], kin->aOmegaY);
+    currfeats.min[AOMEGAZ] = MIN(currfeats.min[AOMEGAZ], kin->aOmegaZ);
     // currfeats.min[AACCX] = MIN(currfeats.min[AACCX], kin->aAccX);
     // currfeats.min[AACCY] = MIN(currfeats.min[AACCY], kin->aAccY);
     // currfeats.min[AACCZ] = MIN(currfeats.min[AACCZ], kin->aAccZ);
@@ -370,8 +370,8 @@ void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin){
 
     currfeats.fin[ROT3] = kin->rot3;
     currfeats.fin[AOMEGAX] = kin->aOmegaX;
-    // currfeats.fin[AOMEGAY] = kin->aOmegaY;
-    // currfeats.fin[AOMEGAZ] = kin->aOmegaZ;
+    currfeats.fin[AOMEGAY] = kin->aOmegaY;
+    currfeats.fin[AOMEGAZ] = kin->aOmegaZ;
     // currfeats.fin[AACCX] = kin->aAccX;
     // currfeats.fin[AACCY] = kin->aAccY;
     // currfeats.fin[AACCZ] = kin->aAccZ;
