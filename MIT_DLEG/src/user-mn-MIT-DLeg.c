@@ -184,12 +184,12 @@ void MIT_DLeg_fsm_1(void)
 
 			task_machine_demux(&rigid1);
 
-			rigid1.mn.genVar[0] = (int16_t) (100000.0*get_classifier()->A[0]); //
-			rigid1.mn.genVar[1] = (int16_t) (100000.0*get_classifier()->A[72]); //
-			rigid1.mn.genVar[2] = (int16_t) (100000.0*get_classifier()->A[144]); //
-			rigid1.mn.genVar[3] = (int16_t) (100000.0*get_classifier()->A[216]); //
-			rigid1.mn.genVar[4] = (int16_t) (100000.0*get_classifier()->A[288]); //
-			rigid1.mn.genVar[5] = (int16_t) (get_classifier()->k_pred); //
+			rigid1.mn.genVar[0] = (int16_t) (100000.0*get_predictor()->A[0]); //
+			rigid1.mn.genVar[1] = (int16_t) (100000.0*get_predictor()->A[72]); //
+			rigid1.mn.genVar[2] = (int16_t) (100000.0*get_predictor()->A[144]); //
+			rigid1.mn.genVar[3] = (int16_t) (100000.0*get_predictor()->A[216]); //
+			rigid1.mn.genVar[4] = (int16_t) (100000.0*get_predictor()->A[288]); //
+			rigid1.mn.genVar[5] = (int16_t) (get_predictor()->k_pred); //
 			rigid1.mn.genVar[6] = (int16_t) (100.0*get_task_machine()->torque_raw); //
 			rigid1.mn.genVar[7] = (int16_t) (100.0*get_task_machine()->angle_raw); //
 			rigid1.mn.genVar[8] = (int16_t) (get_learner()->k_est);//

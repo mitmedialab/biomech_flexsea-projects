@@ -13,7 +13,7 @@
 #include <stdio.h>
 #include <float.h>
 
-void predict_task(struct taskmachine_s* tm, struct kinematics_s* kin);
+void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin);
 void update_learner_demux(struct taskmachine_s* tm);
 void update_classifier_demux();
 void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* kin);
@@ -22,6 +22,7 @@ void init_learning_structs();
 //Getters
 struct learner_s* get_learner();
 struct classifier_s* get_classifier();
+struct predictor_s* get_predictor();
 struct features_s* get_prev_features();
 struct features_s* get_curr_features();
 
@@ -79,6 +80,15 @@ enum Update_Classifier_States {
 };
 
 //copied from matlab pil
+enum Predict_Task_States {
+	PRED_UPDATE_RNG = 0,
+	PRED_UPDATE_FIN = 1,
+	PRED_PREDICT = 2,
+	PRED_UPDATE_PREV_FEATS = 3,
+	PRED_READY_TO_PREDICT = 4,
+};
+
+//copied from matlab pil
 struct features_s
 {
 	float* max;
@@ -121,11 +131,6 @@ struct learner_s
 struct classifier_s
 {
 
-	float* A;
-	float* B;
-	float* score_k;
-	uint8_t k_pred;
-
 	float* UT;
 	float* LT;
 
@@ -143,6 +148,21 @@ struct classifier_s
 	int segment;
 	int subsegment;
 	uint8_t doing_forward_substitution;
+};
+
+//copied from matlab pil
+struct predictor_s
+{
+	float* A; 
+	float* B; 
+	float* score_k; 
+	int k_pred; 
+	float max_score;
+
+	uint8_t predicting_task;
+	int demux_state;
+	int segment;
+
 };
 
 
