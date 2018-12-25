@@ -76,8 +76,8 @@ static void init_features(){
 //copied from matlab pil
 static void init_learner(){
 
-  lrn.mu_k = (float*)calloc(N_CLASSES  * N_FEATURES, sizeof(float));
-  lrn.sum_k = (float*)calloc(N_CLASSES   * N_FEATURES, sizeof(float));
+  lrn.mu_k = (float*)calloc(N_CLASSES*N_FEATURES, sizeof(float));
+  lrn.sum_k = (float*)calloc(N_CLASSES*N_FEATURES, sizeof(float));
   lrn.mu_prev  = (float*)calloc( N_FEATURES, sizeof(float));
   lrn.mu  = (float*)calloc( N_FEATURES, sizeof(float));
   lrn.sum  = (float*)calloc( N_FEATURES, sizeof(float));
@@ -95,7 +95,7 @@ static void init_learner(){
   }
 
   //init intermediary matrices
-  lrn.temp = (float*)calloc(N_FEATURES_SQ, sizeof(float));
+  lrn.temp = (float*)calloc(N_FEATURES, sizeof(float));
   lrn.x  = (float*)calloc( N_FEATURES, sizeof(float));
   lrn.y  = (float*)calloc( N_FEATURES, sizeof(float));
   lrn.k_est = 1;
@@ -119,7 +119,7 @@ static void init_classifier(){
   lda.LT = (float*)calloc(N_FEATURES_SQ, sizeof(float));
 
   lda.latest_sum_sigma = (float*)calloc(N_FEATURES_SQ, sizeof(float));
-  lda.latest_mu_k = (float*)calloc(N_CLASSES   * N_FEATURES, sizeof(float));
+  lda.latest_mu_k = (float*)calloc(N_CLASSES*N_FEATURES, sizeof(float));
 
   lda.Atemp = (float*)calloc(N_CLASSES * N_FEATURES, sizeof(float));
   lda.Btemp = (float*)calloc(N_CLASSES, sizeof(float));
@@ -180,23 +180,13 @@ void update_learner_demux(struct taskmachine_s* tm){
       case LRN_UPDATE_MEAN_DEVIATION_OUTER_PRODUCT: // f flops per cycle
       {
         int segment_section = lrn.segment*N_FEATURES;
-        segmented_outer_product(lrn.x, lrn.y, lrn.temp, N_FEATURES, lrn.segment); //f flops
-        lrn.segment++;
-        if (lrn.segment == N_FEATURES){
-          lrn.demux_state = LRN_UPDATE_COVARIANCE; 
-          lrn.segment = 0;
-        }
-      }
-      break;
-      case LRN_UPDATE_COVARIANCE: // f flops per cycle
-      {
-        int segment_section = lrn.segment*N_FEATURES;
-        sum(&lrn.sum_sigma[segment_section], &lrn.temp[segment_section], &lrn.sum_sigma[segment_section], N_FEATURES);//f flops
+        scaling(lrn.y, lrn.x[lrn.segment],lrn.temp, N_FEATURES);
+        sum(&lrn.sum_sigma[segment_section], lrn.temp, &lrn.sum_sigma[segment_section], N_FEATURES);//f flops
         lrn.segment++;
         if (lrn.segment == N_FEATURES){
           lrn.demux_state = LRN_READY_TO_UPDATE_LEARNER; 
-          lrn.segment = 0;
           lrn.updating_learner_matrices = 0;
+          lrn.segment = 0;
         }
       }
       break;
@@ -300,17 +290,10 @@ void update_classifier_demux(){
         }  
       }    
       break;
-      case LDA_UPDATE_PARAMS:
+      case LDA_UPDATE_PARAMS: //5f + 5 assignments
           for (int j = 0; j < N_CLASSES; j++){
             int ind = j*N_FEATURES;
-            int ind_max = ind+MAX_FEATURES_START_IND;
-            int ind_min = ind+MIN_FEATURES_START_IND;
-            int ind_rng = ind+RNG_FEATURES_START_IND;
-            int ind_fin = ind+FIN_FEATURES_START_IND;
-            assignment(&lda.Atemp[ind_max], &lda.A[ind_max], N_PREDICTION_SIGNALS);
-            assignment(&lda.Atemp[ind_min], &lda.A[ind_min], N_PREDICTION_SIGNALS);
-            assignment(&lda.Atemp[ind_rng], &lda.A[ind_rng], N_PREDICTION_SIGNALS);
-            assignment(&lda.Atemp[ind_fin], &lda.A[ind_fin], N_PREDICTION_SIGNALS);
+            assignment(&lda.Atemp[ind], &lda.A[ind], N_FEATURES);
           }
           assignment(lda.Btemp, lda.B, N_CLASSES);
           lda.demux_state = LDA_COPY_MU_K; 
