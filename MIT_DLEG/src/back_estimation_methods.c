@@ -15,28 +15,28 @@ static struct back_estimator_s be;
 
 
 //copied from matlab pil
-void back_estimate(struct taskmachine_s* tm, struct learner_s* lrn){
+void back_estimate(struct taskmachine_s* tm, struct statistics_s* stats){
   
 	 tm->reset_back_estimator_trigger = 1;
 
 
 	if (be.max_stance_theta > DR_ANKLE_ANGLE_THRESH){
-	    lrn->k_est = TASK_DR;
+	    stats->k_est = TASK_DR;
 	    return;
 	}
 
 	if (be.prev_mean_sin_sq_attack_angle > US_SIN_SQ_ATTACK_ANGLE_THRESH && be.passed_us_z_thresh){
-	    lrn->k_est = TASK_US;
+	    stats->k_est = TASK_US;
 	    return;
 	}
 
 	if (be.min_stance_theta < UR_ANKLE_ANGLE_THRESH){
-	    lrn->k_est = TASK_UR;
+	    stats->k_est = TASK_UR;
 	    return;
 	}
 
 	if (be.passed_ds_z_thresh && be.prev_passed_ds_z_thresh_samples < DS_Z_SAMPLE_THRESH && be.prev_min_stance_theta < DS_ANKLE_ANGLE_THRESH){
-	       lrn->k_est = TASK_DS;
+	       stats->k_est = TASK_DS;
 	       return;
 	}
 }

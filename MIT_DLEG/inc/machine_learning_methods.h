@@ -14,14 +14,14 @@
 #include <float.h>
 
 void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin);
-void update_learner_demux(struct taskmachine_s* tm);
-void update_classifier_demux();
+void update_statistics_demux(struct taskmachine_s* tm);
+void update_learner_demux();
 void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* kin);
 void init_learning_structs();
 
 //Getters
+struct statistics_s* get_statistics();
 struct learner_s* get_learner();
-struct classifier_s* get_classifier();
 struct predictor_s* get_predictor();
 struct features_s* get_prev_features();
 struct features_s* get_curr_features();
@@ -55,28 +55,28 @@ enum Prediction_Signals {
 };
 
 //copied from matlab pil
-enum Update_Learner_States {
-	LRN_BACK_ESTIMATE = 0,
-	LRN_UPDATE_CLASS_SUM = 1,
-	LRN_UPDATE_CLASS_MEAN = 2,
-	LRN_UPDATE_OVERALL_SUM = 3,
-	LRN_UPDATE_OVERALL_MEAN = 4,
-	LRN_GET_DEVIATION_FROM_PREV_MEAN = 5,
-	LRN_GET_DEVIATION_FROM_CURR_MEAN = 6,
-	LRN_UPDATE_MEAN_DEVIATION_OUTER_PRODUCT = 7,
-	LRN_UPDATE_COVARIANCE = 8,
-	LRN_READY_TO_UPDATE_LEARNER = 9,
+enum Update_Statistics_States {
+	STATS_BACK_ESTIMATE = 0,
+	STATS_UPDATE_CLASS_SUM = 1,
+	STATS_UPDATE_CLASS_MEAN = 2,
+	STATS_UPDATE_OVERALL_SUM = 3,
+	STATS_UPDATE_OVERALL_MEAN = 4,
+	STATS_GET_DEVIATION_FROM_PREV_MEAN = 5,
+	STATS_GET_DEVIATION_FROM_CURR_MEAN = 6,
+	STATS_UPDATE_MEAN_DEVIATION_OUTER_PRODUCT = 7,
+	STATS_UPDATE_COVARIANCE = 8,
+	STATS_READY_TO_UPDATE_STATISTICS = 9,
 };
 
 //copied from matlab pil
-enum Update_Classifier_States {
-	LDA_COPY_MU_K = 0,
-	LDA_COPY_SUM_SIGMA = 1,
-	LDA_DO_CHOLESKY = 2,
-	LDA_UPDATE_TRANSPOSE = 3,
-	LDA_CALC_A_PARAMS = 4,
-	LDA_CALC_B_PARAMS = 5,
-	LDA_UPDATE_PARAMS = 6,
+enum Update_Learner_States {
+	LRN_COPY_MU_K = 0,
+	LRN_COPY_SUM_SIGMA = 1,
+	LRN_DO_CHOLESKY = 2,
+	LRN_UPDATE_TRANSPOSE = 3,
+	LRN_CALC_A_PARAMS = 4,
+	LRN_CALC_B_PARAMS = 5,
+	LRN_UPDATE_PARAMS = 6,
 };
 
 //copied from matlab pil
@@ -99,7 +99,7 @@ struct features_s
 
 
 //copied from matlab pil
-struct learner_s
+struct statistics_s
 {
 	float* mu_k;
 	float* sum_k;
@@ -119,7 +119,7 @@ struct learner_s
 
 
 	//Segmentation, state,and mutex variables
-	uint8_t updating_learner_matrices;
+	uint8_t updating_statistics_matrices;
 	int demux_state;		
 	int segment;
 	int subsegment;
@@ -128,7 +128,7 @@ struct learner_s
 };
 
 //copied from matlab pil
-struct classifier_s
+struct learner_s
 {
 
 	float* UT;
@@ -143,11 +143,12 @@ struct classifier_s
 	float* y;
 
 	//Segmentation, state,and mutex variables
-	uint8_t copying_learner_matrices;
+	uint8_t copying_statistics_matrices;
 	int demux_state;
 	int segment;
 	int subsegment;
 	uint8_t doing_forward_substitution;
+
 };
 
 //copied from matlab pil
@@ -162,6 +163,7 @@ struct predictor_s
 	uint8_t predicting_task;
 	int demux_state;
 	int segment;
+	int subsegment;
 
 };
 
