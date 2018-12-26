@@ -5,7 +5,7 @@
 
  //Machine learning (copied from matlab pil)
 #define N_CLASSES 5
-#define N_PREDICTION_SIGNALS 4
+#define N_PREDICTION_SIGNALS 18
 #define N_PREDICTION_FEATURES 4
 #define N_FEATURES N_PREDICTION_SIGNALS * N_PREDICTION_FEATURES
 #define N_FEATURES_SQ N_FEATURES * N_FEATURES
@@ -255,7 +255,7 @@ void update_learner_demux(){
       {
         int ind = lrn.segment*N_FEATURES;
         if (lrn.doing_forward_substitution){
-          segmented_forward_substitution(lrn.LT, &lrn.latest_mu_k[ind], lrn.y, N_FEATURES, lrn.subsegment); // roughly 1/2 f^2 flops
+          segmented_forward_substitution(lrn.LT, &lrn.latest_mu_k[ind], lrn.y, N_FEATURES, lrn.subsegment); 
           lrn.subsegment++;
           if (lrn.subsegment == N_FEATURES){
             lrn.subsegment = N_FEATURES-1;
@@ -263,7 +263,7 @@ void update_learner_demux(){
           }
         }
         else{
-          segmented_backward_substitution(lrn.UT, lrn.y, &lrn.Atemp[ind], N_FEATURES, lrn.subsegment); // roughly 1/2 f^2 flops
+          segmented_backward_substitution(lrn.UT, lrn.y, &lrn.Atemp[ind], N_FEATURES, lrn.subsegment);
           lrn.subsegment--;
           if (lrn.subsegment == -1){
             lrn.subsegment = 0;
@@ -277,11 +277,20 @@ void update_learner_demux(){
         }  
       }
       break;
-      case LRN_CALC_B_PARAMS: //2f flops, 5 cycles
+      case LRN_CALC_B_PARAMS: //f flops, 10 cycles
       {
-        int ind = lrn.segment*N_FEATURES;
-        lrn.Btemp[lrn.segment] = -0.5*inner_product(&lrn.latest_mu_k[ind], &lrn.Atemp[ind], N_FEATURES);
-        lrn.segment++;
+        int ind = stats.k_est*N_FEATURES;
+        if (lrn.subsegment == 0){
+         lrn.Btemp[lrn.segment] = -0.5*inner_product(&lrn.latest_mu_k[ind], &lrn.Atemp[ind], RNG_FEATURES_START_IND);
+         lrn.subsegment++;
+        }else{
+          int ind_rng = ind+RNG_FEATURES_START_IND;
+          lrn.Btemp[lrn.segment] = lrn.Btemp[lrn.segment] - 0.5*inner_product(&lrn.latest_mu_k[ind_rng], &lrn.Atemp[ind_rng], RNG_FEATURES_START_IND);
+          lrn.subsegment = 0;
+          lrn.segment++;
+        }
+  
+        
         if (lrn.segment == N_CLASSES){
           lrn.segment = 0;
           lrn.demux_state = LRN_UPDATE_PARAMS;
@@ -292,8 +301,10 @@ void update_learner_demux(){
       {
         int ind = lrn.segment*N_FEATURES;
         assignment(&lrn.Atemp[ind], &pred.A[ind], N_FEATURES);
+        lrn.segment++;
         if (lrn.segment == N_CLASSES){
           assignment(lrn.Btemp, pred.B, N_CLASSES);
+          lrn.segment = 0;
           lrn.demux_state = LRN_COPY_MU_K; 
           lrn.copying_statistics_matrices = 1;
         }   
@@ -319,39 +330,39 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
     currfeats.max[AOMEGAX] = MAX(currfeats.max[AOMEGAX], kin->aOmegaX);
     currfeats.max[AOMEGAY] = MAX(currfeats.max[AOMEGAY], kin->aOmegaY);
     currfeats.max[AOMEGAZ] = MAX(currfeats.max[AOMEGAZ], kin->aOmegaZ);
-    // currfeats.max[AACCX] = MAX(currfeats.max[AACCX], kin->aAccX);
-    // currfeats.max[AACCY] = MAX(currfeats.max[AACCY], kin->aAccY);
-    // currfeats.max[AACCZ] = MAX(currfeats.max[AACCZ], kin->aAccZ);
-    // currfeats.max[AAY] = MAX(currfeats.max[AAY], kin->aAy);
-    // currfeats.max[VAY] = MAX(currfeats.max[VAY], kin->vAy);
-    // currfeats.max[PAY] = MAX(currfeats.max[PAY], kin->pAy);
-    // currfeats.max[AAZ] = MAX(currfeats.max[AAZ], kin->aAz);
-    // currfeats.max[VAZ] = MAX(currfeats.max[VAZ], kin->vAz);
-    // currfeats.max[PAZ] = MAX(currfeats.max[PAZ], kin->pAz);
-    // currfeats.max[SINSQATTACK] = MAX(currfeats.max[SINSQATTACK], kin->sinSqAttackAngle);
-    // currfeats.max[AA] = MAX(currfeats.max[AA], tm->aa);
-    // currfeats.max[TQ] = MAX(currfeats.max[TQ], tm->tq);
-    // currfeats.max[AADOT] = MAX(currfeats.max[AADOT], tm->aa_dot);
-    // currfeats.max[TQDOT] = MAX(currfeats.max[TQDOT], tm->tq_dot);
+    currfeats.max[AACCX] = MAX(currfeats.max[AACCX], kin->aAccX);
+    currfeats.max[AACCY] = MAX(currfeats.max[AACCY], kin->aAccY);
+    currfeats.max[AACCZ] = MAX(currfeats.max[AACCZ], kin->aAccZ);
+    currfeats.max[AAY] = MAX(currfeats.max[AAY], kin->aAy);
+    currfeats.max[VAY] = MAX(currfeats.max[VAY], kin->vAy);
+    currfeats.max[PAY] = MAX(currfeats.max[PAY], kin->pAy);
+    currfeats.max[AAZ] = MAX(currfeats.max[AAZ], kin->aAz);
+    currfeats.max[VAZ] = MAX(currfeats.max[VAZ], kin->vAz);
+    currfeats.max[PAZ] = MAX(currfeats.max[PAZ], kin->pAz);
+    currfeats.max[SINSQATTACK] = MAX(currfeats.max[SINSQATTACK], kin->sinSqAttackAngle);
+    currfeats.max[AA] = MAX(currfeats.max[AA], tm->aa);
+    currfeats.max[TQ] = MAX(currfeats.max[TQ], tm->tq);
+    currfeats.max[AADOT] = MAX(currfeats.max[AADOT], tm->aa_dot);
+    currfeats.max[TQDOT] = MAX(currfeats.max[TQDOT], tm->tq_dot);
 
     currfeats.min[ROT3] = MIN(currfeats.min[ROT3], kin->rot3);
     currfeats.min[AOMEGAX] = MIN(currfeats.min[AOMEGAX], kin->aOmegaX);
     currfeats.min[AOMEGAY] = MIN(currfeats.min[AOMEGAY], kin->aOmegaY);
     currfeats.min[AOMEGAZ] = MIN(currfeats.min[AOMEGAZ], kin->aOmegaZ);
-    // currfeats.min[AACCX] = MIN(currfeats.min[AACCX], kin->aAccX);
-    // currfeats.min[AACCY] = MIN(currfeats.min[AACCY], kin->aAccY);
-    // currfeats.min[AACCZ] = MIN(currfeats.min[AACCZ], kin->aAccZ);
-    // currfeats.min[AAY] = MIN(currfeats.min[AAY], kin->aAy);
-    // currfeats.min[VAY] = MIN(currfeats.min[VAY], kin->vAy);
-    // currfeats.min[PAY] = MIN(currfeats.min[PAY], kin->pAy);
-    // currfeats.min[AAZ] = MIN(currfeats.min[AAZ], kin->aAz);
-    // currfeats.min[VAZ] = MIN(currfeats.min[VAZ], kin->vAz);
-    // currfeats.min[PAZ] = MIN(currfeats.min[PAZ], kin->pAz);
-    // currfeats.min[SINSQATTACK] = MIN(currfeats.min[SINSQATTACK], kin->sinSqAttackAngle);
-    // currfeats.min[AA] = MIN(currfeats.min[AA], tm->aa);
-    // currfeats.min[TQ] = MIN(currfeats.min[TQ], tm->tq);
-    // currfeats.min[AADOT] = MIN(currfeats.min[AADOT], tm->aa_dot);
-    // currfeats.min[TQDOT] = MIN(currfeats.min[TQDOT], tm->tq_dot);
+    currfeats.min[AACCX] = MIN(currfeats.min[AACCX], kin->aAccX);
+    currfeats.min[AACCY] = MIN(currfeats.min[AACCY], kin->aAccY);
+    currfeats.min[AACCZ] = MIN(currfeats.min[AACCZ], kin->aAccZ);
+    currfeats.min[AAY] = MIN(currfeats.min[AAY], kin->aAy);
+    currfeats.min[VAY] = MIN(currfeats.min[VAY], kin->vAy);
+    currfeats.min[PAY] = MIN(currfeats.min[PAY], kin->pAy);
+    currfeats.min[AAZ] = MIN(currfeats.min[AAZ], kin->aAz);
+    currfeats.min[VAZ] = MIN(currfeats.min[VAZ], kin->vAz);
+    currfeats.min[PAZ] = MIN(currfeats.min[PAZ], kin->pAz);
+    currfeats.min[SINSQATTACK] = MIN(currfeats.min[SINSQATTACK], kin->sinSqAttackAngle);
+    currfeats.min[AA] = MIN(currfeats.min[AA], tm->aa);
+    currfeats.min[TQ] = MIN(currfeats.min[TQ], tm->tq);
+    currfeats.min[AADOT] = MIN(currfeats.min[AADOT], tm->aa_dot);
+    currfeats.min[TQDOT] = MIN(currfeats.min[TQDOT], tm->tq_dot);
 
 }
 
@@ -383,20 +394,20 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
             currfeats.fin[AOMEGAX] = kin->aOmegaX;
             currfeats.fin[AOMEGAY] = kin->aOmegaY;
             currfeats.fin[AOMEGAZ] = kin->aOmegaZ;
-            // currfeats.fin[AACCX] = kin->aAccX;
-            // currfeats.fin[AACCY] = kin->aAccY;
-            // currfeats.fin[AACCZ] = kin->aAccZ;
-            // currfeats.fin[AAY] = kin->aAy;
-            // currfeats.fin[VAY] = kin->vAy;
-            // currfeats.fin[PAY] = kin->pAy;
-            // currfeats.fin[AAZ] = kin->aAz;
-            // currfeats.fin[VAZ] = kin->vAz;
-            // currfeats.fin[PAZ] = kin->pAz;
-            // currfeats.fin[SINSQATTACK] = kin->sinSqAttackAngle;
-            // currfeats.fin[AA] = tm->aa;
-            // currfeats.fin[TQ] = tm->tq;
-            // currfeats.fin[AADOT] = tm->aa_dot;
-            // currfeats.fin[TQDOT] = tm->tq_dot;
+            currfeats.fin[AACCX] = kin->aAccX;
+            currfeats.fin[AACCY] = kin->aAccY;
+            currfeats.fin[AACCZ] = kin->aAccZ;
+            currfeats.fin[AAY] = kin->aAy;
+            currfeats.fin[VAY] = kin->vAy;
+            currfeats.fin[PAY] = kin->pAy;
+            currfeats.fin[AAZ] = kin->aAz;
+            currfeats.fin[VAZ] = kin->vAz;
+            currfeats.fin[PAZ] = kin->pAz;
+            currfeats.fin[SINSQATTACK] = kin->sinSqAttackAngle;
+            currfeats.fin[AA] = tm->aa;
+            currfeats.fin[TQ] = tm->tq;
+            currfeats.fin[AADOT] = tm->aa_dot;
+            currfeats.fin[TQDOT] = tm->tq_dot;
             pred.predicting_task = 1;
             pred.demux_state = PRED_PREDICT;
       

@@ -133,9 +133,11 @@ void task_machine_demux(struct rigid_s* rigid){
     update_kinematics(&rigid->mn,&tm);
     update_statistics_demux(&tm);
     update_learner_demux();
+    predict_task_demux(&tm, get_kinematics());
+    
     update_back_estimation_features(&tm, get_kinematics());
     update_prediction_features(&tm, get_kinematics());
-    predict_task_demux(&tm, get_kinematics());
+    
 
 
         
