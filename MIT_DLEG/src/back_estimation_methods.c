@@ -19,7 +19,6 @@ void back_estimate(struct taskmachine_s* tm, struct statistics_s* stats){
   
 	 tm->reset_back_estimator_trigger = 1;
 
-
 	if (be.max_stance_theta > DR_ANKLE_ANGLE_THRESH){
 	    stats->k_est = TASK_DR;
 	    return;

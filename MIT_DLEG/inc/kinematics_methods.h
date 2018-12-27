@@ -32,10 +32,7 @@ struct kinematics_s
     float aAccZprev;
     float aOmegaXprev;
     float rot1;
-    float rot2;
     float rot3;
-    float rot4;
-    float accNormSq;
     float sinSqAttackAngle;
 
     float aOmegaXbias;

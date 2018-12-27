@@ -279,7 +279,7 @@ void update_learner_demux(){
       break;
       case LRN_CALC_B_PARAMS: //f flops, 10 cycles
       {
-        int ind = stats.k_est*N_FEATURES;
+        int ind = lrn.segment*N_FEATURES;
         if (lrn.subsegment == 0){
          lrn.Btemp[lrn.segment] = -0.5*inner_product(&lrn.latest_mu_k[ind], &lrn.Atemp[ind], RNG_FEATURES_START_IND);
          lrn.subsegment++;
@@ -299,6 +299,9 @@ void update_learner_demux(){
       break;
       case LRN_UPDATE_PARAMS: //f+5 assignments max, 5 cycles
       {
+        if (pred.predicting_task){
+          return;
+        }
         int ind = lrn.segment*N_FEATURES;
         assignment(&lrn.Atemp[ind], &pred.A[ind], N_FEATURES);
         lrn.segment++;

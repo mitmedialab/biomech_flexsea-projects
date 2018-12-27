@@ -31,8 +31,8 @@ static void update_ankle_translations(){
 	float SaAy = kin.aAccY - ANKLE_POS_IMU_FRAME_Y_M*(aOmegaXSquared - SAMPLE_RATE_HZ*kin.daOmegaX);
 	float SaAz = kin.aAccZ - ANKLE_POS_IMU_FRAME_Z_M*(aOmegaXSquared - SAMPLE_RATE_HZ*kin.daOmegaX);
 
-	kin.aAy = kin.rot1*SaAy + kin.rot2*SaAz;
-	kin.aAz = kin.rot3*SaAy + kin.rot4*SaAz - GRAVITY_MPS2;
+	kin.aAy = kin.rot1*SaAy - kin.rot3*SaAz;
+	kin.aAz = kin.rot3*SaAy + kin.rot1*SaAz - GRAVITY_MPS2;
 
 	kin.vAy = kin.vAy + SAMPLE_PERIOD*kin.aAy;	
 	kin.vAz = kin.vAz + SAMPLE_PERIOD*kin.aAz;	
@@ -53,13 +53,8 @@ static void reset_rotation_matrix_old_way(){
 	float zAccWithCentripetalAccCompensation = (kin.aAccZ + kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
 	float yAccWithTangentialAccCompensation = (kin.aAccY + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
 	float accNormReciprocal	= 1.0/sqrtf(yAccWithTangentialAccCompensation*yAccWithTangentialAccCompensation + zAccWithCentripetalAccCompensation*zAccWithCentripetalAccCompensation);
-	float costheta = zAccWithCentripetalAccCompensation*accNormReciprocal;
-	float sintheta = yAccWithTangentialAccCompensation*accNormReciprocal;
-	
-	kin.rot1 = costheta;
-	kin.rot2 = -1.0*sintheta;
-	kin.rot3 = sintheta;
-	kin.rot4 = costheta;
+	kin.rot1 = zAccWithCentripetalAccCompensation*accNormReciprocal;
+	kin.rot3 = yAccWithTangentialAccCompensation*accNormReciprocal;
 
 }
 
@@ -91,7 +86,6 @@ static void update_acc( struct fx_rigid_mn_s* mn){
 	kin.aAccX = FILTA*kin.aAccX + FILTB * (ACCEL_MPS2_PER_LSB * (float) mn->accel.x);
 	kin.aAccY = FILTA*kin.aAccY  + FILTB * (ACCEL_MPS2_PER_LSB * (float) mn->accel.z);
 	kin.aAccZ = FILTA*kin.aAccZ  + FILTB * (N_ACCEL_MPS2_PER_LSB * (float) mn->accel.y);
-	kin.accNormSq = kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
 }
 
 static void update_omega(struct fx_rigid_mn_s* mn){
@@ -118,12 +112,9 @@ static void update_integrals_and_derivatives(){
 
 static void update_rotation_matrix(){
 	float rotprev1 = kin.rot1;
-	float rotprev3 = kin.rot3;
 
-	kin.rot1 = kin.rot1 + kin.rot2*kin.aOmegaX * SAMPLE_PERIOD;
-	kin.rot2 = kin.rot2 - rotprev1*kin.aOmegaX * SAMPLE_PERIOD;
-	kin.rot3 = kin.rot3 + kin.rot4*kin.aOmegaX * SAMPLE_PERIOD;
-	kin.rot4 = kin.rot4 - rotprev3*kin.aOmegaX * SAMPLE_PERIOD;
+	kin.rot1 = kin.rot1 - kin.rot3*kin.aOmegaX * SAMPLE_PERIOD;
+	kin.rot3 = kin.rot3 + rotprev1*kin.aOmegaX * SAMPLE_PERIOD;
 }
 
 void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm){
@@ -163,10 +154,7 @@ void init_kinematics(){
     kin.aAccZprev = 0.0;
     kin.aOmegaXprev = 0.0;
     kin.rot1 = 0.0;
-    kin.rot2 = 0.0;
     kin.rot3 = 0.0;
-    kin.rot4 = 0.0;
-    kin.accNormSq = 0.0;
     kin.sinSqAttackAngle =  0;
 
     kin.aOmegaXbias = 0.0;

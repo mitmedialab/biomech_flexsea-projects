@@ -184,16 +184,16 @@ void MIT_DLeg_fsm_1(void)
 
 			task_machine_demux(&rigid1);
 
-			rigid1.mn.genVar[0] = (int16_t) (10000.0*get_statistics()->sum_sigma[4968]); //
-			rigid1.mn.genVar[1] = (int16_t) (10000.0*get_statistics()->sum_sigma[4978]); //
-			rigid1.mn.genVar[2] = (int16_t) (10000.0*get_statistics()->sum_sigma[4988]); //
-			rigid1.mn.genVar[3] = (int16_t) (10000.0*get_statistics()->sum_sigma[4998]); //
-			rigid1.mn.genVar[4] = (int16_t) (10000.0*get_statistics()->sum_sigma[5018]); //
-			rigid1.mn.genVar[5] = (int16_t) (10000.0*get_statistics()->sum_sigma[5028]); //
+			rigid1.mn.genVar[0] = (int16_t) (1000.0*get_task_machine()->aa_dot_aOmegaX_error); //
+			rigid1.mn.genVar[1] = (int16_t) (1000.0*get_task_machine()->aa_dot); //
+			rigid1.mn.genVar[2] = (int16_t) (1000.0*get_kinematics()->aOmegaX); //
+			rigid1.mn.genVar[3] = (int16_t) (1000.0*get_back_estimator()->max_stance_theta); //
+			rigid1.mn.genVar[4] = (int16_t) (1000.0*get_kinematics()->pAz); //
+			rigid1.mn.genVar[5] = (int16_t) (1000.0*get_kinematics()->sinSqAttackAngle);  //
 			rigid1.mn.genVar[6] = (int16_t) (100.0*get_task_machine()->torque_raw); //
 			rigid1.mn.genVar[7] = (int16_t) (100.0*get_task_machine()->angle_raw); //
-			rigid1.mn.genVar[8] = (int16_t) (1000.0*get_statistics()->k_est);//
-			rigid1.mn.genVar[9] = (int16_t) (10000.0*get_statistics()->sum_sigma[5038]);//
+			rigid1.mn.genVar[8] = (int16_t) (1000.0*get_kinematics()->aAy);//
+			rigid1.mn.genVar[9] = (int16_t) (1000.0*get_kinematics()->aAz);//
 
 
 			iter++;

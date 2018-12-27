@@ -101,6 +101,7 @@ struct features_s
 //copied from matlab pil
 struct statistics_s
 {
+	//Statistical variables
 	float* mu_k;
 	float* sum_k;
 	float* mu_prev;
@@ -130,14 +131,11 @@ struct statistics_s
 //copied from matlab pil
 struct learner_s
 {
-
+	//All variables required for transforming statistical observations into a new classifier/predictor
 	float* UT;
 	float* LT;
-
 	float* latest_sum_sigma;
 	float* latest_mu_k;
-
-	//init intermediary matrices
 	float* Atemp;
 	float* Btemp;
 	float* y;
@@ -154,12 +152,16 @@ struct learner_s
 //copied from matlab pil
 struct predictor_s
 {
+	//Predictor parameters
 	float* A; 
 	float* B; 
+
+	//Discriminant scores and prediction
 	float* score_k; 
 	int k_pred; 
 	float max_score;
 
+	//Segmentation, state,and mutex variables
 	uint8_t predicting_task;
 	int demux_state;
 	int segment;
