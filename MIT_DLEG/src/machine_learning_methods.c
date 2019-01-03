@@ -4,7 +4,6 @@
 #include "machine_learning_methods.h"
 
  //Machine learning (copied from matlab pil)
-#define N_CLASSES 5
 #define N_PREDICTION_SIGNALS 18
 #define N_PREDICTION_FEATURES 4
 #define N_FEATURES N_PREDICTION_SIGNALS * N_PREDICTION_FEATURES

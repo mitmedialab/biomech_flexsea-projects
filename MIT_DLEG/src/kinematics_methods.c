@@ -6,10 +6,8 @@
 
 
  //Kinematics constants (copied from matlab pil)
-#define PI 3.14159
 #define GRAVITY_MPS2 9.8
 #define GRAVITY_SQ GRAVITY_MPS2*GRAVITY_MPS2
-#define RAD_PER_DEG PI/180.0
 #define GYRO_LSB_PER_DPS 32.8  //per http://dephy.com/wiki/flexsea/doku.php?id=units
 #define ACCEL_LSB_PER_G 8192.0   //per http://dephy.com/wiki/flexsea/doku.php?id=units
 #define ANKLE_POS_IMU_FRAME_X_M 0.0  //Frontal axis (medial->lateral)

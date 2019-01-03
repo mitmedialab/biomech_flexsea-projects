@@ -33,7 +33,28 @@
 #define GAIT_EVENT_FOOT_OFF 3
 #define GAIT_EVENT_WINDOW_CLOSE 4
 
- 
+//Other important values
+#define PI 3.14159
+#define RAD_PER_DEG PI/180.0
+#define RAD_PER_DEG_X_SAMPLE_RATE_HZ RAD_PER_DEG * SAMPLE_RATE_HZ
+#define N_CLASSES 5
+
+//Ideal controller values
+#define FL_IDEAL_NET_WORK_J_PER_KG  1.4 * RAD_PER_DEG //Sinitski 2012
+#define US_IDEAL_NET_WORK_J_PER_KG 22.1 * RAD_PER_DEG //Sinitski 2012
+#define DS_IDEAL_NET_WORK_J_PER_KG -32.0 * RAD_PER_DEG //Sinitski 2012
+#define UR_IDEAL_NET_WORK_J_PER_KG 0.00 //TODO: fill in with data extracted from McIntosh 2006
+#define DR_IDEAL_NET_WORK_J_PER_KG 0.00 //TODO: fill in with data extracted from McIntosh 2006
+#define FL_IDEAL_ROM_RAD 29.02 * RAD_PER_DEG //Sinitski 2012
+#define US_IDEAL_ROM_RAD 42.21 * RAD_PER_DEG //Sinitski 2012
+#define DS_IDEAL_ROM_RAD 60.84 * RAD_PER_DEG //Sinitski 2012
+#define UR_IDEAL_ROM_RAD 0.0 * RAD_PER_DEG //TODO: fill in with data extracted from McIntosh 2006
+#define DR_IDEAL_ROM_RAD 0.0 * RAD_PER_DEG //TODO: fill in with data extracted from McIntosh 2006
+#define FL_IDEAL_HEELSTRIKE_ANGLE_RAD 29.02 * RAD_PER_DEG //TODO: fill in with data extracted from Sinitski 2012
+#define US_IDEAL_HEELSTRIKE_ANGLE_RAD 42.21 * RAD_PER_DEG //TODO: fill in with data extracted from Sinitski 2012
+#define DS_IDEAL_HEELSTRIKE_ANGLE_RAD 60.84 * RAD_PER_DEG //TODO: fill in with data extracted from Sinitski 2012
+#define UR_IDEAL_HEELSTRIKE_ANGLE_RAD 0.0 * RAD_PER_DEG //TODO: fill in with data extracted from McIntosh 2006
+#define DR_IDEAL_HEELSTRIKE_ANGLE_RAD 0.0 * RAD_PER_DEG //TODO: fill in with data extracted from McIntosh 2006
 
 //Copied from matlab pil simulation
 struct taskmachine_s
@@ -61,8 +82,19 @@ struct taskmachine_s
     float aa_prev;
     float aa_dot_aOmegaX_error_prev ;
 
+    float net_work_j_p_kg;
+    float stance_rom_rad;
+    float heelstrike_angle_rad;
+
+    float* net_work_error_j_p_kg;
+    float* stance_rom_error_rad;
+    float* heelstrike_angle_error_rad;
+
     float torque_raw; //testing purposes only
     float angle_raw; //testing purposes only
+
+    //subject specific params
+    float weight_kg;
 
 };
 
