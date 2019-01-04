@@ -35,6 +35,7 @@ extern "C" {
 //#include "../inc/cmd-Rigid.h"
 #include "cmd-Bilateral.h"
 #include "flexsea_user_structs.h"
+#include "flexsea_cmd_user.h"
 #include "user-mn.h"
 
 #if(ACTIVE_PROJECT == PROJECT_DPEB31)

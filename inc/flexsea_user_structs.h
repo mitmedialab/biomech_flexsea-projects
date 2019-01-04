@@ -99,6 +99,10 @@ struct fx_rigid_mn_s
 
 	int16_t genVar[20];
 
+	//Biomech added:
+	int16_t mot_temp;
+	int32_t userVar[20];
+
 	//Decoded:
 	struct decoded_fx_rigid_mn_s decoded;
 };
@@ -118,6 +122,14 @@ struct fx_rigid_ex_s
 	uint16_t status;
 
 	struct ctrl_s ctrl;
+
+	// --- all those pointer members need to be switched to actual members...
+	int32_t _enc_ang_;
+	int32_t _enc_ang_vel_;
+
+	int16_t _joint_ang_;
+	int16_t _joint_ang_vel_;
+	int16_t _joint_ang_from_mot_;
 };
 
 struct fx_rigid_ctrl_s
@@ -129,6 +141,10 @@ struct fx_rigid_ctrl_s
 	int16_t* ank_ang_deg;
 	int16_t* ank_vel;
 	int16_t* ank_ang_from_mot;
+
+	int16_t _ank_ang_deg_;
+	int16_t _ank_vel_;
+	int16_t _ank_ang_from_mot_;
 
 	int16_t contra_hs;
 	int16_t step_energy;
@@ -152,24 +168,6 @@ struct pocket_s
 	uint8_t lastOffsetDecoded;
 };
 
-struct utt_s
-{
-	uint8_t ctrl;
-	uint8_t ctrlOption;
-	uint8_t amplitude;
-	int8_t timing;
-	uint8_t powerOn;
-
-	int8_t torquePoints[6][2];
-};
-
-struct dual_utt_s
-{
-	uint8_t target;
-	struct utt_s leg[2];
-	int16_t val[2][10];
-};
-
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
@@ -179,7 +177,7 @@ extern int16_t globvar[10];
 extern struct rigid_s rigid1, rigid2;
 extern struct pocket_s pocket1;
 extern int16_t globvar[10];
-extern struct dual_utt_s utt;
+
 
 //****************************************************************************
 // Prototype(s):

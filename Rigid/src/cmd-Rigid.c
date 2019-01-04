@@ -30,6 +30,7 @@ extern "C" {
 #include <flexsea_system.h>
 #include "../inc/cmd-Rigid.h"
 #include "flexsea_user_structs.h"
+#include "flexsea_cmd_user.h"
 #include "user-mn.h"
 
 #ifdef DEPHY
@@ -79,30 +80,24 @@ uint8_t newRigidRRpacketAvailable(void)
 //Get a copy of the latest Rigid values
 void getLastRigidData(struct rigid_s *r){(*r) = rigid1;}
 
+void initializeRigidPointers(struct rigid_s *r)
+{
+	r->ex.enc_ang = &r->ex._enc_ang_;
+	r->ex.enc_ang_vel = &r->ex._enc_ang_vel_;
+	r->ex.joint_ang = &r->ex._joint_ang_;
+	r->ex.joint_ang_vel = &r->ex._joint_ang_vel_;
+	r->ex.joint_ang_from_mot = &r->ex._joint_ang_from_mot_;
+
+	r->ctrl.ank_ang_deg = &r->ctrl._ank_ang_deg_;
+	r->ctrl.ank_vel = &r->ctrl._ank_vel_;
+	r->ctrl.ank_ang_from_mot = &r->ctrl._ank_ang_from_mot_;
+}
+
 //Initialize pointers
 void init_rigid(void)
 {
-	//Rigid1
-	rigid1.ex.enc_ang = &cri_enc_ang;
-	rigid1.ex.enc_ang_vel = &cri_enc_ang_vel;
-	rigid1.ex.joint_ang = &cri_joint_ang;
-	rigid1.ex.joint_ang_vel = &cri_joint_ang_vel;
-	rigid1.ex.joint_ang_from_mot = &cri_joint_ang_from_mot;
-
-	rigid1.ctrl.ank_ang_deg = &cri_ctrl_ank_ang_deg;
-	rigid1.ctrl.ank_vel = &cri_ctrl_ank_vel;
-	rigid1.ctrl.ank_ang_from_mot = &cri_ctrl_ank_ang_from_mot;
-
-	//Rigid2
-	rigid2.ex.enc_ang = &cri_enc_ang2;
-	rigid2.ex.enc_ang_vel = &cri_enc_ang_vel2;
-	rigid2.ex.joint_ang = &cri_joint_ang2;
-	rigid2.ex.joint_ang_vel = &cri_joint_ang_vel2;
-	rigid2.ex.joint_ang_from_mot = &cri_joint_ang_from_mot2;
-
-	rigid2.ctrl.ank_ang_deg = &cri_ctrl_ank_ang_deg2;
-	rigid2.ctrl.ank_vel = &cri_ctrl_ank_vel2;
-	rigid2.ctrl.ank_ang_from_mot = &cri_ctrl_ank_ang_from_mot2;
+	initializeRigidPointers(&rigid1);
+	initializeRigidPointers(&rigid2);
 }
 
 //****************************************************************************

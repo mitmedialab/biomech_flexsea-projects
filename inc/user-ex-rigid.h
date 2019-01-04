@@ -250,13 +250,13 @@ void user_fsm(void);
 
 	//Enable/Disable sub-modules:
 	#define USE_RS485
-	#define USE_USB
+	//#define USE_USB
 	#define USE_COMM			//Requires USE_RS485 and/or USE_USB
 	//#define USE_QEI
 	//#define USE_TRAPEZ
 	#define USE_I2C_0			//3V3, Onboard (Manage)
 	#define USE_I2C_1			//5V, External (Angle sensor)
-	//#define USE_STRAIN			//Requires USE_I2C_1
+	//#define USE_STRAIN		//Requires USE_I2C_1
 	#define USE_AS5047			//16-bit Position Sensor, SPI
 	#define USE_AS5048B			//Joint angle sensor (I2C)
 	#define USE_EEPROM			//

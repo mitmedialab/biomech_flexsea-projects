@@ -40,6 +40,7 @@ extern "C" {
 #include <flexsea.h>
 #include <flexsea_cmd_user.h>
 #include <dynamic_user_structs.h>
+#include "cmd-ActPack.h"
 
 #ifdef BOARD_TYPE_FLEXSEA_EXECUTE
 	#if(!defined BOARD_SUBTYPE_RIGID && !defined BOARD_SUBTYPE_POCKET)
@@ -60,6 +61,7 @@ extern "C" {
 #ifdef TEST_PC
 #include "user-testPC.h"
 #include "../Rigid/inc/cmd-Rigid.h"
+#include "../Rigid/inc/cmd-Pocket.h"
 #else
 	#include "../MIT_2DoF_Ankle_v1/inc/cmd-MIT_2DoF_Ankle_v1.h"
 	#include "../RICNU_Knee_v1/inc/cmd-RICNU_Knee_v1.h"
@@ -69,10 +71,6 @@ extern "C" {
 #include "../Rigid/inc/cmd-Rigid.h"
 #include "../Rigid/inc/cmd-Pocket.h"
 #endif	//TEST_PC
-
-#ifdef INCLUDE_UPROJ_ACTPACK
-#include "cmd-ActPack.h"
-#endif //INCLUDE_UPROJ_ACTPACK
 
 #ifdef DEPHY
 #include "flexsea_cmd_dephy.h"
@@ -105,12 +103,13 @@ void init_flexsea_payload_ptr_user(void)
 	flexsea_payload_ptr[CMD_RICNU][RX_PTYPE_REPLY] = &rx_cmd_ricnu_rr;
 	#endif //(ACTIVE_SUBPROJECT == PROJECT_RICNU_KNEE)
 
-	#if(defined INCLUDE_UPROJ_ACTPACK)
 	//Dephy's Actuator Package
 	flexsea_payload_ptr[CMD_ACTPACK][RX_PTYPE_READ] = &rx_cmd_actpack_rw;
 	//flexsea_payload_ptr[CMD_ACTPACK][RX_PTYPE_WRITE] = &rx_cmd_actpack_w;
 	flexsea_payload_ptr[CMD_ACTPACK][RX_PTYPE_REPLY] = &rx_cmd_actpack_rr;
-	#endif
+
+	flexsea_multipayload_ptr[CMD_ACTPACK][RX_PTYPE_READ] = &rx_multi_cmd_actpack_rw;
+	flexsea_multipayload_ptr[CMD_ACTPACK][RX_PTYPE_REPLY] = &rx_multi_cmd_actpack_rr;
 
 	//Rigid:
 	flexsea_payload_ptr[CMD_READ_ALL_RIGID][RX_PTYPE_READ] = &rx_cmd_rigid_rw;

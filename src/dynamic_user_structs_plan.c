@@ -124,7 +124,7 @@ int rx_metaDataOffset(uint8_t* buf, uint16_t index)
 
 	//parse field type
 	uint8_t fieldType = buf[index++];
-	if(fieldType < NULL_PTR)
+	if(fieldType < FORMAT_FILLER)
 	{
 		dynamicUser_fieldTypes[offset] = fieldType;
 	}

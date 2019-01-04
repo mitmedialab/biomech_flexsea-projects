@@ -45,7 +45,9 @@
 #define PROJECT_CYCLE_TESTER	0	//Automatic Cycle Tester
 #define PROJECT_DPEB			0	//DpEb2.1 and below
 #define PROJECT_DPEB31			0	//DpEb3.1 Exo
+#define PROJECT_DPEB42			0	//DpEb4.2 Exo
 #define PROJECT_ACTPACK			0	//Dephy's Actuator Package
+#define PROJECT_DEPHY			0
 
 //List of sub-projects:
 #define SUBPROJECT_NONE			0
@@ -70,7 +72,11 @@
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
+#if(ACTIVE_PROJECT == PROJECT_DEPHY && defined(DEPHY))
 
+	#include "dephy-mn.h"
+
+#endif	//PROJECT_DEPHY
 
 #endif	//INC_USER_PLAN_H
 

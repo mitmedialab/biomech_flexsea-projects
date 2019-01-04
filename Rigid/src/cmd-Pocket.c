@@ -30,6 +30,7 @@ extern "C" {
 #include "flexsea_user_structs.h"
 #include "user-mn.h"
 #include "cmd-ActPack.h"
+#include "flexsea_cmd_user.h"
 
 #ifdef DEPHY
 #include "dephy-mn.h"
@@ -97,7 +98,8 @@ void tx_cmd_pocket_r(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 	(*cmdType) = CMD_READ;
 
 	//Data:
-	shBuf[index++] = offset;
+	shBuf[index++] = 100 + offset;
+	//An offset >= 100 means a pure Read, with no writing (not a RW)
 
 	shBuf[index++] = 0;
 	SPLIT_32(0, shBuf, &index);
@@ -119,6 +121,14 @@ void tx_cmd_pocket_r(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 
 	//Payload length:
 	(*len) = index;
+}
+
+//Pack tx_cmd_pocket_r()
+void ptx_cmd_pocket_r(uint8_t slaveId, uint16_t *numb, uint8_t *commStr, \
+							uint8_t offset)
+{
+	tx_cmd_pocket_r(TX_N_DEFAULT, offset);
+	pack(P_AND_S_DEFAULT, slaveId, NULL, numb, commStr);
 }
 
 //Command: CMD_POCKET. Type: R/W.
@@ -160,11 +170,17 @@ void tx_cmd_pocket_rw(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 	(*len) = index;
 }
 
-//Pack tx_cmd_pocket_r()
-void ptx_cmd_pocket_r(uint8_t slaveId, uint16_t *numb, uint8_t *commStr, \
-							uint8_t offset)
+//Pack tx_cmd_pocket_rw()
+void ptx_cmd_pocket_rw(uint8_t slaveId, uint16_t *numb, uint8_t *commStr, \
+							uint8_t offset, uint8_t controller, \
+							int32_t setpoint, uint8_t setGains, int16_t g0, int16_t g1,\
+							int16_t g2, int16_t g3, uint8_t controllerB, \
+							int32_t setpointB, uint8_t setGainsB, int16_t g0B, int16_t g1B,\
+							int16_t g2B, int16_t g3B, uint8_t system)
 {
-	tx_cmd_pocket_r(TX_N_DEFAULT, offset);
+	tx_cmd_pocket_rw(TX_N_DEFAULT, offset, controller, setpoint, setGains, g0, \
+			g1, g2, g3, controllerB, setpointB, setGainsB, g0B, g1B, g2B, \
+			g3B, system);
 	pack(P_AND_S_DEFAULT, slaveId, NULL, numb, commStr);
 }
 
@@ -316,13 +332,27 @@ void rx_cmd_pocket_rw(uint8_t *buf, uint8_t *info)
 	
 	tmpSystem = buf[index++];
 	
-	#ifdef BOARD_TYPE_FLEXSEA_EXECUTE
-	//Act on the decoded data:
-	rx_cmd_actpack_Action1(tmpController, tmpSetpoint, tmpSetGains, tmpGain[0],
-									tmpGain[1], tmpGain[2], tmpGain[3], tmpSystem, 0);
-	rx_cmd_actpack_Action1(tmpController2, tmpSetpoint2, tmpSetGains2, tmpGain2[0],
-									tmpGain2[1], tmpGain2[2], tmpGain2[3], tmpSystem, 1);
-	#endif
+	if(offset < 100)
+	{
+		#if (defined BOARD_TYPE_FLEXSEA_EXECUTE || defined BOARD_TYPE_FLEXSEA_MANAGE)
+		#if (defined CO_ENABLE_ACTPACK)
+		//Act on the decoded data:
+		rx_cmd_actpack_Action1(tmpController, tmpSetpoint, tmpSetGains, tmpGain[0],
+										tmpGain[1], tmpGain[2], tmpGain[3], tmpSystem, 0);
+		rx_cmd_actpack_Action1(tmpController2, tmpSetpoint2, tmpSetGains2, tmpGain2[0],
+										tmpGain2[1], tmpGain2[2], tmpGain2[3], tmpSystem, 1);
+		#else
+		(void)tmpController; (void)tmpSetpoint; (void)tmpSetGains; 
+		(void)tmpGain; (void) tmpSystem;
+		(void)tmpController2; (void)tmpSetpoint2; (void)tmpSetGains2; 
+		(void)tmpGain2;
+		#endif
+		#endif
+	}
+	else
+	{
+		offset -= 100;
+	}
 
 	//Reply:
 	tx_cmd_pocket_w(TX_N_DEFAULT, offset);

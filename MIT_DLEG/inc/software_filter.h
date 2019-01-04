@@ -1,70 +1,65 @@
 /****************************************************************************
 	[Project] FlexSEA: Flexible & Scalable Electronics Architecture
-	[Sub-project] 'user/ActPack' Dephy's Actuator Package (ActPack)
+	[Sub-project] 'flexsea-manage' Mid-level computing, and networking
 	Copyright (C) 2017 Dephy, Inc. <http://dephy.com/>
 *****************************************************************************
-	[Lead developper] Luke Mooney, lmooney at dephy dot com.
+	[Lead developper] Jean-Francois (JF) Duval, jfduval at dephy dot com.
 	[Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors]
 *****************************************************************************
-	[This file] user-ex-ActPack: User code running on Ex
-****************************************************************************
+	[This file] emg: external emg Processor
+*****************************************************************************
 	[Change log] (Convention: YYYY-MM-DD | author | comment)
-	* 2017-09-27 | jfduval | Initial release
+	* 2018-03-06 | syeon | Initial release
 	*
 ****************************************************************************/
 
-#ifdef BOARD_TYPE_FLEXSEA_EXECUTE
-#include "user-ex-rigid.h"
-#if(ACTIVE_PROJECT == PROJECT_ACTPACK)
+// how to use this library
+
+// include in i2c fsm
+// include in i2c2 RxCplt callback
+
+#include "user-mn.h"
+
+#ifndef INC_MIT_FIR_H
+#define INC_MIT_FIR_H
+
+//****************************************************************************
+// Definitions
+//****************************************************************************
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
- 
 #include "main.h"
-#include "user-ex-ActPack.h"
-#include "flexsea_user_structs.h"
-#include "flexsea_sys_def.h"
-#include "flexsea_board.h"
+#include "flexsea_global_structs.h"
+#include <stdlib.h>
+#include "stm32f4xx.h"
+#include "rigid.h"
 
 //****************************************************************************
-// Variable(s)
+// Shared variable(s)
 //****************************************************************************
 
 //****************************************************************************
-// Private Function Prototype(s):
-//****************************************************************************  
+// Prototype(s):
+//****************************************************************************
+void  init_MIT_FIR(void);
+float MIT_FIR_filter1kHz(float input);
+void  MIT_FIR_latchInput(float n);
 
 //****************************************************************************
-// Public Function(s)
+// Definition(s):
 //****************************************************************************
+//#define LPF1 // Passband 100Hz, Stopband 200Hz
+//#define LPF2 // Passband 50Hz, Stopband 100Hz
+#define LPF3 // Passband 50Hz, Stopband 70Hz
+//#define LPF4 // Passband 35Hz, Stopband 70Hz
 
-//Common setup done in user-ex-rigid/init_project()
-//Add extra steps here
-void initActPack(void)
-{
-	//...
-}
-
-//Finite State Machine.
-//Call this function in one of the main while time slots.
-void ActPack_fsm(void)
-{
-	ActPack_refresh_values();
-}
-
-//Common variables are refreshed in user-ex-rigid/refresh_values()
-//Add extra variables here
-void ActPack_refresh_values(void)
-{	
-	//...
-}
 
 //****************************************************************************
-// Private Function(s)
+// Structure(s):
 //****************************************************************************
 
-#endif 	//(ACTIVE_PROJECT == PROJECT_ACTPACK)
-#endif 	//BOARD_TYPE_FLEXSEA_EXECUTE
+#endif	//INC_MIT_FIR_H

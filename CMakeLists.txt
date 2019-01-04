@@ -1,0 +1,13 @@
+set(SRCS
+	${SRCS}
+	${CMAKE_CURRENT_SOURCE_DIR}/src/flexsea_cmd_user.c 
+	${CMAKE_CURRENT_SOURCE_DIR}/src/dynamic_user_structs_plan.c 
+	${CMAKE_CURRENT_SOURCE_DIR}/src/flexsea_user_structs.c 
+	${CMAKE_CURRENT_SOURCE_DIR}/src/user-ex.c 
+	${CMAKE_CURRENT_SOURCE_DIR}/src/user-mn.c 
+	${CMAKE_CURRENT_SOURCE_DIR}/src/dynamic_user_structs_common.c 
+	${CMAKE_CURRENT_SOURCE_DIR}/Rigid/src/cmd-Rigid.c 
+	${CMAKE_CURRENT_SOURCE_DIR}/Rigid/src/cmd-Pocket.c 
+	${CMAKE_CURRENT_SOURCE_DIR}/ActPack/src/cmd-ActPack.c
+	PARENT_SCOPE	
+)

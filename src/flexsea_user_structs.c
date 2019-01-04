@@ -50,7 +50,7 @@ int16_t globvar[10] = {0,0,0,0,0,0,0,0,0,0};
 
 struct rigid_s rigid1, rigid2;
 struct pocket_s pocket1;
-struct dual_utt_s utt;
+
 
 //****************************************************************************
 // Function(s)

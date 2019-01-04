@@ -35,6 +35,7 @@
 //****************************************************************************
 
 #include "user-mn.h"
+#include "flexsea_user_structs.h"
 
 //Barebone Rigid:
 #if(ACTIVE_PROJECT == PROJECT_BB_RIGID)
@@ -50,6 +51,8 @@
 
 #if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 #include "user-mn-MIT-DLeg.h"
+#include "user-mn-MIT-EMG.h"
+#include <software_filter.h>
 #endif
 
 #if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
@@ -85,6 +88,9 @@ struct ankle2dof_s ankle2dof_left, ankle2dof_right;
 // Private Function Prototype(s):
 //****************************************************************************
 
+static void init_user_common(void);
+inline static void user_fsm2_common(void);
+
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -92,6 +98,9 @@ struct ankle2dof_s ankle2dof_left, ankle2dof_right;
 //Initialization function - call once in main.c, before while()
 void init_user(void)
 {
+	//Common to all projects:
+	init_user_common();
+
 	//RIC/NU Knee:
 	#if(ACTIVE_PROJECT == PROJECT_RICNU_KNEE)
 	init_ricnu_knee();
@@ -195,6 +204,9 @@ void user_fsm_1(void)
 //Call this function in one of the main while time slots.
 void user_fsm_2(void)
 {
+	//Common:
+	user_fsm2_common();
+
 	#if(RUNTIME_FSM2 == ENABLED)
 
 		//MIT Ankle 2-DoF:
@@ -220,7 +232,8 @@ void user_fsm_2(void)
 
 		//MIT D-Leg:
 		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-		MIT_DLeg_fsm_2();
+//		MIT_DLeg_fsm_1();
+		ActPack_fsm_2();	// used for communication
 		#endif	//PROJECT_MIT_DLEG
 
 		//MIT Pocket 2xDC / PocketClimb:
@@ -229,7 +242,7 @@ void user_fsm_2(void)
 		#endif	//PROJECT_POCKET_2XDC
 
 		//Dephy's Actuator Package (ActPack)
-		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
+		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK && (ACTIVE_PROJECT != PROJECT_MIT_DLEG) )
 		ActPack_fsm_2();
 		#endif	//PROJECT_ACTPACK
 
@@ -240,8 +253,25 @@ void user_fsm_2(void)
 	#endif	//(RUNTIME_FSM2 == ENABLED)
 }
 
+void reset_user_code(void)
+{
+	#ifdef DEPHY
+	reset_dephy();
+	#endif
+}
+
 //****************************************************************************
 // Private Function(s)
 //****************************************************************************
+
+static void init_user_common(void)
+{
+	rigid1.ctrl.timestamp = 0;
+}
+
+inline static void user_fsm2_common(void)
+{
+	rigid1.ctrl.timestamp++;
+}
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE
