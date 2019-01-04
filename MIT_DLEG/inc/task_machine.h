@@ -42,19 +42,19 @@
 //Ideal controller values
 #define FL_IDEAL_NET_WORK_J_PER_KG 0.0244 //Sinitski 2012
 #define US_IDEAL_NET_WORK_J_PER_KG 0.386 //Sinitski 2012
-#define DS_IDEAL_NET_WORK_J_PER_KG -0.5585 //Sinitski 2012
+#define DS_IDEAL_NET_WORK_J_PER_KG -0.559 //Sinitski 2012
 #define UR_IDEAL_NET_WORK_J_PER_KG 0.390 //calculated from digitized McIntosh 2006 ankle power
 #define DR_IDEAL_NET_WORK_J_PER_KG -0.391 //calculated from digitized McIntosh 2006 ankle power
-#define FL_IDEAL_ROM_RAD 29.02 * RAD_PER_DEG //Sinitski 2012
-#define US_IDEAL_ROM_RAD 42.21 * RAD_PER_DEG //Sinitski 2012
-#define DS_IDEAL_ROM_RAD 60.84 * RAD_PER_DEG //Sinitski 2012
-#define UR_IDEAL_ROM_RAD 0.0 * RAD_PER_DEG //TODO: fill in with data extracted from McIntosh 2006
-#define DR_IDEAL_ROM_RAD 0.0 * RAD_PER_DEG //TODO: fill in with data extracted from McIntosh 2006
-#define FL_IDEAL_HEELSTRIKE_ANGLE_RAD 29.02 * RAD_PER_DEG //TODO: fill in with data extracted from Sinitski 2012
-#define US_IDEAL_HEELSTRIKE_ANGLE_RAD 42.21 * RAD_PER_DEG //TODO: fill in with data extracted from Sinitski 2012
-#define DS_IDEAL_HEELSTRIKE_ANGLE_RAD 60.84 * RAD_PER_DEG //TODO: fill in with data extracted from Sinitski 2012
-#define UR_IDEAL_HEELSTRIKE_ANGLE_RAD 0.0 * RAD_PER_DEG //TODO: fill in with data extracted from McIntosh 2006
-#define DR_IDEAL_HEELSTRIKE_ANGLE_RAD 0.0 * RAD_PER_DEG //TODO: fill in with data extracted from McIntosh 2006
+#define FL_IDEAL_ROM_RAD 0.51 //Sinitski 2012
+#define US_IDEAL_ROM_RAD 0.74 //Sinitski 2012
+#define DS_IDEAL_ROM_RAD 1.06 //Sinitski 2012
+#define UR_IDEAL_ROM_RAD 0.642 //calculated from digitized McIntosh 2006 ankle angle
+#define DR_IDEAL_ROM_RAD 0.398 //calculated from digitized McIntosh 2006 ankle angle
+#define FL_IDEAL_HEELSTRIKE_ANGLE_RAD 0.03 //Sinitski 2012
+#define US_IDEAL_HEELSTRIKE_ANGLE_RAD 0.28 //Sinitski 2012
+#define DS_IDEAL_HEELSTRIKE_ANGLE_RAD -0.51 //Sinitski 2012
+#define UR_IDEAL_HEELSTRIKE_ANGLE_RAD 0.14 //calculated from digitized McIntosh 2006 ankle angle
+#define DR_IDEAL_HEELSTRIKE_ANGLE_RAD 0.03 //calculated from digitized McIntosh 2006 ankle angle
 
 //Copied from matlab pil simulation
 struct taskmachine_s
