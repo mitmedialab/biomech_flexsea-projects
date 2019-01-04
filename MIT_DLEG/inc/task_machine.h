@@ -40,11 +40,11 @@
 #define N_CLASSES 5
 
 //Ideal controller values
-#define FL_IDEAL_NET_WORK_J_PER_KG  1.4 * RAD_PER_DEG //Sinitski 2012
-#define US_IDEAL_NET_WORK_J_PER_KG 22.1 * RAD_PER_DEG //Sinitski 2012
-#define DS_IDEAL_NET_WORK_J_PER_KG -32.0 * RAD_PER_DEG //Sinitski 2012
-#define UR_IDEAL_NET_WORK_J_PER_KG 0.00 //TODO: fill in with data extracted from McIntosh 2006
-#define DR_IDEAL_NET_WORK_J_PER_KG 0.00 //TODO: fill in with data extracted from McIntosh 2006
+#define FL_IDEAL_NET_WORK_J_PER_KG 0.0244 //Sinitski 2012
+#define US_IDEAL_NET_WORK_J_PER_KG 0.386 //Sinitski 2012
+#define DS_IDEAL_NET_WORK_J_PER_KG -0.5585 //Sinitski 2012
+#define UR_IDEAL_NET_WORK_J_PER_KG 0.390 //calculated from digitized McIntosh 2006 ankle power
+#define DR_IDEAL_NET_WORK_J_PER_KG -0.391 //calculated from digitized McIntosh 2006 ankle power
 #define FL_IDEAL_ROM_RAD 29.02 * RAD_PER_DEG //Sinitski 2012
 #define US_IDEAL_ROM_RAD 42.21 * RAD_PER_DEG //Sinitski 2012
 #define DS_IDEAL_ROM_RAD 60.84 * RAD_PER_DEG //Sinitski 2012
