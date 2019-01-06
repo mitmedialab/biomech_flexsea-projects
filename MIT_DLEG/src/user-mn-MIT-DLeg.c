@@ -47,6 +47,9 @@
 #include "actuator_functions.h"
 #include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
 
+#include "task_machine.h"
+#include "kinematics_methods.h"
+#include "machine_learning_methods.h"
 
 //****************************************************************************
 // Variable(s)
@@ -159,43 +162,22 @@ void MIT_DLeg_fsm_1(void)
 
 			        updateUserWrites(&act1, &walkParams);
 
-//			    	runFlatGroundFSM(&act1);
 
 
 
 
+			    	task_machine_demux(&rigid1);
 
-//			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100.);
-//			    	act1.tauDes = biomCalcImpedance(.5, .1, 0);
-			    	freq_rad = ANG_UNIT * freq_input;
-
-			    	act1.tauDes = torq_input * frequencySweep(freq_rad,  ( ( (float) fsm_time ) / SECONDS )  );
-
-
-			    	// Check that torques are within specified safety range.
-			    	if (act1.tauDes > act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
-			    		act1.tauDes = act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT;
-			    	} else if (act1.tauDes < -act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
-			    		act1.tauDes = - act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT;
-			    	}
-
-//			    	setMotorTorqueOpenLoop(&act1, act1.tauDes);
-			    	setMotorTorqueOpenLoopVolts(&act1, act1.tauDes);
-
-//			    	setMotorTorque(&act1, act1.tauDes);
-
-			    	/* Output variables live here. Use this as the main reference
-			    	 * NOTE: the communication Offsets are defined in /Rigid/src/cmd-rigid.c
-			    	 */
-			        rigid1.mn.genVar[0] = (int16_t) (act1.linkageMomentArm *1000.0); //startedOverLimit;
-					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
-					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
- 					rigid1.mn.genVar[3] = (int16_t) (act1.jointVel * 100.0); 	// rad/s
-					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
-					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
-					rigid1.mn.genVar[6] = (int16_t) rigid1.ex.mot_current; // LG
-					rigid1.mn.genVar[7] = (int16_t) rigid1.ex.mot_volt;// ( ( fsm_time ) % SECONDS ) ; //rigid1.ex.mot_volt; // TA
-					rigid1.mn.genVar[8] = (int16_t) (act1.safetyFlag) ; //stateMachine.current_state;
+			rigid1.mn.genVar[0] = (int16_t) (1000.0*get_task_machine()->aa_dot_aOmegaX_error); //
+			rigid1.mn.genVar[1] = (int16_t) (1000.0*get_task_machine()->aa_dot); //
+			rigid1.mn.genVar[2] = (int16_t) (1000.0*get_kinematics()->aOmegaX); //
+			rigid1.mn.genVar[3] = (int16_t) (1000.0*get_back_estimator()->max_stance_theta); //
+			rigid1.mn.genVar[4] = (int16_t) (1000.0*get_kinematics()->pAz); //
+			rigid1.mn.genVar[5] = (int16_t) (1000.0*get_kinematics()->sinSqAttackAngle);  //
+			rigid1.mn.genVar[6] = (int16_t) (100.0*get_task_machine()->torque_raw); //
+			rigid1.mn.genVar[7] = (int16_t) (100.0*get_task_machine()->angle_raw); //
+			rigid1.mn.genVar[8] = (int16_t) (1000.0*get_kinematics()->aAy);//
+			rigid1.mn.genVar[9] = (int16_t) (1000.0*get_kinematics()->aAz);//teMachine.current_state;
 					rigid1.mn.genVar[9] = (int16_t) act1.tauDes*100;
 
 

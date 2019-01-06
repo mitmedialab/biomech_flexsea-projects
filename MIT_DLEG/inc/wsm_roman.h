@@ -23,11 +23,11 @@ struct walking_params_s
 	float hardstop_theta_rad;
 };
 
-enum Walking_States {
-    STATE_EARLY_SWING = 2,               /// 2
-    STATE_LATE_SWING = 3,                /// 3
-    STATE_EARLY_STANCE = 4,              /// 4
-    STATE_LATE_STANCE = 5,               /// 5  
-};
+//enum Walking_States {
+//    STATE_ESW = 2,               /// 2
+//    STATE_LSW = 3,                /// 3
+//    STATE_EARLY_STANCE = 4,              /// 4
+//    STATE_LATE_STANCE = 5,               /// 5
+//};
 
 #endif
