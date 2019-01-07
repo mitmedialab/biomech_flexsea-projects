@@ -33,7 +33,7 @@
 // Variable(s)
 //****************************************************************************
 volatile uint8_t emg_peripheral_state = EMG_PERIPH_READY;
-volatile uint8_t emg_on_flag = 0;
+volatile uint8_t emg_on_flag = 1;			// This must be one in order to work!!! ;)
 
 volatile uint8_t emg_state = EMG_STATE_DISABLE;
 volatile uint16_t emg_timer = 0; //1tick represent 1ms
@@ -238,6 +238,7 @@ void MIT_EMG_i2c2_fsm(void)
 			break;
 	}
 		emg_timer++;
+		rigid1.mn.genVar[9] = emg_timer;
 }
 
 uint8_t MIT_EMG_getState(void) //read value when only 1 is returned

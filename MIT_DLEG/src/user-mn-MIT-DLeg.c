@@ -209,7 +209,7 @@ void MIT_DLeg_fsm_1(void)
 					rigid1.mn.genVar[6] = (int16_t) rigid1.ex.mot_current; // LG
 					rigid1.mn.genVar[7] = (int16_t) rigid1.ex.mot_volt;// ( ( fsm_time ) % SECONDS ) ; //rigid1.ex.mot_volt; // TA
 					rigid1.mn.genVar[8] = (int16_t) (act1.safetyFlag) ; //stateMachine.current_state;
-					rigid1.mn.genVar[9] = (int16_t) act1.tauDes*100;
+//					rigid1.mn.genVar[9] = (int16_t) act1.tauDes*100;
 
 
 
