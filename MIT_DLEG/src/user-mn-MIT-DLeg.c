@@ -46,7 +46,7 @@
 #include "user-mn-MIT-DLeg.h"
 #include "actuator_functions.h"
 #include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
-
+#include "ui.h"
 
 //****************************************************************************
 // Variable(s)
@@ -99,38 +99,45 @@ void MIT_DLeg_fsm_1(void)
     //begin main FSM
 	switch(fsm1State)
 	{
-		case -2:
+		//this always
+		case STATE_POWER_ON:
 			stateMachine.current_state = STATE_IDLE;
 			//Same power-on delay as FSM2:
 			if(fsm_time >= AP_FSM2_POWER_ON_DELAY ) {
-				fsm1State = -1;
+				fsm1State = STATE_INITIALIZATION;
 				fsm_time = 0;
+
+				//sensor update happens in mainFSM2(void) in main_fsm.c
+				isEnabledUpdateSensors = 1;
+			}
+
+			break;
+
+		case STATE_INITIALIZATION:
+//			stateMachine.current_state = STATE_INIT;
+			if (!checkActuator(&act1)){
+				//flip LED
+				set_led_rgb(1,0,0);
+			} else{
 
 				// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
 				calibrationFlags = 1, calibrationNew = 1;
-			}
 
-			break;
+				// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
+				if ( (calibrationFlags == 0) && (calibrationNew == 0) ){
+	//				mit_init_current_controller();		//initialize Current Controller with gains
+					fsm1State = STATE_INIT_USER_WRITES;
+					fsm_time = 0;
 
-		case -1:
-			stateMachine.current_state = STATE_INIT;
+					setControlMode(CTRL_OPEN, 0);
 
-			// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
-			if ( (calibrationFlags == 0) && (calibrationNew == 0) ){
-//				mit_init_current_controller();		//initialize Current Controller with gains
-				fsm1State = 0;
-				fsm_time = 0;
-
-				setControlMode(CTRL_OPEN, 0);
-
+				}
 			}
 
 
 			break;
 
-		case 0:
-			//sensor update happens in mainFSM2(void) in main_fsm.c
-			isEnabledUpdateSensors = 1;
+		case STATE_INIT_USER_WRITES:
 
 			/*reserve for additional initialization*/
 
@@ -143,12 +150,12 @@ void MIT_DLeg_fsm_1(void)
 
 			act1.safetyTorqueScalar = 1.0;
 
-			fsm1State = 1;
+			fsm1State = STATE_MAIN;
 			fsm_time = 0;
 
 			break;
 
-		case 1:
+		case STATE_MAIN:
 			{
 
 				//populate rigid1.mn.genVars to send to Plan

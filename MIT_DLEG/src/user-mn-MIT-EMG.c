@@ -40,7 +40,7 @@ volatile uint16_t emg_timer = 0; //1tick represent 1ms
 volatile uint16_t emg_prsc = 0;
 volatile uint16_t emg_reset_timer = 0;
 volatile uint8_t emg_ready_flag=0;
-//volatile uint8_t emg_active_flag;
+//volatile uint8_t emg_active_flag
 uint16_t emg_timestamp = 0;
 
 int16_t emg_data[8] = {0,0,0,0,0,0,0,0};
