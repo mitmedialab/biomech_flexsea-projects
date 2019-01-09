@@ -21,13 +21,24 @@
 #include "flexsea_board.h"
 #include "misc.h"
 #include "user-mn-MIT-DLeg.h"
+#include "actuator_functions.h"
 
 //methods
-void checkSafeties(Act_s *actx);
-int checkActuator();
+int8_t getMotorMode(void);
 int8_t* getSafetyConditions(void);
+int actuatorIsCorrect();
+void checkSafeties(Act_s *actx);
+int8_t handleSafetyConditions(void); //renamed from safetyFailure(void)
+
 
 //enums
+enum MOTOR_MODES{
+	MODE_DISABLED = 0,
+	MODE_PASSIVE = 1,
+	MODE_THROTTLED = 2,
+	MODE_ENABLED = 3,
+};
+
 enum VALUE_STATUS{
 	VALUE_NOMINAL = 0,
 	SENSOR_NOMINAL = 0,
@@ -37,6 +48,7 @@ enum VALUE_STATUS{
 	SENSOR_DISCONNECT = 3,
 };
 
+//TODO discuss if warnings and errors should be in separate enums
 enum ERROR_TYPES{
 	//sensor disconnect errors
 	ERROR_LDC				= 0, //load cell
@@ -47,12 +59,12 @@ enum ERROR_TYPES{
 	ERROR_EMG				= 5,
 
 	//limit errors
-	ERROR_BATTERY_VOLTAGE	= 6,
-	ERROR_TORQUE_MEASURED	= 7,
+	WARNING_BATTERY_VOLTAGE	= 6,
+	WARNING_TORQUE_MEASURED	= 7,
 	ERROR_CURRENT_MEASURED	= 8,
 	ERROR_TORQUE_REQUESTED	= 9, //set and handled in setMotorTorque
 	ERROR_CURRENT_REQUESTED	= 10, //set and handled in setMotorTorque
-	ERROR_JOINTANGLE_SOFT	= 11,
+	WARNING_JOINTANGLE_SOFT	= 11,
 	ERROR_JOINTANGLE_HARD	= 12,
 
 	//general errors

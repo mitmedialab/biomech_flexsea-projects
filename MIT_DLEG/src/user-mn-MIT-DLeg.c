@@ -45,6 +45,7 @@
 
 #include "user-mn-MIT-DLeg.h"
 #include "actuator_functions.h"
+#include "safety_functions.h"
 #include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
 #include "ui.h"
 
@@ -55,10 +56,17 @@
 float freq_input = 0;
 float freq_rad = 0;
 float torq_input = 0;
+int8_t onEntry = 0;
 
 // EXTERNS
 extern uint8_t calibrationFlags, calibrationNew;
+extern int32_t currentOpLimit;
 
+//****************************************************************************
+// Macro(s)
+//****************************************************************************
+
+#define FINDPOLES_DONE (calibrationFlags == 0) && (calibrationNew == 0)
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -99,7 +107,7 @@ void MIT_DLeg_fsm_1(void)
     //begin main FSM
 	switch(fsm1State)
 	{
-		//this always
+		//this state is always reached
 		case STATE_POWER_ON:
 			stateMachine.current_state = STATE_IDLE;
 			//Same power-on delay as FSM2:
@@ -109,27 +117,27 @@ void MIT_DLeg_fsm_1(void)
 
 				//sensor update happens in mainFSM2(void) in main_fsm.c
 				isEnabledUpdateSensors = 1;
+				onEntry = 1;
 			}
 
 			break;
 
 		case STATE_INITIALIZATION:
 //			stateMachine.current_state = STATE_INIT;
-			if (!checkActuator(&act1)){
-				//flip LED
+			if (!actuatorIsCorrect(&act1)){
+				//flip LED. TODO: check if this actually works/ think about persistent errors and timing
 				set_led_rgb(1,0,0);
 			} else{
-
-				// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
-				calibrationFlags = 1, calibrationNew = 1;
+				if (onEntry) {
+					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
+					calibrationFlags = 1, calibrationNew = 1;
+					onEntry = 0;
+				}
 
 				// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
-				if ( (calibrationFlags == 0) && (calibrationNew == 0) ){
-	//				mit_init_current_controller();		//initialize Current Controller with gains
+				if (FINDPOLES_DONE){
 					fsm1State = STATE_INIT_USER_WRITES;
 					fsm_time = 0;
-
-					setControlMode(CTRL_OPEN, 0);
 
 				}
 			}
@@ -141,6 +149,9 @@ void MIT_DLeg_fsm_1(void)
 
 			/*reserve for additional initialization*/
 
+			mit_init_current_controller();		//initialize Current Controller with gains
+//					setControlMode(CTRL_OPEN, 0);		//open control for alternative testing
+
 			//Set usewrites to initial values
 			walkParams.initializedStateMachineVariables = 0;
 			if (!walkParams.initializedStateMachineVariables){
@@ -148,21 +159,31 @@ void MIT_DLeg_fsm_1(void)
 
 			}
 
+			//absolute torque limit scaling factor TODO: possibly remove
 			act1.safetyTorqueScalar = 1.0;
 
 			fsm1State = STATE_MAIN;
 			fsm_time = 0;
+			onEntry = 1;
+
+			//limit max current applicable to any controls
+			currentOpLimit = CURRENT_ENTRY_INIT;
 
 			break;
 
 		case STATE_MAIN:
 			{
+				//TODO consider changing logic so onentry is only true for one cycle.
+				if (onEntry && fsm_time > 500) {
+					currentOpLimit = CURRENT_LIMIT_INIT;
+					onEntry = 0;
+				}
 
-				//populate rigid1.mn.genVars to send to Plan
-//				packRigidVars(&act1);
+
+
 
 				//begin safety check
-			    if (safetyShutoff()) {
+			    if (handleSafetyConditions()) {
 			    	/*motor behavior changes based on failure mode.
 			    	  Bypasses the switch statement if return true
 			    	  but sensors check still runs and has a chance

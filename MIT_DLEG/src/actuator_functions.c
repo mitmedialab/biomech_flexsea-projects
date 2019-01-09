@@ -1,6 +1,5 @@
-/****************************************************************************
 
-*****************************************************************************
+/*****************************************************************************
 	[Lead developers] Matt Carney, mcarney at mit dot edu
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors] Matthew Carney, mcarney at mit dot edu, Tony Shu, tonyshu at mit dot edu
@@ -12,7 +11,7 @@
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-#include "user-mn-MIT-DLeg.h"
+
 #include "actuator_functions.h"
 
 
@@ -72,117 +71,11 @@ static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
 struct diffarr_s jnt_ang_clks;		//maybe used for velocity and accel calcs.
 
 
-//****************************************************************************
-// Private Function(s)
-//****************************************************************************
 
 
-
-
-
-/*
- * Check for safety flags, and act on them.
- * todo: come up with correct strategies to deal with flags, include thermal limits also
- */
-int8_t safetyShutoff(void) {
-
-	switch(isSafetyFlag)
-
-	{
-		case SAFETY_OK:
-
-			return 0;
-
-		case SAFETY_ANGLE:
-			//check if flag is not still active to be released, else do something about problem.
-			if(!isAngleLimit) {
-				isSafetyFlag = SAFETY_OK;
-				break;
-			} else {
-				// do nothing. Clamping is handled in calcRestoringCurrent();
-			}
-
-			return 0; //continue running FSM
-
-		case SAFETY_TORQUE:
-
-			//check if flag is not still active to be released, else do something about problem.
-			if(!isTorqueLimit) {
-				isSafetyFlag = SAFETY_OK;
-				break;
-			} else {
-				// This could cause trouble, but seems more safe than an immediate drop in torque. Instead, reduce torque.
-				setMotorTorque(&act1, act1.tauDes * 0.5); // reduce desired torque by 25%
-			}
-
-			return 1;
-
-		case SAFETY_TEMP:
-			//check if flag is not still active to be released, else do something about problem.
-			if( !isTempLimit ) {
-				currentOpLimit = CURRENT_LIMIT_INIT;		// return to full power todo: may want to gradually increase
-				isSafetyFlag = SAFETY_OK;
-				break;
-			} else {
-				if (currentOpLimit > 0) {
-					currentOpLimit--;	//reduce current limit every cycle until we cool down.
-				}
-			}
-
-			return 0; //continue running FSM
-
-		default:
-			return 1;
-	}
-
-
-	return 0;
-}
-
-/*
- * Collect all sensor values and update the actuator structure.
- * Throws safety flags on Joint Angle, Joint Torque, since these functions look at transformed values.
- */
-void updateSensorValues(struct act_s *actx)
-{
-	getJointAngleKinematic(actx);
-
-	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
-	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
-
-	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
-
-//	actx->axialForce = 0.8*actx->axialForce + 0.2*getAxialForce();	// Filter signal
-	actx->axialForce = getAxialForce();
-	actx->axialForce = windowAveraging(actx->axialForce);	// Filter signal
-
-	actx->jointTorque = getJointTorque(actx);
-
-	updateJointTorqueRate(actx);
-
-	//actx->jointTorqueRate = windowJointTorqueRate(actx);
-
-	actx->motorVel =  *rigid1.ex.enc_ang_vel / 16.384 * ANG_UNIT;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
-	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
-
-	actx->regTemp = rigid1.re.temp;
-	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
-	actx->motCurr = rigid1.ex.mot_current;
-	actx->currentOpLimit = currentOpLimit; // throttled mA
-
-	actx->safetyFlag = isSafetyFlag;
-
-	if(actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT)
-	{
-		isSafetyFlag = SAFETY_TEMP;
-		isTempLimit = 1;
-	} else {
-		isTempLimit = 0;
-	}
-}
 
 //The ADC reads the motor Temp sensor - MCP9700 T0-92. This function converts the result to C.
-int16_t getMotorTempSensor(void)
+static int16_t getMotorTempSensor(void)
 {
 	static int16_t mot_temp = 0;
 	mot_temp = (rigid1.mn.analog[0] * (3.3/4096) - 500) / 10; 	//celsius
@@ -201,7 +94,7 @@ int16_t getMotorTempSensor(void)
  * 		todo: pass a reference to the act_s structure to set flags.
  */
 //float* getJointAngleKinematic( void )
-void getJointAngleKinematic(struct act_s *actx)
+static void getJointAngleKinematic(struct act_s *actx)
 {
 	static float last_jointVel = 0;
 	static float jointAngleRad = 0;
@@ -240,7 +133,7 @@ void getJointAngleKinematic(struct act_s *actx)
 
 
 // Output axial force on screw, Returns [Newtons]
-float getAxialForce(void)
+static float getAxialForce(void)
 {
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
@@ -288,7 +181,7 @@ float getAxialForce(void)
 // input( jointAngle, theta [rad] )
 // return moment arm projected length  [m]
 //float getLinkageMomentArm(float theta)
-float getLinkageMomentArm(float theta)
+static float getLinkageMomentArm(float theta)
 {
 	static float A=0, c = 0, c2 = 0, r = 0, C_ang = 0;
 
@@ -309,7 +202,7 @@ float getLinkageMomentArm(float theta)
  *  return: joint torque [Nm]
  *  //todo: more accurate is to track angle of axial force. maybe at getLinkageMomentArm
  */
-float getJointTorque(struct act_s *actx)
+static float getJointTorque(struct act_s *actx)
 {
 	float torque = 0;
 
@@ -332,7 +225,7 @@ float getJointTorque(struct act_s *actx)
  *  input:	struct act_s
  *  return: joint torque rate [Nm/s]
  */
-float windowJointTorqueRate(struct act_s *actx) {
+static float windowJointTorqueRate(struct act_s *actx) {
 	#define TR_WINDOW_SIZE 3
 
 	static int8_t index = -1;
@@ -359,7 +252,7 @@ float windowJointTorqueRate(struct act_s *actx) {
  *  larger windowsizes gets better accuracy with windowAverageingLarge
  *  uses WINDOW_SIZE
  */
-float windowAveraging(float currentVal) {
+static float windowAveraging(float currentVal) {
 
 	static int16_t index = -1;
 	static float window[WINDOW_SIZE];
@@ -373,9 +266,34 @@ float windowAveraging(float currentVal) {
 	return average;
 }
 
+static float calcRestoringCurrent(struct act_s *actx, float N) {
+	//Soft angle limits with virtual spring. Raise flag for safety check.
 
+	float angleDiff = 0;
+	float tauRestoring = 0;
+	float k = 0.2; // N/m
+	float b = 0; // Ns/m
 
-void updateJointTorqueRate(struct act_s *actx){
+	//Oppose motion using linear spring with damping
+	if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
+
+		angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
+		angleDiff = pow(angleDiff,4);
+		tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
+
+	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
+
+		angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
+		angleDiff = pow(angleDiff,4);
+		tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
+
+	}
+
+	return tauRestoring;
+
+}
+
+static void updateJointTorqueRate(struct act_s *actx){
 
 	//TODO: consider switching to windowAveraging
     actx->jointTorqueRate = 0.8 * actx->jointTorqueRate + 0.2 *( SECONDS * (actx->jointTorque - actx->lastJointTorque) );
@@ -457,32 +375,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 
 }
 
-float calcRestoringCurrent(struct act_s *actx, float N) {
-	//Soft angle limits with virtual spring. Raise flag for safety check.
 
-	float angleDiff = 0;
-	float tauRestoring = 0;
-	float k = 0.2; // N/m
-	float b = 0; // Ns/m
-
-	//Oppose motion using linear spring with damping
-	if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
-
-		angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
-		angleDiff = pow(angleDiff,4);
-		tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
-
-	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
-
-		angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
-		angleDiff = pow(angleDiff,4);
-		tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
-
-	}
-
-	return tauRestoring;
-
-}
 
 //Used for testing purposes. See state_machine
 /*
@@ -559,19 +452,8 @@ int8_t findPoles(void) {
 	return 0;
 }
 
-void packRigidVars(struct act_s *actx) {
 
-	// set float userVars to send back to Plan
-	rigid1.mn.userVar[0] = actx->jointAngleDegrees*1000;
-	rigid1.mn.userVar[1] = actx->jointVelDegrees*1000;
-	rigid1.mn.userVar[2] = actx->linkageMomentArm*1000;
-	rigid1.mn.userVar[3] = actx->axialForce*1000;
-	rigid1.mn.userVar[4] = actx->jointTorque*1000;
-    //userVar[5] = tauMeas
-    //userVar[6] = tauDes (impedance controller - spring contribution)
-}
-
-float windowSmoothJoint(int32_t val) {
+static float windowSmoothJoint(int32_t val) {
 	#define JOINT_WINDOW_SIZE 5
 
 	static int8_t index = -1;
@@ -587,7 +469,7 @@ float windowSmoothJoint(int32_t val) {
 	return average;
 }
 
-float windowSmoothAxial(float val) {
+static float windowSmoothAxial(float val) {
 	#define AXIAL_WINDOW_SIZE 5
 
 	static int8_t index = -1;
@@ -765,4 +647,65 @@ float torqueSystemID(void)
 	}
 
 	return torqueSetPoint;
+}
+
+//TODO fill these in
+void disable_motor(){
+
+}
+
+void actuate_passive_mode(){
+
+}
+
+void throttle_current(){
+
+}
+
+//****************************************************************************
+// Private Function(s)
+//****************************************************************************
+
+
+
+/*
+ * Collect all sensor values and update the actuator structure.
+ * Throws safety flags on Joint Angle, Joint Torque, since these functions look at transformed values.
+ */
+void updateSensorValues(struct act_s *actx)
+{
+	getJointAngleKinematic(actx);
+
+	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
+	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
+
+	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
+
+//	actx->axialForce = 0.8*actx->axialForce + 0.2*getAxialForce();	// Filter signal
+	actx->axialForce = getAxialForce();
+	actx->axialForce = windowAveraging(actx->axialForce);	// Filter signal
+
+	actx->jointTorque = getJointTorque(actx);
+
+	updateJointTorqueRate(actx);
+
+	//actx->jointTorqueRate = windowJointTorqueRate(actx);
+
+	actx->motorVel =  *rigid1.ex.enc_ang_vel / 16.384 * ANG_UNIT;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
+	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
+
+	actx->regTemp = rigid1.re.temp;
+	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
+	actx->motCurr = rigid1.ex.mot_current;
+	actx->currentOpLimit = currentOpLimit; // throttled mA
+
+	actx->safetyFlag = isSafetyFlag;
+
+	if(actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT)
+	{
+		isSafetyFlag = SAFETY_TEMP;
+		isTempLimit = 1;
+	} else {
+		isTempLimit = 0;
+	}
 }
