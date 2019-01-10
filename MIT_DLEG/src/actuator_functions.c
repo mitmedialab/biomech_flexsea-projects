@@ -33,7 +33,7 @@ static int8_t isTempLimit = 0;
 static int8_t startedOverLimit = 1;
 
 int8_t isEnabledUpdateSensors = 0;
-int8_t fsm1State = -2;
+int8_t fsm1State = STATE_POWER_ON;
 float currentScalar = CURRENT_SCALAR_INIT;
 int32_t currentOpLimit = CURRENT_LIMIT_INIT; 	//operational limit for current.
 
@@ -690,8 +690,9 @@ void updateSensorValues(struct act_s *actx)
 	updateJointTorqueRate(actx);
 
 	//actx->jointTorqueRate = windowJointTorqueRate(actx);
-
-	actx->motorVel =  *rigid1.ex.enc_ang_vel / 16.384 * ANG_UNIT;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
+	actx->motorPosRaw = *rigid1.ex.enc_ang;
+	actx->motorPos =  *rigid1.ex.enc_ang * RAD_PER_MOTOR_CNT; //counts
+	actx->motorVel =  *rigid1.ex.enc_ang_vel * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
 
 	actx->regTemp = rigid1.re.temp;

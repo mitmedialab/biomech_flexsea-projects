@@ -7,32 +7,74 @@
 
 #include "safety_functions.h"
 
-//bitshift macros TODO: fix
-//#define IS_FIELD_HIGH(i, map) ( (map) & (1 << ((i)%16)) )
-//#define SET_MAP_HIGH(i, map) ( (map) |= (1 << ((i)%16)) )
-//#define SET_MAP_LOW(i, map) ( (map) &= (~(1 << ((i)%16))) )
+//bitshift macros TODO: test
+#define IS_FIELD_HIGH(i, map) ( (map) & (1 << ((i)%16)) )
+#define SET_MAP_HIGH(i, map) ( (map) |= (1 << ((i)%16)) )
+#define SET_MAP_LOW(i, map) ( (map) &= (~(1 << ((i)%16))) )
 
 //variables
 static int8_t errorConditions[ERROR_ARRAY_SIZE]; //massage extern until it works
 static int16_t safetyFlags; //bitmap of all errors. Also serves as boolean for error existence
 static int8_t motorMode;
-
-
+static const int16_t stm32ID[] = STM32ID;
 
 //check connected/disconnect status
 //TODO: find ways of actually checking these
 static void checkLoadcell(Act_s *actx) {
-	errorConditions[ERROR_LDC] = SENSOR_NOMINAL;
+	static uint16_t disconnectCounter = 0;
 
-	//add isSafe flag setting when we can actually check sensors
+	//check to see if loadcell is disconnected
+	if (rigid1.ex.strain <= LOADCELL_DISCONNECT_STRAIN_THRESHOLD) {
+		disconnectCounter++;
+	} else {
+		disconnectCounter = 0;
+	}
+
+	//check to see if loadcell disconnect has occurred
+	if (disconnectCounter >= LOADCELL_DISCONNECT_COUNT_THRESHOLD) {
+		errorConditions[ERROR_LDC] = SENSOR_DISCONNECT;
+	} else {
+		errorConditions[ERROR_LDC] = SENSOR_NOMINAL;
+	}
 }
 
 static void checkJointEncoder(Act_s *actx) {
-	errorConditions[ERROR_JOINT_ENCODER] = SENSOR_NOMINAL;
+	static uint16_t disconnectCounter = 0;
+	static int16_t previousJointValue = 0;
+
+	if (abs(*rigid1.ex.joint_ang - previousJointValue) <= JOINT_ANGLE_DIFF_VALUE) {
+		disconnectCounter++;
+	} else {
+		disconnectCounter = 0;
+	}
+
+	if (disconnectCounter >= JOINT_ANGLE_COUNT_THRESHOLD) {
+		errorConditions[ERROR_JOINT_ENCODER] = SENSOR_DISCONNECT;
+	} else {
+		errorConditions[ERROR_JOINT_ENCODER] = SENSOR_NOMINAL;
+	}
+
+	previousJointValue = *rigid1.ex.joint_ang;
 }
 
 static void checkMotorEncoder(Act_s *actx) {
-	errorConditions[ERROR_MOTOR_ENCODER] = SENSOR_NOMINAL;
+	static uint16_t disconnectCounter = 0;
+	static int32_t previousMotorValue = 0;
+
+	if ((abs(*rigid1.ex.enc_ang - previousMotorValue) <= MOTOR_ANGLE_DIFF_VALUE)
+			&& (fabs(actx->jointTorque) >= MOTOR_ENCODER_DISCONNECT_TORQUE_THRESHOLD)) {
+		disconnectCounter++;
+	} else {
+		disconnectCounter = 0;
+	}
+
+	if (disconnectCounter >= MOTOR_ANGLE_COUNT_THRESHOLD) {
+		errorConditions[ERROR_MOTOR_ENCODER] = SENSOR_DISCONNECT;
+	} else {
+		errorConditions[ERROR_MOTOR_ENCODER] = SENSOR_NOMINAL;
+	}
+
+	previousMotorValue = *rigid1.ex.enc_ang;
 }
 
 static void checkMotorThermo(Act_s *actx) {
@@ -101,7 +143,6 @@ static void checkJointAngleBounds(Act_s *actx) {
 		} else if (actx->jointAngleDegrees >= JOINT_MAX_SOFT_DEGREES) {
 			errorConditions[WARNING_JOINTANGLE_SOFT] = VALUE_ABOVE;
 		} else {
-
 			errorConditions[WARNING_JOINTANGLE_SOFT] = VALUE_NOMINAL;
 		}
 
@@ -133,7 +174,20 @@ int8_t* getSafetyConditions(void) {
 
 //check for general errors
 int actuatorIsCorrect() {
-	return (getDeviceId() == STM32_DEVICE_ID && safetyFlags == 0);
+	int16_t* devID16 = getDeviceId16();
+
+	if (safetyFlags) {
+		return 0;
+	}
+
+	//check all six values of stm32ID match
+	for (int i = 0; i < 6; i++) {
+		if (*(devID16 + i) != stm32ID[i]) {
+			return 0;
+		}
+	}
+
+	return 1;
 }
 
 
@@ -157,13 +211,13 @@ void checkSafeties(Act_s *actx) {
 
 	checkPersistentError(actx);
 
-//	//set our safety bitmap
-//	//TODO: consider optimizing if there are future processing constraints
-//	for (int i = 0; i++; i < ERROR_ARRAY_SIZE) {
-//		if (errorConditions[i]) {
-//			SET_MAP_HIGH(i, safetyFlags);
-//		}
-//	}
+	//set our safety bitmap for streaming and checking purposes
+	//TODO: consider optimizing if there are future processing constraints
+	for (int i = 0; i < ERROR_ARRAY_SIZE; i++) {
+		if (errorConditions[i]) {
+			SET_MAP_HIGH(i, safetyFlags);
+		}
+	}
 }
 
 /*

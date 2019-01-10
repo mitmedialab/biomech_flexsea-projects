@@ -61,13 +61,15 @@ typedef struct act_s
     float jointTorqueRate;  // Joint torque rate
     float safetyTorqueScalar;	// Scalar value to reduce overall allowed torque generated.
 
-    int32_t motorVel;		// motor velocity [rad/s]
-    int32_t motorAcc;		// motor acceleration [rad/s/s]
-    int16_t regTemp;		// regulate temperature
-    int16_t motTemp;		// motor temperature
-    int32_t motCurr;		// motor current
-    int32_t desiredCurrent; // desired current from getMotorCurrent()
-    int32_t currentOpLimit; // current throttling limit
+    int32_t motorPosRaw;    // motor position [counts]
+    float motorPos;       // motor position [rad]
+    float motorVel;		// motor velocity [rad/s]
+    float motorAcc;		// motor acceleration [rad/s/s]
+    int16_t regTemp;		// regulate temperature [C]
+    int16_t motTemp;		// motor temperature [C]
+    int32_t motCurr;		// motor current [mA]
+    int32_t desiredCurrent; // desired current from getMotorCurrent() [mA]
+    int32_t currentOpLimit; // current throttling limit [mA]
     int8_t safetyFlag;		// todo: consider if necessary
 
     //following are multipacket specific

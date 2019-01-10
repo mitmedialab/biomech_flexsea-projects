@@ -79,14 +79,15 @@ void init_MIT_DLeg(void) {
 	//measured from nominal joint configuration, in degrees
 
 	//1. Select joint type
-	#define IS_ANKLE
-	//#define IS_KNEE
-
-	//2. Select device
-	//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-	#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
-	//#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
-	//#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
+//	#define IS_ANKLE
+//	//#define IS_KNEE
+//
+//	//2. Select device
+//	//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+//	//#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
+//	//#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
+//	//#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
+//	#define NO_DEVICE
 
 
 }
@@ -112,7 +113,12 @@ void MIT_DLeg_fsm_1(void)
 			stateMachine.current_state = STATE_IDLE;
 			//Same power-on delay as FSM2:
 			if(fsm_time >= AP_FSM2_POWER_ON_DELAY ) {
-				fsm1State = STATE_INITIALIZATION;
+
+				#ifndef NO_DEVICE
+					fsm1State = STATE_FIND_POLES;
+				#else
+					fsm1State = STATE_DEBUG;
+				#endif
 				fsm_time = 0;
 
 				//sensor update happens in mainFSM2(void) in main_fsm.c
@@ -122,7 +128,9 @@ void MIT_DLeg_fsm_1(void)
 
 			break;
 
-		case STATE_INITIALIZATION:
+		case STATE_FIND_POLES:
+
+
 //			stateMachine.current_state = STATE_INIT;
 			if (!actuatorIsCorrect(&act1)){
 				//flip LED. TODO: check if this actually works/ think about persistent errors and timing
@@ -240,12 +248,28 @@ void MIT_DLeg_fsm_1(void)
 //					rigid1.mn.genVar[9] = (int16_t) act1.tauDes*100;
 
 
-
-
 			    }
 
 				break;
 			}
+		case STATE_DEBUG:
+			rigid1.mn.genVar[0] = (int16_t) (getDeviceId16()[0]); //startedOverLimit;
+			rigid1.mn.genVar[1] = (int16_t) (getDeviceId16()[1]); //startedOverLimit;
+			rigid1.mn.genVar[2] = (int16_t) (getDeviceId16()[2]); //startedOverLimit;
+			rigid1.mn.genVar[3] = (int16_t) (getDeviceId16()[3]); //startedOverLimit;
+			rigid1.mn.genVar[4] = (int16_t) (getDeviceId16()[4]); //startedOverLimit;
+			rigid1.mn.genVar[5] = (int16_t) (getDeviceId16()[5]); //startedOverLimit;
+//			rigid1.mn.genVar[1] = (int16_t) (100.0*act1.jointAngle); //rad
+//			rigid1.mn.genVar[2] = (int16_t) (100.0*act1.axialForce);
+//			rigid1.mn.genVar[3] = (int16_t) (100.0*act1.motorPos);
+//			rigid1.mn.genVar[4] = (int16_t) (act1.regTemp);
+//			rigid1.mn.genVar[5] = (int16_t) (act1.motCurr);
+
+//				rigid1.mn.genVar[6] = (int16_t) rigid1.ex.mot_current; // LG
+//				rigid1.mn.genVar[7] = (int16_t) rigid1.ex.mot_volt;// ( ( fsm_time ) % SECONDS ) ; //rigid1.ex.mot_volt; // TA
+//				rigid1.mn.genVar[8] = (int16_t) (act1.safetyFlag) ; //stateMachine.current_state;
+
+			break;
 
         	default:
 			//Handle exceptions here
