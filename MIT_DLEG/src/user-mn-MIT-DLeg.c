@@ -75,20 +75,6 @@ extern int32_t currentOpLimit;
 
 void init_MIT_DLeg(void) {
 
-	//Joint Type: activate one of these for joint limit angles.
-	//measured from nominal joint configuration, in degrees
-
-	//1. Select joint type
-//	#define IS_ANKLE
-//	//#define IS_KNEE
-//
-//	//2. Select device
-//	//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-//	//#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
-//	//#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
-//	//#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
-//	#define NO_DEVICE
-
 
 }
 
@@ -104,6 +90,10 @@ void MIT_DLeg_fsm_1(void)
 
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsm_time++;
+	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
+	rigid1.mn.genVar[1] = (int16_t) (fsm1State); //startedOverLimit;
+	rigid1.mn.genVar[2]  = (int16_t) rigid1.re.temp;
+	rigid1.mn.genVar[3]  = (int16_t) (rigid1.ex.strain);
 
     //begin main FSM
 	switch(fsm1State)
@@ -133,8 +123,7 @@ void MIT_DLeg_fsm_1(void)
 
 //			stateMachine.current_state = STATE_INIT;
 			if (!actuatorIsCorrect(&act1)){
-				//flip LED. TODO: check if this actually works/ think about persistent errors and timing
-				set_led_rgb(1,0,0);
+				setLEDStatus(1,0,0); //solid red; needs reset
 			} else{
 				if (onEntry) {
 					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON

@@ -22,6 +22,7 @@
 #include "misc.h"
 #include "user-mn-MIT-DLeg.h"
 #include "actuator_functions.h"
+#include "ui.h"
 
 //methods
 int8_t getMotorMode(void);
@@ -29,7 +30,11 @@ int8_t* getSafetyConditions(void);
 int actuatorIsCorrect();
 void checkSafeties(Act_s *actx);
 int8_t handleSafetyConditions(void); //renamed from safetyFailure(void)
+int16_t getSafetyFlags(void);
 
+void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status);
+void clearLEDStatus(void);
+void overrideLED(uint8_t r, uint8_t g, uint8_t b);
 
 //enums
 enum MOTOR_MODES{
@@ -75,8 +80,8 @@ enum ERROR_TYPES{
 #define ERROR_ARRAY_SIZE	15
 
 //sensor disconnect check values
-#define LOADCELL_DISCONNECT_STRAIN_THRESHOLD 200
-#define LOADCELL_DISCONNECT_COUNT_THRESHOLD	 100
+#define LOADCELL_DISCONNECT_STRAIN_DIFFERENCE 5000
+#define LOADCELL_DISCONNECT_COUNT_THRESHOLD	 1000
 
 #define JOINT_ANGLE_DIFF_VALUE				 0
 #define JOINT_ANGLE_COUNT_THRESHOLD			 100
@@ -85,5 +90,9 @@ enum ERROR_TYPES{
 #define MOTOR_ANGLE_COUNT_THRESHOLD		 	 100
 #define MOTOR_ENCODER_DISCONNECT_TORQUE_THRESHOLD 1
 
+//shared LED codes used in main_fsm
+uint8_t l1;
+uint8_t l2;
+uint8_t l3;
 
 #endif /* FLEXSEA_PROJECTS_MIT_DLEG_INC_SAFETY_FUNCTIONS_H_ */

@@ -21,21 +21,21 @@ static const int16_t stm32ID[] = STM32ID;
 //check connected/disconnect status
 //TODO: find ways of actually checking these
 static void checkLoadcell(Act_s *actx) {
-	static uint16_t disconnectCounter = 0;
+	static uint16_t previousStrainValue = 0;
+	static int8_t tripped = 0;
+	static uint32_t delayTimer; //TODO: possible to disconnect load cell at t = 0 upon rollover
 
 	//check to see if loadcell is disconnected
-	if (rigid1.ex.strain <= LOADCELL_DISCONNECT_STRAIN_THRESHOLD) {
-		disconnectCounter++;
-	} else {
-		disconnectCounter = 0;
-	}
-
-	//check to see if loadcell disconnect has occurred
-	if (disconnectCounter >= LOADCELL_DISCONNECT_COUNT_THRESHOLD) {
+	if (abs((int32_t)rigid1.ex.strain - (int32_t)previousStrainValue) >= LOADCELL_DISCONNECT_STRAIN_DIFFERENCE
+			&& !tripped && delayTimer >= LOADCELL_DISCONNECT_COUNT_THRESHOLD) {
 		errorConditions[ERROR_LDC] = SENSOR_DISCONNECT;
-	} else {
+		tripped = 1;
+	} else if (!tripped) {
 		errorConditions[ERROR_LDC] = SENSOR_NOMINAL;
 	}
+
+	previousStrainValue = rigid1.ex.strain;
+	delayTimer++;
 }
 
 static void checkJointEncoder(Act_s *actx) {
@@ -62,7 +62,7 @@ static void checkMotorEncoder(Act_s *actx) {
 	static int32_t previousMotorValue = 0;
 
 	if ((abs(*rigid1.ex.enc_ang - previousMotorValue) <= MOTOR_ANGLE_DIFF_VALUE)
-			&& (fabs(actx->jointTorque) >= MOTOR_ENCODER_DISCONNECT_TORQUE_THRESHOLD)) {
+			&& (fabs(actx->axialForce) >= MOTOR_ENCODER_DISCONNECT_TORQUE_THRESHOLD)) {
 		disconnectCounter++;
 	} else {
 		disconnectCounter = 0;
@@ -91,7 +91,8 @@ static void checkEMG(Act_s *actx) {
 
 //check values against limits
 static void checkBatteryBounds(Act_s *actx) {
-	if (rigid1.re.vb <= UVLO_BIOMECH) {
+
+	if (rigid1.re.vb <= UVLO_BIOMECH && rigid1.re.vb >= UV_USB_BIOMECH) {
 		errorConditions[WARNING_BATTERY_VOLTAGE] = VALUE_BELOW;
 	} else if (rigid1.re.vb >= UVHI_BIOMECH) {
 		errorConditions[WARNING_BATTERY_VOLTAGE] = VALUE_ABOVE;
@@ -164,6 +165,39 @@ static void checkPersistentError(Act_s *actx) {
  * PUBLIC FUNCTIONS
  */
 
+void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status) {
+	l1 |= l1_status;
+	l2 |= l2_status;
+	l3 |= l3_status;
+}
+
+void clearLEDStatus(void) {
+	l1 = 0;
+	l2 = 0;
+	l3 = 0;
+}
+
+void overrideLED(uint8_t r, uint8_t g, uint8_t b) {
+	if (r >= 1) {
+		LEDR(1);
+	} else {
+		LEDR(0);
+	}
+
+	if (g >= 1) {
+		LEDG(1);
+	} else {
+		LEDG(0);
+	}
+
+	if (b >= 1) {
+		LEDB(1);
+	} else {
+		LEDB(0);
+	}
+}
+
+
 int8_t getMotorMode(void){
 	return motorMode;
 }
@@ -171,6 +205,11 @@ int8_t getMotorMode(void){
 int8_t* getSafetyConditions(void) {
 	return errorConditions;
 }
+
+int16_t getSafetyFlags(void) {
+	return safetyFlags;
+}
+
 
 //check for general errors
 int actuatorIsCorrect() {
@@ -240,19 +279,19 @@ int8_t handleSafetyConditions(void) {
 		motorMode = MODE_ENABLED;
 
 	if (errorConditions[WARNING_TORQUE_MEASURED] != VALUE_NOMINAL){
-		//led0
+		setLEDStatus(0,1,0); //flashing yellow
 	}
 
 	if (errorConditions[WARNING_JOINTANGLE_SOFT] != VALUE_NOMINAL){
-		//led1
+		setLEDStatus(0,1,0);
 	}
 
 	if (errorConditions[WARNING_BATTERY_VOLTAGE] != VALUE_NOMINAL){
-		//led2
+		setLEDStatus(0,1,0);
 	}
 
 	if (errorConditions[ERROR_PCB_THERMO] != VALUE_NOMINAL){
-		//led3
+		setLEDStatus(0,1,0);
 	}
 
 	switch (motorMode){
