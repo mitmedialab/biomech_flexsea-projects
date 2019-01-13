@@ -58,15 +58,15 @@ enum ERROR_TYPES{
 	//sensor disconnect errors
 	ERROR_LDC				= 0, //load cell
 	ERROR_JOINT_ENCODER 	= 1,
-	ERROR_MOTOR_ENCODER 	= 2,
+	ERROR_MOTOR_ENCODER 	= 2, //TODO: need to revisit this because difficult to identify failure
 	ERROR_MOTOR_THERMO		= 3,
 	ERROR_PCB_THERMO		= 4,
-	ERROR_EMG				= 5,
+	ERROR_EMG				= 5, //TODO: figure out how to handle EMG disconnect. not doing anything with this now.
 
 	//limit errors
 	WARNING_BATTERY_VOLTAGE	= 6,
 	WARNING_TORQUE_MEASURED	= 7,
-	ERROR_CURRENT_MEASURED	= 8,
+	ERROR_CURRENT_MEASURED	= 8, //not doing anything with this now
 	ERROR_TORQUE_REQUESTED	= 9, //set and handled in setMotorTorque
 	ERROR_CURRENT_REQUESTED	= 10, //set and handled in setMotorTorque
 	WARNING_JOINTANGLE_SOFT	= 11,
@@ -88,7 +88,10 @@ enum ERROR_TYPES{
 
 #define MOTOR_ANGLE_DIFF_VALUE				 0
 #define MOTOR_ANGLE_COUNT_THRESHOLD		 	 100
-#define MOTOR_ENCODER_DISCONNECT_TORQUE_THRESHOLD 1
+#define MOTOR_ENCODER_DISCONNECT_AXIAL_FORCE_THRESHOLD_N 175
+#define MOTOR_ENCODER_DISCONNECT_BOUND 250000
+
+
 
 //shared LED codes used in main_fsm
 uint8_t l1;

@@ -137,12 +137,13 @@ static float getAxialForce(void)
 {
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
-	uint16_t strainReading = 0;
+	float strainReading = 0;
 	static float tareOffset = 0;
 	float axialForce = 0;
-	float numSamples = 100.;
+	float numSamples = 1000.;
+	float timerDelay = 100.;
 
-	strainReading = (rigid1.ex.strain);
+	strainReading = (float) rigid1.ex.strain;
 
 	switch(tareState)
 	{
@@ -150,10 +151,10 @@ static float getAxialForce(void)
 			//Tare the balance using average of numSamples readings
 			timer++;
 
-			if(timer <= numSamples) {
-				strainReading = (rigid1.ex.strain);
-				tareOffset += ((float) strainReading)/numSamples;
-			} else {
+			//DEBUG
+			if(timer >= timerDelay && timer < numSamples + timerDelay) {
+				tareOffset += (strainReading)/numSamples;
+			} else if (timer >= numSamples + timerDelay) {
 				tareState = 0;
 			}
 
@@ -162,6 +163,9 @@ static float getAxialForce(void)
 		case 0:
 
 			axialForce =  FORCE_DIR * (strainReading - tareOffset) * forcePerTick;
+			//DEBUG
+//			axialForce =  FORCE_DIR * (strainReading) * forcePerTick;
+
 
 			// Filter the signal
 //			axialForce = windowAveraging(axialForce, 5);
@@ -192,7 +196,12 @@ static float getLinkageMomentArm(float theta)
 
     r = MA_B * sinf(A);
 
-    return r/1000;
+    //DEBUG
+//    rigid1.mn.genVar[4]  = (int16_t) (r*1000.0);
+
+    return r/1000.;
+
+
 }
 
 
@@ -252,6 +261,7 @@ static float windowJointTorqueRate(struct act_s *actx) {
  *  larger windowsizes gets better accuracy with windowAverageingLarge
  *  uses WINDOW_SIZE
  */
+//UNDERGRAD TODO: figure out whythis isn't working
 static float windowAveraging(float currentVal) {
 
 	static int16_t index = -1;
@@ -296,7 +306,9 @@ static float calcRestoringCurrent(struct act_s *actx, float N) {
 static void updateJointTorqueRate(struct act_s *actx){
 
 	//TODO: consider switching to windowAveraging
-    actx->jointTorqueRate = 0.8 * actx->jointTorqueRate + 0.2 *( SECONDS * (actx->jointTorque - actx->lastJointTorque) );
+
+	float diff = actx->jointTorque - actx->lastJointTorque;
+    actx->jointTorqueRate = 0.8 * actx->jointTorqueRate + 0.2 *( SECONDS * (diff) );
     actx->lastJointTorque = actx->jointTorque;
 }
 
@@ -630,7 +642,7 @@ float torqueSystemID(void)
 			if (arrayStep <= cyclingPeriodLength-1)
 			{
 				torqueSetPoint = (float) ( torqueAmplitude * inputDataSet[arrayStep] );
-				rigid1.mn.genVar[7] = (int16_t) (start); // record starting.
+				//rigid1.mn.genVar[7] = (int16_t) (start); // record starting.
 				arrayStep++;
 			} else
 			{
@@ -689,7 +701,6 @@ void updateSensorValues(struct act_s *actx)
 
 	updateJointTorqueRate(actx);
 
-	//actx->jointTorqueRate = windowJointTorqueRate(actx);
 	actx->motorPosRaw = *rigid1.ex.enc_ang;
 	actx->motorPos =  *rigid1.ex.enc_ang * RAD_PER_MOTOR_CNT; //counts
 	actx->motorVel =  *rigid1.ex.enc_ang_vel * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384

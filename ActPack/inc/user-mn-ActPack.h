@@ -47,7 +47,7 @@ void disableActPackFSM2(void);
 // Definition(s):
 //****************************************************************************
 
-#define AP_FSM2_POWER_ON_DELAY		1000
+#define AP_FSM2_POWER_ON_DELAY		1500
 
 #define APC_FSM2_DISABLED			0
 #define APC_FSM2_ENABLED			1

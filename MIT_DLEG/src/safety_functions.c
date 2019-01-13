@@ -62,15 +62,16 @@ static void checkMotorEncoder(Act_s *actx) {
 	static int32_t previousMotorValue = 0;
 
 	if ((abs(*rigid1.ex.enc_ang - previousMotorValue) <= MOTOR_ANGLE_DIFF_VALUE)
-			&& (fabs(actx->axialForce) >= MOTOR_ENCODER_DISCONNECT_TORQUE_THRESHOLD)) {
+			&& (fabs(actx->axialForce) >= MOTOR_ENCODER_DISCONNECT_AXIAL_FORCE_THRESHOLD_N)) {
 		disconnectCounter++;
 	} else {
 		disconnectCounter = 0;
 	}
 
-	if (disconnectCounter >= MOTOR_ANGLE_COUNT_THRESHOLD) {
+	if (disconnectCounter >= MOTOR_ANGLE_COUNT_THRESHOLD ||
+			abs(*rigid1.ex.enc_ang) > MOTOR_ENCODER_DISCONNECT_BOUND) {
 		errorConditions[ERROR_MOTOR_ENCODER] = SENSOR_DISCONNECT;
-	} else {
+	} else if (errorConditions[ERROR_MOTOR_ENCODER] != SENSOR_DISCONNECT){
 		errorConditions[ERROR_MOTOR_ENCODER] = SENSOR_NOMINAL;
 	}
 
@@ -92,7 +93,7 @@ static void checkEMG(Act_s *actx) {
 //check values against limits
 static void checkBatteryBounds(Act_s *actx) {
 
-	if (rigid1.re.vb <= UVLO_BIOMECH && rigid1.re.vb >= UV_USB_BIOMECH) {
+	if (rigid1.re.vb <= UVLO_NOTIFY && rigid1.re.vb >= UV_USB_BIOMECH) {
 		errorConditions[WARNING_BATTERY_VOLTAGE] = VALUE_BELOW;
 	} else if (rigid1.re.vb >= UVHI_BIOMECH) {
 		errorConditions[WARNING_BATTERY_VOLTAGE] = VALUE_ABOVE;
@@ -283,15 +284,15 @@ int8_t handleSafetyConditions(void) {
 	}
 
 	if (errorConditions[WARNING_JOINTANGLE_SOFT] != VALUE_NOMINAL){
-		setLEDStatus(0,1,0);
+		setLEDStatus(0,1,0);//flashing yellow
 	}
 
 	if (errorConditions[WARNING_BATTERY_VOLTAGE] != VALUE_NOMINAL){
-		setLEDStatus(0,1,0);
+		setLEDStatus(0,1,0);//flashing yellow (TODO LED function is not working)
 	}
 
 	if (errorConditions[ERROR_PCB_THERMO] != VALUE_NOMINAL){
-		setLEDStatus(0,1,0);
+		setLEDStatus(0,1,0);//flashing yellow
 	}
 
 	switch (motorMode){

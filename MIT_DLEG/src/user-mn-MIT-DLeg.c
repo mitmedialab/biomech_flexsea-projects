@@ -93,7 +93,11 @@ void MIT_DLeg_fsm_1(void)
 	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
 	rigid1.mn.genVar[1] = (int16_t) (fsm1State); //startedOverLimit;
 	rigid1.mn.genVar[2]  = (int16_t) rigid1.re.temp;
-	rigid1.mn.genVar[3]  = (int16_t) (rigid1.ex.strain);
+	rigid1.mn.genVar[3]  = (int16_t) (act1.axialForce);
+	//genvar4 = linkageMomentArm
+	rigid1.mn.genVar[5]  = (int16_t) (act1.jointTorque*100.);
+	rigid1.mn.genVar[6]  = (int16_t) (act1.jointAngle*100.);
+
 
     //begin main FSM
 	switch(fsm1State)
@@ -102,24 +106,35 @@ void MIT_DLeg_fsm_1(void)
 		case STATE_POWER_ON:
 			stateMachine.current_state = STATE_IDLE;
 			//Same power-on delay as FSM2:
-			if(fsm_time >= AP_FSM2_POWER_ON_DELAY ) {
-
-				#ifndef NO_DEVICE
-					fsm1State = STATE_FIND_POLES;
-				#else
-					fsm1State = STATE_DEBUG;
-				#endif
-				fsm_time = 0;
-
+			if(fsm_time >= AP_FSM2_POWER_ON_DELAY) {
 				//sensor update happens in mainFSM2(void) in main_fsm.c
+
 				isEnabledUpdateSensors = 1;
 				onEntry = 1;
+				fsm_time = 0;
+				fsm1State = STATE_INITIALIZE_SENSORS;
 			}
 
 			break;
 
-		case STATE_FIND_POLES:
+		case STATE_INITIALIZE_SENSORS:
 
+			if(fsm_time >= AP_FSM2_POWER_ON_DELAY) {
+				//DEBUG
+//				#ifndef NO_DEVICE
+////					fsm1State = STATE_FIND_POLES;
+//				#else
+////					fsm1State = STATE_DEBUG;
+//				#endif
+
+				onEntry = 1;
+			}
+
+
+			break;
+
+
+		case STATE_FIND_POLES:
 
 //			stateMachine.current_state = STATE_INIT;
 			if (!actuatorIsCorrect(&act1)){
@@ -128,13 +143,16 @@ void MIT_DLeg_fsm_1(void)
 				if (onEntry) {
 					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
 					calibrationFlags = 1, calibrationNew = 1;
+					isEnabledUpdateSensors = 0;
 					onEntry = 0;
+
 				}
 
 				// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
 				if (FINDPOLES_DONE){
 					fsm1State = STATE_INIT_USER_WRITES;
 					fsm_time = 0;
+					isEnabledUpdateSensors = 1;
 
 				}
 			}
@@ -159,7 +177,7 @@ void MIT_DLeg_fsm_1(void)
 			//absolute torque limit scaling factor TODO: possibly remove
 			act1.safetyTorqueScalar = 1.0;
 
-			fsm1State = STATE_MAIN;
+//			fsm1State = STATE_MAIN; DBBUG BITCHES
 			fsm_time = 0;
 			onEntry = 1;
 
@@ -225,15 +243,15 @@ void MIT_DLeg_fsm_1(void)
 			    	/* Output variables live here. Use this as the main reference
 			    	 * NOTE: the communication Offsets are defined in /Rigid/src/cmd-rigid.c
 			    	 */
-			        rigid1.mn.genVar[0] = (int16_t) (act1.linkageMomentArm *1000.0); //startedOverLimit;
-					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
-					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
- 					rigid1.mn.genVar[3] = (int16_t) (act1.jointVel * 100.0); 	// rad/s
-					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
-					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
-					rigid1.mn.genVar[6] = (int16_t) rigid1.ex.mot_current; // LG
-					rigid1.mn.genVar[7] = (int16_t) rigid1.ex.mot_volt;// ( ( fsm_time ) % SECONDS ) ; //rigid1.ex.mot_volt; // TA
-					rigid1.mn.genVar[8] = (int16_t) (act1.safetyFlag) ; //stateMachine.current_state;
+//			        rigid1.mn.genVar[0] = (int16_t) (act1.linkageMomentArm *1000.0); //startedOverLimit;
+//					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
+//					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
+// 					rigid1.mn.genVar[3] = (int16_t) (act1.jointVel * 100.0); 	// rad/s
+//					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
+//					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
+//					rigid1.mn.genVar[6] = (int16_t) rigid1.ex.mot_current; // LG
+//					rigid1.mn.genVar[7] = (int16_t) rigid1.ex.mot_volt;// ( ( fsm_time ) % SECONDS ) ; //rigid1.ex.mot_volt; // TA
+//					rigid1.mn.genVar[8] = (int16_t) (act1.safetyFlag) ; //stateMachine.current_state;
 //					rigid1.mn.genVar[9] = (int16_t) act1.tauDes*100;
 
 
@@ -242,12 +260,12 @@ void MIT_DLeg_fsm_1(void)
 				break;
 			}
 		case STATE_DEBUG:
-			rigid1.mn.genVar[0] = (int16_t) (getDeviceId16()[0]); //startedOverLimit;
-			rigid1.mn.genVar[1] = (int16_t) (getDeviceId16()[1]); //startedOverLimit;
-			rigid1.mn.genVar[2] = (int16_t) (getDeviceId16()[2]); //startedOverLimit;
-			rigid1.mn.genVar[3] = (int16_t) (getDeviceId16()[3]); //startedOverLimit;
-			rigid1.mn.genVar[4] = (int16_t) (getDeviceId16()[4]); //startedOverLimit;
-			rigid1.mn.genVar[5] = (int16_t) (getDeviceId16()[5]); //startedOverLimit;
+//			rigid1.mn.genVar[0] = (int16_t) (getDeviceId16()[0]); //startedOverLimit;
+//			rigid1.mn.genVar[1] = (int16_t) (getDeviceId16()[1]); //startedOverLimit;
+//			rigid1.mn.genVar[2] = (int16_t) (getDeviceId16()[2]); //startedOverLimit;
+//			rigid1.mn.genVar[3] = (int16_t) (getDeviceId16()[3]); //startedOverLimit;
+//			rigid1.mn.genVar[4] = (int16_t) (getDeviceId16()[4]); //startedOverLimit;
+//			rigid1.mn.genVar[5] = (int16_t) (getDeviceId16()[5]); //startedOverLimit;
 //			rigid1.mn.genVar[1] = (int16_t) (100.0*act1.jointAngle); //rad
 //			rigid1.mn.genVar[2] = (int16_t) (100.0*act1.axialForce);
 //			rigid1.mn.genVar[3] = (int16_t) (100.0*act1.motorPos);

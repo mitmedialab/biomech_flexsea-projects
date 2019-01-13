@@ -238,7 +238,6 @@ void MIT_EMG_i2c2_fsm(void)
 			break;
 	}
 		emg_timer++;
-		rigid1.mn.genVar[9] = emg_timer;
 }
 
 uint8_t MIT_EMG_getState(void) //read value when only 1 is returned
