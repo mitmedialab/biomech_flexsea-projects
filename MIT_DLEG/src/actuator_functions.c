@@ -35,7 +35,7 @@ static int8_t startedOverLimit = 1;
 int8_t isEnabledUpdateSensors = 0;
 int8_t fsm1State = STATE_POWER_ON;
 float currentScalar = CURRENT_SCALAR_INIT;
-int32_t currentOpLimit = CURRENT_LIMIT_INIT; 	//operational limit for current.
+
 
 //torque gain values
 float torqueKp = TORQ_KP_INIT;
@@ -370,12 +370,12 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
-	if (I > currentOpLimit)
+	if (I > actx->currentOpLimit)
 	{
-		I = currentOpLimit;
-	} else if (I < -currentOpLimit)
+		I = actx->currentOpLimit;
+	} else if (I < -actx->currentOpLimit)
 	{
-		I = -currentOpLimit;
+		I = -actx->currentOpLimit;
 	}
 
 	actx->desiredCurrent = (int32_t) I; 	// demanded mA
@@ -410,10 +410,10 @@ float biomCalcImpedance(float k1, float b, float theta_set)
 }
 
 void mit_init_current_controller(void) {
-
-	setControlMode(CTRL_CURRENT, 0);
+	act1.currentOpLimit = CURRENT_ENTRY_INIT;
+	setControlMode(CTRL_CURRENT, DEVICE_CHANNEL);
 	writeEx[0].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
-	setControlGains(currentKp, currentKi, currentKd, 0, 0);
+	setControlGains(currentKp, currentKi, currentKd, 0, DEVICE_CHANNEL);
 
 }
 
@@ -661,18 +661,7 @@ float torqueSystemID(void)
 	return torqueSetPoint;
 }
 
-//TODO fill these in
-void disable_motor(){
 
-}
-
-void actuate_passive_mode(){
-
-}
-
-void throttle_current(){
-
-}
 
 //****************************************************************************
 // Private Function(s)
@@ -692,6 +681,8 @@ void updateSensorValues(struct act_s *actx)
 	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
+	actx->motorPosNeutral = 0;		// TODO: set this on startup, include in the motor/joint angle transformations
+
 
 //	actx->axialForce = 0.8*actx->axialForce + 0.2*getAxialForce();	// Filter signal
 	actx->axialForce = getAxialForce();
@@ -702,6 +693,7 @@ void updateSensorValues(struct act_s *actx)
 	updateJointTorqueRate(actx);
 
 	actx->motorPosRaw = *rigid1.ex.enc_ang;
+
 	actx->motorPos =  *rigid1.ex.enc_ang * RAD_PER_MOTOR_CNT; //counts
 	actx->motorVel =  *rigid1.ex.enc_ang_vel * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
@@ -709,7 +701,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->regTemp = rigid1.re.temp;
 	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
 	actx->motCurr = rigid1.ex.mot_current;
-	actx->currentOpLimit = currentOpLimit; // throttled mA
+
 
 	actx->safetyFlag = isSafetyFlag;
 

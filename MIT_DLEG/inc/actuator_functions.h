@@ -37,10 +37,6 @@
 int8_t findPoles(void);
 void   mit_init_current_controller(void);
 
-// Safety modes
-void disable_motor();
-void actuate_passive_mode(); //position control to neutral angle
-void throttle_current();
 
 // Sensor values
 void  updateSensorValues(struct act_s *actx);

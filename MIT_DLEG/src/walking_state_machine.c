@@ -15,7 +15,6 @@ extern "C" {
 #include <math.h>
 
 WalkingStateMachine stateMachine;
-Act_s act1;
 WalkParams walkParams;
 CubicSpline cubicSpline;
 

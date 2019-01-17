@@ -18,6 +18,8 @@ static int16_t safetyFlags; //bitmap of all errors. Also serves as boolean for e
 static int8_t motorMode;
 static const int16_t stm32ID[] = STM32ID;
 
+
+
 //check connected/disconnect status
 //TODO: find ways of actually checking these
 static void checkLoadcell(Act_s *actx) {
@@ -60,9 +62,10 @@ static void checkJointEncoder(Act_s *actx) {
 static void checkMotorEncoder(Act_s *actx) {
 	static uint16_t disconnectCounter = 0;
 	static int32_t previousMotorValue = 0;
+	static float previousJointValue = 0;
 
-	if ((abs(*rigid1.ex.enc_ang - previousMotorValue) <= MOTOR_ANGLE_DIFF_VALUE)
-			&& (fabs(actx->axialForce) >= MOTOR_ENCODER_DISCONNECT_AXIAL_FORCE_THRESHOLD_N)) {
+	if (abs(rigid1.ex.mot_current) >= MOTOR_CURRENT_DISCONNECT_THRESHOLD &&
+			fabs(actx->axialForce) <= MOTOR_ENCODER_DISCONNECT_AXIAL_FORCE_THRESHOLD_N) {
 		disconnectCounter++;
 	} else {
 		disconnectCounter = 0;
@@ -75,7 +78,6 @@ static void checkMotorEncoder(Act_s *actx) {
 		errorConditions[ERROR_MOTOR_ENCODER] = SENSOR_NOMINAL;
 	}
 
-	previousMotorValue = *rigid1.ex.enc_ang;
 }
 
 static void checkMotorThermo(Act_s *actx) {
@@ -165,6 +167,55 @@ static void checkPersistentError(Act_s *actx) {
 /*
  * PUBLIC FUNCTIONS
  */
+
+/*
+ * Turn the motor controller into a position controller in case we lose force sensing
+ */
+static void actuate_passive_mode(Act_s *actx){
+	static uint8_t onEntry = 1;
+
+	if (onEntry) {
+		setControlMode(CTRL_POSITION, DEVICE_CHANNEL);
+		setControlGains(SAFE_MODE_POS_CTRL_GAIN_KP, SAFE_MODE_POS_CTRL_GAIN_KI, SAFE_MODE_POS_CTRL_GAIN_KD, 0, DEVICE_CHANNEL);
+		onEntry = 0;
+	}
+
+	//todo: Ramp position from current position to neutral motor position
+	setMotorPosition(actx->motorPosNeutral, DEVICE_CHANNEL);
+
+}
+
+/*
+ * Reduce the current limit in order to reduce heating in the motor or drive electronics.
+ * This should then reset current as necessary
+ */
+static void throttle_current(Act_s *actx) {
+	actx->currentOpLimit = actx->currentOpLimit - 2;
+	if (actx->currentOpLimit < CURRENT_LIMIT_MIN) {
+		actx->currentOpLimit = CURRENT_LIMIT_MIN;
+	}
+}
+
+/*
+ * Ramp the current limit if below temp threshold.
+ * This should then reset current as necessary
+ */
+static void ramp_current(Act_s *actx) {
+	actx->currentOpLimit += 2;
+	if (actx->currentOpLimit > CURRENT_LIMIT_INIT) {
+		actx->currentOpLimit = CURRENT_LIMIT_INIT;
+	}
+}
+
+
+/*
+ * Disable the motor because of some safety flag
+ */
+static void disable_motor(void) {
+	//CTRL_NONE gives desired damping behavior
+	setControlMode(CTRL_NONE, DEVICE_CHANNEL);
+}
+
 
 void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status) {
 	l1 |= l1_status;
@@ -264,8 +315,7 @@ void checkSafeties(Act_s *actx) {
  * Check for safety flags, and act on them.
  * todo: come up with correct strategies to deal with flags, include thermal limits also
  */
-int8_t handleSafetyConditions(void) {
-	int8_t isBlocking = 1;
+void handleSafetyConditions(Act_s *actx) {
 
 	//TODO figure out if MODE_DISABLED should be blocking/ how to do it
 	if (errorConditions[ERROR_MOTOR_ENCODER] != SENSOR_NOMINAL)
@@ -274,11 +324,14 @@ int8_t handleSafetyConditions(void) {
 			errorConditions[ERROR_LDC])
 		motorMode = MODE_PASSIVE;
 	else if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
-			errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL)
-		motorMode = MODE_THROTTLED;
-	else
+			errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL ||
+			actx->currentOpLimit < CURRENT_LIMIT_INIT)
+		motorMode = MODE_OVERTEMP;
+	else {
 		motorMode = MODE_ENABLED;
+	}
 
+	//TODO: get LEDS working
 	if (errorConditions[WARNING_TORQUE_MEASURED] != VALUE_NOMINAL){
 		setLEDStatus(0,1,0); //flashing yellow
 	}
@@ -300,20 +353,22 @@ int8_t handleSafetyConditions(void) {
 			disable_motor();
 			break;
 		case MODE_PASSIVE:
-			actuate_passive_mode(); //position control to neutral angle
+			actuate_passive_mode(actx); //position control to neutral angle
 			break;
-		case MODE_THROTTLED:
-			throttle_current();
-			isBlocking = 0;
+		case MODE_OVERTEMP:
+			if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
+				errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL) {
+				throttle_current(actx);
+			} else {
+				ramp_current(actx);
+			}
 			break;
 		case MODE_ENABLED:
-			isBlocking = 0;
-			break;
-		default:
+
 			break;
 	}
 
-	return isBlocking;
 
 }
+
 
