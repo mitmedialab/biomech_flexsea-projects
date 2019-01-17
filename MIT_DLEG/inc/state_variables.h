@@ -72,6 +72,7 @@ typedef struct act_s
     float tauMeas;          // torque contribution from series spring
     float tauDes;           // FSM des torque - tauMeas
     float lastJointAngle;
+    float lastJointVel;
     float lastJointTorque;
     float jointTorqueRate;  // Joint torque rate
     float safetyTorqueScalar;	// Scalar value to reduce overall allowed torque generated.
