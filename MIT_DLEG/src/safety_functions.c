@@ -368,7 +368,7 @@ void handleSafetyConditions(Act_s *actx) {
 			break;
 	}
 
-
 }
+
 
 

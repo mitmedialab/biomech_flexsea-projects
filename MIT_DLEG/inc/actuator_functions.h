@@ -27,7 +27,7 @@
 #include "user-mn-MIT-DLeg.h"
 
 #include <math.h>
-
+#include <stdbool.h>
 
 #include "walking_state_machine.h"
 #include "state_variables.h"
@@ -42,11 +42,14 @@ void   mit_init_current_controller(void);
 void  updateSensorValues(struct act_s *actx);
 
 //Control outputs
-float biomCalcImpedance(float k1, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
+float biomCalcImpedance(Act_s *actx, float k1, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
 void  setMotorTorque(struct act_s *actx, float tor_d);
 void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des);
-void setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
+void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float frequencySweep(float omega, float t);
 float torqueSystemID(void);
+bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output); // integral term anti-windup clamp check
+float actuateAngleLimits(Act_s *actx);	// apply virtual spring/damper on angle limits
+
 
 #define WINDOW_SIZE 5

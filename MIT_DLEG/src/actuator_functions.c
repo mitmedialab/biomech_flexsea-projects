@@ -15,8 +15,6 @@
 #include "actuator_functions.h"
 
 
-
-
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -60,8 +58,6 @@ static const float jointZeroAbs = JOINT_ZERO_ABS;
 static const float jointZero	= JOINT_ZERO;
 
 static const float forcePerTick  = FORCE_PER_TICK;
-
-static const float nScrew = N_SCREW;
 
 static const float jointMinSoft = JOINT_MIN_SOFT;
 static const float jointMaxSoft = JOINT_MAX_SOFT;
@@ -113,16 +109,9 @@ static void getJointAngleKinematic(struct act_s *actx)
 
 	// SAFETY CHECKS
 	//if we start over soft limits after findPoles(), only turn on motor after getting within limits
+	//TODO: I think we can remove this, verify we are handling this with safety functions
 	if (startedOverLimit && jointAngleRad < jointMaxSoft && jointAngleRad > jointMinSoft) {
 		startedOverLimit = 0;
-	}
-
-	// Check that we're within specified units, else throw a flag.
-	if (actx->jointAngle > JOINT_MAX_SOFT || actx->jointAngle < JOINT_MIN_SOFT) {
-		isSafetyFlag = SAFETY_ANGLE;
-		isAngleLimit = 1;
-	} else {
-		isAngleLimit = 0;
 	}
 
 	// Save values for next time through.
@@ -313,61 +302,116 @@ static void updateJointTorqueRate(struct act_s *actx){
 }
 
 /*
+ * Anti-windup clamp for integral term.
+ * Check if output is saturating, and if error in the same direction
+ * Clamp the integral term if that's the case.
+ */
+bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output) {
+	//Anti-windup clamp for Integral Term of PID
+	int8_t inSatLimit = 0;
+	if (tau_C_total == tau_C_output){
+		inSatLimit = 0;
+	} else {
+		inSatLimit = 1;
+	}
+
+	int8_t errSign = 0;
+	if (tau_err > 0 && tau_C_total > 0) {
+		errSign = 1;
+	} else if (tau_err < 0 && tau_C_total < 0) {
+		errSign = -1;
+	} else {
+		errSign = 0;
+	}
+
+	if (inSatLimit && errSign) {
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+/*
+ * Check for angle limits and apply virtual unidirectional spring/dampers
+ * input:		actuator structure
+ * output:		virtual impedance torque value
+ */
+//TODO: check that damping ratio is in the correct direction.
+float actuateAngleLimits(Act_s *actx){
+	float tau_K = 0; float tau_B = 0;
+
+	// apply unidirectional spring
+	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
+		tau_K = JOINT_SOFT_K * (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+
+		// apply unidirectional damper
+		if ( actx->jointVelDegrees < 0) {
+			tau_B = JOINT_SOFT_B * actx->jointVelDegrees;
+		}
+
+	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
+		tau_K = JOINT_SOFT_K * (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
+
+		// apply unidirectional damper
+		if ( actx->jointVelDegrees > 0) {
+			tau_B = JOINT_SOFT_B * actx->jointVelDegrees;
+		}
+	}
+
+	return tau_K + tau_B;
+}
+
+/*
  * Calculate required motor torque, based on joint torque
  * input:	*actx,  actuator structure reference
  * 			tor_d, 	desired torque at joint [Nm]
- * return:	set motor torque
- * 			Motor Torque request, or maybe current
+ * action:			send current command to motor;
+ *
  */
 void setMotorTorque(struct act_s *actx, float tau_des)
 {
-	float N = 1;					// moment arm [m]
-	float tau_meas = 0, tau_ff=0;  	//joint torque reflected to motor.
-	float tau_err = 0;
-	static float tau_err_last = 0, tau_err_int = 0;
-	float tau_PID = 0, tau_err_dot = 0, tau_motor_comp = 0;		// motor torque signal
-	int32_t dtheta_m = 0, ddtheta_m = 0;		//motor vel, accel
-	int32_t I = 0;								// motor current signal
-
-	N = actx->linkageMomentArm * nScrew;
-	dtheta_m = actx->motorVel;
-	ddtheta_m = actx->motorAcc;
-
+	// Saturate desired torque
 	if (tau_des > ABS_TORQUE_LIMIT_INIT) {
-		tau_des = ABS_TORQUE_LIMIT_INIT;
+			tau_des = ABS_TORQUE_LIMIT_INIT;
 	} else if (tau_des < -ABS_TORQUE_LIMIT_INIT) {
 		tau_des = -ABS_TORQUE_LIMIT_INIT;
 	}
+	actx->tauDes = tau_des;
 
-	actx->tauDes = tau_des;				// save in case need to modify in safetyFailure()
-
-	// todo: better fidelity may be had if we modeled N_ETA as a function of torque, long term goal, if necessary
-	tau_meas =  actx->jointTorque / N;	// measured torque reflected to motor [Nm]
-	tau_des = tau_des / N;				// scale output torque back to the motor [Nm].
-	tau_ff = tau_des / (N_ETA) ;		// Feed forward term for desired joint torque, reflected to motor [Nm]
-
-	tau_motor_comp = (motJ + MOT_TRANS)*ddtheta_m + motB*dtheta_m;	// compensation for motor parameters. not stable right now.
+	static float tau_err_last = 0, tau_err_int = 0;
+	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	// Error is done at the motor. todo: could be done at the joint, messes with our gains.
-	tau_err = tau_des - tau_meas;
-	tau_err_dot = (tau_err - tau_err_last);
-	tau_err_int = tau_err_int + tau_err;
+	float tau_err = actx->tauDes - actx->tauMeas;		// [Nm]
+	float tau_err_dot = (tau_err - tau_err_last)*SECONDS;		// [Nm/s]
+	tau_err_int = tau_err_int + tau_err;				// [Nm]
 	tau_err_last = tau_err;
 
 	//PID around motor torque
-	tau_PID = tau_err*torqueKp + tau_err_dot*torqueKd + tau_err_int*torqueKi;
+	float tau_C = tau_err*torqueKp + tau_err_dot*torqueKd + tau_err_int*torqueKi;	// torq Compensator
 
-	if (!isAngleLimit) {
-		I = 1/MOT_KT * (tau_ff + tau_PID + tau_motor_comp) * currentScalar;
+	// Feedforward term
+	float tau_ff = 0; 	// Not in use at the moment todo: figure out how to do this properly
 
-	//joint velocity must not be 0 (could be symptom of joint position signal outage)
-	} else if (actx->jointVel != 0 && !startedOverLimit) {
-		I = 1/MOT_KT * (tau_ff + tau_PID + tau_motor_comp + calcRestoringCurrent(actx, N)) * currentScalar;
-	//if we started beyond soft limits after finding poles, or joint position is out
-	} else {
-		I = 0;
+	float tau_C_combined = tau_C + tau_ff;
+
+	//Saturation limit on Torque
+	float tau_C_output = tau_C_combined;
+	if (tau_C_combined > ABS_TORQUE_LIMIT_INIT) {
+		tau_C_output = ABS_TORQUE_LIMIT_INIT;
+	} else if (tau_C_combined < -ABS_TORQUE_LIMIT_INIT) {
+		tau_C_output = -ABS_TORQUE_LIMIT_INIT;
 	}
 
+	// Clamp and turn off integral term if it's causing a torque saturation
+	if ( integralAntiWindup(tau_err, tau_C_combined, tau_C_output) ){
+		tau_err_int = 0;
+	}
+
+	//Angle Limit bumpers
+	tau_C_output = tau_C_output + actuateAngleLimits(actx);
+
+	int32_t I = (int32_t) ( 1/(MOT_KT * N * N_ETA) * tau_C_output * CURRENT_SCALAR);								// motor current signal
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
@@ -378,12 +422,12 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 		I = -actx->currentOpLimit;
 	}
 
-	actx->desiredCurrent = (int32_t) I; 	// demanded mA
-	setMotorCurrent(actx->desiredCurrent, 0);	// send current command to comm buffer to Execute
+	actx->desiredCurrent = I; 	// demanded mA
+	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
-	//variables used in cmd-rigid offset 5
-	rigid1.mn.userVar[5] = tau_meas*1000;
-	rigid1.mn.userVar[6] = tau_des*1000;
+	//variables used in cmd-rigid offset 5, for multipacket
+	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
+	rigid1.mn.userVar[6] = actx->tauDes*1000;
 
 }
 
@@ -393,26 +437,19 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 /*
  * Simple Biom controller
  * input:	theta_set, desired theta (degrees)
- * 			k1,k2,b, impedance parameters
- * return: 	tor_d, desired torque
+ * 			k1,b, impedance parameters
+ * return: 	desired torque
  */
-float biomCalcImpedance(float k1, float b, float theta_set)
+float biomCalcImpedance(Act_s *actx, float k1, float b, float theta_set)
 {
-	float theta = 0, theta_d = 0;
-	float tor_d = 0;
-
-	theta = act1.jointAngleDegrees;
-	theta_d = act1.jointVelDegrees;
-	tor_d = k1 * (theta_set - theta ) - b*theta_d;
-
-	return tor_d;
+	return k1 * (theta_set - actx->jointAngleDegrees ) - b*actx->jointVelDegrees;
 
 }
 
 void mit_init_current_controller(void) {
 	act1.currentOpLimit = CURRENT_ENTRY_INIT;
 	setControlMode(CTRL_CURRENT, DEVICE_CHANNEL);
-	writeEx[0].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
+	writeEx[DEVICE_CHANNEL].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
 	setControlGains(currentKp, currentKi, currentKd, 0, DEVICE_CHANNEL);
 
 }
@@ -503,109 +540,35 @@ static float windowSmoothAxial(float val) {
  */
 void setMotorTorqueOpenLoop(struct act_s *actx, float tau_des)
 {
-	static float N = 1;					// total gear ratio
-	static float tau_meas = 0;	//joint torque reflected to motor.
-	static int32_t I = 0;								// motor current signal
+	// Saturate desired torque
+		if (tau_des > ABS_TORQUE_LIMIT_INIT) {
+				tau_des = ABS_TORQUE_LIMIT_INIT;
+		} else if (tau_des < -ABS_TORQUE_LIMIT_INIT) {
+			tau_des = -ABS_TORQUE_LIMIT_INIT;
+		}
+		actx->tauDes = tau_des;
 
-	// Step 1: Convert desired joint torque to desired motor Torque
+		float N = actx->linkageMomentArm * N_SCREW;	// Drivetrain Reduction Ratio
 
-	if (tau_des > ABS_TORQUE_LIMIT_INIT) {
-		tau_des = ABS_TORQUE_LIMIT_INIT;
-	} else if (tau_des < -ABS_TORQUE_LIMIT_INIT) {
-		tau_des = -ABS_TORQUE_LIMIT_INIT;
-	}
+		//Angle Limit bumpers
+		float tau_C_output = actx->tauDes + actuateAngleLimits(actx);
 
-	actx->tauDes = tau_des;				// save in case need to modify in safetyFailure()
+		// motor current signal
+		int32_t I = (int32_t) ( 1/(MOT_KT * N * N_ETA) * tau_C_output * CURRENT_SCALAR);
 
-	// Step 1: evaluate overall gear ratio
-	N = actx->linkageMomentArm * N_SCREW;
+		//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+		if (I > actx->currentOpLimit)
+		{
+			I = actx->currentOpLimit;
+		} else if (I < -actx->currentOpLimit)
+		{
+			I = -actx->currentOpLimit;
+		}
 
-	tau_des = tau_des / (N);				// scale output torque back to the motor [Nm].
-
-	//If we're within joint limits, scale torque to current.
-	if (!isAngleLimit) {
-		I = 1/MOT_KT * (tau_des) * CURRENT_SCALAR_INIT;
-	} else {
-		I = 0;
-	}
-
-	// Motor stiction compensation
-	if (I > 0){
-		I = I + MOT_STIC_POS;
-	} else if (I < 0){
-		I = I - MOT_STIC_NEG;
-	}
-
-	//Saturate I for our current operational limits
-	if (I > CURRENT_LIMIT_INIT)
-	{
-		I = CURRENT_LIMIT_INIT;
-	} else if (I < -CURRENT_LIMIT_INIT)
-	{
-		I = -CURRENT_LIMIT_INIT;
-	}
-
-	actx->desiredCurrent = (int32_t) I; 	// demanded mA
-	setMotorCurrent(actx->desiredCurrent, 0);	// send current command to comm buffer to Execute
-
+		actx->desiredCurrent = I; 	// demanded mA
+		setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 }
 
-
-/*
- * Set Motor torques open loop, using Voltage control  Used for System characterization.
- */
-void setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des)
-{
-	static float N = 1;					// total gear ratio
-	static float tau_meas = 0;	//joint torque reflected to motor.
-	static int32_t I = 0;								// motor current signal
-	static int32_t V = 0;
-
-	// Step 1: Convert desired joint torque to desired motor Torque
-
-	if (tau_des > ABS_TORQUE_LIMIT_INIT) {
-		tau_des = ABS_TORQUE_LIMIT_INIT;
-	} else if (tau_des < -ABS_TORQUE_LIMIT_INIT) {
-		tau_des = -ABS_TORQUE_LIMIT_INIT;
-	}
-
-	actx->tauDes = tau_des;				// save in case need to modify in safetyFailure()
-
-	// Step 1: evaluate overall gear ratio
-	N = actx->linkageMomentArm * N_SCREW;
-
-	tau_des = tau_des / (N);				// scale output torque back to the motor [Nm].
-
-	//If we're within joint limits, scale torque to current.
-	if (!isAngleLimit) {
-		I = 1/MOT_KT * (tau_des) * CURRENT_SCALAR_INIT;
-	} else {
-		I = 0;
-	}
-
-//	// Motor stiction compensation
-//	if (I > 0){
-//		I = I + MOT_STIC_POS;
-//	} else if (I < 0){
-//		I = I - MOT_STIC_NEG;
-//	}
-
-	//Saturate I for our current operational limits
-	if (I > CURRENT_LIMIT_INIT)
-	{
-		I = CURRENT_LIMIT_INIT;
-	} else if (I < -CURRENT_LIMIT_INIT)
-	{
-		I = -CURRENT_LIMIT_INIT;
-	}
-
-	V =(int32_t) ( I*MOT_R + (MOT_KT * actx->motorVel) * CURRENT_SCALAR_INIT) ;
-
-	actx->desiredCurrent = (int32_t) I; 	// demanded mA
-//	setMotorCurrent(actx->desiredCurrent, 0);	// send current command to comm buffer to Execute
-	setMotorVoltage(V, 0);
-
-}
 
 /*
  * Compute where we are in frequency sweep

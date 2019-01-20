@@ -37,6 +37,7 @@ void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status);
 void clearLEDStatus(void);
 void overrideLED(uint8_t r, uint8_t g, uint8_t b);
 
+
 //enums
 enum MOTOR_MODES{
 	MODE_DISABLED = 0,
@@ -94,7 +95,6 @@ enum ERROR_TYPES{
 #define MOTOR_CURRENT_DISCONNECT_THRESHOLD		2000
 
 #define SAFE_MODE_MOTOR_POSITION_SETPOINT_RAD JOINT_ZERO
-
 
 
 //shared LED codes used in main_fsm

@@ -164,7 +164,6 @@ void MIT_DLeg_fsm_1(void)
 			/*reserve for additional initialization*/
 
 			mit_init_current_controller();		//initialize Current Controller with gains
-//					setControlMode(CTRL_OPEN, 0);		//open control for alternative testing
 
 			//Set usewrites to initial values
 			walkParams.initializedStateMachineVariables = 0;
@@ -180,9 +179,6 @@ void MIT_DLeg_fsm_1(void)
 			fsm_time = 0;
 			onEntry = 1;
 
-			//limit max current applicable to any controls
-
-
 			break;
 
 		case STATE_MAIN:
@@ -193,71 +189,11 @@ void MIT_DLeg_fsm_1(void)
 					onEntry = 0;
 				}
 
+				// Inside here is where user code goes
 				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 					run_main_user_application(&act1);
+
 				}
-
-
-
-				//begin safety check
-//			    if (handleSafetyConditions()) {
-//			    	/*motor behavior changes based on failure mode.
-//			    	  Bypasses the switch statement if return true
-//			    	  but sensors check still runs and has a chance
-//			    	  to allow code to move past this block.
-//			    	  Only update the walking FSM, but don't output torque.
-//			    	*/
-//			    	stateMachine.current_state = STATE_EARLY_STANCE;
-//
-//			    } else {
-//			    	mainFSMLoopTimer = readTimer6();
-//
-//			    	deltaTimer = mainFSMLoopTimer - mainFSMLoopTimerPrev;
-//			    	mainFSMLoopTimerPrev = mainFSMLoopTimer;
-//
-//			        updateUserWrites(&act1, &walkParams);
-//
-////			    	runFlatGroundFSM(&act1);
-//
-//
-//
-//
-//
-////			    	act1.tauDes = biomCalcImpedance(user_data_1.w[0]/100., user_data_1.w[1]/100., user_data_1.w[2]/100.);
-////			    	act1.tauDes = biomCalcImpedance(.5, .1, 0);
-//			    	freq_rad = ANG_UNIT * freq_input;
-//
-//			    	act1.tauDes = torq_input * frequencySweep(freq_rad,  ( ( (float) fsm_time ) / SECONDS )  );
-//
-//
-//			    	// Check that torques are within specified safety range.
-//			    	if (act1.tauDes > act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
-//			    		act1.tauDes = act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT;
-//			    	} else if (act1.tauDes < -act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT ) {
-//			    		act1.tauDes = - act1.safetyTorqueScalar * ABS_TORQUE_LIMIT_INIT;
-//			    	}
-//
-////			    	setMotorTorqueOpenLoop(&act1, act1.tauDes);
-//			    	setMotorTorqueOpenLoopVolts(&act1, act1.tauDes);
-
-//			    	setMotorTorque(&act1, act1.tauDes);
-
-			    	/* Output variables live here. Use this as the main reference
-			    	 * NOTE: the communication Offsets are defined in /Rigid/src/cmd-rigid.c
-			    	 */
-//			        rigid1.mn.genVar[0] = (int16_t) (act1.linkageMomentArm *1000.0); //startedOverLimit;
-//					rigid1.mn.genVar[1] = (int16_t) (act1.jointAngleDegrees*100.0); //deg
-//					rigid1.mn.genVar[2] = (int16_t)  walkParams.transition_id;
-// 					rigid1.mn.genVar[3] = (int16_t) (act1.jointVel * 100.0); 	// rad/s
-//					rigid1.mn.genVar[4] = (int16_t) (act1.jointTorqueRate*100.0);
-//					rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque*100.0); //Nm
-//					rigid1.mn.genVar[6] = (int16_t) rigid1.ex.mot_current; // LG
-//					rigid1.mn.genVar[7] = (int16_t) rigid1.ex.mot_volt;// ( ( fsm_time ) % SECONDS ) ; //rigid1.ex.mot_volt; // TA
-//					rigid1.mn.genVar[8] = (int16_t) (act1.safetyFlag) ; //stateMachine.current_state;
-//					rigid1.mn.genVar[9] = (int16_t) act1.tauDes*100;
-
-
-			    //}
 
 				break;
 			}
@@ -369,12 +305,6 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
 	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
 }
-
-
-
-
-
-
 
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
