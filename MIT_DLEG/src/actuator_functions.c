@@ -329,7 +329,10 @@ static void updateJointTorqueRate(struct act_s *actx){
  * Anti-windup clamp for integral term.
  * Check if output is saturating, and if error in the same direction
  * Clamp the integral term if that's the case.
- *
+ *  Param:  tauErr(float) -
+ *  Param:  tauCTotal(float) -
+ *  Param:  tauCOutput(float) -
+ *  Return: saturation(bool) - whether the output is saturating or not
  */
 bool integralAntiWindup(float tauErr, float tauCTotal, float tauCOutput) {
 	//Anti-windup clamp for Integral Term of PID
@@ -358,32 +361,32 @@ bool integralAntiWindup(float tauErr, float tauCTotal, float tauCOutput) {
 
 /*
  * Check for angle limits and apply virtual unidirectional spring/dampers
- * input:		actuator structure
- * output:		virtual impedance torque value
+ *  Param:	actx(struct act_s) - Actuator structure to track sensor values
+ *  Return: tau(float) - virtual impedance torque value
  */
 //TODO: check that damping ratio is in the correct direction.
 float actuateAngleLimits(Act_s *actx){
-	float tau_K = 0; float tau_B = 0;
+	float tauK = 0; float tauB = 0;
 
 	// apply unidirectional spring
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
-		tau_K = JOINT_SOFT_K * (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+		tauK = JOINT_SOFT_K * (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
 
 		// apply unidirectional damper
 		if ( actx->jointVelDegrees < 0) {
-			tau_B = JOINT_SOFT_B * actx->jointVelDegrees;
+			tauB = JOINT_SOFT_B * actx->jointVelDegrees;
 		}
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
-		tau_K = JOINT_SOFT_K * (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
+		tauK = JOINT_SOFT_K * (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
 
 		// apply unidirectional damper
 		if ( actx->jointVelDegrees > 0) {
-			tau_B = JOINT_SOFT_B * actx->jointVelDegrees;
+			tauB = JOINT_SOFT_B * actx->jointVelDegrees;
 		}
 	}
 
-	return tau_K + tau_B;
+	return tauK + tauB;
 }
 
 /*
@@ -627,6 +630,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
  * Compute where we are in frequency sweep
  * Param: omega(float) - ____ in RADIANS PER SECOND
  * Param: t(float) - time in SECONDS
+ * Return: frequecy(float) - where in frequecy sweep the system currently is
  */
 float frequencySweep(float omega, float t){
 	return sinf(omega * ( t  ) );
