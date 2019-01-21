@@ -437,7 +437,7 @@ float biomCalcImpedance(float k1, float b, float thetaSet)
 /*
  *  TODO: find out what this function does and how it is used
  */
-void mit_init_current_controller(void) {
+void mitInitCurrentController(void) {
 
 	setControlMode(CTRL_CURRENT, 0);
 	writeEx[0].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
@@ -499,7 +499,7 @@ int8_t findPoles(void) {
 }
 
 /*
- *  TODO:find out what this functio does and how its used
+ *  TODO:find out what this function does and how its used
  *  Param:	val(int32_t) -
  *  Return: average(float) -
  */

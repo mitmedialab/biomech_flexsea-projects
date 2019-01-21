@@ -164,7 +164,7 @@ void MIT_DLeg_fsm_1(void)
 
 			/*reserve for additional initialization*/
 
-			mit_init_current_controller();		//initialize Current Controller with gains
+			mitInitCurrentController();		//initialize Current Controller with gains
 //					setControlMode(CTRL_OPEN, 0);		//open control for alternative testing
 
 			//Set usewrites to initial values
