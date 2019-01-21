@@ -1,7 +1,4 @@
 #include "hardware_filter.h"
-//#include "user-mn-MIT-DLeg.h"
-//#include "walking_state_machine.h"
-//#include "state_variables.h"
 
 
 #ifdef LPF1 // Passband 100Hz, Stopband 200Hz

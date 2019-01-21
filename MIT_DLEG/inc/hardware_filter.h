@@ -13,6 +13,9 @@
 #include "user-mn-ActPack.h"
 #include "flexsea_sys_def.h"
 #include "flexsea_system.h"
+#include "user-mn-MIT-DLeg.h"
+#include "walking_state_machine.h"
+#include "state_variables.h"
 
 //****************************************************************************
 // Definitions

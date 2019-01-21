@@ -21,26 +21,28 @@
 #include "flexsea_board.h"
 #include "misc.h"
 #include "user-mn-MIT-DLeg.h"
-#include "actuator_functions.h"
+
 #include "ui.h"
+
 
 //methods
 int8_t getMotorMode(void);
 int8_t* getSafetyConditions(void);
 int actuatorIsCorrect();
 void checkSafeties(Act_s *actx);
-int8_t handleSafetyConditions(void); //renamed from safetyFailure(void)
+void handleSafetyConditions(Act_s *actx); //renamed from safetyFailure(void)
 int16_t getSafetyFlags(void);
 
 void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status);
 void clearLEDStatus(void);
 void overrideLED(uint8_t r, uint8_t g, uint8_t b);
 
+
 //enums
 enum MOTOR_MODES{
 	MODE_DISABLED = 0,
 	MODE_PASSIVE = 1,
-	MODE_THROTTLED = 2,
+	MODE_OVERTEMP = 2,
 	MODE_ENABLED = 3,
 };
 
@@ -88,9 +90,11 @@ enum ERROR_TYPES{
 
 #define MOTOR_ANGLE_DIFF_VALUE				 0
 #define MOTOR_ANGLE_COUNT_THRESHOLD		 	 100
-#define MOTOR_ENCODER_DISCONNECT_AXIAL_FORCE_THRESHOLD_N 175
+#define MOTOR_ENCODER_DISCONNECT_AXIAL_FORCE_THRESHOLD_N 10
 #define MOTOR_ENCODER_DISCONNECT_BOUND 250000
+#define MOTOR_CURRENT_DISCONNECT_THRESHOLD		2000
 
+#define SAFE_MODE_MOTOR_POSITION_SETPOINT_RAD JOINT_ZERO
 
 
 //shared LED codes used in main_fsm
