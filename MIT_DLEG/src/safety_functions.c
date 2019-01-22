@@ -260,7 +260,7 @@ static void actuatePassiveMode(Act_s *actx){
  * This should then reset current as necessary
  * Param: actx(Act_s) - Actuator structure to track sensor values
  */
-static void throttle_current(Act_s *actx) {
+static void throttleCurrent(Act_s *actx) {
 	actx->currentOpLimit = actx->currentOpLimit - 2;
 	if (actx->currentOpLimit < CURRENT_LIMIT_MIN) {
 		actx->currentOpLimit = CURRENT_LIMIT_MIN;
@@ -283,7 +283,7 @@ static void rampCurrent(Act_s *actx) {
 /*
  * Disable the motor because of some safety flag
  */
-static void disable_motor(void) {
+static void disableMotor(void) {
 	//CTRL_NONE gives desired damping behavior
 	setControlMode(CTRL_NONE, DEVICE_CHANNEL);
 }
@@ -460,7 +460,7 @@ void handleSafetyConditions(Act_s *actx) {
 
 	switch (motorMode){
 		case MODE_DISABLED:
-			disable_motor();
+			disableMotor();
 			break;
 		case MODE_PASSIVE:
 			actuatePassiveMode(actx); //position control to neutral angle
@@ -468,7 +468,7 @@ void handleSafetyConditions(Act_s *actx) {
 		case MODE_OVERTEMP:
 			if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
 				errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL) {
-				throttle_current(actx);
+				throttleCurrent(actx);
 			} else {
 				rampCurrent(actx);
 			}

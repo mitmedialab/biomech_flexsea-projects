@@ -32,9 +32,9 @@
 extern uint16_t lpf_index;
 
 //float32_t lpf_out;
-void  init_LPF(void);
-void  update_LPF(float val);
-float filter_LPF(float val);
+void  initLPF(void);
+void  updateLPF(float val);
+float filterLPF(float val);
 
 
 

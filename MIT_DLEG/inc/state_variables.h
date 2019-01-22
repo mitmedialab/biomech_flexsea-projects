@@ -39,9 +39,9 @@ enum {
 };
 
 typedef struct{
-    int8_t current_state;
-    uint16_t on_entry_sm_state;
-    uint16_t last_sm_state;
+    int8_t currentState;
+    uint16_t onEntrySmState;
+    uint16_t lastSmState;
 
 } WalkingStateMachine;
 
@@ -124,13 +124,13 @@ typedef struct walkParams {
     //LSP values
     float lspEngagementTorque;
     float samplesInLSP;
-	float pff_gain;
-	float pff_exponent;
-	float lsp_entry_tq;
-	float pff_lumped_gain;
-	float virtual_hardstop_tq;
-	float pff_ramp_tics;
-	int16_t transition_id;
+	float pffGain;
+	float pffExponent;
+	float lspEntryTq;
+	float pffLumpedGain;
+	float virtualHardstopTq;
+	float pffRampTics;
+	int16_t transitionId;
 	float lstPGDelTics;
 
 	//biom early stance value
@@ -139,31 +139,31 @@ typedef struct walkParams {
 } WalkParams;
 
 typedef struct cubicSpline{
-	float xi_1; // x initial
-	float x_int_1; // x intermediate
-	float xf_1; // x final
-	float yi_1; // y initial
-	float y_int_1; // y intermediate
-	float yf_1; // y final
+	float xi1; // x initial
+	float xInt1; // x intermediate
+	float xf1; // x final
+	float yi1; // y initial
+	float yInt1; // y intermediate
+	float yf1; // y final
 	float X; // interpolation x coordinate
 	float Y; // interpolation Y coordinate
-	float theta_set_fsm;
-	float res_factor; // resolution factor
-	uint32_t time_state;
-	float a1_1; // coefficients for the polynomial
-	float a2_1;
-	float b1_1;
-	float b2_1;
-	float xi_2; // x initial
-	float x_int_2; // x intermediate
-	float xf_2; // x final
-	float yi_2; // y initial
-	float y_int_2; // y intermediate
-	float yf_2; // y final
-	float a1_2; // coefficients for cubic functions
-	float a2_2;
-	float b1_2;
-	float b2_2;
+	float thetaSetFsm;
+	float resFactor; // resolution factor
+	uint32_t timeState;
+	float a11; // coefficients for the polynomial
+	float a21;
+	float b11;
+	float b21;
+	float xi2; // x initial
+	float xInt2; // x intermediate
+	float xf2; // x final
+	float yi2; // y initial
+	float yInt2; // y intermediate
+	float yf2; // y final
+	float a12; // coefficients for cubic functions
+	float a22;
+	float b12;
+	float b22;
 } CubicSpline;
 
 //****************************************************************************

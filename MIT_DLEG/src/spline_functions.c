@@ -20,24 +20,23 @@
  *  Param: actx(Act_s) -
  *  Param: gainParams(GainParams) -
  *  Param: gainParams(float) -
- *  Return: res_factor
  */
-void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams, float res_factor){
-	cSpline->time_state = 0;
-	cSpline->res_factor = res_factor; // delta X (time)
-	cSpline->theta_set_fsm = gainParams.thetaDes; // Initial joint angle - theta_set_fsm = delta Y (joint angle)
-	cSpline->xi_1 = 0.0; // Initial X (time) coordinate
-	cSpline->x_int_1 = (cSpline->res_factor/2.0)*.4;
-	cSpline->xf_1 = cSpline->res_factor/2.0;
-	cSpline->yi_1 = actx->jointAngleDegrees; // Initial Y (joint angle) coordinate
-	cSpline->yf_1 = cSpline->yi_1 + ((cSpline->theta_set_fsm - cSpline->yi_1)/2.0);
-	cSpline->y_int_1 = cSpline->yi_1 - ((cSpline->yi_1 - cSpline->yf_1) * .15);
-	cSpline->xi_2 = cSpline->res_factor/2.0;
-	cSpline->x_int_2 = (cSpline->res_factor-(cSpline->res_factor/2.0))*.6+(cSpline->res_factor/2.0);
-	cSpline->xf_2 = cSpline->res_factor; // Final X (time) coordinate
-	cSpline->yi_2 = cSpline->yi_1 + ((cSpline->theta_set_fsm - cSpline->yi_1)/2.0);
-	cSpline->yf_2 = cSpline->theta_set_fsm; // Final Y (joint angle) coordinate
-	cSpline->y_int_2 = cSpline->yf_2 + ((cSpline->yi_2 - cSpline->yf_2) * .15);
+void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams, float resFactor){
+	cSpline->timeState = 0;
+	cSpline->resFactor = resFactor; // delta X (time)
+	cSpline->thetaSetFsm = gainParams.thetaDes; // Initial joint angle - thetaSetFsm = delta Y (joint angle)
+	cSpline->xi1 = 0.0; // Initial X (time) coordinate
+	cSpline->xInt1 = (cSpline->resFactor/2.0)*.4;
+	cSpline->xf1 = cSpline->resFactor/2.0;
+	cSpline->yi1 = actx->jointAngleDegrees; // Initial Y (joint angle) coordinate
+	cSpline->yf1 = cSpline->yi1 + ((cSpline->thetaSetFsm - cSpline->yi1)/2.0);
+	cSpline->yInt1 = cSpline->yi1 - ((cSpline->yi1 - cSpline->yf1) * .15);
+	cSpline->xi2 = cSpline->resFactor/2.0;
+	cSpline->xInt2 = (cSpline->resFactor-(cSpline->resFactor/2.0))*.6+(cSpline->resFactor/2.0);
+	cSpline->xf2 = cSpline->resFactor; // Final X (time) coordinate
+	cSpline->yi2 = cSpline->yi1 + ((cSpline->thetaSetFsm - cSpline->yi1)/2.0);
+	cSpline->yf2 = cSpline->thetaSetFsm; // Final Y (joint angle) coordinate
+	cSpline->yInt2 = cSpline->yf2 + ((cSpline->yi2 - cSpline->yf2) * .15);
 	solveTridiagonalMatrix(cSpline);
 }
 
@@ -54,12 +53,12 @@ void solveTridiagonalMatrix(CubicSpline *cSpline){
 	float factor;
 	float k[3];
 	float a1, a2, b1, b2;
-	x[0] = cSpline->xi_1;
-	x[1] = cSpline->x_int_1;
-	x[2] = cSpline->xf_1;
-	y[0] = cSpline->yi_1;
-	y[1] = cSpline->y_int_1;
-	y[2] = cSpline->yf_1;
+	x[0] = cSpline->xi1;
+	x[1] = cSpline->xInt1;
+	x[2] = cSpline->xf1;
+	y[0] = cSpline->yi1;
+	y[1] = cSpline->yInt1;
+	y[2] = cSpline->yf1;
 
 	B[0] = 2.0 / (x[1] - x[0]);
 	B[1] = 2.0 * ((1/(x[1]-x[0])) + (1/(x[2]-x[1])));
@@ -96,17 +95,17 @@ void solveTridiagonalMatrix(CubicSpline *cSpline){
 	a2 = k[1]*(x[2]-x[1]) - (y[2]-y[1]);
 	b1 = -1.0*k[1]*(x[1]-x[0]) + (y[1]-y[0]);
 	b2 = -1.0*k[2]*(x[2]-x[1]) + (y[2]-y[1]);
-	cSpline->a1_1 = a1;
-	cSpline->a2_1 = a2;
-	cSpline->b1_1 = b1;
-	cSpline->b2_1 = b2;
+	cSpline->a11 = a1;
+	cSpline->a21 = a2;
+	cSpline->b11 = b1;
+	cSpline->b21 = b2;
 	// -----S curve complementary trajectory-----
-	x[0] = cSpline->xi_2;
-	x[1] = cSpline->x_int_2;
-	x[2] = cSpline->xf_2;
-	y[0] = cSpline->yi_2;
-	y[1] = cSpline->y_int_2;
-	y[2] = cSpline->yf_2;
+	x[0] = cSpline->xi2;
+	x[1] = cSpline->xInt2;
+	x[2] = cSpline->xf2;
+	y[0] = cSpline->yi2;
+	y[1] = cSpline->yInt2;
+	y[2] = cSpline->yf2;
 
 	B[0] = 2.0 / (x[1] - x[0]);
 	B[1] = 2.0 * ((1/(x[1]-x[0])) + (1/(x[2]-x[1])));
@@ -143,10 +142,10 @@ void solveTridiagonalMatrix(CubicSpline *cSpline){
 	a2 = k[1]*(x[2]-x[1]) - (y[2]-y[1]);
 	b1 = -1.0*k[1]*(x[1]-x[0]) + (y[1]-y[0]);
 	b2 = -1.0*k[2]*(x[2]-x[1]) + (y[2]-y[1]);
-	cSpline->a1_2 = a1;
-	cSpline->a2_2 = a2;
-	cSpline->b1_2 = b1;
-	cSpline->b2_2 = b2;
+	cSpline->a12 = a1;
+	cSpline->a22 = a2;
+	cSpline->b12 = b1;
+	cSpline->b22 = b2;
 }
 
 /*
@@ -161,46 +160,46 @@ void calcCubicSpline(CubicSpline *cSpline){
 	float x2[3];
 	float y[3];
 	float y2[3];
-	x[0] = cSpline->xi_1;
-	x[1] = cSpline->x_int_1;
-	x[2] = cSpline->xf_1;
-	y[0] = cSpline->yi_1;
-	y[1] = cSpline->y_int_1;
-	y[2] = cSpline->yf_1;
-	x2[0] = cSpline->xi_2;
-	x2[1] = cSpline->x_int_2;
-	x2[2] = cSpline->xf_2;
-	y2[0] = cSpline->yi_2;
-	y2[1] = cSpline->y_int_2;
-	y2[2] = cSpline->yf_2;
+	x[0] = cSpline->xi1;
+	x[1] = cSpline->xInt1;
+	x[2] = cSpline->xf1;
+	y[0] = cSpline->yi1;
+	y[1] = cSpline->yInt1;
+	y[2] = cSpline->yf1;
+	x2[0] = cSpline->xi2;
+	x2[1] = cSpline->xInt2;
+	x2[2] = cSpline->xf2;
+	y2[0] = cSpline->yi2;
+	y2[1] = cSpline->yInt2;
+	y2[2] = cSpline->yf2;
 
-	if (cSpline->time_state <= (cSpline->res_factor/2.0)){
-		t = ((float)cSpline->time_state - x[0]) / (x[1]-x[0]);
-		q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a1_1*(1-t)+(cSpline->b1_1*t)));
-		t = ((float)cSpline->time_state - x[1]) / (x[2]-x[1]);
-		q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a2_1*(1-t)+(cSpline->b2_1*t)));
-		if(cSpline->time_state <= ((cSpline->res_factor/2.0)*.4))
+	if (cSpline->timeState <= (cSpline->resFactor/2.0)){
+		t = ((float)cSpline->timeState - x[0]) / (x[1]-x[0]);
+		q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a11*(1-t)+(cSpline->b11*t)));
+		t = ((float)cSpline->timeState - x[1]) / (x[2]-x[1]);
+		q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a21*(1-t)+(cSpline->b21*t)));
+		if(cSpline->timeState <= ((cSpline->resFactor/2.0)*.4))
 			cSpline->Y = q[0];
 			else cSpline->Y = q[1];
 		}
 	else{
-		t = ((float)cSpline->time_state - x2[0]) / (x2[1]-x2[0]);
-		q2[0] = (1-t)*y2[0] + t*y2[1] + (t*(1-t)*(cSpline->a1_2*(1-t)+(cSpline->b1_2*t)));
-		t = ((float)cSpline->time_state - x2[1]) / (x2[2]-x2[1]);
-		q2[1] = (1-t)*y2[1] + t*y2[2] + (t*(1-t)*(cSpline->a2_2*(1-t)+(cSpline->b2_2*t)));
-		if(cSpline->time_state <= ((cSpline->res_factor-(cSpline->res_factor/2.0))*.6+(cSpline->res_factor/2.0)))
+		t = ((float)cSpline->timeState - x2[0]) / (x2[1]-x2[0]);
+		q2[0] = (1-t)*y2[0] + t*y2[1] + (t*(1-t)*(cSpline->a12*(1-t)+(cSpline->b12*t)));
+		t = ((float)cSpline->timeState - x2[1]) / (x2[2]-x2[1]);
+		q2[1] = (1-t)*y2[1] + t*y2[2] + (t*(1-t)*(cSpline->a22*(1-t)+(cSpline->b22*t)));
+		if(cSpline->timeState <= ((cSpline->resFactor-(cSpline->resFactor/2.0))*.6+(cSpline->resFactor/2.0)))
 			cSpline->Y = q2[0];
 		else cSpline->Y = q2[1];
 	}
 
-	if((cSpline->yi_1 - cSpline->theta_set_fsm) > 0){
-		if(cSpline->Y < cSpline->theta_set_fsm)
-			cSpline->Y = cSpline->theta_set_fsm;
+	if((cSpline->yi1 - cSpline->thetaSetFsm) > 0){
+		if(cSpline->Y < cSpline->thetaSetFsm)
+			cSpline->Y = cSpline->thetaSetFsm;
 	}
 	else{
-		if(cSpline->Y > cSpline->theta_set_fsm)
-			cSpline->Y = cSpline->theta_set_fsm;
+		if(cSpline->Y > cSpline->thetaSetFsm)
+			cSpline->Y = cSpline->thetaSetFsm;
 	}
 
-	cSpline->time_state++;
+	cSpline->timeState++;
 }

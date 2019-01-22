@@ -34,7 +34,11 @@
 // Include(s)
 //****************************************************************************
 #include "main.h"
+#include "i2c.h"
+#include <i2c.h>
 #include "flexsea_global_structs.h"
+#include "flexsea_user_structs.h"
+#include "flexsea.h"
 #include <stdlib.h>
 #include "stm32f4xx.h"
 #include "stm32f4xx_hal.h"

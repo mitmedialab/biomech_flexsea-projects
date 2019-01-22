@@ -113,7 +113,7 @@ float lpfResult;
 /*
  *  Initializes the lpf
  */
-void init_LPF(void)
+void initLPF(void)
 {
 	arm_fir_init_f32(&SLpf, N, (float32_t *) &firFilterHw[0], (float32_t *) &lpfBuffer[0], 1);
 	lpfIndex = 0;
@@ -133,7 +133,7 @@ void init_LPF(void)
  *
  *  Return: null
  */
-void update_LPF(float val)
+void updateLPF(float val)
 {
 	lpfIndex++;
 	if(lpfIndex>=N)
@@ -150,7 +150,7 @@ void update_LPF(float val)
  *  Param: val(float) - val(float) - value to push into the lpf input
  *  Return: lpfOutput(float) - the output of the lpf
  */
-float filter_LPF(float val)
+float filterLPF(float val)
 {
 	update_LPF(val);
     arm_fir_f32(&SLpf, (float32_t *)( &lpfInput[lpfIndex] ) , (float32_t*) &lpfOut, 1);
