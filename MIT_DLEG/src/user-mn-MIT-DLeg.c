@@ -193,7 +193,7 @@ void MIT_DLeg_fsm_1(void)
 
 				// Inside here is where user code goes
 				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
-					run_main_user_application(&act1);
+					runMainUserApplication(&act1);
 
 				}
 

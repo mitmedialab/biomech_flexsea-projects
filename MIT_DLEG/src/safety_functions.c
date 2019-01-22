@@ -5,23 +5,38 @@
  *      Author: matt
  */
 
+
+//****************************************************************************
+// Include(s)
+//****************************************************************************
 #include "safety_functions.h"
 
+//****************************************************************************
+// Definitions
+//****************************************************************************
 //bitshift macros TODO: test
 #define IS_FIELD_HIGH(i, map) ( (map) & (1 << ((i)%16)) )
 #define SET_MAP_HIGH(i, map) ( (map) |= (1 << ((i)%16)) )
 #define SET_MAP_LOW(i, map) ( (map) &= (~(1 << ((i)%16))) )
 
-//variables
+//****************************************************************************
+// Variable(s)
+//****************************************************************************
 static int8_t errorConditions[ERROR_ARRAY_SIZE]; //massage extern until it works
 static int16_t safetyFlags; //bitmap of all errors. Also serves as boolean for error existence
 static int8_t motorMode;
 static const int16_t stm32ID[] = STM32ID;
 
 
+//****************************************************************************
+// Method(s)
+//****************************************************************************
 
-//check connected/disconnect status
-//TODO: find ways of actually checking these
+/*
+ *  check connected/disconnect status
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *  TODO: find ways of actually checking these
+ */
 static void checkLoadcell(Act_s *actx) {
 	static uint16_t previousStrainValue = 0;
 	static int8_t tripped = 0;
@@ -40,6 +55,11 @@ static void checkLoadcell(Act_s *actx) {
 	delayTimer++;
 }
 
+/*
+ *  Description
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkJointEncoder(Act_s *actx) {
 	static uint16_t disconnectCounter = 0;
 	static int16_t previousJointValue = 0;
@@ -59,6 +79,11 @@ static void checkJointEncoder(Act_s *actx) {
 	previousJointValue = *rigid1.ex.joint_ang;
 }
 
+/*
+ *  Description
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkMotorEncoder(Act_s *actx) {
 	static uint16_t disconnectCounter = 0;
 	static int32_t previousMotorValue = 0;
@@ -80,19 +105,39 @@ static void checkMotorEncoder(Act_s *actx) {
 
 }
 
+/*
+ *  Description
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkMotorThermo(Act_s *actx) {
 	errorConditions[ERROR_MOTOR_THERMO] = SENSOR_NOMINAL;
 }
 
+/*
+ *  Description
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkPCBThermo(Act_s *actx) {
 	errorConditions[ERROR_PCB_THERMO] = SENSOR_NOMINAL;
 }
 
+/*
+ *  Description
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkEMG(Act_s *actx) {
 	errorConditions[ERROR_EMG] = SENSOR_NOMINAL;
 }
 
 //check values against limits
+/*
+ *  Checks to see if the vltage is within the bounds of the battery
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkBatteryBounds(Act_s *actx) {
 
 	if (rigid1.re.vb <= UVLO_NOTIFY && rigid1.re.vb >= UV_USB_BIOMECH) {
@@ -104,6 +149,11 @@ static void checkBatteryBounds(Act_s *actx) {
 	}
 }
 
+/*
+ *  Checks to see if the measured torque is within the bounds of the device
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkTorqueMeasuredBounds(Act_s *actx) {
 	//if sensors are invalid, torque value is invalid
 	if (errorConditions[ERROR_LDC] || errorConditions[ERROR_JOINT_ENCODER]) {
@@ -119,6 +169,11 @@ static void checkTorqueMeasuredBounds(Act_s *actx) {
 	}
 }
 
+/*
+ *  Checks to see if the measured current is within the bounds of the device
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkCurrentMeasuredBounds(Act_s *actx) {
 	if (abs(actx->motCurr) >= CURRENT_LIMIT_INIT) {
 		errorConditions[ERROR_CURRENT_MEASURED] = VALUE_ABOVE;
@@ -127,6 +182,11 @@ static void checkCurrentMeasuredBounds(Act_s *actx) {
 	}
 }
 
+/*
+ *  Checks to see if the measured temperature is within the bounds of the device
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkTemperatureBounds(Act_s *actx) {
 	if (actx->regTemp >= PCB_TEMP_LIMIT_INIT){
 		errorConditions[ERROR_PCB_THERMO] = VALUE_ABOVE;
@@ -135,7 +195,11 @@ static void checkTemperatureBounds(Act_s *actx) {
 	}
 }
 
-
+/*
+ *  Checks to see if the joint angle is within the bounds of the device
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkJointAngleBounds(Act_s *actx) {
 	if (errorConditions[ERROR_JOINT_ENCODER]) {
 		errorConditions[WARNING_JOINTANGLE_SOFT] = SENSOR_INVALID;
@@ -161,17 +225,23 @@ static void checkJointAngleBounds(Act_s *actx) {
 	}
 }
 
+/*
+ *  Definition
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 static void checkPersistentError(Act_s *actx) {
 	//time limit for errors
 }
-/*
- * PUBLIC FUNCTIONS
- */
+//****************************************************************************
+// Public Function(s)
+//****************************************************************************
 
 /*
  * Turn the motor controller into a position controller in case we lose force sensing
+ * Param: actx(Act_s) - Actuator structure to track sensor values
  */
-static void actuate_passive_mode(Act_s *actx){
+static void actuatePassiveMode(Act_s *actx){
 	static uint8_t onEntry = 1;
 
 	if (onEntry) {
@@ -188,6 +258,7 @@ static void actuate_passive_mode(Act_s *actx){
 /*
  * Reduce the current limit in order to reduce heating in the motor or drive electronics.
  * This should then reset current as necessary
+ * Param: actx(Act_s) - Actuator structure to track sensor values
  */
 static void throttle_current(Act_s *actx) {
 	actx->currentOpLimit = actx->currentOpLimit - 2;
@@ -199,8 +270,9 @@ static void throttle_current(Act_s *actx) {
 /*
  * Ramp the current limit if below temp threshold.
  * This should then reset current as necessary
+ * Param: actx(Act_s) - Actuator structure to track sensor values
  */
-static void ramp_current(Act_s *actx) {
+static void rampCurrent(Act_s *actx) {
 	actx->currentOpLimit += 2;
 	if (actx->currentOpLimit > CURRENT_LIMIT_INIT) {
 		actx->currentOpLimit = CURRENT_LIMIT_INIT;
@@ -216,19 +288,36 @@ static void disable_motor(void) {
 	setControlMode(CTRL_NONE, DEVICE_CHANNEL);
 }
 
-
-void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status) {
-	l1 |= l1_status;
-	l2 |= l2_status;
-	l3 |= l3_status;
+/*
+ *  Sets LEDS 1,2, and 3 to new values
+ *  Param: l1Status(unint8_t) - desired integer value representing the status of LED1
+ *  Param: l2Status(unint8_t) - desired integer value representing the status of LED2
+ *  Param: l3Status(unint8_t) - desired integer value representing the status of LED3
+ *
+ */
+void setLEDStatus(uint8_t l1Status, uint8_t l2Status, uint8_t l3Status) {
+	l1 |= l1Status;
+	l2 |= l2Status;
+	l3 |= l3Status;
 }
 
+/*
+ *  Sets LEDS 1,2, and 3 to 0
+ *
+ */
 void clearLEDStatus(void) {
 	l1 = 0;
 	l2 = 0;
 	l3 = 0;
 }
 
+/*
+ *  sets LED RGB values to new boolean system 1(on) or 0(off)
+ *  Param: r(unint8_t) - red value of the LED
+ *  Param: g(unint8_t) - green value of the LED
+ *  Param: b(unint8_t) - blue value of the LED
+ *
+ */
 void overrideLED(uint8_t r, uint8_t g, uint8_t b) {
 	if (r >= 1) {
 		LEDR(1);
@@ -249,21 +338,37 @@ void overrideLED(uint8_t r, uint8_t g, uint8_t b) {
 	}
 }
 
-
+/*
+ *  Gets the mode that the motor is in
+ *  Return: motorMode(int8_t) - integer value representing the mode that the motor is in
+ *
+ */
 int8_t getMotorMode(void){
 	return motorMode;
 }
 
+/*
+ *  Gets the current safety conditions for the system
+ *  Return: errorConditions(int8_t) - integer value representing the current safety conditions for the system
+ *
+ */
 int8_t* getSafetyConditions(void) {
 	return errorConditions;
 }
 
+/*
+ *  Gets the current safety flags for the system
+ *  Return: safetyFlags(int8_t) - integer value representing the current safety flags for the system
+ *
+ */
 int16_t getSafetyFlags(void) {
 	return safetyFlags;
 }
 
 
-//check for general errors
+/*
+ *  check for general errors
+ */
 int actuatorIsCorrect() {
 	int16_t* devID16 = getDeviceId16();
 
@@ -282,7 +387,11 @@ int actuatorIsCorrect() {
 }
 
 
-
+/*
+ *  Makes all safety checks
+ *  Param: actx(Act_s) - Actuator structure to track sensor values
+ *
+ */
 void checkSafeties(Act_s *actx) {
 	safetyFlags = 0; //reset this upon entering a check
 	//TODO:
@@ -313,6 +422,7 @@ void checkSafeties(Act_s *actx) {
 
 /*
  * Check for safety flags, and act on them.
+ * Param: actx(Act_s) - Actuator structure to track sensor values
  * todo: come up with correct strategies to deal with flags, include thermal limits also
  */
 void handleSafetyConditions(Act_s *actx) {
@@ -353,14 +463,14 @@ void handleSafetyConditions(Act_s *actx) {
 			disable_motor();
 			break;
 		case MODE_PASSIVE:
-			actuate_passive_mode(actx); //position control to neutral angle
+			actuatePassiveMode(actx); //position control to neutral angle
 			break;
 		case MODE_OVERTEMP:
 			if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
 				errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL) {
 				throttle_current(actx);
 			} else {
-				ramp_current(actx);
+				rampCurrent(actx);
 			}
 			break;
 		case MODE_ENABLED:

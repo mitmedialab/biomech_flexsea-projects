@@ -10,7 +10,7 @@
 #include "walking_state_machine.h"
 #include "actuator_functions.h"
 
-void run_main_user_application(Act_s *actx){
+void runMainUserApplication(Act_s *actx){
 //	setMotorTorqueOpenLoop(actx, biomCalcImpedance(actx, 1.5, 0.2, 0) );
 
 }

@@ -1,6 +1,27 @@
+/*
+ * spline_functions.c
+ *
+ *  Created on:
+ *      Author:
+ */
+
+//****************************************************************************
+// Include(s)
+//****************************************************************************
 #include "spline_functions.h"
 
+//****************************************************************************
+// Method(s)
+//****************************************************************************
 
+/*
+ *  Initializes the cubic spline parameters
+ *  Param: cSpline(CubicSpline) -
+ *  Param: actx(Act_s) -
+ *  Param: gainParams(GainParams) -
+ *  Param: gainParams(float) -
+ *  Return: res_factor
+ */
 void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams gainParams, float res_factor){
 	cSpline->time_state = 0;
 	cSpline->res_factor = res_factor; // delta X (time)
@@ -20,7 +41,11 @@ void initializeCubicSplineParams(CubicSpline *cSpline, Act_s *actx, GainParams g
 	solveTridiagonalMatrix(cSpline);
 }
 
-void solveTridiagonalMatrix(CubicSpline *cSpline){ // Solves the matrix and finds the coefficients for the functions
+/*
+ *  Solves the matrix and finds the coefficients for the functions
+ *  Param: cSpline(CubicSpline) -
+ */
+void solveTridiagonalMatrix(CubicSpline *cSpline){
 	float B[3], A[2], C[2], r[3];
 	float e[3], f[3], g[2];
 	float x[3];
@@ -124,7 +149,11 @@ void solveTridiagonalMatrix(CubicSpline *cSpline){ // Solves the matrix and find
 	cSpline->b2_2 = b2;
 }
 
-void calcCubicSpline(CubicSpline *cSpline){ // Computes and evaluates the cubic spline trajectory. cSpline->Y is the interpolation value
+/*
+ *  Computes and evaluates the cubic spline trajectory. cSpline->Y is the interpolation value
+ *  Param: cSpline(CubicSpline) -
+ */
+void calcCubicSpline(CubicSpline *cSpline){
 	float t;
 	float q[2];
 	float q2[2];

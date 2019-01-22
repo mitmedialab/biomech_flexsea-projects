@@ -185,10 +185,10 @@ static float getAxialForce(void)
  */
 static float getLinkageMomentArm(float theta)
 {
-	static float A=0, c = 0, c2 = 0, projLength = 0, C_ang = 0;
+	static float A=0, c = 0, c2 = 0, projLength = 0, CAng = 0;
 
-    C_ang = M_PI - theta - (MA_TF); 	// angle
-    c2 = MA_A2B2 - MA_TWOAB* cosf(C_ang);
+	CAng = M_PI - theta - (MA_TF); 	// angle
+    c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
     c = sqrtf(c2);  // length of actuator from pivot to output
     A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
 
@@ -258,8 +258,8 @@ static float windowJointTorqueRate(struct act_s *actx) {
  *  Filter using moving average.  This one works well for small window sizes
  *  larger windowsizes gets better accuracy with windowAverageingLarge
  *  uses WINDOW_SIZE
- *  Param: currentVal(float) -
- *  Return: average(float) -
+ *  Param: currentVal(float) - current value given
+ *  Return: average(float) - e rolling average of all previous and current values
  */
 //UNDERGRAD TODO: figure out whythis isn't working
 static float windowAveraging(float currentVal) {
@@ -492,7 +492,8 @@ void mitInitCurrentController(void) {
 
 
 /*
- *  Updates the static variables timer and polesState
+ *  Updates the static variables tim
+ *  Return: average(float) -er and polesState
  *
  *  Return: 0(int8_t)
  */
@@ -545,8 +546,8 @@ int8_t findPoles(void) {
 
 /*
  *  TODO:find out what this function does and how its used
- *  Param:	val(int32_t) -
- *  Return: average(float) -
+ *  Param:	val(int32_t) - current value given
+ *  Return: average(float) - e rolling average of all previous and current values
  */
 static float windowSmoothJoint(int32_t val) {
 	#define JOINT_WINDOW_SIZE 5
