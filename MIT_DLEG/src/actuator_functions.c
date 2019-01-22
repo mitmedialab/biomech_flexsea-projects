@@ -49,8 +49,7 @@ int16_t currentKd = ACTRL_I_KD_INIT;
 float motJ = MOT_J;
 float motB = MOT_B;
 
-int32_t motSticNeg = MOT_STIC_NEG;
-int32_t motSticPos = MOT_STIC_POS;
+
 
 //const vars taken from defines (done to speed up computation time)
 static const float angleUnit    = ANG_UNIT;
@@ -185,12 +184,7 @@ static float getLinkageMomentArm(float theta)
 
     r = MA_B * sinf(A);
 
-    //DEBUG
-//    rigid1.mn.genVar[4]  = (int16_t) (r*1000.0);
-
     return r/1000.;
-
-
 }
 
 
@@ -346,7 +340,7 @@ float actuateAngleLimits(Act_s *actx){
 
 		// apply unidirectional damper
 		if ( actx->jointVelDegrees < 0) {
-			tau_B = JOINT_SOFT_B * actx->jointVelDegrees;
+			tau_B = -JOINT_SOFT_B * actx->jointVelDegrees;
 		}
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
@@ -354,12 +348,27 @@ float actuateAngleLimits(Act_s *actx){
 
 		// apply unidirectional damper
 		if ( actx->jointVelDegrees > 0) {
-			tau_B = JOINT_SOFT_B * actx->jointVelDegrees;
+			tau_B = -JOINT_SOFT_B * actx->jointVelDegrees;
 		}
 	}
 
 	return tau_K + tau_B;
 }
+
+/*
+ * Check current direction and provide baseline current to handle
+ * the No load current requirement to get motor moving.
+ */
+float noLoadCurrent(float desCurr) {
+	if (desCurr > 0) {
+		return MOT_NOLOAD_CURRENT_POS;
+	} else if (desCurr < 0) {
+		return MOT_NOLOAD_CURRENT_NEG;
+	} else {
+		return 0;
+	}
+}
+
 
 /*
  * Calculate required motor torque, based on joint torque
@@ -370,13 +379,9 @@ float actuateAngleLimits(Act_s *actx){
  */
 void setMotorTorque(struct act_s *actx, float tau_des)
 {
-	// Saturate desired torque
-	if (tau_des > ABS_TORQUE_LIMIT_INIT) {
-			tau_des = ABS_TORQUE_LIMIT_INIT;
-	} else if (tau_des < -ABS_TORQUE_LIMIT_INIT) {
-		tau_des = -ABS_TORQUE_LIMIT_INIT;
-	}
-	actx->tauDes = tau_des;
+	//Angle Limit bumpers
+	actx->tauDes = tau_des + actuateAngleLimits(actx);
+	actx->tauMeas = actx->jointTorque;
 
 	static float tau_err_last = 0, tau_err_int = 0;
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
@@ -391,7 +396,7 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 	float tau_C = tau_err*torqueKp + tau_err_dot*torqueKd + tau_err_int*torqueKi;	// torq Compensator
 
 	// Feedforward term
-	float tau_ff = 0; 	// Not in use at the moment todo: figure out how to do this properly
+	float tau_ff = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
 
 	float tau_C_combined = tau_C + tau_ff;
 
@@ -408,10 +413,8 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 		tau_err_int = 0;
 	}
 
-	//Angle Limit bumpers
-	tau_C_output = tau_C_output + actuateAngleLimits(actx);
-
-	int32_t I = (int32_t) ( 1/(MOT_KT * N * N_ETA) * tau_C_output * CURRENT_SCALAR);								// motor current signal
+	// motor current signal
+	int32_t I = (int32_t) ( 1.0/(MOT_KT * N * N_ETA) * tau_C_output * CURRENT_SCALAR_INIT);
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
@@ -422,13 +425,13 @@ void setMotorTorque(struct act_s *actx, float tau_des)
 		I = -actx->currentOpLimit;
 	}
 
-	actx->desiredCurrent = I; 	// demanded mA
+	actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
+
 	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
 	//variables used in cmd-rigid offset 5, for multipacket
 	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
 	rigid1.mn.userVar[6] = actx->tauDes*1000;
-
 }
 
 
@@ -554,7 +557,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tau_des)
 		float tau_C_output = actx->tauDes + actuateAngleLimits(actx);
 
 		// motor current signal
-		int32_t I = (int32_t) ( 1/(MOT_KT * N * N_ETA) * tau_C_output * CURRENT_SCALAR);
+		int32_t I = (int32_t) ( 1/(MOT_KT * N * N_ETA) * tau_C_output * CURRENT_SCALAR_INIT);
 
 		//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 		if (I > actx->currentOpLimit)

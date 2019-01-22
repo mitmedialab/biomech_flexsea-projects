@@ -50,6 +50,6 @@ float frequencySweep(float omega, float t);
 float torqueSystemID(void);
 bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output); // integral term anti-windup clamp check
 float actuateAngleLimits(Act_s *actx);	// apply virtual spring/damper on angle limits
-
+float noLoadCurrent(float desCurr);
 
 #define WINDOW_SIZE 5
