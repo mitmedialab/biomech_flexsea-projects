@@ -15,14 +15,14 @@
 	*
 ****************************************************************************/
 
-#ifdef USE_MIT_EMG_I2C
+
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
 #include "user-mn-MIT-EMG.h"
 
-
+#ifdef USE_MIT_EMG_I2C
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -39,8 +39,8 @@ uint16_t emgTimestamp = 0;
 
 int16_t emgData[8] = {0,0,0,0,0,0,0,0};
 int16_t emgMisc[3] = {0,0,0};
-extern uint8_t i2c2DmaTxBuf[24]; //from i2c.c
-extern uint8_t i2c2DmaRxBuf[24]; //from i2c.c
+extern uint8_t i2c2_dma_tx_buf[24]; //from i2c.c
+extern uint8_t i2c2_dma_rx_buf[24]; //from i2c.c
 extern I2C_HandleTypeDef hi2c2;
 //****************************************************************************
 // Function(s)
@@ -73,9 +73,9 @@ void mitEmgUpdateStatus(void)
 void mitEmgDecode(void)
 {
 	//ToDo: need to include packet check function
-		emgTimestamp = (uint16_t)i2c2DmaRxBuf[5] + (uint16_t)i2c2DmaRxBuf[6]*100;
-	  memcpy(emgData, i2c2DmaRxBuf+8,16);
-		memcpy(emgMisc, i2c2DmaRxBuf+2,6);
+		emgTimestamp = (uint16_t)i2c2_dma_rx_buf[5] + (uint16_t)i2c2_dma_rx_buf[6]*100;
+	  memcpy(emgData, i2c2_dma_rx_buf+8,16);
+		memcpy(emgMisc, i2c2_dma_rx_buf+2,6);
 		/*
 		for(uint8_t i=0;i<8;i++)
 			rigid1.mn.genVar[i] = emgData[i];
@@ -89,7 +89,7 @@ void mitEmgDecode(void)
 void mitEmgRead(void)
 {
 	static HAL_StatusTypeDef retVal;
-	retVal = HAL_I2C_Master_Receive_DMA(&hi2c2, I2C_SLAVE_ADDR_EMG, i2c2DmaRxBuf, 24);
+	retVal = HAL_I2C_Master_Receive_DMA(&hi2c2, I2C_SLAVE_ADDR_EMG, i2c2_dma_rx_buf, 24);
 	if(retVal == HAL_OK)
 	{
 		i2c2FsmState = I2C_FSM_RX_DATA;

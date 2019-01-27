@@ -58,15 +58,15 @@ extern volatile uint16_t emg_error_cnt;
 //****************************************************************************
 // Prototype(s):
 //****************************************************************************
-void MIT_EMG_update_status(void);
-void MIT_EMG_decode(void);
-void MIT_EMG_read(void);
-void MIT_EMG_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c);
-void MIT_EMG_I2C_RxCpltCallback(I2C_HandleTypeDef *hi2c); //attach this function on i2c.c
-void MIT_EMG_i2c2_fsm(void);
+void mitEmgUpdateStatus(void);
+void mitEmgDecode(void);
+void mitEmgRead(void);
+void mitEmgI2CErrorCallback(I2C_HandleTypeDef *hi2c);
+void mitEmgI2CRxCpltCallback(I2C_HandleTypeDef *hi2c); //attach this function on i2c.c
+void mitEmgI2c2Fsm(void);
 
-uint8_t MIT_EMG_getState(void); //read value when only 1 is returned
-void MIT_EMG_changeState(uint8_t); //activate / deactive the EMG peripheral
+uint8_t mitEmgGetState(void); //read value when only 1 is returned
+void mitEmgChangeState(uint8_t); //activate / deactive the EMG peripheral
 
 //****************************************************************************
 // Definition(s):

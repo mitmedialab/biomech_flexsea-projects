@@ -129,7 +129,7 @@ void init_user(void)
 
 	//MIT D-Leg:
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-	init_MIT_DLeg();
+	initMITDLeg();
 	#endif	//PROJECT_MIT_DLEG
 
 	//MIT Pocket 2xDC / PocketClimb:
@@ -180,7 +180,7 @@ void user_fsm_1(void)
 
 		//Biomechatronics' DLeg:
 		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-		MIT_DLeg_fsm_1();
+		MITDLegFsm1();
 		#endif	//PROJECT_MIT_DLEG
 
 		//MIT Pocket 2xDC / PocketClimb:

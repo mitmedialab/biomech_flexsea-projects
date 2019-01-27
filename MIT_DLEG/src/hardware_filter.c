@@ -152,7 +152,7 @@ void updateLPF(float val)
  */
 float filterLPF(float val)
 {
-	update_LPF(val);
+	updateLPF(val);
     arm_fir_f32(&SLpf, (float32_t *)( &lpfInput[lpfIndex] ) , (float32_t*) &lpfOut, 1);
 
     return (float)lpfOut;
