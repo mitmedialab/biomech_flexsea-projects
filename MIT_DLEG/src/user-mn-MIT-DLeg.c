@@ -195,8 +195,8 @@ void MIT_DLeg_fsm_1(void)
 				// Inside here is where user code goes
 				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 					//DEBUG
-					//					run_main_user_application(&act1);
-					setMotorTorque(&act1, torq_input );
+					run_main_user_application(&act1);
+//					setMotorTorque(&act1, torq_input );
 
 				}
 

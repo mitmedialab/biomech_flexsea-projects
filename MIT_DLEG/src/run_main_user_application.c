@@ -11,6 +11,5 @@
 #include "actuator_functions.h"
 
 void run_main_user_application(Act_s *actx){
-//	setMotorTorque(actx, biomCalcImpedance(actx, 1.0, 0.1, 0) );
 
 }
