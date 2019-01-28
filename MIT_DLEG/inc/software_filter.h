@@ -44,9 +44,9 @@
 //****************************************************************************
 // Prototype(s):
 //****************************************************************************
-void  init_MIT_FIR(void);
-float MIT_FIR_filter1kHz(float input);
-void  MIT_FIR_latchInput(float n);
+void  initMitFir(void);
+float mitFirFilter1kHz(float input);
+void  mitFirLatchInput(float n);
 
 //****************************************************************************
 // Definition(s):

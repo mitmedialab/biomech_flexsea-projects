@@ -129,7 +129,7 @@ uint8_t firIndex;
 /*
  *  Initializes the ______
  */
-void init_MIT_FIR(void)
+void initMitFir(void)
 {
 	memset(firInput,0, 2*N);
 	firAccbuf = 0;
@@ -143,7 +143,7 @@ void init_MIT_FIR(void)
  *  Param: n(float) -
  *  Return: firOutput(float) -
  */
-float MIT_firFilter1kHz(float input)
+float mitFirFilter1kHz(float input)
 {
 	MIT_FIR_latchInput(input);
 
@@ -160,7 +160,7 @@ float MIT_firFilter1kHz(float input)
  *  Definition
  *  Param: n(float) -
  */
-void MIT_FIR_latchInput(float n)
+void mitFirLatchInput(float n)
 {
 	firIndex++;
 	if(firIndex>=N)

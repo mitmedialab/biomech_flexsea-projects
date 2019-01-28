@@ -50,11 +50,11 @@
 //****************************************************************************
 
 //variables contain the data
-extern int16_t emg_data[8]; //8 ch emg data
-extern int16_t emg_misc[3]; // array of int16_t reserved for various usage
-extern volatile uint8_t emg_on_flag; //this flag decide whether use EMG or not
-extern uint16_t emg_timestamp;
-extern volatile uint16_t emg_error_cnt;
+extern int16_t emgData[8]; //8 ch emg data
+extern int16_t emgMisc[3]; // array of int16_t reserved for various usage
+extern volatile uint8_t emgOnFlag; //this flag decide whether use EMG or not
+extern uint16_t emgTimestamp;
+extern volatile uint16_t emgErrorCnt;
 //****************************************************************************
 // Prototype(s):
 //****************************************************************************

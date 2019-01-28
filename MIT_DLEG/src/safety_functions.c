@@ -87,8 +87,8 @@ static void checkJointEncoder(Act_s *actx) {
  */
 static void checkMotorEncoder(Act_s *actx) {
 	static uint16_t disconnectCounter = 0;
-	static int32_t previousMotorValue = 0;
-	static float previousJointValue = 0;
+//	static int32_t previousMotorValue = 0;
+//	static float previousJointValue = 0;
 
 	if (abs(rigid1.ex.mot_current) >= MOTOR_CURRENT_DISCONNECT_THRESHOLD &&
 			fabs(actx->axialForce) <= MOTOR_ENCODER_DISCONNECT_AXIAL_FORCE_THRESHOLD_N) {

@@ -35,7 +35,7 @@
 
 // Initialization
 int8_t findPoles(void);
-void   mit_init_current_controller(void);
+void   mitInitCurrentController(void);
 
 
 // Sensor values
