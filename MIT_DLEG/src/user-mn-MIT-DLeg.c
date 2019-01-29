@@ -42,15 +42,21 @@
 // Variable(s)
 //****************************************************************************
 
-float freqInput = 0;
-float freqRad = 0;
-float torqInput = 0;
+
+float freqInput = 0.0;
+float freqRad = 0.0;
+float torqInput = 0.0;
+
 int8_t onEntry = 0;
 Act_s act1;
 
 // EXTERNS
 extern uint8_t calibrationFlags, calibrationNew;
 extern int32_t currentOpLimit;
+
+extern float torqueKp;
+extern float torqueKi;
+extern float torqueKd;
 
 //****************************************************************************
 // Macro(s)
@@ -89,15 +95,13 @@ void MITDLegFsm1(void)
 
     static uint32_t fsmTime = 0;
 
-    //Increment fsmTime (1 tick = 1ms nominally; need to confirm)
+    //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
-//	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
-//	rigid1.mn.genVar[1] = (int16_t) ((float)act1.currentOpLimit/10.0); //startedOverLimit;
-//	rigid1.mn.genVar[2]  = (int16_t) (getMotorMode());
-//	rigid1.mn.genVar[3]  = (int16_t) (act1.axialForce);
-//	//genvar4 = linkageMomentArm
-//	rigid1.mn.genVar[5]  = (int16_t) (act1.jointTorque*100.);
-//	rigid1.mn.genVar[6]  = (int16_t) (act1.jointAngle*100.);
+	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
+	  rigid1.mn.genVar[1] = (int16_t) (act1.tauDes*100);
+	  rigid1.mn.genVar[2] = (int16_t) (act1.desiredCurrent);
+	  rigid1.mn.genVar[3] = (int16_t) (act1.jointTorque*100.);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.jointAngleDegrees*100.);
 
 
     //begin main FSM
@@ -187,6 +191,7 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
+				updateUserWrites(&act1, &walkParams);
 				//TODO consider changing logic so onentry is only true for one cycle.
 				if (onEntry && fsmTime > DELAY_TICKS_AFTER_FIND_POLES) {
 					act1.currentOpLimit = CURRENT_LIMIT_INIT;
@@ -195,6 +200,7 @@ void MITDLegFsm1(void)
 
 				// Inside here is where user code goes
 				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
+
 					runMainUserApplication(&act1);
 
 				}
@@ -202,22 +208,6 @@ void MITDLegFsm1(void)
 				break;
 			}
 		case STATE_DEBUG:
-
-//			rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
-//			rigid1.mn.genVar[1] = (int16_t) (fsm1State); //startedOverLimit;
-//			rigid1.mn.genVar[2] = (int16_t) (l0); //startedOverLimit;
-//			rigid1.mn.genVar[3] = (int16_t) (isEnabledUpdateSensors); //startedOverLimit;
-//			rigid1.mn.genVar[4] = (int16_t) (100.0*act1.motorPos); //startedOverLimit;
-//			rigid1.mn.genVar[5] = (int16_t) (getDeviceId16()[5]); //startedOverLimit;
-//			rigid1.mn.genVar[1] = (int16_t) (100.0*act1.jointAngle); //rad
-//			rigid1.mn.genVar[2] = (int16_t) (100.0*act1.axialForce);
-//			rigid1.mn.genVar[3] = (int16_t) (100.0*act1.motorPos);
-//			rigid1.mn.genVar[4] = (int16_t) (act1.regTemp);
-//			rigid1.mn.genVar[5] = (int16_t) (act1.motCurr);
-
-//				rigid1.mn.genVar[6] = (int16_t) rigid1.ex.mot_current; // LG
-//				rigid1.mn.genVar[7] = (int16_t) rigid1.ex.mot_volt;// ( ( fsmTime ) % SECONDS ) ; //rigid1.ex.mot_volt; // TA
-//				rigid1.mn.genVar[8] = (int16_t) (act1.safetyFlag) ; //stateMachine.current_state;
 
 			break;
 
@@ -264,11 +254,13 @@ void MITDLegFsm2(void)
  * Param: wParams(WalkParams) -
  */
 void updateUserWrites(Act_s *actx, WalkParams *wParams){
+  
+	torqueKp 								= ( (float) user_data_1.w[0] ) /1000.0;	// Reduce overall torque limit.
+	torqueKi				 				= ( (float) user_data_1.w[1] ) /1000.0;	// Reduce overall torque limit.
+	torqueKd				 				= ( (float) user_data_1.w[2] ) /1000.0;	// Reduce overall torque limit.
+	torqInput									= ( (float) user_data_1.w[3] ) /1000.0;	// Reduce overall torque limit.
+	//	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
 
-	actx->safetyTorqueScalar 				= ( (float) user_data_1.w[0] ) /100.0;	// Reduce overall torque limit.
-	freqInput				 				= ( (float) user_data_1.w[1] ) /100.0;	// Reduce overall torque limit.
-	torqInput				 				= ( (float) user_data_1.w[2] ) /100.0;	// Reduce overall torque limit.
-//	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
 //	wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
 //	wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
 //	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
@@ -291,9 +283,10 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 //	wParams->earlyStanceK0 = 6.23;
 //	wParams->earlyStanceKF = 0.1;
 //	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
-
-	actx->safetyTorqueScalar 				= 1.0; 	//user_data_1.w[0] = 100
-	freqInput 								= 0.0;
+  
+	torqueKp				 				= 0.0; 	//user_data_1.w[0] = 100
+	torqueKi 								= 0.0;
+	torqueKd								= 0.0;
 	torqInput								= 0.0;
 //	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
 //	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
@@ -307,10 +300,10 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
 
-	user_data_1.w[0] =  (int32_t) ( actx->safetyTorqueScalar*100 ); 	// torque scalar
-	user_data_1.w[1] =  (int32_t) ( freqInput*100 ); 	// frequency set point for freq test
-	user_data_1.w[2] =  (int32_t) ( torqInput*100 ); 	// torque input for freq test
-
+	user_data_1.w[0] =  (int32_t) ( 0.0 ); 	// torque scalar
+	user_data_1.w[1] =  (int32_t) ( 0.0 ); 	// frequency set point for freq test
+	user_data_1.w[2] =  (int32_t) ( 0.0 ); 	// torque input for freq test
+	user_data_1.w[3] =  (int32_t) ( 0.0 ); 	// torque input for freq test
 	//	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
 //	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
 //	user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque*100 ); 			// Late stance power, torque threshhold

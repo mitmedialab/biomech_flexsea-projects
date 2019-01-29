@@ -11,6 +11,5 @@
 #include "actuator_functions.h"
 
 void runMainUserApplication(Act_s *actx){
-//	setMotorTorqueOpenLoop(actx, biomCalcImpedance(actx, 1.5, 0.2, 0) );
 
 }
