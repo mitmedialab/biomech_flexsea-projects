@@ -35,6 +35,7 @@
 //****************************************************************************
 
 #include "user-mn.h"
+#include "global-config.h"
 #include "flexsea_user_structs.h"
 
 //Barebone Rigid:
