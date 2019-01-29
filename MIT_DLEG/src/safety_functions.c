@@ -24,6 +24,7 @@
 //****************************************************************************
 static int8_t errorConditions[ERROR_ARRAY_SIZE]; //massage extern until it works
 static int16_t safetyFlags; //bitmap of all errors. Also serves as boolean for error existence
+uint8_t l0, l1, l2; //shared LED codes used in main_fsm
 static int8_t motorMode;
 static const int16_t stm32ID[] = STM32ID;
 
@@ -134,7 +135,7 @@ static void checkEMG(Act_s *actx) {
 
 //check values against limits
 /*
- *  Checks to see if the vltage is within the bounds of the battery
+ *  Checks to see if the voltage is within the bounds of the battery
  *  Param: actx(Act_s) - Actuator structure to track sensor values
  *
  */
@@ -295,10 +296,10 @@ static void disableMotor(void) {
  *  Param: l3Status(unint8_t) - desired integer value representing the status of LED3
  *
  */
-void setLEDStatus(uint8_t l1Status, uint8_t l2Status, uint8_t l3Status) {
+void setLEDStatus(uint8_t l0Status, uint8_t l1Status, uint8_t l2Status) {
+	l0 |= l0Status;
 	l1 |= l1Status;
 	l2 |= l2Status;
-	l3 |= l3Status;
 }
 
 /*
@@ -306,9 +307,9 @@ void setLEDStatus(uint8_t l1Status, uint8_t l2Status, uint8_t l3Status) {
  *
  */
 void clearLEDStatus(void) {
+	l0 = 0;
 	l1 = 0;
 	l2 = 0;
-	l3 = 0;
 }
 
 /*
@@ -358,7 +359,7 @@ int8_t* getSafetyConditions(void) {
 
 /*
  *  Gets the current safety flags for the system
- *  Return: safetyFlags(int8_t) - integer value representing the current safety flags for the system
+ *  Return: safetyFlags(int16_t) - integer value representing the current safety flags for the system
  *
  */
 int16_t getSafetyFlags(void) {
@@ -443,19 +444,19 @@ void handleSafetyConditions(Act_s *actx) {
 
 	//TODO: get LEDS working
 	if (errorConditions[WARNING_TORQUE_MEASURED] != VALUE_NOMINAL){
-		setLEDStatus(0,1,0); //flashing yellow
+		setLEDStatus(1,0,0); //flashing yellow
 	}
 
 	if (errorConditions[WARNING_JOINTANGLE_SOFT] != VALUE_NOMINAL){
-		setLEDStatus(0,1,0);//flashing yellow
+		setLEDStatus(1,0,0);//flashing yellow
 	}
 
 	if (errorConditions[WARNING_BATTERY_VOLTAGE] != VALUE_NOMINAL){
-		setLEDStatus(0,1,0);//flashing yellow (TODO LED function is not working)
+		setLEDStatus(1,0,0);//flashing yellow (TODO LED function is not working)
 	}
 
 	if (errorConditions[ERROR_PCB_THERMO] != VALUE_NOMINAL){
-		setLEDStatus(0,1,0);//flashing yellow
+		setLEDStatus(1,0,0);//flashing yellow
 	}
 
 	switch (motorMode){
