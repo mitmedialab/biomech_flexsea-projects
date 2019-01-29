@@ -91,13 +91,13 @@ void MITDLegFsm1(void)
 
     //Increment fsmTime (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
-	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
-	rigid1.mn.genVar[1] = (int16_t) ((float)act1.currentOpLimit/10.0); //startedOverLimit;
-	rigid1.mn.genVar[2]  = (int16_t) (getMotorMode());
-	rigid1.mn.genVar[3]  = (int16_t) (act1.axialForce);
-	//genvar4 = linkageMomentArm
-	rigid1.mn.genVar[5]  = (int16_t) (act1.jointTorque*100.);
-	rigid1.mn.genVar[6]  = (int16_t) (act1.jointAngle*100.);
+//	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
+//	rigid1.mn.genVar[1] = (int16_t) ((float)act1.currentOpLimit/10.0); //startedOverLimit;
+//	rigid1.mn.genVar[2]  = (int16_t) (getMotorMode());
+//	rigid1.mn.genVar[3]  = (int16_t) (act1.axialForce);
+//	//genvar4 = linkageMomentArm
+//	rigid1.mn.genVar[5]  = (int16_t) (act1.jointTorque*100.);
+//	rigid1.mn.genVar[6]  = (int16_t) (act1.jointAngle*100.);
 
 
     //begin main FSM
@@ -139,7 +139,7 @@ void MITDLegFsm1(void)
 
 //			stateMachine.current_state = STATE_INIT;
 			if (!actuatorIsCorrect(&act1)){
-				setLEDStatus(1,0,0); //solid red; needs reset
+				setLEDStatus(0,0,1); //flash red; needs reset
 			} else{
 				if (onEntry) {
 					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
@@ -202,11 +202,12 @@ void MITDLegFsm1(void)
 				break;
 			}
 		case STATE_DEBUG:
-//			rigid1.mn.genVar[0] = (int16_t) (getDeviceId16()[0]); //startedOverLimit;
-//			rigid1.mn.genVar[1] = (int16_t) (getDeviceId16()[1]); //startedOverLimit;
-//			rigid1.mn.genVar[2] = (int16_t) (getDeviceId16()[2]); //startedOverLimit;
-//			rigid1.mn.genVar[3] = (int16_t) (getDeviceId16()[3]); //startedOverLimit;
-//			rigid1.mn.genVar[4] = (int16_t) (getDeviceId16()[4]); //startedOverLimit;
+
+//			rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
+//			rigid1.mn.genVar[1] = (int16_t) (fsm1State); //startedOverLimit;
+//			rigid1.mn.genVar[2] = (int16_t) (l0); //startedOverLimit;
+//			rigid1.mn.genVar[3] = (int16_t) (isEnabledUpdateSensors); //startedOverLimit;
+//			rigid1.mn.genVar[4] = (int16_t) (100.0*act1.motorPos); //startedOverLimit;
 //			rigid1.mn.genVar[5] = (int16_t) (getDeviceId16()[5]); //startedOverLimit;
 //			rigid1.mn.genVar[1] = (int16_t) (100.0*act1.jointAngle); //rad
 //			rigid1.mn.genVar[2] = (int16_t) (100.0*act1.axialForce);
