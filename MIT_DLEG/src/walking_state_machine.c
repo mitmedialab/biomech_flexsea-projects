@@ -111,7 +111,7 @@ void runFlatGroundFSM(Act_s *actx) {
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 			if(timeInState > LSW_TO_EST_DELAY) {
 
-				if (timeInState >= LSW_TO_EMG_DELAY && MIT_EMG_getState() == 1){
+				if (timeInState >= LSW_TO_EMG_DELAY && mitEmgGetState() == 1){
 					//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
 					stateMachine.currentState = STATE_LSW_EMG;
 					walkParams.transitionId = 4;
