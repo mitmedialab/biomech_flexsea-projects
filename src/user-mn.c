@@ -243,7 +243,7 @@ void user_fsm_2(void)
 
 		//Dephy's Actuator Package (ActPack)
 		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK && (ACTIVE_PROJECT != PROJECT_MIT_DLEG) )
-		rigid1.mn.genVar[0] = rigid1.mn.analog[0]; //workaround for reading analog values
+		rigid1.mn.genVar[0] = rigid1.mn.analog[2]; //workaround for reading analog values
 		ActPack_fsm_2();
 		#endif	//PROJECT_ACTPACK
 
