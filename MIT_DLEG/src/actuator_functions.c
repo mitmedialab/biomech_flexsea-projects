@@ -360,13 +360,17 @@ float actuateAngleLimits(Act_s *actx){
  * the No load current requirement to get motor moving.
  */
 float noLoadCurrent(float desCurr) {
-	if (desCurr > 0) {
-		return MOT_NOLOAD_CURRENT_POS;
-	} else if (desCurr < 0) {
-		return MOT_NOLOAD_CURRENT_NEG;
-	} else {
+	#ifndef NO_DEVICE
+		if (desCurr > 0) {
+			return MOT_NOLOAD_CURRENT_POS;
+		} else if (desCurr < 0) {
+			return MOT_NOLOAD_CURRENT_NEG;
+		} else {
+			return 0;
+		}
+	#else
 		return 0;
-	}
+	#endif
 }
 
 
