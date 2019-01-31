@@ -5,10 +5,24 @@
  *      Author: Seong Ho Yeon
  */
 
+//****************************************************************************
+// Include(s)
+//****************************************************************************
+#include "arm_math.h"
+#include "user-mn.h"
+#include "user-mn-ActPack.h"
+#include "flexsea_sys_def.h"
+#include "flexsea_system.h"
+#include "user-mn-MIT-DLeg.h"
+#include "walking_state_machine.h"
+#include "state_variables.h"
+
+//****************************************************************************
+// Definitions
+//****************************************************************************
+
 #ifndef BIOMECH_FLEXSEA_PROJECTS_MIT_DLEG_INC_MIT_FILTERS_H_
 #define BIOMECH_FLEXSEA_PROJECTS_MIT_DLEG_INC_MIT_FILTERS_H_
-
-#include "arm_math.h"
 
 //#define LPF1 // Passband 100Hz, Stopband 200Hz
 //#define LPF2 // Passband 50Hz, Stopband 100Hz
@@ -18,9 +32,9 @@
 extern uint16_t lpf_index;
 
 //float32_t lpf_out;
-void  init_LPF(void);
-void  update_LPF(float val);
-float filter_LPF(float val);
+void  initLPF(void);
+void  updateLPF(float val);
+float filterLPF(float val);
 
 
 

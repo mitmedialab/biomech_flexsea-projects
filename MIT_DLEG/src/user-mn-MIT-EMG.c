@@ -15,36 +15,30 @@
 	*
 ****************************************************************************/
 
-#include "user-mn.h"
-#ifdef USE_MIT_EMG_I2C
+
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-#include "main.h"
-#include "i2c.h"
-#include <i2c.h>
 #include "user-mn-MIT-EMG.h"
-#include "flexsea_global_structs.h"
-#include "flexsea_user_structs.h"
-#include "flexsea.h"
 
+#ifdef USE_MIT_EMG_I2C
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
-volatile uint8_t emg_peripheral_state = EMG_PERIPH_READY;
-volatile uint8_t emg_on_flag = 1;			// This must be one in order to work!!! ;)
+volatile uint8_t emgPeripheralState = EMG_PERIPH_READY;
+volatile uint8_t emgOnFlag = 1;			// This must be one in order to work!!! ;)
 
-volatile uint8_t emg_state = EMG_STATE_DISABLE;
-volatile uint16_t emg_timer = 0; //1tick represent 1ms
-volatile uint16_t emg_prsc = 0;
-volatile uint16_t emg_reset_timer = 0;
-volatile uint8_t emg_ready_flag=0;
+volatile uint8_t emgState = EMG_STATE_DISABLE;
+volatile uint16_t emgTimer = 0; //1tick represent 1ms
+volatile uint16_t emgPrsc = 0;
+volatile uint16_t emgResetTimer = 0;
+volatile uint8_t emgReadyFlag=0;
 //volatile uint8_t emg_active_flag
-uint16_t emg_timestamp = 0;
+uint16_t emgTimestamp = 0;
 
-int16_t emg_data[8] = {0,0,0,0,0,0,0,0};
-int16_t emg_misc[3] = {0,0,0};
+int16_t emgData[8] = {0,0,0,0,0,0,0,0};
+int16_t emgMisc[3] = {0,0,0};
 extern uint8_t i2c2_dma_tx_buf[24]; //from i2c.c
 extern uint8_t i2c2_dma_rx_buf[24]; //from i2c.c
 extern I2C_HandleTypeDef hi2c2;
@@ -52,38 +46,47 @@ extern I2C_HandleTypeDef hi2c2;
 // Function(s)
 //****************************************************************************
 
-void MIT_EMG_update_status(void)
+/*
+ * Updates the value of emgReadyFlag based off of input from rigid1
+ */
+void mitEmgUpdateStatus(void)
 {
 
-#ifdef EMG_LINE_READY
-	if( rigid1.mn.analog[EMG_LINE_READY] > EMG_LINE_THRESHOLD)
-		emg_ready_flag =1;
-	else
-		emg_ready_flag = 0;
+	#ifdef EMG_LINE_READY
+		if( rigid1.mn.analog[EMG_LINE_READY] > EMG_LINE_THRESHOLD)
+			emgReadyFlag =1;
+		else
+			emgReadyFlag = 0;
 
-#else
-	emg_ready_flag =1;
+	#else
+		emgReadyFlag =1;
 
-#endif
+	#endif
 
 	return;
 }
 
-
-void MIT_EMG_decode(void)
+/*
+ * Decoder for EMG
+ * TODO: find out what this does
+ */
+void mitEmgDecode(void)
 {
 	//ToDo: need to include packet check function
-		emg_timestamp = (uint16_t)i2c2_dma_rx_buf[5] + (uint16_t)i2c2_dma_rx_buf[6]*100;
-	  memcpy(emg_data, i2c2_dma_rx_buf+8,16);
-		memcpy(emg_misc, i2c2_dma_rx_buf+2,6);
+		emgTimestamp = (uint16_t)i2c2_dma_rx_buf[5] + (uint16_t)i2c2_dma_rx_buf[6]*100;
+	  memcpy(emgData, i2c2_dma_rx_buf+8,16);
+		memcpy(emgMisc, i2c2_dma_rx_buf+2,6);
 		/*
 		for(uint8_t i=0;i<8;i++)
-			rigid1.mn.genVar[i] = emg_data[i];
+			rigid1.mn.genVar[i] = emgData[i];
 */
 		return;
 }
 
-void MIT_EMG_read(void)
+/*
+ * Description TODO: find out what this does
+ */
+void mitEmgRead(void)
 {
 	static HAL_StatusTypeDef retVal;
 	retVal = HAL_I2C_Master_Receive_DMA(&hi2c2, I2C_SLAVE_ADDR_EMG, i2c2_dma_rx_buf, 24);
@@ -97,152 +100,175 @@ void MIT_EMG_read(void)
 	}
 }
 
-void MIT_EMG_I2C_ErrorCallback(I2C_HandleTypeDef *hi2c)
+/*
+ * Seems to do absolutely nothing, may delete.
+ */
+void mitEmgI2CErrorCallback(I2C_HandleTypeDef *hi2c)
 {
 	return;
 }
-//Include this function in the I2C Return callback
-void MIT_EMG_I2C_RxCpltCallback(I2C_HandleTypeDef *hi2c)
+
+/*
+ *  Include this function in the I2C Return callback
+ *  TODO: find out what this does
+ */
+void mitEmgI2CRxCpltCallback(I2C_HandleTypeDef *hi2c)
 {
 	if(hi2c->Instance == I2C2)
 	{
-		if(emg_state == EMG_STATE_WAIT)
+		if(emgState == EMG_STATE_WAIT)
 		{
-			emg_state = EMG_STATE_READ;
+			emgState = EMG_STATE_READ;
 		}
 
-		else if(emg_state == EMG_STATE_READ)
+		else if(emgState == EMG_STATE_READ)
 		{
-			MIT_EMG_decode();
-			emg_peripheral_state = EMG_PERIPH_RECEIVE_COMPLETE;
-			emg_timer = 0;
+			mitEmgDecode();
+			emgPeripheralState = EMG_PERIPH_RECEIVE_COMPLETE;
+			emgTimer = 0;
 		}
 	}
 
 	return;
 }
 
-void MIT_EMG_i2c2_fsm(void)
+/*
+ *  Finite State Machine with multiple states for the EMG.
+ *  The possible states are as follows:
+ *  	EMG_STATE_DISABLE
+ *  	EMG_STATE_INACTIVE
+ *  	EMG_STATE_WAIT
+ *  	EMG_STATE_READ
+ *  	EMG_STATE_DEINIT
+ *  	EMG_STATE_RECOVER
+ */
+void mitEmgI2c2Fsm(void)
 {
-	MIT_EMG_update_status();
+	mitEmgUpdateStatus();
 
 
-	switch(emg_state) //emg state machine
+	switch(emgState) //emg state machine
 	{
 		case EMG_STATE_DISABLE:
-			if(emg_on_flag ==1)
+			if(emgOnFlag ==1)
 			{
-				emg_state=EMG_STATE_INACTIVE;
-				emg_timer = 0;
+				emgState=EMG_STATE_INACTIVE;
+				emgTimer = 0;
 			}
 			break;
 
 		case EMG_STATE_INACTIVE:
-			if(emg_on_flag!=1)
+			if(emgOnFlag!=1)
 			{
-				emg_state = EMG_STATE_DISABLE;
+				emgState = EMG_STATE_DISABLE;
 			}
-			else if(emg_ready_flag ==1)
+			else if(emgReadyFlag ==1)
 			{
-				emg_state = EMG_STATE_WAIT;
-				emg_timer = 0;
+				emgState = EMG_STATE_WAIT;
+				emgTimer = 0;
 			}
 
 			break;
 
 		case EMG_STATE_WAIT:
 		// periodic reset
-			if(emg_reset_timer > EMG_I2C_RESET_PERIOD)
+			if(emgResetTimer > EMG_I2C_RESET_PERIOD)
 			{
-				emg_state = EMG_STATE_DEINIT;
-				emg_timer = 0;
-				emg_reset_timer = 0;
+				emgState = EMG_STATE_DEINIT;
+				emgTimer = 0;
+				emgResetTimer = 0;
 				break;
 			}
 
-			if(emg_on_flag!=1)
+			if(emgOnFlag!=1)
 			{
-				emg_state = EMG_STATE_DISABLE;
+				emgState = EMG_STATE_DISABLE;
 				break;
 			}
-			else if(emg_ready_flag!=1)
-				emg_state = EMG_STATE_INACTIVE;
+			else if(emgReadyFlag!=1)
+				emgState = EMG_STATE_INACTIVE;
 
-			if(emg_timer>EMG_TIMER_THRESHOLD)
-				emg_timer = 0;
+			if(emgTimer>EMG_TIMER_THRESHOLD)
+				emgTimer = 0;
 
-			if(emg_timer ==0)
-				MIT_EMG_read(); //try to read, 5Hz
+			if(emgTimer ==0)
+				mitEmgRead(); //try to read, 5Hz
 
-			emg_reset_timer++;
+			emgResetTimer++;
 			break;
 
 		case EMG_STATE_READ:
-			if(emg_on_flag!=1)
+			if(emgOnFlag!=1)
 			{
-				emg_timer = 0;
-				emg_state = EMG_STATE_DISABLE;
+				emgTimer = 0;
+				emgState = EMG_STATE_DISABLE;
 				break;
 			}
 
-			else if(emg_ready_flag ==1) // line on
+			else if(emgReadyFlag ==1) // line on
 			{
-				if(emg_prsc ==0)
+				if(emgPrsc ==0)
 				{
-						MIT_EMG_read();
-						emg_peripheral_state = EMG_PERIPH_RECEIVE_WAIT;
+						mitEmgRead();
+						emgPeripheralState = EMG_PERIPH_RECEIVE_WAIT;
 				}
 
-				if(emg_timer>EMG_TIMER_PRESCALER*5)
+				if(emgTimer>EMG_TIMER_PRESCALER*5)
 				{
-//					emg_state = EMG_STATE_WAIT; //just go back to wait state
-					emg_state = EMG_STATE_DEINIT; //Reboot I2C peripheral
-					emg_timer = 0;
-					emg_peripheral_state = EMG_PERIPH_READY;
+//					emgState = EMG_STATE_WAIT; //just go back to wait state
+					emgState = EMG_STATE_DEINIT; //Reboot I2C peripheral
+					emgTimer = 0;
+					emgPeripheralState = EMG_PERIPH_READY;
 				}
 
-				emg_prsc++;
-				if(emg_prsc>= EMG_TIMER_PRESCALER)
-					emg_prsc =0;
+				emgPrsc++;
+				if(emgPrsc>= EMG_TIMER_PRESCALER)
+					emgPrsc =0;
 			}
 
-			else if(emg_ready_flag!=1)
+			else if(emgReadyFlag!=1)
 			{
-				emg_timer = 0;
-				emg_state = EMG_STATE_INACTIVE;
+				emgTimer = 0;
+				emgState = EMG_STATE_INACTIVE;
 
-				emg_peripheral_state == EMG_PERIPH_READY;
+				emgPeripheralState == EMG_PERIPH_READY;
 			}
 			break;
 
 		case EMG_STATE_DEINIT:
-			if(emg_timer >=EMG_DEINIT_PERIOD )
+			if(emgTimer >=EMG_DEINIT_PERIOD )
 			{
-				emg_timer = 0;
+				emgTimer = 0;
 				disable_i2c2();
-				emg_state = EMG_STATE_RECOVER;
+				emgState = EMG_STATE_RECOVER;
 			}
 			break;
 		case EMG_STATE_RECOVER:
-			if(emg_timer == EMG_DEINIT_PERIOD)
+			if(emgTimer == EMG_DEINIT_PERIOD)
 			{
 				init_i2c2();
 			}
-			else if(emg_timer>= EMG_DEINIT_PERIOD*2)
+			else if(emgTimer>= EMG_DEINIT_PERIOD*2)
 			{
-				emg_timer = 0;
-				emg_state = EMG_STATE_WAIT;
+				emgTimer = 0;
+				emgState = EMG_STATE_WAIT;
 			}
 			break;
 		default:
 			break;
 	}
-		emg_timer++;
+		emgTimer++;
 }
 
-uint8_t MIT_EMG_getState(void) //read value when only 1 is returned
+/*
+ * get an integer value representation of the state of the emg.
+ * if emgReadyFlag and emgOnFlag both equal 1, and the emgState is EMG_STATE_READ, then the state is 1.
+ * Otherwise it is 0.
+ * Returns state(uint8_t): an integer value representation of the state
+ */
+uint8_t mitEmgGetState(void) //read value when only 1 is returned
 {
-	if( emg_ready_flag ==1 && emg_state == EMG_STATE_READ && emg_on_flag ==1 )
+	if( emgReadyFlag ==1 && emgState == EMG_STATE_READ && emgOnFlag ==1 )
 	{
 		return 1;
 	}
@@ -252,11 +278,14 @@ uint8_t MIT_EMG_getState(void) //read value when only 1 is returned
 	}
 
 }
-
-void MIT_EMG_changeState(uint8_t on)
+/*
+ * If on is between 0 and 1, set emgOnFlag to the value on. Otherwise do nothing.
+ * Param: on(uint8_t): value to flag
+ */
+void mitEmgChangeState(uint8_t on)
 {
 	if( on >= 0 && on <= 1 )
-		emg_on_flag = on;
+		emgOnFlag = on;
 
 	return;
 }

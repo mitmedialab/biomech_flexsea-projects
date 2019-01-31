@@ -30,18 +30,6 @@
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-#include <stdint.h>
-#include "main.h"
-#include "user-mn.h"
-#include "user-mn-ActPack.h"
-#include "flexsea_sys_def.h"
-#include "flexsea_system.h"
-#include "flexsea_cmd_calibration.h"
-#include "flexsea_user_structs.h"
-#include <math.h>
-#include "timer.h"
-#include "dio.h"
-#include "calibration_tools.h"
 
 #include "user-mn-MIT-DLeg.h"
 #include "actuator_functions.h"
@@ -54,9 +42,11 @@
 // Variable(s)
 //****************************************************************************
 
-float freq_input = 0.0;
-float freq_rad = 0.0;
-float torq_input = 0.0;
+
+float freqInput = 0.0;
+float freqRad = 0.0;
+float torqInput = 0.0;
+
 int8_t onEntry = 0;
 Act_s act1;
 
@@ -79,25 +69,39 @@ extern float torqueKd;
 
 //MIT DLeg Finite State Machine.
 
-void init_MIT_DLeg(void) {
+/*
+ *  Initialize the Finite State Machine
+ */
+void initMITDLeg(void) {
 
 
 }
 
-//Call this function in one of the main while fsm_time slots.
-void MIT_DLeg_fsm_1(void)
+
+/*
+ *  Finite State Machine with multiple states.
+ *  Call this function in one of the main while fsmTime slots.
+ *  The possible states are as follows:
+ *  	STATE_POWER_ON
+ *  	STATE_INITIALIZE_SENSORS
+ *  	STATE_FIND_POLES
+ *  	STATE_INIT_USER_WRITES
+ *  	STATE_MAIN
+ *  	STATE_DEBUG
+ */
+void MITDLegFsm1(void)
 {
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
-    static uint32_t fsm_time = 0;
+    static uint32_t fsmTime = 0;
 
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
-    fsm_time++;
-	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
-	rigid1.mn.genVar[1] = (int16_t) (act1.tauDes*100);
-	rigid1.mn.genVar[2] = (int16_t) (act1.desiredCurrent);
-	rigid1.mn.genVar[3] = (int16_t) (act1.jointTorque*100.);
-	rigid1.mn.genVar[4] = (int16_t) (act1.jointAngleDegrees*100.);
+    fsmTime++;
+	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
+	  rigid1.mn.genVar[1] = (int16_t) (act1.tauDes*100);
+	  rigid1.mn.genVar[2] = (int16_t) (act1.desiredCurrent);
+	  rigid1.mn.genVar[3] = (int16_t) (act1.jointTorque*100.);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.jointAngleDegrees*100.);
 
 
     //begin main FSM
@@ -105,14 +109,14 @@ void MIT_DLeg_fsm_1(void)
 	{
 		//this state is always reached
 		case STATE_POWER_ON:
-			stateMachine.current_state = STATE_IDLE;
+			stateMachine.currentState = STATE_IDLE;
 			//Same power-on delay as FSM2:
-			if(fsm_time >= AP_FSM2_POWER_ON_DELAY) {
+			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 				//sensor update happens in mainFSM2(void) in main_fsm.c
 
 				isEnabledUpdateSensors = 1;
 				onEntry = 1;
-				fsm_time = 0;
+				fsmTime = 0;
 				fsm1State = STATE_INITIALIZE_SENSORS;
 			}
 
@@ -120,7 +124,7 @@ void MIT_DLeg_fsm_1(void)
 
 		case STATE_INITIALIZE_SENSORS:
 
-			if(fsm_time >= AP_FSM2_POWER_ON_DELAY) {
+			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 
 				#ifndef NO_DEVICE
 					fsm1State = STATE_FIND_POLES;
@@ -139,7 +143,7 @@ void MIT_DLeg_fsm_1(void)
 
 //			stateMachine.current_state = STATE_INIT;
 			if (!actuatorIsCorrect(&act1)){
-				setLEDStatus(1,0,0); //solid red; needs reset
+				setLEDStatus(0,0,1); //flash red; needs reset
 			} else{
 				if (onEntry) {
 					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
@@ -152,7 +156,7 @@ void MIT_DLeg_fsm_1(void)
 				// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
 				if (FINDPOLES_DONE){
 					fsm1State = STATE_INIT_USER_WRITES;
-					fsm_time = 0;
+					fsmTime = 0;
 					isEnabledUpdateSensors = 1;
 
 				}
@@ -165,7 +169,9 @@ void MIT_DLeg_fsm_1(void)
 
 			/*reserve for additional initialization*/
 
-			mit_init_current_controller();		//initialize Current Controller with gains
+			mitInitCurrentController();		//initialize Current Controller with gains
+//					setControlMode(CTRL_OPEN, 0);		//open control for alternative testing
+
 
 			//Set usewrites to initial values
 			walkParams.initializedStateMachineVariables = 0;
@@ -178,7 +184,7 @@ void MIT_DLeg_fsm_1(void)
 			act1.safetyTorqueScalar = 1.0;
 
 			fsm1State = STATE_MAIN;
-			fsm_time = 0;
+			fsmTime = 0;
 			onEntry = 1;
 
 			break;
@@ -187,23 +193,21 @@ void MIT_DLeg_fsm_1(void)
 			{
 				updateUserWrites(&act1, &walkParams);
 				//TODO consider changing logic so onentry is only true for one cycle.
-				if (onEntry && fsm_time > DELAY_TICKS_AFTER_FIND_POLES) {
+				if (onEntry && fsmTime > DELAY_TICKS_AFTER_FIND_POLES) {
 					act1.currentOpLimit = CURRENT_LIMIT_INIT;
 					onEntry = 0;
 				}
 
 				// Inside here is where user code goes
 				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
-					//DEBUG
-					run_main_user_application(&act1);
-//					setMotorTorque(&act1, torq_input );
+
+					runMainUserApplication(&act1);
 
 				}
 
 				break;
 			}
 		case STATE_DEBUG:
-
 
 			break;
 
@@ -219,8 +223,12 @@ void MIT_DLeg_fsm_1(void)
 
 
 
-//Second state machine for the DLeg project
-void MIT_DLeg_fsm_2(void)
+
+/*
+ *  Second state machine for the DLeg project
+ *  Currently seems unused
+ */
+void MITDLegFsm2(void)
 {
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
@@ -237,16 +245,22 @@ void MIT_DLeg_fsm_2(void)
  * Their values are then used by udpateUserWrites to set function values.
  * These can be updated as necessary.
  * Do keep care to initialize and upate correctly.
- * Also note, the initial values will not show up in Plan, that must be manually entered*/
+ * Also note, the initial values will not show up in Plan, that must be manually entered
+ */
 
+/*
+ * Updates the Input values based off of user data
+ * Param: actx(Act_s) - Actuator structure to track sensor values
+ * Param: wParams(WalkParams) -
+ */
 void updateUserWrites(Act_s *actx, WalkParams *wParams){
-
-
+  
 	torqueKp 								= ( (float) user_data_1.w[0] ) /1000.0;	// Reduce overall torque limit.
 	torqueKi				 				= ( (float) user_data_1.w[1] ) /1000.0;	// Reduce overall torque limit.
 	torqueKd				 				= ( (float) user_data_1.w[2] ) /1000.0;	// Reduce overall torque limit.
-	torq_input									= ( (float) user_data_1.w[3] ) /1000.0;	// Reduce overall torque limit.
+	torqInput									= ( (float) user_data_1.w[3] ) /1000.0;	// Reduce overall torque limit.
 	//	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
+
 //	wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
 //	wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
 //	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
@@ -259,16 +273,21 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 
 }
 
+/*
+ * Initializes the Input values
+ * Param: actx(Act_s) - Actuator structure to track sensor values
+ * Param: wParams(WalkParams) -
+ */
 void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
 //	wParams->earlyStanceK0 = 6.23;
 //	wParams->earlyStanceKF = 0.1;
 //	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
-
+  
 	torqueKp				 				= 0.0; 	//user_data_1.w[0] = 100
 	torqueKi 								= 0.0;
 	torqueKd								= 0.0;
-	torq_input								= 0.0;
+	torqInput								= 0.0;
 //	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
 //	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
 //	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]

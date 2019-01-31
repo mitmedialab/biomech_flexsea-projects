@@ -96,10 +96,7 @@ enum ERROR_TYPES{
 
 #define SAFE_MODE_MOTOR_POSITION_SETPOINT_RAD JOINT_ZERO
 
-
 //shared LED codes used in main_fsm
-uint8_t l1;
-uint8_t l2;
-uint8_t l3;
+extern uint8_t l0, l1, l2;
 
 #endif /* FLEXSEA_PROJECTS_MIT_DLEG_INC_SAFETY_FUNCTIONS_H_ */

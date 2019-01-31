@@ -20,23 +20,22 @@
 // include in i2c fsm
 // include in i2c2 RxCplt callback
 
-#include "user-mn.h"
-
-#ifndef INC_MIT_FIR_H
-#define INC_MIT_FIR_H
-
-//****************************************************************************
-// Definitions
-//****************************************************************************
-
 //****************************************************************************
 // Include(s)
 //****************************************************************************
 #include "main.h"
 #include "flexsea_global_structs.h"
+#include "flexsea_user_structs.h"
+#include "flexsea.h"
 #include <stdlib.h>
 #include "stm32f4xx.h"
 #include "rigid.h"
+#include "user-mn.h"
+//****************************************************************************
+// Definitions
+//****************************************************************************
+#ifndef INC_MIT_FIR_H
+#define INC_MIT_FIR_H
 
 //****************************************************************************
 // Shared variable(s)
@@ -45,9 +44,9 @@
 //****************************************************************************
 // Prototype(s):
 //****************************************************************************
-void  init_MIT_FIR(void);
-float MIT_FIR_filter1kHz(float input);
-void  MIT_FIR_latchInput(float n);
+void  initMitFir(void);
+float mitFirFilter1kHz(float input);
+void  mitFirLatchInput(float n);
 
 //****************************************************************************
 // Definition(s):

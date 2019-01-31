@@ -15,23 +15,17 @@
 	*
 ****************************************************************************/
 
-#include <software_filter.h>
-#include "user-mn.h"
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-#include "main.h"
-#include "flexsea_global_structs.h"
-#include "flexsea_user_structs.h"
-#include "flexsea.h"
-
+#include <software_filter.h>
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
 #ifdef LPF1 // Passband 100Hz, Stopband 200Hz
 #define N 26
-float fir_filter[N] = {
+float firFilter[N] = {
 	0.00092,0.00336,0.00667,0.00755,0.00103,-0.01548,-0.03696,-0.04899,-0.03326,0.0209,
 	0.10577,0.19408,0.25055,0.25055,0.19408,0.10577,0.0209,-0.03326,-0.04899,-0.03696,
 	-0.01548,0.00103,0.00755,0.00667,0.00336,0.00092
@@ -40,7 +34,7 @@ float fir_filter[N] = {
 
 #ifdef LPF2 // Passband 50Hz, Stopband 100Hz
 #define N 51
-float fir_filter[N] = {
+float firFilter[N] = {
 	0.00029,0.00062,0.00113,0.00174,0.0023,0.00257,0.00228,0.00112,-0.00116,-0.00464,
 	-0.00916,-0.01428,-0.01924,-0.02301,-0.02443,-0.02236,-0.01591,-0.00461,0.0114,0.031290,
 	0.05362,0.07638,0.09734,0.11425,0.12524,0.12905,0.12524,0.11425,0.09734,0.07638,
@@ -52,7 +46,7 @@ float fir_filter[N] = {
 
 #ifdef LPF3 // Passband 50Hz, Stopband 70Hz
 
-//float fir_filter[N] = {
+//float firFilter[N] = {
 //	0.00002,-0.00012,-0.00024,-0.00045,-0.00075,-0.00116,-0.00167,-0.00226,-0.00291,-0.00357,
 //	-0.00418,-0.00468,-0.00499,-0.00505,-0.00481,-0.00424,-0.00333,-0.00214,-0.00073,0.00078,
 //	0.00226,0.00355,0.0045,0.00497,0.00489,0.00419,0.00293,0.00118,-0.00087,-0.00301,
@@ -69,7 +63,7 @@ float fir_filter[N] = {
 //};
 #define N 145
 // Passband 35Hz, Stopband 70Hz
-float fir_filter[N] = {
+float firFilter[N] = {
 		-1.16056454095328e-05,-1.74755813296825e-05,-2.21105457303896e-05,-2.33020676380724e-05,
 		-1.86708800205725e-05,-6.15861968228209e-06,1.53838813625615e-05,4.56063149007905e-05,
 		8.21870080295132e-05,0.000120608206131029,0.000154292853838001,0.000175177608791988,
@@ -111,7 +105,7 @@ float fir_filter[N] = {
 
 #ifdef LPF4 // Passband 35Hz, Stopband 70Hz
 #define N 73
-float fir_filter[N] = {
+float firFilter[N] = {
 	0.0002,0.00032,0.00053,0.0008,0.00111,0.00143,0.00171,0.0019,0.00192,0.0017,
 	0.00116,0.00025,-0.00107,-0.00281,-0.00492,-0.00733,-0.00989,-0.01239,-0.01461,-0.01626,
 	-0.01707,-0.01675,-0.01506,-0.01181,-0.00689,-0.00029,0.00788,0.0174,0.02794,0.03907,
@@ -123,40 +117,56 @@ float fir_filter[N] = {
 };
 #endif
 
-float fir_input[2*N];
-float fir_accbuf;
-float fir_output;
-uint8_t fir_index;
+float firInput[2*N];
+float firAccbuf;
+float firOutput;
+uint8_t firIndex;
 
-void init_MIT_FIR(void)
+//****************************************************************************
+// Method(s)
+//****************************************************************************
+
+/*
+ *  Initializes the ______
+ */
+void initMitFir(void)
 {
-	memset(fir_input,0, 2*N);
-	fir_accbuf = 0;
-	fir_output = 0;
-	fir_index = 0;
+	memset(firInput,0, 2*N);
+	firAccbuf = 0;
+	firOutput = 0;
+	firIndex = 0;
 	return;
 }
 
-float MIT_FIR_filter1kHz(float input)
+/*
+ *  Definition
+ *  Param: n(float) -
+ *  Return: firOutput(float) -
+ */
+float mitFirFilter1kHz(float input)
 {
 	MIT_FIR_latchInput(input);
 
-	fir_output=0;
+	firOutput=0;
 	for(uint8_t i=0;i<N;i++)
 	{
-		fir_output += fir_filter[i] * fir_input[fir_index+N-i];
+		firOutput += firFilter[i] * firInput[firIndex+N-i];
 	}
 
-	return fir_output;
+	return firOutput;
 }
 
-void MIT_FIR_latchInput(float n)
+/*
+ *  Definition
+ *  Param: n(float) -
+ */
+void mitFirLatchInput(float n)
 {
-	fir_index++;
-	if(fir_index>=N)
-		fir_index = 0;
+	firIndex++;
+	if(firIndex>=N)
+		firIndex = 0;
 
-	fir_input[fir_index] = n;
-	fir_input[fir_index+N] = n;
+	firInput[firIndex] = n;
+	firInput[firIndex+N] = n;
 	return;
 }
