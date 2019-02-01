@@ -10,6 +10,7 @@
 // Include(s)
 //****************************************************************************
 #include "safety_functions.h"
+#if defined INCLUDE_UPROJ_MIT_DLEG
 
 //****************************************************************************
 // Definitions
@@ -481,5 +482,4 @@ void handleSafetyConditions(Act_s *actx) {
 
 }
 
-
-
+#endif	//#if defined INCLUDE_UPROJ_MIT_DLEG

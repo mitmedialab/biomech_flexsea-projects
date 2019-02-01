@@ -66,6 +66,7 @@ void reset_user_code(void);
 #define PROJECT_UMICH_KNEE		6	//University of Michigan's Knee
 #define PROJECT_POCKET_2XDC		7	//FlexSEA-Pocket, 2x Brushed DC
 #define PROJECT_MIT_DLEG		8	//Biomechatronics' Rigid + Relative encoder
+#define PROJECT_MIT_RUNNING_EXO	9	//Biomechatronics' Autonomous Exoskeleton
 
 //List of sub-projects:
 #define SUBPROJECT_NONE			0
@@ -81,7 +82,7 @@ void reset_user_code(void);
 //Step 1) Select active project (from list):
 //==========================================
 
-#define ACTIVE_PROJECT			PROJECT_MIT_DLEG
+#define ACTIVE_PROJECT			PROJECT_MIT_RUNNING_EXO
 #define ACTIVE_SUBPROJECT		SUBPROJECT_A
 
 //Step 2) Customize the enabled/disabled sub-modules:
@@ -415,6 +416,30 @@ void reset_user_code(void);
 
 #endif	//PROJECT_DEPHY
 
+//Biomechatronis' Autonomous Exoskeleton
+#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
+	//Enable/Disable sub-modules:
+	#define USE_USB
+	#define USE_COMM			//Requires USE_RS485 and/or USE_USB
+	#define USE_I2C_1			//3V3, IMU & Digital pot
+	#define USE_I2C_2			//3V3, Expansion
+	#define USE_I2C_3			//Onboard, Regulate & Execute
+	#define USE_IMU				//Requires USE_I2C_1
+	#define USE_UART3			//Bluetooth #1
+	#define USE_EEPROM			//Emulated EEPROM, onboard FLASH
+	//#define USE_WATCHDOG		//Independent watchdog (IWDG)
+
+	#define CO_ENABLE_ACTPACK			//For using ActPack Functions
+
+	//Runtime finite state machine (FSM):
+	#define RUNTIME_FSM1		ENABLED	//Enable only if you DO NOT use Plan
+	#define RUNTIME_FSM2		ENABLED	//Enable at all time, Mn <> Ex comm.
+
+	//Multiple DOF
+	//TODO:consider as two individual boards for now (code is identical)
+	#define MULTI_DOF_N			0		//
+
+#endif //#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
 //****************************************************************************
 // Structure(s)
 //****************************************************************************

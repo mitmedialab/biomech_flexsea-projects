@@ -4,7 +4,6 @@
  *  Created on: Jan 8, 2019
  *      Author: matt
  */
-
 #ifndef FLEXSEA_PROJECTS_MIT_DLEG_INC_SAFETY_FUNCTIONS_H_
 #define FLEXSEA_PROJECTS_MIT_DLEG_INC_SAFETY_FUNCTIONS_H_
 
@@ -23,6 +22,8 @@
 #include "user-mn-MIT-DLeg.h"
 
 #include "ui.h"
+
+#if (ACTIVE_PROJECT == PROJECT_MIT_DLEG)//FIXME: Why is this guard not working?
 
 
 //methods
@@ -97,6 +98,9 @@ enum ERROR_TYPES{
 #define SAFE_MODE_MOTOR_POSITION_SETPOINT_RAD JOINT_ZERO
 
 //shared LED codes used in main_fsm
-extern uint8_t l0, l1, l2;
+extern uint8_t l0, l1, l2;	//FIXME: Values used in src/main_fsm.c
+
+#endif //#if (ACTIVE_PROJECT == PROJECT_MIT_DLEG)
+
 
 #endif /* FLEXSEA_PROJECTS_MIT_DLEG_INC_SAFETY_FUNCTIONS_H_ */

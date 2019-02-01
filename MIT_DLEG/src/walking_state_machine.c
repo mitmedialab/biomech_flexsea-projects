@@ -3,6 +3,9 @@
 extern "C" {
 #endif
 
+#if (defined INCLUDE_UPROJ_MIT_DLEG && defined BOARD_TYPE_FLEXSEA_MANAGE) || defined BOARD_TYPE_FLEXSEA_PLAN
+
+
 //****************************************************************************
 // Include(s)
 //****************************************************************************
@@ -268,8 +271,10 @@ void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams) {
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
 
+#endif //#if (defined INCLUDE_UPROJ_MIT_DLEG && defined BOARD_TYPE_FLEXSEA_MANAGE) || defined BOARD_TYPE_FLEXSEA_PLAN
+
+
 #ifdef __cplusplus
 }
 #endif
-
 

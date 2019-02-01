@@ -13,6 +13,7 @@
 //****************************************************************************
 
 #include "actuator_functions.h"
+#if defined INCLUDE_UPROJ_MIT_DLEG
 
 
 //****************************************************************************
@@ -748,3 +749,6 @@ void updateSensorValues(struct act_s *actx)
 		isTempLimit = 0;
 	}
 }
+
+#endif //#if defined INCLUDE_UPROJ_MIT_DLEG
+

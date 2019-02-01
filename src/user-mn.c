@@ -138,6 +138,11 @@ void init_user(void)
 	init_MIT_PocketClimb();
 	#endif	//PROJECT_POCKET_2XDC
 
+	//MIT Biomechatronics'Autonomous Exoskeleton
+	#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
+	init_runningExo();
+	#endif	//#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
+
 	//Dephy's Actuator Package (ActPack)
 	#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 	init_ActPack();
@@ -188,6 +193,11 @@ void user_fsm_1(void)
 		#if(ACTIVE_PROJECT == PROJECT_POCKET_2XDC)
 		MIT_PocketClimb_fsm_1();
 		#endif	//PROJECT_POCKET_2XDC
+
+		//MIT Biomechatronics'Autonomous Exoskeleton
+		#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
+		RunningExo_fsm_1();
+		#endif	//#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
 
 		//Dephy's Actuator Package (ActPack)
 		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
@@ -246,6 +256,12 @@ void user_fsm_2(void)
 		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK && (ACTIVE_PROJECT != PROJECT_MIT_DLEG) )
 		ActPack_fsm_2();
 		#endif	//PROJECT_ACTPACK
+
+		//MIT Biomechatronics'Autonomous Exoskeleton
+		#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
+		RunningExo_fsm_1();
+		#endif	//#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
+
 
 		#ifdef DEPHY
 		dephy_fsm_2();
