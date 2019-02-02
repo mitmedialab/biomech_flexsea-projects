@@ -608,33 +608,29 @@ static float windowSmoothAxial(float val) {
  */
 void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
 {
-	// Saturate desired torque
-		if (tauDes > ABS_TORQUE_LIMIT_INIT) {
-				tauDes = ABS_TORQUE_LIMIT_INIT;
-		} else if (tauDes < -ABS_TORQUE_LIMIT_INIT) {
-			tauDes = -ABS_TORQUE_LIMIT_INIT;
-		}
-		actx->tauDes = tauDes;
+//Angle Limit bumpers
+	actx->tauDes = tauDes + actuateAngleLimits(actx);
+	actx->tauMeas = actx->jointTorque;
 
-		float N = actx->linkageMomentArm * N_SCREW;	// Drivetrain Reduction Ratio
+	static float tauErrLast = 0, tauErrInt = 0;
+	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
-		//Angle Limit bumpers
-		float tauCOutput = actx->tauDes + actuateAngleLimits(actx);
+	// motor current signal
+	int32_t I = (int32_t) ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes * CURRENT_SCALAR_INIT);
 
-		// motor current signal
-		int32_t I = (int32_t) ( 1/(MOT_KT * N * N_ETA) * tauCOutput * CURRENT_SCALAR_INIT);
+	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+	if (I > actx->currentOpLimit)
+	{
+		I = actx->currentOpLimit;
+	} else if (I < -actx->currentOpLimit)
+	{
+		I = -actx->currentOpLimit;
+	}
 
-		//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
-		if (I > actx->currentOpLimit)
-		{
-			I = actx->currentOpLimit;
-		} else if (I < -actx->currentOpLimit)
-		{
-			I = -actx->currentOpLimit;
-		}
+	actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
 
-		actx->desiredCurrent = I; 	// demanded mA
-		setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+
 }
 
 /*
