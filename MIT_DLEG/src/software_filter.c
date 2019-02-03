@@ -145,7 +145,7 @@ void initMitFir(void)
  */
 float mitFirFilter1kHz(float input)
 {
-	MIT_FIR_latchInput(input);
+	mitFirLatchInput(input);
 
 	firOutput=0;
 	for(uint8_t i=0;i<N;i++)
@@ -170,3 +170,100 @@ void mitFirLatchInput(float n)
 	firInput[firIndex+N] = n;
 	return;
 }
+
+
+
+/*
+ * Matt's Version of Software FIR Filter
+ *
+ */
+#define SOFT_FIR_LPF1
+
+#ifdef SOFT_FIR_LPF1 // Passband 100Hz, Stopband 200Hz
+#define FIR_SAMPLE_SIZE 51
+float SoftFirFilter[FIR_SAMPLE_SIZE] = {
+	0.00029,0.00062,0.00113,0.00174,0.0023,0.00257,0.00228,0.00112,-0.00116,-0.00464,
+	-0.00916,-0.01428,-0.01924,-0.02301,-0.02443,-0.02236,-0.01591,-0.00461,0.0114,0.031290,
+	0.05362,0.07638,0.09734,0.11425,0.12524,0.12905,0.12524,0.11425,0.09734,0.07638,
+	0.05362,0.03129,0.0114,-0.00461,-0.01591,-0.02236,-0.02443,-0.02301,-0.01924,-0.01428,
+	-0.00916,	-0.00464,-0.00116,0.00112,0.00228,0.00257,0.0023,0.00174,0.00113,0.00062,
+	0.00029
+};
+#endif
+
+
+float softFirFiltBuffer[FIR_SAMPLE_SIZE];
+float softFirFiltOutput;
+int16_t softFirIndex;
+int16_t circCounter;
+
+
+void initSoftFIRFilt(void)
+{
+	memset(softFirFiltBuffer, 0, FIR_SAMPLE_SIZE);	// initialize input blocks
+	softFirFiltOutput = 0;							// initialize output
+	softFirIndex = 0;								// ititialize index
+}
+
+float runSoftFirFilt(float inputVal)
+{
+	float result = 0;
+	int16_t i = 0;
+	softFirFiltBuffer[0] = inputVal;		// load new value into bottom of index
+
+	// filter the input using the accumulator
+	for (i = 0; i < FIR_SAMPLE_SIZE;  i++)
+	{
+		result += SoftFirFilter[i] * softFirFiltBuffer[i];
+	}
+
+	// Update the Filter History from reverse, incrementing saved values up one
+	for ( i = FIR_SAMPLE_SIZE-1; i > 0; i--)
+	{
+		softFirFiltBuffer[i] = softFirFiltBuffer[i-1];
+	}
+
+	return result;
+}
+
+
+void initCircularSoftFIRFilt(void)
+{
+	memset(softFirFiltBuffer, 0, FIR_SAMPLE_SIZE);	// initialize input blocks
+	softFirFiltOutput = 0;							// initialize output
+	softFirIndex = 0;
+	circCounter = 0;// initialize index
+}
+
+float runCircularSoftFirFilt(float inputVal)
+{
+	float result = 0;
+	int16_t i = 0;
+
+	++circCounter;	//increment circular counter
+	if(circCounter == FIR_SAMPLE_SIZE)
+	{
+		circCounter = 0;	//reset counter
+	}
+
+	softFirFiltBuffer[circCounter] = inputVal;		// load new value into bottom of index
+	softFirIndex = circCounter;
+
+
+	// filter the input using the accumulator
+	for (i = 0; i < FIR_SAMPLE_SIZE;  i++)
+	{
+		result += SoftFirFilter[i] * softFirFiltBuffer[softFirIndex];
+		--softFirIndex;
+		if(softFirIndex == -1)
+		{
+			softFirIndex = FIR_SAMPLE_SIZE-1;
+		}
+	}
+
+
+	return result;
+}
+
+
+

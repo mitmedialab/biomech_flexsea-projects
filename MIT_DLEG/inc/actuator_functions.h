@@ -31,11 +31,14 @@
 
 #include "walking_state_machine.h"
 #include "state_variables.h"
+//DEBUG
+#include "software_filter.h"
 
 
 // Initialization
-int8_t findPoles(void);
-void   mitInitCurrentController(void);
+int8_t 	findPoles(void);
+void   	mitInitCurrentController(void);
+void	mitInitOpenController(void);
 
 
 // Sensor values
@@ -46,10 +49,10 @@ float biomCalcImpedance(Act_s *actx, float k1, float b, float theta_set); 	// re
 void  setMotorTorque(struct act_s *actx, float tor_d);
 void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des);
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
-float frequencySweep(float omega, float t);
-float torqueSystemID(void);
+float torqueSystemIDFrequencySweep(float omega, float t, float amplitude);
+float torqueSystemIDPRBS(void);
 bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output); // integral term anti-windup clamp check
 float actuateAngleLimits(Act_s *actx);	// apply virtual spring/damper on angle limits
 float noLoadCurrent(float desCurr);
 
-#define WINDOW_SIZE 5
+#define WINDOW_SIZE 10

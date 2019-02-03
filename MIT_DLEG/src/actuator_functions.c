@@ -36,14 +36,11 @@ float currentScalar = CURRENT_SCALAR_INIT;
 
 
 //torque gain values
+// ARE THESE WORKING? CHECK THAT THEY'RE NOT BEING OVERWRITTEN BY USERWRITES!!!
 float torqueKp = TORQ_KP_INIT;
 float torqueKi = TORQ_KI_INIT;
 float torqueKd = TORQ_KD_INIT;
 
-//current gain values
-int16_t currentKp = ACTRL_I_KP_INIT;
-int16_t currentKi = ACTRL_I_KI_INIT;
-int16_t currentKd = ACTRL_I_KD_INIT;
 
 //motor param terms
 float motJ = MOT_J;
@@ -124,12 +121,33 @@ static void getJointAngleKinematic(struct act_s *actx)
 
 }
 
+/*
+ *  Filter using moving average.  This one works well for small window sizes
+ *  larger windowsizes gets better accuracy with windowAverageingLarge
+ *  uses WINDOW_SIZE
+ *  Param: currentVal(float) - current value given
+ *  Return: average(float) - e rolling average of all previous and current values
+ */
+//UNDERGRAD TODO: figure out whythis isn't working
+static float windowAveraging(float currentVal) {
+
+	static int16_t index = -1;
+	static float window[WINDOW_SIZE];
+	static float average = 0;
+
+	index = (index + 1) % WINDOW_SIZE;
+	average = average - window[index]/WINDOW_SIZE;
+	window[index] = currentVal;
+	average = average + window[index]/WINDOW_SIZE;
+
+	return average;
+}
 
 /**
  * Output axial force on screw
  * Return: axialForce(float) -  Force on the screw in NEWTONS
  */
-static float getAxialForce(void)
+static float getAxialForce(struct act_s *actx)
 {
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
@@ -147,7 +165,6 @@ static float getAxialForce(void)
 			//Tare the balance using average of numSamples readings
 			timer++;
 
-			//DEBUG
 			if(timer >= timerDelay && timer < numSamples + timerDelay) {
 				tareOffset += (strainReading)/numSamples;
 			} else if (timer >= numSamples + timerDelay) {
@@ -159,10 +176,12 @@ static float getAxialForce(void)
 		case 0:
 
 			axialForce =  FORCE_DIR * (strainReading - tareOffset) * forcePerTick;
-			//DEBUG
-//			axialForce =  FORCE_DIR * (strainReading) * forcePerTick;
+
 			// Filter the signal
-//			axialForce = windowAveraging(axialForce, 5);
+//			axialForce = 0.8*actx->axialForce + 0.2*axialForce;
+
+//			axialForce = runSoftFirFilt(axialForce);
+//			axialForce = mitFirFilter1kHz(axialForce);
 
 			break;
 
@@ -249,60 +268,7 @@ static float windowJointTorqueRate(struct act_s *actx) {
 }
 
 
-/*
- *  Filter using moving average.  This one works well for small window sizes
- *  larger windowsizes gets better accuracy with windowAverageingLarge
- *  uses WINDOW_SIZE
- *  Param: currentVal(float) - current value given
- *  Return: average(float) - e rolling average of all previous and current values
- */
-//UNDERGRAD TODO: figure out whythis isn't working
-static float windowAveraging(float currentVal) {
 
-	static int16_t index = -1;
-	static float window[WINDOW_SIZE];
-	static float average = 0;
-
-	index = (index + 1) % WINDOW_SIZE;
-	average = average - window[index]/WINDOW_SIZE;
-	window[index] = currentVal;
-	average = average + window[index]/WINDOW_SIZE;
-
-	return average;
-}
-
-/*
- *  Description
- *  Param:	actx(struct act_s) - Actuator structure to track sensor values
- *  Param: N(float) -
- *  Return: tauRestoring(float) -
- */
-static float calcRestoringCurrent(struct act_s *actx, float N) {
-	//Soft angle limits with virtual spring. Raise flag for safety check.
-
-	float angleDiff = 0;
-	float tauRestoring = 0;
-	float k = 0.2; // N/m
-	float b = 0; // Ns/m
-
-	//Oppose motion using linear spring with damping
-	if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
-
-		angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
-		angleDiff = pow(angleDiff,4);
-		tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
-
-	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
-
-		angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
-		angleDiff = pow(angleDiff,4);
-		tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
-
-	}
-
-	return tauRestoring;
-
-}
 
 /*
  * Update the joint torque rate in the Actuator structure
@@ -417,7 +383,7 @@ float noLoadCurrent(float desCurr) {
 void setMotorTorque(struct act_s *actx, float tauDes)
 {
 	//Angle Limit bumpers
-	actx->tauDes = tauDes + actuateAngleLimits(actx);
+	actx->tauDes = tauDes ;//+ actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
 	static float tauErrLast = 0, tauErrInt = 0;
@@ -440,6 +406,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	//Saturation limit on Torque
 	float tauCOutput = tauCCombined;
+
 	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
 		tauCOutput = ABS_TORQUE_LIMIT_INIT;
 	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
@@ -452,7 +419,9 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	}
 
 	// motor current signal
-	int32_t I = (int32_t) ( 1.0/(MOT_KT * N * N_ETA) * tauCOutput * CURRENT_SCALAR_INIT);
+	int32_t I = (int32_t) ( 1.0/(MOT_KT * N * N_ETA) * tauCOutput * CURRENT_SCALAR_INIT );
+
+	I = I + noLoadCurrent(I);	// Include current required to get moving
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
@@ -463,7 +432,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 		I = -actx->currentOpLimit;
 	}
 
-	actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
+	actx->desiredCurrent = I; 	// demanded mA
 
 	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
@@ -490,16 +459,23 @@ float biomCalcImpedance(Act_s *actx,float k1, float b, float thetaSet)
 }
 
 /*
- *  TODO: find out what this function does and how it is used
+ *  Initialize Current controller on Execute, Set initial gains.
  */
 void mitInitCurrentController(void) {
 
 	act1.currentOpLimit = CURRENT_ENTRY_INIT;
 	setControlMode(CTRL_CURRENT, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
-	setControlGains(currentKp, currentKi, currentKd, 0, DEVICE_CHANNEL);
+	setControlGains(ACTRL_I_KP_INIT, ACTRL_I_KI_INIT, ACTRL_I_KD_INIT, 0, DEVICE_CHANNEL);
 }
 
+void mitInitOpenController(void) {
+
+	act1.currentOpLimit = CURRENT_ENTRY_INIT;
+	setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
+	writeEx[DEVICE_CHANNEL].setpoint = 0;
+
+}
 
 /*
  *  Updates the static variables tim
@@ -612,11 +588,12 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
 	actx->tauDes = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
-	static float tauErrLast = 0, tauErrInt = 0;
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	// motor current signal
 	int32_t I = (int32_t) ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes * CURRENT_SCALAR_INIT);
+
+//	I = I + noLoadCurrent(I);	// Include current required to get moving
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
@@ -631,16 +608,20 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
 
 	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
+//	int32_t V = MOT_R * I + MOT_KT * *rigid1.ex.enc_ang_vel;
+
+//	setMotorVoltage(V, DEVICE_CHANNEL); // consider open volt control
+
 }
 
 /*
  * Compute where we are in frequency sweep
  * Param: omega(float) - ____ in RADIANS PER SECOND
  * Param: t(float) - time in SECONDS
- * Return: frequecy(float) - where in frequecy sweep the system currently is
+ * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
  */
-float frequencySweep(float omega, float t){
-	return sinf(omega * ( t  ) );
+float torqueSystemIDFrequencySweep(float omega, float t, float amplitude){
+	return amplitude * sinf(omega * ( t  ) );
 }
 
 /*
@@ -649,7 +630,7 @@ float frequencySweep(float omega, float t){
  * Start when received signal
  * Return: torqueSetPoint(float) - TODO:find out what this value represents
  */
-float torqueSystemID(void)
+float torqueSystemIDPRBS(void)
 {
 	// Pseudo Random Binary for systemID
 	static const int16_t inputDataSet[2047] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1};
@@ -714,11 +695,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
 	actx->motorPosNeutral = 0;		// TODO: set this on startup, include in the motor/joint angle transformations
 
-
-//	actx->axialForce = 0.8*actx->axialForce + 0.2*getAxialForce();	// Filter signal
-	actx->axialForce = getAxialForce();
-	actx->axialForce = windowAveraging(actx->axialForce);	// Filter signal
-
+	actx->axialForce = getAxialForce(actx); //filtering happening inside function
 	actx->jointTorque = getJointTorque(actx);
 
 	updateJointTorqueRate(actx);
