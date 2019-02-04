@@ -38,6 +38,7 @@
 #include "run_main_user_application.h"	// This is where user application functions live
 #include "ui.h"
 
+
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -163,6 +164,7 @@ void MITDLegFsm1(void)
 			}
 
 
+
 			break;
 
 		case STATE_INIT_USER_WRITES:
@@ -188,6 +190,7 @@ void MITDLegFsm1(void)
 			onEntry = 1;
 
 			break;
+
 
 		case STATE_MAIN:
 			{
