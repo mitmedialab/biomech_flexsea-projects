@@ -16,7 +16,7 @@
 
 
 
-void run_main_user_application(Act_s *actx);
+void run_main_user_application(Act_s *actx, struct rigid_s* rigid);
 
 #endif
 

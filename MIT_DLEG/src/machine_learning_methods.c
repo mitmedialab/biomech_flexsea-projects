@@ -85,7 +85,7 @@ static void init_statistics(){
   stats.temp = (float*)calloc(N_FEATURES, sizeof(float));
   stats.x  = (float*)calloc( N_FEATURES, sizeof(float));
   stats.y  = (float*)calloc( N_FEATURES, sizeof(float));
-  stats.k_est = TASK_FL;
+  stats.k_est = K_FLAT;
 
   stats.updating_statistics_matrices = 1;
   stats.demux_state = STATS_READY_TO_UPDATE_STATISTICS;
@@ -134,7 +134,7 @@ static void init_predictor(){
 void update_statistics_demux(struct taskmachine_s* tm){
     switch (stats.demux_state){
       case STATS_BACK_ESTIMATE: //constant flops
-          stats.k_est = TASK_FL;
+          stats.k_est = K_FLAT;
           back_estimate(tm, &stats);
           stats.demux_state = STATS_UPDATE_CLASS_SUM;
       break;

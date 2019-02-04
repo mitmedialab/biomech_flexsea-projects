@@ -9,7 +9,7 @@
 #include "task_machine.h"
 
 int get_walking_state();
-void state_machine_demux(struct rigid_s* rigid, int k_est);
+void terrain_state_machine_demux(struct rigid_s* rigid, int current_terrain);
 
 #define HARDSTOP_STIFFNESS
 
@@ -33,7 +33,7 @@ struct ur_params_s
 	float late_stance_k_N_p_rad;
 	float late_stance_theta_rad;
 
-}
+};
 struct dr_params_s
 {
 	float swing_theta_rad;
@@ -43,7 +43,7 @@ struct dr_params_s
 	float late_stance_k_N_p_rad;
 	float late_stance_theta_rad;
 
-}
+};
 struct us_params_s
 {
 	float swing_theta_rad;
@@ -53,7 +53,7 @@ struct us_params_s
 	float late_stance_k_N_p_rad;
 	float late_stance_theta_rad;
 
-}
+};
 struct ds_params_s
 {
 	float swing_theta_rad;
@@ -63,20 +63,20 @@ struct ds_params_s
 	float late_stance_k_N_p_rad;
 	float late_stance_theta_rad;
 
-}
+};
 
 struct walking_params_s
 {
 	struct fl_params_s fl_params;
 	struct ur_params_s ur_params;
-	struct dr_params_s ds_params;
+	struct dr_params_s dr_params;
 	struct us_params_s us_params;
 	struct ds_params_s ds_params;
 
-}
+};
 
 enum Walking_States {
-   STATE_SW = 2,               /// 2
+   STATE_ESW = 2,               /// 2
    STATE_LSW = 3,                /// 3
    STATE_EST = 4,              /// 4
    STATE_LST = 5,               /// 5

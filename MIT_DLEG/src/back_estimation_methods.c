@@ -20,22 +20,22 @@ void back_estimate(struct taskmachine_s* tm, struct statistics_s* stats){
 	 tm->reset_back_estimator_trigger = 1;
 
 	if (be.max_stance_theta > DR_ANKLE_ANGLE_THRESH){
-	    stats->k_est = TASK_DR;
+	    stats->k_est = K_DRAMP;
 	    return;
 	}
 
 	if (be.prev_mean_sin_sq_attack_angle > US_SIN_SQ_ATTACK_ANGLE_THRESH && be.passed_us_z_thresh){
-	    stats->k_est = TASK_US;
+	    stats->k_est = K_USTAIRS;
 	    return;
 	}
 
 	if (be.min_stance_theta < UR_ANKLE_ANGLE_THRESH){
-	    stats->k_est = TASK_UR;
+	    stats->k_est = K_URAMP;
 	    return;
 	}
 
 	if (be.passed_ds_z_thresh && be.prev_passed_ds_z_thresh_samples < DS_Z_SAMPLE_THRESH && be.prev_min_stance_theta < DS_ANKLE_ANGLE_THRESH){
-	       stats->k_est = TASK_DS;
+	       stats->k_est = K_DSTAIRS;
 	       return;
 	}
 }

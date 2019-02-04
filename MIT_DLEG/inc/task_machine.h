@@ -8,6 +8,7 @@
 #include "user-mn-MIT-DLeg.h"
 #include <stdio.h>
 #include <math.h>
+#include "terrain_state_machine.h"
 
 //Copied from matlab pil simulation
  //Gait event thresholds
@@ -59,6 +60,9 @@
 //Copied from matlab pil simulation
 struct taskmachine_s
 {
+	uint8_t terrain_mode;
+	uint8_t do_update_learner;
+
 	
 	float latest_foot_static_samples;
     float elapsed_samples;
@@ -110,12 +114,23 @@ enum Task_Machine_States {
 	RUN_TASK_MACHINE,
 };
 
-enum Walking_Tasks {
-    TASK_FL = 0,
-    TASK_UR = 1,
-    TASK_DR = 2,
-    TASK_US = 3,
-    TASK_DS = 4,
+enum Terrain_Modes {
+	MODE_FLAT,
+	MODE_URAMP,
+	MODE_DRAMP,
+	MODE_USTAIRS,
+	MODE_DSTAIRS,
+	MODE_NOMINAL,
+	MODE_PREDICT,
+};
+
+enum Terrains {
+    K_FLAT = 0,
+	K_URAMP = 1,
+	K_DRAMP = 2,
+	K_USTAIRS = 3,
+	K_DSTAIRS = 4,
+	K_NOMINAL = 5,
 };
 
 enum Walking_Modes {

@@ -204,14 +204,14 @@ void MITDLegFsm1(void)
 				// Inside here is where user code goes
 				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 
-					runMainUserApplication(&act1);
+					runMainUserApplication(&act1, &rigid1);
 
 				}
 
 				break;
 			}
 		case STATE_DEBUG:
-			runMainUserApplication(&act1);
+			runMainUserApplication(&act1, &rigid1);
 			break;
 
         	default:
