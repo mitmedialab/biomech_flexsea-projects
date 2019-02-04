@@ -97,7 +97,7 @@ void MITDLegFsm1(void)
 
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
-	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
+	  rigid1.mn.genVar[0] = (int16_t) (314); //startedOverLimit;
 	  rigid1.mn.genVar[1] = (int16_t) (act1.tauDes*100);
 	  rigid1.mn.genVar[2] = (int16_t) (act1.desiredCurrent);
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointTorque*100.);
@@ -208,7 +208,7 @@ void MITDLegFsm1(void)
 				break;
 			}
 		case STATE_DEBUG:
-
+			runMainUserApplication(&act1);
 			break;
 
         	default:

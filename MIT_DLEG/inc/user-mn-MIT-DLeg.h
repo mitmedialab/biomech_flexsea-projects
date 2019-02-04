@@ -39,6 +39,7 @@
 #include "actuator_functions.h"
 #include "walking_state_machine.h"
 #include "state_variables.h"
+#include "run_main_user_application.h"
 
 
 
