@@ -195,7 +195,7 @@ void MITDLegFsm1(void)
 		case STATE_MAIN:
 			{
 				updateUserWrites(&act1, &walkParams);
-				//TODO consider changing logic so onentry is only true for one cycle.
+				//TODO consider changing logic so onEntry is only true for one cycle.
 				if (onEntry && fsmTime > DELAY_TICKS_AFTER_FIND_POLES) {
 					act1.currentOpLimit = CURRENT_LIMIT_INIT;
 					onEntry = 0;

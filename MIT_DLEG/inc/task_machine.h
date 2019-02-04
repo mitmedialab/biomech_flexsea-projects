@@ -36,7 +36,6 @@
 
 //Other important values
 #define PI 3.14159
-#define RAD_PER_DEG PI/180.0
 #define RAD_PER_DEG_X_SAMPLE_RATE_HZ RAD_PER_DEG * SAMPLE_RATE_HZ
 #define N_CLASSES 5
 

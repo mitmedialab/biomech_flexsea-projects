@@ -56,7 +56,6 @@ void terrain_state_machine_demux(struct rigid_s* rigid, int current_terrain){
 
 switch (state_machine_demux_state){
 		case STATE_ESW:
-
 			//TODO: add transition conditions
 	        if (1){
 	        	state_machine_demux_state++;
