@@ -143,7 +143,7 @@ struct taskmachine_s* get_task_machine(){
   return &tm;
 }
 
-void task_machine_demux(struct rigid_s* rigid){
+void task_machine_demux(struct rigid_s* rigid, Act_s* act){
 
   
   switch (task_machine_demux_state){
@@ -179,25 +179,25 @@ void task_machine_demux(struct rigid_s* rigid){
 
 		switch (tm.terrain_mode){
 			case MODE_NOMINAL:
-				terrain_state_machine_demux(rigid, K_NOMINAL);
+				terrain_state_machine_demux(&tm, rigid, act, K_NOMINAL);
 				break;
 			case MODE_FLAT:
-				terrain_state_machine_demux(rigid, K_FLAT);
+				terrain_state_machine_demux(&tm, rigid, act, K_FLAT);
 				break;
 			case MODE_URAMP:
-				terrain_state_machine_demux(rigid, K_URAMP);
+				terrain_state_machine_demux(&tm, rigid, act, K_URAMP);
 				break;
 			case MODE_DRAMP:
-				terrain_state_machine_demux(rigid, K_DRAMP);
+				terrain_state_machine_demux(&tm, rigid, act, K_DRAMP);
 				break;
 			case MODE_USTAIRS:
-				terrain_state_machine_demux(rigid, K_USTAIRS);
+				terrain_state_machine_demux(&tm, rigid, act, K_USTAIRS);
 				break;
 			case MODE_DSTAIRS:
-				terrain_state_machine_demux(rigid, K_DSTAIRS);
+				terrain_state_machine_demux(&tm, rigid, act, K_DSTAIRS);
 				break;
 			case MODE_PREDICT:
-				terrain_state_machine_demux(rigid, get_predictor()->k_pred);
+				terrain_state_machine_demux(&tm, rigid, act, get_predictor()->k_pred);
 				break;
 		}
 		break;

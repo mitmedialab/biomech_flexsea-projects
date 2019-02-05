@@ -8,71 +8,73 @@
 #include "flexsea_user_structs.h"
 #include "task_machine.h"
 
+
+
 int get_walking_state();
-void terrain_state_machine_demux(struct rigid_s* rigid, int current_terrain);
+struct control_params_s* get_control_params();
+void set_nominal_theta_rad(float theta_rad);
+void set_nominal_k_Nm_p_rad(float k_Nm_p_rad);
+void set_nominal_b_Nm_p_rps(float b_Nm_p_rps);
+void set_hard_stop_theta_rad(float hard_stop_theta_rad, int terrain);
+void set_hard_stop_k_Nm_p_rad(float hard_stop_k_Nm_p_rad, int terrain);
+void set_lsw_theta_rad(float lsw_theta_rad, int terrain);
+void set_est_k_Nm_p_rad(float est_k_Nm_p_rad, int terrain);
+void set_est_b_Nm_p_rps(float est_b_Nm_p_rps, int terrain);
+void set_lst_k_Nm_p_rad(float lst_k_Nm_p_rad, int terrain);
+void set_lst_b_Nm_p_rps(float lst_b_Nm_p_rps, int terrain);
+void set_lst_theta_rad(float lst_theta_rad, int terrain);
+void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain);
+void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int current_terrain);
 
-#define HARDSTOP_STIFFNESS
-
-struct fl_params_s
+struct nominal_control_params_s
 {
-	float foot_off_theta_rad;
-	float foot_strike_theta_rad;
-	float early_stance_b_Nm_p_rps;
-	float early_stance_k_N_p_rad;
-	float late_stance_b_Nm_p_rps;
-	float late_stance_k_N_p_rad;
-	float late_stance_theta_rad;
-	float hardstop_theta_rad;
+	float theta_rad;
+	float k_Nm_p_rad;
+	float b_Nm_p_rps;
 };
 
-struct ur_params_s
-{
-	float swing_theta_rad;
-	float hardstop_theta_rad;
-	float late_stance_b_Nm_p_rps;
-	float late_stance_k_N_p_rad;
-	float late_stance_theta_rad;
 
-};
-struct dr_params_s
+struct active_control_params_s
 {
-	float swing_theta_rad;
-	float early_stance_b_Nm_p_rps;
-	float early_stance_k_N_p_rad;
-	float late_stance_b_Nm_p_rps;
-	float late_stance_k_N_p_rad;
-	float late_stance_theta_rad;
+	float esw_theta_rad;
+	//uint16_t esw_lsw_min_samples;
 
-};
-struct us_params_s
-{
-	float swing_theta_rad;
-	float early_stance_b_Nm_p_rps;
-	float early_stance_k_N_p_rad;
-	float late_stance_b_Nm_p_rps;
-	float late_stance_k_N_p_rad;
-	float late_stance_theta_rad;
+	float hard_stop_theta_rad;
+	float hard_stop_k_Nm_p_rad;
+	
+	float lsw_theta_rad;
+	float est_k_Nm_p_rad;
+	float est_b_Nm_p_rps;
+	float lst_k_Nm_p_rad;
+	float lst_b_Nm_p_rps;
+	float lst_theta_rad;
 
-};
-struct ds_params_s
-{
-	float swing_theta_rad;
-	float early_stance_b_Nm_p_rps;
-	float early_stance_k_N_p_rad;
-	float late_stance_b_Nm_p_rps;	
-	float late_stance_k_N_p_rad;
-	float late_stance_theta_rad;
+	float est_lst_min_theta_rad;
+	// uint16_t lst_esw_min_low_torque_samples;
 
 };
 
-struct walking_params_s
-{
-	struct fl_params_s fl_params;
-	struct ur_params_s ur_params;
-	struct dr_params_s dr_params;
-	struct us_params_s us_params;
-	struct ds_params_s ds_params;
 
+struct terrain_dependent_control_params_s
+{
+	float* hard_stop_theta_rad;
+	float* hard_stop_k_Nm_p_rad;
+	
+	float* lsw_theta_rad;
+	float* est_k_Nm_p_rad;
+	float* est_b_Nm_p_rps;
+	float* lst_k_Nm_p_rad;
+	float* lst_b_Nm_p_rps;
+	float* lst_theta_rad;
+
+	float* est_lst_min_theta_rad;
+
+};
+
+struct control_params_s{
+	 struct terrain_dependent_control_params_s terrdep;
+ 	struct active_control_params_s active;
+	struct nominal_control_params_s nominal;
 };
 
 enum Walking_States {

@@ -11,6 +11,6 @@
 #include "actuator_functions.h"
 #include "task_machine.h"
 
-void runMainUserApplication(Act_s *actx, struct rigid_s* rigid){
-	task_machine_demux(rigid);
+void runMainUserApplication(struct rigid_s* rigid, Act_s *actx){
+	task_machine_demux(rigid, actx);
 }

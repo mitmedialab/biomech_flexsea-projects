@@ -103,7 +103,7 @@ struct taskmachine_s
 
 
 struct taskmachine_s* get_task_machine();
-void task_machine_demux(struct rigid_s* rigid);
+void task_machine_demux(struct rigid_s* rigid, Act_s* act);
 
 
 enum Task_Machine_States {
