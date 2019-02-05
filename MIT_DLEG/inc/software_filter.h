@@ -58,7 +58,7 @@ float runCircularSoftFirFilt(float inputVal);
 // Definition(s):
 //****************************************************************************
 //#define LPF1 // Passband 100Hz, Stopband 200Hz
-#define LPF2 // Passband 50Hz, Stopband 100Hz
+//#define LPF2 // Passband 50Hz, Stopband 100Hz
 //#define LPF3 // Passband 50Hz, Stopband 70Hz
 //#define LPF4 // Passband 35Hz, Stopband 70Hz
 

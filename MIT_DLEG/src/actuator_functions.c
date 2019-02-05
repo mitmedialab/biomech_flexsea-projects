@@ -179,8 +179,8 @@ static float getAxialForce(struct act_s *actx)
 
 			// Filter the signal
 //			axialForce = 0.8*actx->axialForce + 0.2*axialForce;
-
-//			axialForce = runSoftFirFilt(axialForce);
+//			axialForce = windowAveraging(axialForce);
+			axialForce = runSoftFirFilt(axialForce);
 //			axialForce = mitFirFilter1kHz(axialForce);
 
 			break;
@@ -472,8 +472,11 @@ void mitInitCurrentController(void) {
 void mitInitOpenController(void) {
 
 	act1.currentOpLimit = CURRENT_ENTRY_INIT;
+
 	setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;
+	setControlGains(0, 0, 0, 0, DEVICE_CHANNEL);
+
 
 }
 
@@ -596,21 +599,27 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
 //	I = I + noLoadCurrent(I);	// Include current required to get moving
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
-	if (I > actx->currentOpLimit)
-	{
-		I = actx->currentOpLimit;
-	} else if (I < -actx->currentOpLimit)
-	{
-		I = -actx->currentOpLimit;
-	}
+//	if (I > actx->currentOpLimit)
+//	{
+//		I = actx->currentOpLimit;
+//	} else if (I < -actx->currentOpLimit)
+//	{
+//		I = -actx->currentOpLimit;
+//	}
 
-	actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
+//	actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
 
-	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
-//	int32_t V = MOT_R * I + MOT_KT * *rigid1.ex.enc_ang_vel;
 
-//	setMotorVoltage(V, DEVICE_CHANNEL); // consider open volt control
+	float Ifloat = ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes * CURRENT_SCALAR_INIT);
+	actx->desiredCurrent = Ifloat;// + noLoadCurrent(I); 	// demanded mA
+	rigid1.mn.genVar[8] = (int16_t) (Ifloat);
+	int32_t V = (int32_t) ( (MOT_R * Ifloat * 10.0 + ( (MOT_KT * actx->motorVel ) ) )  );
+
+
+	setMotorVoltage(V, DEVICE_CHANNEL); // consider open volt control
+	rigid1.mn.genVar[9] = (int16_t) (V);
 
 }
 

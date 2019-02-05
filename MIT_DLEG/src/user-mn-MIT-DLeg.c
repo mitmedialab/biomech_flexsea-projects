@@ -37,7 +37,7 @@
 #include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
 #include "run_main_user_application.h"	// This is where user application functions live
 #include "ui.h"
-#include "software_filter.h"
+
 
 //****************************************************************************
 // Variable(s)
@@ -98,17 +98,17 @@ void MITDLegFsm1(void)
 
     //Increment fsm_time (1 tick = 1ms nominally)
     fsmTime++;
-	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
-//	  rigid1.mn.genVar[0] = (int16_t) (rigid1.ex.enc_ang); //cpr, 16384 cpr
-	  rigid1.mn.genVar[1] = (int16_t) (act1.tauDes*1000.);
-	  rigid1.mn.genVar[2] = (int16_t) (act1.desiredCurrent);
-	  rigid1.mn.genVar[3] = (int16_t) (act1.jointTorque*1000.);
-	  rigid1.mn.genVar[4] = (int16_t) (act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[5] = (int16_t) (act1.jointVel*1000.);	// radians
-	  rigid1.mn.genVar[6] = (int16_t) act1.currentOpLimit/100;
-//	  rigid1.mn.genVar[7] = (int16_t) (rigid1.re.current);
-//	  rigid1.mn.genVar[8] = (int16_t) act1.desiredCurrent;
-//	  rigid1.mn.genVar[9] = (int16_t) (fsm1State);
+	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//erros
+//	  rigid1.mn.genVar[0] = (int16_t) (act1.tauDes*1000.);			// Nm
+	  rigid1.mn.genVar[1] = (int16_t) (act1.axialForce ); //(act1.jointTorque*1000.);		// Nm
+	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
+	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*1000.);	// deg
+	  rigid1.mn.genVar[4] = (int16_t) (*rigid1.ex.enc_ang_vel);		// comes in as rad/s
+	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
+	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
+	  rigid1.mn.genVar[7] = (int16_t) (rigid1.ex.mot_volt);			// mV
+	  rigid1.mn.genVar[8] = (int16_t) (act1.desiredCurrent); //(rigid1.re.current);			// mA
+//	  rigid1.mn.genVar[9] = (int16_t) (rigid1.re.vb);				// mV
 
 
     //begin main FSM
@@ -178,10 +178,10 @@ void MITDLegFsm1(void)
 
 			//Initialize Filters for Torque Sensing
 //			initMitFir();			// Initialize software filter
-//			initSoftFIRFilt();	// Initialize software filter
+			initSoftFIRFilt();	// Initialize software filter
 
-			mitInitCurrentController();		//initialize Current Controller with gains
-//					setControlMode(CTRL_OPEN, 0);		//open control for alternative testing
+//			mitInitCurrentController();		//initialize Current Controller with gains
+			mitInitOpenController();
 
 
 			//Set usewrites to initial values
@@ -213,11 +213,8 @@ void MITDLegFsm1(void)
 				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 
 //					float tor = biomCalcImpedance(&act1, 1.5, 0.2, 0);
-					float tor = torqueSystemIDFrequencySweep( (freqInput*2*M_PI), (fsmTime/SECONDS), torqInput);
-					setMotorTorqueOpenLoop( &act1, tor );
-					rigid1.mn.genVar[9] = (int16_t) (tor*1000.0);
-
-
+//					float tor = torqueSystemIDFrequencySweep( (freqInput*2*M_PI), (fsmTime/SECONDS), torqInput);
+//					setMotorTorqueOpenLoop( &act1, tor );
 
 //					runMainUserApplication(&act1);
 
