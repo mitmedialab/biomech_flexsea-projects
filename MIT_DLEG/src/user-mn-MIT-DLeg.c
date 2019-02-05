@@ -37,6 +37,8 @@
 #include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
 #include "run_main_user_application.h"	// This is where user application functions live
 #include "ui.h"
+#include "task_machine.h"
+#include "terrain_state_machine.h"
 
 
 //****************************************************************************
@@ -95,15 +97,13 @@ void MITDLegFsm1(void)
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
     static uint32_t fsmTime = 0;
-
-    //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
-	  rigid1.mn.genVar[0] = (int16_t) (314); //startedOverLimit;
-	  rigid1.mn.genVar[1] = (int16_t) (act1.tauDes*100);
-	  rigid1.mn.genVar[2] = (int16_t) (act1.desiredCurrent);
-	  rigid1.mn.genVar[3] = (int16_t) (act1.jointTorque*100.);
-	  rigid1.mn.genVar[4] = (int16_t) (act1.jointAngleDegrees*100.);
-
+	  rigid1.mn.genVar[0] = (int16_t) (get_control_params()->nominal.theta_rad); //startedOverLimit;
+	  rigid1.mn.genVar[1] = (int16_t) (get_control_params()->nominal.k_Nm_p_rad);
+	  rigid1.mn.genVar[2] = (int16_t) (get_control_params()->nominal.b_Nm_p_rps);
+	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle*1000.0);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.jointVel*1000.0);
+	  rigid1.mn.genVar[5] = (int16_t) (act1.tauDes*100.0);
 
     //begin main FSM
 	switch(fsm1State)
@@ -204,14 +204,15 @@ void MITDLegFsm1(void)
 				// Inside here is where user code goes
 				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 
-					runMainUserApplication(&act1, &rigid1);
+					runMainUserApplication( &rigid1, &act1);
 
 				}
 
 				break;
 			}
 		case STATE_DEBUG:
-			runMainUserApplication(&act1, &rigid1);
+			updateUserWrites(&act1, &walkParams);
+			runMainUserApplication(&rigid1, &act1);
 			break;
 
         	default:
@@ -257,21 +258,21 @@ void MITDLegFsm2(void)
  * Param: wParams(WalkParams) -
  */
 void updateUserWrites(Act_s *actx, WalkParams *wParams){
-  
-	torqueKp 								= ( (float) user_data_1.w[0] ) /1000.0;	// Reduce overall torque limit.
-	torqueKi				 				= ( (float) user_data_1.w[1] ) /1000.0;	// Reduce overall torque limit.
-	torqueKd				 				= ( (float) user_data_1.w[2] ) /1000.0;	// Reduce overall torque limit.
-	torqInput									= ( (float) user_data_1.w[3] ) /1000.0;	// Reduce overall torque limit.
-	//	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
 
-//	wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
-//	wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
-//	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
-//	lstPowerGains.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
-//	lstPowerGains.thetaDes 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
-//	lstPowerGains.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
-//	estGains.k1			 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
-//	estGains.b			 					= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
+	set_nominal_theta_rad( (float) user_data_1.w[0]  /1000.0);
+	set_nominal_k_Nm_p_rad( (float) user_data_1.w[1] /1000.0);	
+	set_nominal_b_Nm_p_rps ( (float) user_data_1.w[2] /1000.0);	
+
+	// int terrain = 0;
+	// set_hard_stop_theta_rad((float) user_data_1.w[0], terrain);
+	// set_hard_stop_k_Nm_p_rad((float) user_data_1.w[1], terrain);
+	// set_lsw_theta_rad((float) user_data_1.w[2], terrain);
+	// set_est_k_Nm_p_rad((float) user_data_1.w[3], terrain);
+	// set_est_b_Nm_p_rps((float) user_data_1.w[4], terrain);
+	// set_lst_k_Nm_p_rad((float) user_data_1.w[5], terrain);
+	// set_lst_b_Nm_p_rps((float) user_data_1.w[6], terrain);
+	// set_lst_theta_rad((float) user_data_1.w[7], terrain);
+	// set_est_lst_min_theta_rad((float) user_data_1.w[8], terrain);
 
 
 }

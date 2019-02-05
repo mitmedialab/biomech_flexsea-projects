@@ -54,6 +54,8 @@ static void init_task_machine(){
     tm.torque_raw = 0.0;
     tm.angle_raw = 0.0;
 
+    tm.tau_desired = 0.0;
+
 }
 
 
@@ -160,6 +162,10 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* act){
         init_kinematics();
         task_machine_demux_state = RUN_TASK_MACHINE;
     break;
+    case INIT_TERRAIN_STATE_MACHINE:
+            init_terrain_state_machine();
+            task_machine_demux_state = RUN_TASK_MACHINE;
+        break;
     case RUN_TASK_MACHINE:
 
 		simulate_ankle_torque();

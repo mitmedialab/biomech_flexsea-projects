@@ -99,6 +99,8 @@ struct taskmachine_s
     //subject specific params
     float weight_kg;
 
+    float tau_desired;
+
 };
 
 
@@ -110,6 +112,7 @@ enum Task_Machine_States {
 	INIT_TASK_MACHINE,
 	INIT_LEARNING,
 	INIT_KINEMATICS,
+	INIT_TERRAIN_STATE_MACHINE,
 	RUN_TASK_MACHINE,
 };
 

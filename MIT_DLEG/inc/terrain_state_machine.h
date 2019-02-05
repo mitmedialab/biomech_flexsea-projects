@@ -7,6 +7,7 @@
 #include <math.h>
 #include "flexsea_user_structs.h"
 #include "task_machine.h"
+#include "actuator_functions.h"
 
 
 
@@ -25,8 +26,9 @@ void set_lst_b_Nm_p_rps(float lst_b_Nm_p_rps, int terrain);
 void set_lst_theta_rad(float lst_theta_rad, int terrain);
 void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain);
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int current_terrain);
+void init_terrain_state_machine();
 
-struct nominal_control_params_s
+static struct nominal_control_params_s
 {
 	float theta_rad;
 	float k_Nm_p_rad;
@@ -34,7 +36,7 @@ struct nominal_control_params_s
 };
 
 
-struct active_control_params_s
+static struct active_control_params_s
 {
 	float esw_theta_rad;
 	//uint16_t esw_lsw_min_samples;
@@ -55,7 +57,7 @@ struct active_control_params_s
 };
 
 
-struct terrain_dependent_control_params_s
+static struct terrain_dependent_control_params_s
 {
 	float* hard_stop_theta_rad;
 	float* hard_stop_k_Nm_p_rad;

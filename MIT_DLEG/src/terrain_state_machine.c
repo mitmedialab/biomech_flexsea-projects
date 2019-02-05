@@ -2,11 +2,12 @@
 
 #include <terrain_state_machine.h>
 
+
 #define POSITION_CONTROL_GAIN_K 1.5 
 #define POSITION_CONTROL_GAIN_B 0.3
 
-#define DEFAULT_NOMINAL_K_NM_P_RAD 1.5
-#define DEFAULT_NOMINAL_B_NM_P_RPS 0.3
+#define DEFAULT_NOMINAL_K_NM_P_RAD 0.0
+#define DEFAULT_NOMINAL_B_NM_P_RPS 0.0
 #define DEFAULT_NOMINAL_THETA_RAD 0.0
 
 #define DEFAULT_FLAT_HS_THETA_RAD 0.0
@@ -144,9 +145,12 @@ static void init_terrain_dependent_control_params_s()
 
 }
 
-static void set_joint_torque(Act_s *actx, float theta, float k, float b) {
-
-	actx->tauDes = k * (theta - actx->jointAngle) - b * actx->jointVel ;
+static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b) {
+	tm->tau_desired = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
+	actx->tauDes = tm->tau_desired;
+	//tm->tau_desired = (des_theta - act1.jointAngle);
+	// tm->tau_desired = actx->tauDes;
+	setMotorTorque(actx, actx->tauDes);
 }
 
 static void set_control_params_for_terrain(int terrain){
@@ -161,6 +165,11 @@ static void set_control_params_for_terrain(int terrain){
 	cp.active.lst_theta_rad = cp.terrdep.lst_theta_rad[terrain];
 
 	cp.active.est_lst_min_theta_rad = cp.terrdep.est_lst_min_theta_rad[terrain];
+}
+
+void init_terrain_state_machine(){
+	init_nominal_control_params_s();
+	init_terrain_dependent_control_params_s();
 }
 
 int get_walking_state(){
@@ -221,7 +230,7 @@ static int prev_state_machine_demux_state = STATE_ESW;
 static float stance_entry_theta_rad = 0.0;
 
 if (current_terrain == K_NOMINAL){
-	set_joint_torque(actx, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps);
+	set_joint_torque(actx, tm, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps);
 	return;
 }
 
@@ -229,7 +238,7 @@ switch (state_machine_demux_state){
 	case STATE_ESW:
 		if (on_entry)
 			sample_counter = 0;
-		set_joint_torque(actx, POSITION_CONTROL_GAIN_K, POSITION_CONTROL_GAIN_B, cp.active.esw_theta_rad);
+		set_joint_torque(actx, tm, POSITION_CONTROL_GAIN_K, POSITION_CONTROL_GAIN_B, cp.active.esw_theta_rad);
         if (tm->stride_classified)
         	state_machine_demux_state = STATE_LSW;
         
@@ -237,7 +246,7 @@ switch (state_machine_demux_state){
     case STATE_LSW:
     	if (on_entry)
     		set_control_params_for_terrain(current_terrain);
-    	set_joint_torque(actx, POSITION_CONTROL_GAIN_K, POSITION_CONTROL_GAIN_B, cp.active.lsw_theta_rad);
+    	set_joint_torque(actx, tm, POSITION_CONTROL_GAIN_K, POSITION_CONTROL_GAIN_B, cp.active.lsw_theta_rad);
 
         if (!tm->in_swing){
         	state_machine_demux_state = STATE_EST;
@@ -247,7 +256,7 @@ switch (state_machine_demux_state){
     break;
     case STATE_EST:
         
-        set_joint_torque(actx, cp.active.est_k_Nm_p_rad, cp.active.est_b_Nm_p_rps, stance_entry_theta_rad);
+        set_joint_torque(actx, tm, cp.active.est_k_Nm_p_rad, cp.active.est_b_Nm_p_rps, stance_entry_theta_rad);
 
         if (actx->jointAngle < cp.active.est_lst_min_theta_rad){
         	state_machine_demux_state = STATE_LST;
@@ -256,7 +265,7 @@ switch (state_machine_demux_state){
     break;
     case STATE_LST:
 
-    	set_joint_torque(actx, cp.active.lst_k_Nm_p_rad, cp.active.lst_b_Nm_p_rps, cp.active.lst_theta_rad);
+    	set_joint_torque(actx, tm, cp.active.lst_k_Nm_p_rad, cp.active.lst_b_Nm_p_rps, cp.active.lst_theta_rad);
    	 	if (tm->in_swing){
         	state_machine_demux_state = STATE_ESW;
         }
