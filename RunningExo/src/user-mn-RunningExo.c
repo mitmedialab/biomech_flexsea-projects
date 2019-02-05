@@ -61,7 +61,7 @@ float torqueCommand;
 
 //initialize running exo system state
 struct runningExoSystemState runningExoState =
-{.state=0,.prevStanceDuration=0,.timer=0,.pedometer=0,.heelStrikeTime=0,.toeOffTime=0, .enableOutput=0, .running=0, .prevGaitDuration=0, .footFlatTime=0};	//zero initialization
+{.state=0,.prevStanceDuration=0,.timer=0,.pedometer=0,.heelStrikeTime=0,.toeOffTime=0, .enableOutput=0, .prevGaitDuration=0, .footFlatTime=0};	//zero initialization
 
 // initialize running exo sensor values struct
 actuation_parameters act_para =
@@ -111,7 +111,7 @@ void init_runningExo(void)
 //Call this function in one of the main while time slots.
 void RunningExo_fsm_1(void)
 {
-	#if(ACTIVE_PROJECT == PROJECT_RUNNING_EXO)
+	#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
 
     static uint32_t time = 0;
 
@@ -309,22 +309,16 @@ void trackTorque(void)
 	uint16_t currentIndex = 0;
 	lastPercentageStance = percentStance;
 	lastIndex = (int)(lastPercentageStance*(float)TABLE_SIZE);
-	percentStance = (float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration>1 ? 1:(float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration;//range=[0,1]
+	percentStance = (float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevGaitDuration>1 ? 1:(float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevGaitDuration;//range=[0,1]
 	currentIndex = (int)(percentStance*(float)TABLE_SIZE);
 	float torqueValue = 0;
 
-	if (runningExoState.running)
-	{
-		#ifdef RUNNING_TORQUE_TRACKING
-			torqueValue = unitRunningTorque[currentIndex]*bodyWeight*torqueProfileGain;
-		#endif
-	}
-	else
-	{
-		#ifdef WALKING_TORQUE_TRACKING
-			torqueValue = unitWalkingTorque[currentIndex]*bodyWeight*torqueProfileGain;
-		#endif
-	}
+	#ifdef RUNNING_TORQUE_TRACKING
+		torqueValue = unitRunningTorque[currentIndex]*bodyWeight*torqueProfileGain;
+	#endif
+	#ifdef WALKING_TORQUE_TRACKING
+		torqueValue = unitWalkingTorque[currentIndex]*bodyWeight*torqueProfileGain;
+	#endif
 
 	//Set motor output
 	//TODO: Unit conversion and casting

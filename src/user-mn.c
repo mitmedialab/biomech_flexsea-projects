@@ -259,7 +259,7 @@ void user_fsm_2(void)
 
 		//MIT Biomechatronics'Autonomous Exoskeleton
 		#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
-		RunningExo_fsm_1();
+		RunningExo_fsm_2();
 		#endif	//#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
 
 
