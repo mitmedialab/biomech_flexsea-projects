@@ -3,62 +3,7 @@
 #include <terrain_state_machine.h>
 
 
-#define POSITION_CONTROL_GAIN_K 1.5 
-#define POSITION_CONTROL_GAIN_B 0.3
 
-#define DEFAULT_NOMINAL_K_NM_P_RAD 0.0
-#define DEFAULT_NOMINAL_B_NM_P_RPS 0.0
-#define DEFAULT_NOMINAL_THETA_RAD 0.0
-
-#define DEFAULT_FLAT_HS_THETA_RAD 0.0
-#define DEFAULT_FLAT_HS_K_NM_P_RAD 0.0
-#define DEFAULT_FLAT_LSW_THETA_RAD 0.0
-#define DEFAULT_FLAT_EST_K_NM_P_RAD 0.0
-#define DEFAULT_FLAT_EST_B_NM_P_RPS 0.0
-#define DEFAULT_FLAT_LST_K_NM_P_RAD 0.0
-#define DEFAULT_FLAT_LST_B_NM_P_RPS 0.0
-#define DEFAULT_FLAT_LST_THETA_RAD 0.0
-#define DEFAULT_FLAT_EST_LST_MIN_THETA_RAD 0.0
-
-#define DEFAULT_URAMP_HS_THETA_RAD 0.0
-#define DEFAULT_URAMP_HS_K_NM_P_RAD 0.0
-#define DEFAULT_URAMP_LSW_THETA_RAD 0.0
-#define DEFAULT_URAMP_EST_K_NM_P_RAD 0.0
-#define DEFAULT_URAMP_EST_B_NM_P_RPS 0.0
-#define DEFAULT_URAMP_LST_K_NM_P_RAD 0.0
-#define DEFAULT_URAMP_LST_B_NM_P_RPS 0.0
-#define DEFAULT_URAMP_LST_THETA_RAD 0.0
-#define DEFAULT_URAMP_EST_LST_MIN_THETA_RAD 0.0
-
-#define DEFAULT_DRAMP_HS_THETA_RAD 0.0
-#define DEFAULT_DRAMP_HS_K_NM_P_RAD 0.0
-#define DEFAULT_DRAMP_LSW_THETA_RAD 0.0
-#define DEFAULT_DRAMP_EST_K_NM_P_RAD 0.0
-#define DEFAULT_DRAMP_EST_B_NM_P_RPS 0.0
-#define DEFAULT_DRAMP_LST_K_NM_P_RAD 0.0
-#define DEFAULT_DRAMP_LST_B_NM_P_RPS 0.0
-#define DEFAULT_DRAMP_LST_THETA_RAD 0.0
-#define DEFAULT_DRAMP_EST_LST_MIN_THETA_RAD 0.0
-
-#define DEFAULT_USTAIRS_HS_THETA_RAD 0.0
-#define DEFAULT_USTAIRS_HS_K_NM_P_RAD 0.0
-#define DEFAULT_USTAIRS_LSW_THETA_RAD 0.0
-#define DEFAULT_USTAIRS_EST_K_NM_P_RAD 0.0
-#define DEFAULT_USTAIRS_EST_B_NM_P_RPS 0.0
-#define DEFAULT_USTAIRS_LST_K_NM_P_RAD 0.0
-#define DEFAULT_USTAIRS_LST_B_NM_P_RPS 0.0
-#define DEFAULT_USTAIRS_LST_THETA_RAD 0.0
-#define DEFAULT_USTAIRS_EST_LST_MIN_THETA_RAD 0.0
-
-#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.0
-#define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 0.0
-#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.0
-#define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 0.0
-#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 0.0
-#define DEFAULT_DSTAIRS_LST_K_NM_P_RAD 0.0
-#define DEFAULT_DSTAIRS_LST_B_NM_P_RPS 0.0
-#define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
-#define DEFAULT_DSTAIRS_EST_LST_MIN_THETA_RAD 0.0
 
 static int state_machine_demux_state = STATE_EARLY_SWING;
 
@@ -76,95 +21,94 @@ static void init_nominal_control_params_s()
 static void init_terrain_dependent_control_params_s()
 {
 
-	cp.terrdep.hard_stop_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
-	cp.terrdep.hard_stop_k_Nm_p_rad = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.hard_stop_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.hard_stop_k_Nm_p_rad = (float*)calloc(N_CLASSES, sizeof(float));
 
-	cp.terrdep.lsw_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
-	cp.terrdep.est_k_Nm_p_rad = (float*)calloc(N_CLASSES, sizeof(float));
-	cp.terrdep.est_b_Nm_p_rps = (float*)calloc(N_CLASSES, sizeof(float));
-	cp.terrdep.lst_k_Nm_p_rad = (float*)calloc(N_CLASSES, sizeof(float));
-	cp.terrdep.lst_b_Nm_p_rps = (float*)calloc(N_CLASSES, sizeof(float));
-	cp.terrdep.lst_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.lsw_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.est_k_Nm_p_rad = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.est_b_Nm_p_rps = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.lst_k_Nm_p_rad = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.lst_b_Nm_p_rps = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.lst_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
 
-	cp.terrdep.est_lst_min_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.est_lst_min_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
 
+	cp.adaptive.hard_stop_theta_rad[K_FLAT] = DEFAULT_FLAT_HS_THETA_RAD;
+	cp.adaptive.hard_stop_theta_rad[K_URAMP] = DEFAULT_URAMP_HS_THETA_RAD;
+	cp.adaptive.hard_stop_theta_rad[K_DRAMP] = DEFAULT_DRAMP_HS_THETA_RAD;
+	cp.adaptive.hard_stop_theta_rad[K_USTAIRS] = DEFAULT_USTAIRS_HS_THETA_RAD;
+	cp.adaptive.hard_stop_theta_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_HS_THETA_RAD;
 
-	cp.terrdep.hard_stop_theta_rad[K_FLAT] = DEFAULT_FLAT_HS_THETA_RAD;
-	cp.terrdep.hard_stop_theta_rad[K_URAMP] = DEFAULT_URAMP_HS_THETA_RAD;
-	cp.terrdep.hard_stop_theta_rad[K_DRAMP] = DEFAULT_DRAMP_HS_THETA_RAD;
-	cp.terrdep.hard_stop_theta_rad[K_USTAIRS] = DEFAULT_USTAIRS_HS_THETA_RAD;
-	cp.terrdep.hard_stop_theta_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_HS_THETA_RAD;
+	cp.adaptive.hard_stop_k_Nm_p_rad[K_FLAT] = DEFAULT_FLAT_HS_K_NM_P_RAD;
+	cp.adaptive.hard_stop_k_Nm_p_rad[K_URAMP] = DEFAULT_URAMP_HS_K_NM_P_RAD;
+	cp.adaptive.hard_stop_k_Nm_p_rad[K_DRAMP] = DEFAULT_DRAMP_HS_K_NM_P_RAD;
+	cp.adaptive.hard_stop_k_Nm_p_rad[K_USTAIRS] = DEFAULT_USTAIRS_HS_K_NM_P_RAD;
+	cp.adaptive.hard_stop_k_Nm_p_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_HS_K_NM_P_RAD;
 
-	cp.terrdep.hard_stop_k_Nm_p_rad[K_FLAT] = DEFAULT_FLAT_HS_K_NM_P_RAD;
-	cp.terrdep.hard_stop_k_Nm_p_rad[K_URAMP] = DEFAULT_URAMP_HS_K_NM_P_RAD;
-	cp.terrdep.hard_stop_k_Nm_p_rad[K_DRAMP] = DEFAULT_DRAMP_HS_K_NM_P_RAD;
-	cp.terrdep.hard_stop_k_Nm_p_rad[K_USTAIRS] = DEFAULT_USTAIRS_HS_K_NM_P_RAD;
-	cp.terrdep.hard_stop_k_Nm_p_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_HS_K_NM_P_RAD;
+	cp.adaptive.lsw_theta_rad[K_FLAT] = DEFAULT_FLAT_LSW_THETA_RAD;
+	cp.adaptive.lsw_theta_rad[K_URAMP] = DEFAULT_URAMP_LSW_THETA_RAD;
+	cp.adaptive.lsw_theta_rad[K_DRAMP] = DEFAULT_DRAMP_LSW_THETA_RAD;
+	cp.adaptive.lsw_theta_rad[K_USTAIRS] = DEFAULT_USTAIRS_LSW_THETA_RAD;
+	cp.adaptive.lsw_theta_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_LSW_THETA_RAD;
 
-	cp.terrdep.lsw_theta_rad[K_FLAT] = DEFAULT_FLAT_LSW_THETA_RAD;
-	cp.terrdep.lsw_theta_rad[K_URAMP] = DEFAULT_URAMP_LSW_THETA_RAD;
-	cp.terrdep.lsw_theta_rad[K_DRAMP] = DEFAULT_DRAMP_LSW_THETA_RAD;
-	cp.terrdep.lsw_theta_rad[K_USTAIRS] = DEFAULT_USTAIRS_LSW_THETA_RAD;
-	cp.terrdep.lsw_theta_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_LSW_THETA_RAD;
+	cp.adaptive.est_k_Nm_p_rad[K_FLAT] = DEFAULT_FLAT_EST_K_NM_P_RAD;
+	cp.adaptive.est_k_Nm_p_rad[K_URAMP] = DEFAULT_URAMP_EST_K_NM_P_RAD;
+	cp.adaptive.est_k_Nm_p_rad[K_DRAMP] = DEFAULT_DRAMP_EST_K_NM_P_RAD;
+	cp.adaptive.est_k_Nm_p_rad[K_USTAIRS] = DEFAULT_USTAIRS_EST_K_NM_P_RAD;
+	cp.adaptive.est_k_Nm_p_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_EST_K_NM_P_RAD;
 
-	cp.terrdep.est_k_Nm_p_rad[K_FLAT] = DEFAULT_FLAT_EST_K_NM_P_RAD;
-	cp.terrdep.est_k_Nm_p_rad[K_URAMP] = DEFAULT_URAMP_EST_K_NM_P_RAD;
-	cp.terrdep.est_k_Nm_p_rad[K_DRAMP] = DEFAULT_DRAMP_EST_K_NM_P_RAD;
-	cp.terrdep.est_k_Nm_p_rad[K_USTAIRS] = DEFAULT_USTAIRS_EST_K_NM_P_RAD;
-	cp.terrdep.est_k_Nm_p_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_EST_K_NM_P_RAD;
+	cp.adaptive.est_b_Nm_p_rps[K_FLAT] = DEFAULT_FLAT_EST_B_NM_P_RPS;
+	cp.adaptive.est_b_Nm_p_rps[K_URAMP] = DEFAULT_URAMP_EST_B_NM_P_RPS;
+	cp.adaptive.est_b_Nm_p_rps[K_DRAMP] = DEFAULT_DRAMP_EST_B_NM_P_RPS;
+	cp.adaptive.est_b_Nm_p_rps[K_USTAIRS] = DEFAULT_USTAIRS_EST_B_NM_P_RPS;
+	cp.adaptive.est_b_Nm_p_rps[K_DSTAIRS] = DEFAULT_DSTAIRS_EST_B_NM_P_RPS;
 
-	cp.terrdep.est_b_Nm_p_rps[K_FLAT] = DEFAULT_FLAT_EST_B_NM_P_RPS;
-	cp.terrdep.est_b_Nm_p_rps[K_URAMP] = DEFAULT_URAMP_EST_B_NM_P_RPS;
-	cp.terrdep.est_b_Nm_p_rps[K_DRAMP] = DEFAULT_DRAMP_EST_B_NM_P_RPS;
-	cp.terrdep.est_b_Nm_p_rps[K_USTAIRS] = DEFAULT_USTAIRS_EST_B_NM_P_RPS;
-	cp.terrdep.est_b_Nm_p_rps[K_DSTAIRS] = DEFAULT_DSTAIRS_EST_B_NM_P_RPS;
+	cp.adaptive.lst_k_Nm_p_rad[K_FLAT] = DEFAULT_FLAT_LST_K_NM_P_RAD;
+	cp.adaptive.lst_k_Nm_p_rad[K_URAMP] = DEFAULT_URAMP_LST_K_NM_P_RAD;
+	cp.adaptive.lst_k_Nm_p_rad[K_DRAMP] = DEFAULT_DRAMP_LST_K_NM_P_RAD;
+	cp.adaptive.lst_k_Nm_p_rad[K_USTAIRS] = DEFAULT_USTAIRS_LST_K_NM_P_RAD;
+	cp.adaptive.lst_k_Nm_p_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_LST_K_NM_P_RAD;
 
-	cp.terrdep.lst_k_Nm_p_rad[K_FLAT] = DEFAULT_FLAT_LST_K_NM_P_RAD;
-	cp.terrdep.lst_k_Nm_p_rad[K_URAMP] = DEFAULT_URAMP_LST_K_NM_P_RAD;
-	cp.terrdep.lst_k_Nm_p_rad[K_DRAMP] = DEFAULT_DRAMP_LST_K_NM_P_RAD;
-	cp.terrdep.lst_k_Nm_p_rad[K_USTAIRS] = DEFAULT_USTAIRS_LST_K_NM_P_RAD;
-	cp.terrdep.lst_k_Nm_p_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_LST_K_NM_P_RAD;
+	cp.adaptive.lst_b_Nm_p_rps[K_FLAT] = DEFAULT_FLAT_LST_B_NM_P_RPS;
+	cp.adaptive.lst_b_Nm_p_rps[K_URAMP] = DEFAULT_URAMP_LST_B_NM_P_RPS;
+	cp.adaptive.lst_b_Nm_p_rps[K_DRAMP] = DEFAULT_DRAMP_LST_B_NM_P_RPS;
+	cp.adaptive.lst_b_Nm_p_rps[K_USTAIRS] = DEFAULT_USTAIRS_LST_B_NM_P_RPS;
+	cp.adaptive.lst_b_Nm_p_rps[K_DSTAIRS] = DEFAULT_DSTAIRS_LST_B_NM_P_RPS;
 
-	cp.terrdep.lst_b_Nm_p_rps[K_FLAT] = DEFAULT_FLAT_LST_B_NM_P_RPS;
-	cp.terrdep.lst_b_Nm_p_rps[K_URAMP] = DEFAULT_URAMP_LST_B_NM_P_RPS;
-	cp.terrdep.lst_b_Nm_p_rps[K_DRAMP] = DEFAULT_DRAMP_LST_B_NM_P_RPS;
-	cp.terrdep.lst_b_Nm_p_rps[K_USTAIRS] = DEFAULT_USTAIRS_LST_B_NM_P_RPS;
-	cp.terrdep.lst_b_Nm_p_rps[K_DSTAIRS] = DEFAULT_DSTAIRS_LST_B_NM_P_RPS;
+	cp.adaptive.lst_theta_rad[K_FLAT] = DEFAULT_FLAT_LST_THETA_RAD;
+	cp.adaptive.lst_theta_rad[K_URAMP] = DEFAULT_URAMP_LST_THETA_RAD;
+	cp.adaptive.lst_theta_rad[K_DRAMP] = DEFAULT_DRAMP_LST_THETA_RAD;
+	cp.adaptive.lst_theta_rad[K_USTAIRS] = DEFAULT_USTAIRS_LST_THETA_RAD;
+	cp.adaptive.lst_theta_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_LST_THETA_RAD;
 
-	cp.terrdep.lst_theta_rad[K_FLAT] = DEFAULT_FLAT_LST_THETA_RAD;
-	cp.terrdep.lst_theta_rad[K_URAMP] = DEFAULT_URAMP_LST_THETA_RAD;
-	cp.terrdep.lst_theta_rad[K_DRAMP] = DEFAULT_DRAMP_LST_THETA_RAD;
-	cp.terrdep.lst_theta_rad[K_USTAIRS] = DEFAULT_USTAIRS_LST_THETA_RAD;
-	cp.terrdep.lst_theta_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_LST_THETA_RAD;
+	cp.adaptive.est_lst_min_theta_rad[K_FLAT] = DEFAULT_FLAT_EST_LST_MIN_THETA_RAD;
+	cp.adaptive.est_lst_min_theta_rad[K_URAMP] = DEFAULT_URAMP_EST_LST_MIN_THETA_RAD;
+	cp.adaptive.est_lst_min_theta_rad[K_DRAMP] = DEFAULT_DRAMP_EST_LST_MIN_THETA_RAD;
+	cp.adaptive.est_lst_min_theta_rad[K_USTAIRS] = DEFAULT_USTAIRS_EST_LST_MIN_THETA_RAD;
+	cp.adaptive.est_lst_min_theta_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_EST_LST_MIN_THETA_RAD;
 
-	cp.terrdep.est_lst_min_theta_rad[K_FLAT] = DEFAULT_FLAT_EST_LST_MIN_THETA_RAD;
-	cp.terrdep.est_lst_min_theta_rad[K_URAMP] = DEFAULT_URAMP_EST_LST_MIN_THETA_RAD;
-	cp.terrdep.est_lst_min_theta_rad[K_DRAMP] = DEFAULT_DRAMP_EST_LST_MIN_THETA_RAD;
-	cp.terrdep.est_lst_min_theta_rad[K_USTAIRS] = DEFAULT_USTAIRS_EST_LST_MIN_THETA_RAD;
-	cp.terrdep.est_lst_min_theta_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_EST_LST_MIN_THETA_RAD;
+	cp.active.esw_theta_rad = DEFAULT_ESW_THETA_RAD;
 
 }
 
 static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b) {
-	tm->tau_desired = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
-	actx->tauDes = tm->tau_desired;
-	//tm->tau_desired = (des_theta - act1.jointAngle);
-	// tm->tau_desired = actx->tauDes;
+	actx->tauDes = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
 	setMotorTorque(actx, actx->tauDes);
 }
 
 static void set_control_params_for_terrain(int terrain){
-	cp.active.hard_stop_theta_rad = cp.terrdep.hard_stop_theta_rad[terrain];
-	cp.active.hard_stop_k_Nm_p_rad = cp.terrdep.hard_stop_k_Nm_p_rad[terrain];
 
-	cp.active.lsw_theta_rad = cp.terrdep.lsw_theta_rad[terrain];
-	cp.active.est_k_Nm_p_rad = cp.terrdep.est_k_Nm_p_rad[terrain];
-	cp.active.est_b_Nm_p_rps = cp.terrdep.est_b_Nm_p_rps[terrain];
-	cp.active.lst_k_Nm_p_rad = cp.terrdep.lst_k_Nm_p_rad[terrain];
-	cp.active.lst_b_Nm_p_rps = cp.terrdep.lst_b_Nm_p_rps[terrain];
-	cp.active.lst_theta_rad = cp.terrdep.lst_theta_rad[terrain];
+	cp.active.hard_stop_theta_rad = cp.adaptive.hard_stop_theta_rad[terrain];
+	cp.active.hard_stop_k_Nm_p_rad = cp.adaptive.hard_stop_k_Nm_p_rad[terrain];
 
-	cp.active.est_lst_min_theta_rad = cp.terrdep.est_lst_min_theta_rad[terrain];
+	cp.active.lsw_theta_rad = cp.adaptive.lsw_theta_rad[terrain];
+	cp.active.est_k_Nm_p_rad = cp.adaptive.est_k_Nm_p_rad[terrain];
+	cp.active.est_b_Nm_p_rps = cp.adaptive.est_b_Nm_p_rps[terrain];
+	cp.active.lst_k_Nm_p_rad = cp.adaptive.lst_k_Nm_p_rad[terrain];
+	cp.active.lst_b_Nm_p_rps = cp.adaptive.lst_b_Nm_p_rps[terrain];
+	cp.active.lst_theta_rad = cp.adaptive.lst_theta_rad[terrain];
+
+	cp.active.est_lst_min_theta_rad = cp.adaptive.est_lst_min_theta_rad[terrain];
 }
 
 void init_terrain_state_machine(){
@@ -188,39 +132,32 @@ void set_nominal_b_Nm_p_rps(float b_Nm_p_rps){
 	cp.nominal.b_Nm_p_rps = b_Nm_p_rps;
 }
 void set_hard_stop_theta_rad(float hard_stop_theta_rad, int terrain){
-	cp.terrdep.hard_stop_theta_rad[terrain] = hard_stop_theta_rad;
+	cp.adaptive.hard_stop_theta_rad[terrain] = hard_stop_theta_rad;
 }
 void set_hard_stop_k_Nm_p_rad(float hard_stop_k_Nm_p_rad, int terrain){
-	cp.terrdep.hard_stop_k_Nm_p_rad[terrain] = hard_stop_k_Nm_p_rad;
+	cp.adaptive.hard_stop_k_Nm_p_rad[terrain] = hard_stop_k_Nm_p_rad;
 }
 void set_lsw_theta_rad(float lsw_theta_rad, int terrain){
-	cp.terrdep.lsw_theta_rad[terrain] = lsw_theta_rad;
+	cp.adaptive.lsw_theta_rad[terrain] = lsw_theta_rad;
 }
 void set_est_k_Nm_p_rad(float est_k_Nm_p_rad, int terrain){
-	cp.terrdep.est_k_Nm_p_rad[terrain] = est_k_Nm_p_rad;
+	cp.adaptive.est_k_Nm_p_rad[terrain] = est_k_Nm_p_rad;
 }
 void set_est_b_Nm_p_rps(float est_b_Nm_p_rps, int terrain){
-	cp.terrdep.est_b_Nm_p_rps[terrain] = est_b_Nm_p_rps;
+	cp.adaptive.est_b_Nm_p_rps[terrain] = est_b_Nm_p_rps;
 }
 void set_lst_k_Nm_p_rad(float lst_k_Nm_p_rad, int terrain){
-	cp.terrdep.lst_k_Nm_p_rad[terrain] = lst_k_Nm_p_rad;
+	cp.adaptive.lst_k_Nm_p_rad[terrain] = lst_k_Nm_p_rad;
 }
 void set_lst_b_Nm_p_rps(float lst_b_Nm_p_rps, int terrain){
-	cp.terrdep.lst_b_Nm_p_rps[terrain] = lst_b_Nm_p_rps;
+	cp.adaptive.lst_b_Nm_p_rps[terrain] = lst_b_Nm_p_rps;
 }
 void set_lst_theta_rad(float lst_theta_rad, int terrain){
-	cp.terrdep.lst_theta_rad[terrain] = lst_theta_rad;
+	cp.adaptive.lst_theta_rad[terrain] = lst_theta_rad;
 }
 void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain){
-	cp.terrdep.est_lst_min_theta_rad[terrain] = est_lst_min_theta_rad;
+	cp.adaptive.est_lst_min_theta_rad[terrain] = est_lst_min_theta_rad;
 }
-
-
-
-
-
-
-
 
 
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int current_terrain){
@@ -238,15 +175,15 @@ switch (state_machine_demux_state){
 	case STATE_ESW:
 		if (on_entry)
 			sample_counter = 0;
-		set_joint_torque(actx, tm, POSITION_CONTROL_GAIN_K, POSITION_CONTROL_GAIN_B, cp.active.esw_theta_rad);
-        if (tm->stride_classified)
+		set_joint_torque(actx, tm, POSITION_CONTROL_GAIN_K_NM_P_RAD, POSITION_CONTROL_GAIN_B_NM_P_RPS, cp.active.esw_theta_rad);
+        if (tm->gait_event_trigger = GAIT_EVENT_WINDOW_CLOSE)
         	state_machine_demux_state = STATE_LSW;
         
     break;
     case STATE_LSW:
     	if (on_entry)
     		set_control_params_for_terrain(current_terrain);
-    	set_joint_torque(actx, tm, POSITION_CONTROL_GAIN_K, POSITION_CONTROL_GAIN_B, cp.active.lsw_theta_rad);
+    	set_joint_torque(actx, tm, POSITION_CONTROL_GAIN_K_NM_P_RAD, POSITION_CONTROL_GAIN_B_NM_P_RPS, cp.active.lsw_theta_rad);
 
         if (!tm->in_swing){
         	state_machine_demux_state = STATE_EST;

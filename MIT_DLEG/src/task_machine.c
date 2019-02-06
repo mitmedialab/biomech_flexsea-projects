@@ -114,14 +114,14 @@ static void simulate_ankle_torque(){
     stride_iterator = 0;
 }
 
-static void update_ankle_dynamics()
+static void update_ankle_dynamics(Act_s* actx)
 {
     tm.tq_prev = tm.tq;
     tm.aa_prev = tm.aa;
     tm.aa_dot_aOmegaX_error_prev = tm.aa_dot_aOmegaX_error;
-    tm.tq = FILTA*tm.tq + FILTB*tm.torque_raw;//placeholder for sv.torqueRaw. NEED TO CHANGE!!!!;
+    tm.tq = FILTA*tm.tq + FILTB*actx->jointTorque;//placeholder for sv.torqueRaw. NEED TO CHANGE!!!!;
     tm.tq_dot = FILTA * tm.tq_dot + FILTB* (tm.tq - tm.tq_prev);
-    tm.aa = FILTA*tm.aa + FILTB*tm.angle_raw;//placeholder for sv.angleRaw. NEED TO CHANGE!!!!;
+    tm.aa = FILTA*tm.aa + FILTB*actx->jointAngleDegrees;//placeholder for sv.angleRaw. NEED TO CHANGE!!!!;
     tm.aa_dot = FILTA*tm.aa_dot + FILTB*(tm.aa - tm.aa_prev)*RAD_PER_DEG_X_SAMPLE_RATE_HZ;
     tm.aa_dot_aOmegaX_error = FILTA *tm.aa_dot_aOmegaX_error + FILTB*(tm.aa_dot - get_kinematics()->aOmegaX);
 
@@ -145,7 +145,7 @@ struct taskmachine_s* get_task_machine(){
   return &tm;
 }
 
-void task_machine_demux(struct rigid_s* rigid, Act_s* act){
+void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 
   
   switch (task_machine_demux_state){
@@ -168,9 +168,9 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* act){
         break;
     case RUN_TASK_MACHINE:
 
-		simulate_ankle_torque();
+		//simulate_ankle_torque();
 
-		update_ankle_dynamics();
+		update_ankle_dynamics(actx);
 		update_gait_events();
 		update_kinematics(&rigid->mn,&tm);
 		update_statistics_demux(&tm);
@@ -185,25 +185,25 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* act){
 
 		switch (tm.terrain_mode){
 			case MODE_NOMINAL:
-				terrain_state_machine_demux(&tm, rigid, act, K_NOMINAL);
+				terrain_state_machine_demux(&tm, rigid, actx, K_NOMINAL);
 				break;
 			case MODE_FLAT:
-				terrain_state_machine_demux(&tm, rigid, act, K_FLAT);
+				terrain_state_machine_demux(&tm, rigid, actx, K_FLAT);
 				break;
 			case MODE_URAMP:
-				terrain_state_machine_demux(&tm, rigid, act, K_URAMP);
+				terrain_state_machine_demux(&tm, rigid, actx, K_URAMP);
 				break;
 			case MODE_DRAMP:
-				terrain_state_machine_demux(&tm, rigid, act, K_DRAMP);
+				terrain_state_machine_demux(&tm, rigid, actx, K_DRAMP);
 				break;
 			case MODE_USTAIRS:
-				terrain_state_machine_demux(&tm, rigid, act, K_USTAIRS);
+				terrain_state_machine_demux(&tm, rigid, actx, K_USTAIRS);
 				break;
 			case MODE_DSTAIRS:
-				terrain_state_machine_demux(&tm, rigid, act, K_DSTAIRS);
+				terrain_state_machine_demux(&tm, rigid, actx, K_DSTAIRS);
 				break;
 			case MODE_PREDICT:
-				terrain_state_machine_demux(&tm, rigid, act, get_predictor()->k_pred);
+				terrain_state_machine_demux(&tm, rigid, actx, get_predictor()->k_pred);
 				break;
 		}
 		break;

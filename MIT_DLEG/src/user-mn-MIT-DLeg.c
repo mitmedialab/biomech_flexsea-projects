@@ -65,6 +65,91 @@ extern float torqueKd;
 // Macro(s)
 //****************************************************************************
 
+
+static void updateGenVars(){
+
+	  rigid1.mn.genVar[0] = (int16_t) (get_task_machine()->terrain_mode);
+	  rigid1.mn.genVar[1] = (int16_t) (get_task_machine()->net_work_j_p_kg*100.0);
+	  rigid1.mn.genVar[2] = (int16_t) (get_task_machine()->in_swing);
+	  rigid1.mn.genVar[3] = (int16_t) (get_task_machine()->stride_classified);
+	  rigid1.mn.genVar[4] = (int16_t) (get_task_machine()->tq*100.0);
+
+	if (get_task_machine()->terrain_mode == MODE_NOMINAL){
+		rigid1.mn.genVar[5] = (int16_t) (get_control_params()->nominal.theta_rad*100.0);
+		rigid1.mn.genVar[6] = (int16_t) (get_control_params()->nominal.k_Nm_p_rad*100.0);
+		rigid1.mn.genVar[7] = (int16_t) (get_control_params()->nominal.b_Nm_p_rps*100.0);
+
+	}else if (get_task_machine()->terrain_mode != MODE_PREDICT){
+		rigid1.mn.genVar[2] = (int16_t) (get_walking_state());
+		rigid1.mn.genVar[3] = (int16_t) (get_control_params()->adaptive.hard_stop_theta_rad[get_task_machine()->terrain_mode]*100.0);
+		rigid1.mn.genVar[4] = (int16_t) (get_control_params()->adaptive.hard_stop_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
+		rigid1.mn.genVar[5] = (int16_t) (get_control_params()->adaptive.lsw_theta_rad[get_task_machine()->terrain_mode]*100.0);
+		rigid1.mn.genVar[6] = (int16_t) (get_control_params()->adaptive.est_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
+		rigid1.mn.genVar[7] = (int16_t) (get_control_params()->adaptive.est_b_Nm_p_rps[get_task_machine()->terrain_mode]*100.0);
+		rigid1.mn.genVar[8] = (int16_t) (get_control_params()->adaptive.lst_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
+		rigid1.mn.genVar[9] = (int16_t) (get_control_params()->adaptive.lst_theta_rad[get_task_machine()->terrain_mode]*100.0);
+	}else {
+
+	}
+}
+
+static void zeroUserWrites(){
+	for (int i= 1; i < 10; i++){
+		user_data_1.w[i] = 0;
+	}
+}
+
+
+/*
+ * Updates the Input values based off of user data
+ * Param: actx(Act_s) - Actuator structure to track sensor values
+ * Param: wParams(WalkParams) -
+ */
+static void updateUserWrites(Act_s *actx, struct taskmachine_s* tm, WalkParams *wParams){
+	tm->terrain_mode_prev = tm->terrain_mode;
+	tm->terrain_mode = user_data_1.w[0];
+
+	if (tm->terrain_mode_prev != tm->terrain_mode){
+		zeroUserWrites();	
+	}
+
+	if (tm->terrain_mode == MODE_NOMINAL){
+		set_nominal_theta_rad( (float) user_data_1.w[1]  /100.0);
+		set_nominal_k_Nm_p_rad( (float) user_data_1.w[2] /100.0);
+		set_nominal_b_Nm_p_rps ( (float) user_data_1.w[3] /100.0);
+	}else if (tm->terrain_mode != MODE_PREDICT){
+		 set_hard_stop_theta_rad((float) user_data_1.w[1]/100.0, tm->terrain_mode);
+		 set_hard_stop_k_Nm_p_rad((float) user_data_1.w[2]/100.0, tm->terrain_mode);
+		 set_lsw_theta_rad((float) user_data_1.w[3]/100.0, tm->terrain_mode);
+		 set_est_k_Nm_p_rad((float) user_data_1.w[4]/100.0, tm->terrain_mode);
+		 set_est_b_Nm_p_rps((float) user_data_1.w[5]/100.0, tm->terrain_mode);
+		 set_lst_k_Nm_p_rad((float) user_data_1.w[6]/100.0, tm->terrain_mode);
+		 set_lst_b_Nm_p_rps((float) user_data_1.w[7]/100.0, tm->terrain_mode);
+		 set_lst_theta_rad((float) user_data_1.w[8]/100.0, tm->terrain_mode);
+		 set_est_lst_min_theta_rad((float) user_data_1.w[9]/100.0, tm->terrain_mode);
+	}else {
+
+	}
+}
+
+
+/*
+ * Initializes the Input values
+ * Param: actx(Act_s) - Actuator structure to track sensor values
+ * Param: wParams(WalkParams) -
+ */
+static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
+	//USER WRITE INITIALIZATION GOES HERE//////////////
+
+	user_data_1.w[0] =  (int32_t) ( MODE_NOMINAL); 	
+	user_data_1.w[1] =  (int32_t) ( DEFAULT_NOMINAL_THETA_RAD); 	
+	user_data_1.w[2] =  (int32_t) ( DEFAULT_NOMINAL_K_NM_P_RAD); 
+	user_data_1.w[3] =  (int32_t) ( DEFAULT_NOMINAL_B_NM_P_RPS); 
+
+	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
+}
+
+
 #define FINDPOLES_DONE (calibrationFlags == 0) && (calibrationNew == 0)
 //****************************************************************************
 // Public Function(s)
@@ -98,12 +183,8 @@ void MITDLegFsm1(void)
 
     static uint32_t fsmTime = 0;
     fsmTime++;
-	  rigid1.mn.genVar[0] = (int16_t) (get_control_params()->nominal.theta_rad); //startedOverLimit;
-	  rigid1.mn.genVar[1] = (int16_t) (get_control_params()->nominal.k_Nm_p_rad);
-	  rigid1.mn.genVar[2] = (int16_t) (get_control_params()->nominal.b_Nm_p_rps);
-	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle*1000.0);
-	  rigid1.mn.genVar[4] = (int16_t) (act1.jointVel*1000.0);
-	  rigid1.mn.genVar[5] = (int16_t) (act1.tauDes*100.0);
+
+    updateGenVars();
 
     //begin main FSM
 	switch(fsm1State)
@@ -194,7 +275,7 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				updateUserWrites(&act1, &walkParams);
+				updateUserWrites(&act1, get_task_machine(), &walkParams);
 				//TODO consider changing logic so onEntry is only true for one cycle.
 				if (onEntry && fsmTime > DELAY_TICKS_AFTER_FIND_POLES) {
 					act1.currentOpLimit = CURRENT_LIMIT_INIT;
@@ -211,7 +292,7 @@ void MITDLegFsm1(void)
 				break;
 			}
 		case STATE_DEBUG:
-			updateUserWrites(&act1, &walkParams);
+			updateUserWrites(&act1, get_task_machine(), &walkParams);
 			runMainUserApplication(&rigid1, &act1);
 			break;
 
@@ -252,76 +333,7 @@ void MITDLegFsm2(void)
  * Also note, the initial values will not show up in Plan, that must be manually entered
  */
 
-/*
- * Updates the Input values based off of user data
- * Param: actx(Act_s) - Actuator structure to track sensor values
- * Param: wParams(WalkParams) -
- */
-void updateUserWrites(Act_s *actx, WalkParams *wParams){
 
-	set_nominal_theta_rad( (float) user_data_1.w[0]  /1000.0);
-	set_nominal_k_Nm_p_rad( (float) user_data_1.w[1] /1000.0);	
-	set_nominal_b_Nm_p_rps ( (float) user_data_1.w[2] /1000.0);	
-
-	// int terrain = 0;
-	// set_hard_stop_theta_rad((float) user_data_1.w[0], terrain);
-	// set_hard_stop_k_Nm_p_rad((float) user_data_1.w[1], terrain);
-	// set_lsw_theta_rad((float) user_data_1.w[2], terrain);
-	// set_est_k_Nm_p_rad((float) user_data_1.w[3], terrain);
-	// set_est_b_Nm_p_rps((float) user_data_1.w[4], terrain);
-	// set_lst_k_Nm_p_rad((float) user_data_1.w[5], terrain);
-	// set_lst_b_Nm_p_rps((float) user_data_1.w[6], terrain);
-	// set_lst_theta_rad((float) user_data_1.w[7], terrain);
-	// set_est_lst_min_theta_rad((float) user_data_1.w[8], terrain);
-
-
-}
-
-/*
- * Initializes the Input values
- * Param: actx(Act_s) - Actuator structure to track sensor values
- * Param: wParams(WalkParams) -
- */
-void initializeUserWrites(Act_s *actx, WalkParams *wParams){
-
-//	wParams->earlyStanceK0 = 6.23;
-//	wParams->earlyStanceKF = 0.1;
-//	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
-  
-	torqueKp				 				= 0.0; 	//user_data_1.w[0] = 100
-	torqueKi 								= 0.0;
-	torqueKd								= 0.0;
-	torqInput								= 0.0;
-//	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
-//	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
-//	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]
-//	wParams->lstPGDelTics 					= 70.0;	//user_data_1.w[4] = 30
-//	lstPowerGains.k1						= 4.0;	//user_data_1.w[5] = 400 [Nm/deg]
-//	lstPowerGains.thetaDes 					= 18;	//user_data_1.w[6] = 1800 [Deg]
-//	lstPowerGains.b		 					= 0.20;	//user_data_1.w[7] = 30   [Nm/s]
-//	estGains.k1			 					= 1.50;	//user_data_1.w[8] = 150  [Nm/deg]
-//	estGains.b			 					= 0.30;	//user_data_1.w[9] = 32  [Nm/s]
-
-	//USER WRITE INITIALIZATION GOES HERE//////////////
-
-	user_data_1.w[0] =  (int32_t) ( 0.0 ); 	// torque scalar
-	user_data_1.w[1] =  (int32_t) ( 0.0 ); 	// frequency set point for freq test
-	user_data_1.w[2] =  (int32_t) ( 0.0 ); 	// torque input for freq test
-	user_data_1.w[3] =  (int32_t) ( 0.0 ); 	// torque input for freq test
-	//	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
-//	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
-//	user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque*100 ); 			// Late stance power, torque threshhold
-//	user_data_1.w[4] =  (int32_t) ( wParams->lstPGDelTics ); 		// ramping rate
-//	user_data_1.w[5] =  (int32_t) ( lstPowerGains.k1 * 100 );		// 4.5 x 100
-//	user_data_1.w[6] =  (int32_t) ( lstPowerGains.thetaDes * 100 ); // 14 x 100
-//	user_data_1.w[7] =  (int32_t) ( lstPowerGains.b * 100 ); // 0.1 x 100
-//	user_data_1.w[8] =  (int32_t) ( estGains.k1 * 100 ); // 0.1 x 100
-//	user_data_1.w[9] =  (int32_t) ( estGains.b * 100 ); // 0.1 x 100
-
-	///////////////////////////////////////////////////
-
-	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
-}
 
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN

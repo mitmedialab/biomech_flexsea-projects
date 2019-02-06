@@ -9,7 +9,64 @@
 #include "task_machine.h"
 #include "actuator_functions.h"
 
+#define POSITION_CONTROL_GAIN_K_NM_P_RAD 1.5/RAD_PER_DEG
+#define POSITION_CONTROL_GAIN_B_NM_P_RPS 0.3/RAD_PER_DEG
 
+#define DEFAULT_NOMINAL_K_NM_P_RAD 160.0
+#define DEFAULT_NOMINAL_B_NM_P_RPS 20.0
+#define DEFAULT_NOMINAL_THETA_RAD 0.0
+
+#define DEFAULT_ESW_THETA_RAD 0.0
+
+#define DEFAULT_FLAT_HS_THETA_RAD 0.0
+#define DEFAULT_FLAT_HS_K_NM_P_RAD 0.0
+#define DEFAULT_FLAT_LSW_THETA_RAD 0.0
+#define DEFAULT_FLAT_EST_K_NM_P_RAD 0.0
+#define DEFAULT_FLAT_EST_B_NM_P_RPS 0.0
+#define DEFAULT_FLAT_LST_K_NM_P_RAD 0.0
+#define DEFAULT_FLAT_LST_B_NM_P_RPS 0.0
+#define DEFAULT_FLAT_LST_THETA_RAD 0.0
+#define DEFAULT_FLAT_EST_LST_MIN_THETA_RAD -0.2
+
+#define DEFAULT_URAMP_HS_THETA_RAD 0.0
+#define DEFAULT_URAMP_HS_K_NM_P_RAD 0.0
+#define DEFAULT_URAMP_LSW_THETA_RAD 0.0
+#define DEFAULT_URAMP_EST_K_NM_P_RAD 0.0
+#define DEFAULT_URAMP_EST_B_NM_P_RPS 0.0
+#define DEFAULT_URAMP_LST_K_NM_P_RAD 0.0
+#define DEFAULT_URAMP_LST_B_NM_P_RPS 0.0
+#define DEFAULT_URAMP_LST_THETA_RAD 0.0
+#define DEFAULT_URAMP_EST_LST_MIN_THETA_RAD 0.0
+
+#define DEFAULT_DRAMP_HS_THETA_RAD 0.0
+#define DEFAULT_DRAMP_HS_K_NM_P_RAD 0.0
+#define DEFAULT_DRAMP_LSW_THETA_RAD 0.0
+#define DEFAULT_DRAMP_EST_K_NM_P_RAD 0.0
+#define DEFAULT_DRAMP_EST_B_NM_P_RPS 0.0
+#define DEFAULT_DRAMP_LST_K_NM_P_RAD 0.0
+#define DEFAULT_DRAMP_LST_B_NM_P_RPS 0.0
+#define DEFAULT_DRAMP_LST_THETA_RAD 0.0
+#define DEFAULT_DRAMP_EST_LST_MIN_THETA_RAD 0.0
+
+#define DEFAULT_USTAIRS_HS_THETA_RAD 0.0
+#define DEFAULT_USTAIRS_HS_K_NM_P_RAD 0.0
+#define DEFAULT_USTAIRS_LSW_THETA_RAD 0.0
+#define DEFAULT_USTAIRS_EST_K_NM_P_RAD 0.0
+#define DEFAULT_USTAIRS_EST_B_NM_P_RPS 0.0
+#define DEFAULT_USTAIRS_LST_K_NM_P_RAD 0.0
+#define DEFAULT_USTAIRS_LST_B_NM_P_RPS 0.0
+#define DEFAULT_USTAIRS_LST_THETA_RAD 0.0
+#define DEFAULT_USTAIRS_EST_LST_MIN_THETA_RAD 0.0
+
+#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.0
+#define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 0.0
+#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.0
+#define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 0.0
+#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 0.0
+#define DEFAULT_DSTAIRS_LST_K_NM_P_RAD 0.0
+#define DEFAULT_DSTAIRS_LST_B_NM_P_RPS 0.0
+#define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
+#define DEFAULT_DSTAIRS_EST_LST_MIN_THETA_RAD 0.0
 
 int get_walking_state();
 struct control_params_s* get_control_params();
@@ -74,7 +131,7 @@ static struct terrain_dependent_control_params_s
 };
 
 struct control_params_s{
-	 struct terrain_dependent_control_params_s terrdep;
+	 struct terrain_dependent_control_params_s adaptive;
  	struct active_control_params_s active;
 	struct nominal_control_params_s nominal;
 };

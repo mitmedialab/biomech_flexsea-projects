@@ -60,6 +60,7 @@
 struct taskmachine_s
 {
 	uint8_t terrain_mode;
+    uint8_t terrain_mode_prev;
 	uint8_t do_update_learner;
 
 	
@@ -134,16 +135,5 @@ enum Terrains {
 	K_DSTAIRS = 4,
 	K_NOMINAL = 5,
 };
-
-enum Walking_Modes {
-    MODE_FL = 0,
-    MODE_UR = 1,
-    MODE_DR = 2,
-    MODE_US = 3,
-    MODE_DS = 4,
-    MODE_PR = 5,
-    MODE_SW = 6,
-};
-
 
 #endif

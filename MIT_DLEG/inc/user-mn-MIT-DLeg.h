@@ -73,10 +73,6 @@ void MITDLegFsm2(void);
 //void twoTorqueFSM(struct act_s *actx);
 //void torqueSweepTest(struct act_s *actx);
 
-//User writes
-void updateUserWrites(Act_s *actx, WalkParams *wParams);
-void initializeUserWrites(Act_s *actx, WalkParams *wParams);
-
 
 //****************************************************************************
 // Definition(s):

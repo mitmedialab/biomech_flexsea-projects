@@ -420,9 +420,6 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->tauDes = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 	
-	
-
-
 	static float tauErrLast = 0, tauErrInt = 0;
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
@@ -430,19 +427,18 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
 
-	
-	
-
 	tauErrInt = tauErrInt + tauErr;				// [Nm]
+
+
+
 	tauErrLast = tauErr;
 
 	//PID around motor torque
 	float tauC = tauErr*torqueKp + tauErrDot*torqueKd + tauErrInt*torqueKi;	// torq Compensator
 	//rigid1.mn.genVar[8] = (int16_t) (tauC*1000000.0);
 	// Feedforward term
-	rigid1.mn.genVar[6] = (int16_t) (act1.tauMeas*100.0);	
-	rigid1.mn.genVar[7] = (int16_t) (tauErrDot * 1000.0);
-	rigid1.mn.genVar[8] = (int16_t) (tauC * 100.0);
+	
+
 
 	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
 
@@ -459,7 +455,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	  
 	  
 
-	rigid1.mn.genVar[9] = (int16_t) (tauCOutput*100.0);
+	//rigid1.mn.genVar[9] = (int16_t) (tauCOutput*100.0);
 
 	// Clamp and turn off integral term if it's causing a torque saturation
 	if ( integralAntiWindup(tauErr, tauCCombined, tauCOutput) ){
