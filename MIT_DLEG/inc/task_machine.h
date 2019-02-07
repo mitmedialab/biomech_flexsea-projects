@@ -28,11 +28,7 @@
 #define FILTC 0.999
 #define FILTD 0.001
 
- //Gait events
-#define GAIT_EVENT_FOOT_ON 1
-#define GAIT_EVENT_FOOT_STATIC 2
-#define GAIT_EVENT_FOOT_OFF 3
-#define GAIT_EVENT_WINDOW_CLOSE 4
+
 
 //Other important values
 #define PI 3.14159
@@ -125,6 +121,14 @@ enum Terrain_Modes {
 	MODE_DSTAIRS,
 	MODE_NOMINAL,
 	MODE_PREDICT,
+};
+
+enum Gait_Events {
+    GAIT_EVENT_DEFAULT = 0,
+    GAIT_EVENT_FOOT_ON = 1,
+    GAIT_EVENT_FOOT_STATIC = 2,
+    GAIT_EVENT_FOOT_OFF = 3,
+    GAIT_EVENT_WINDOW_CLOSE = 4,
 };
 
 enum Terrains {

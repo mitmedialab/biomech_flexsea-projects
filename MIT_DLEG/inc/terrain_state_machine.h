@@ -9,8 +9,8 @@
 #include "task_machine.h"
 #include "actuator_functions.h"
 
-#define POSITION_CONTROL_GAIN_K_NM_P_RAD 1.5/RAD_PER_DEG
-#define POSITION_CONTROL_GAIN_B_NM_P_RPS 0.3/RAD_PER_DEG
+#define DEFAULT_SW_K_NM_P_RAD 1.5/RAD_PER_DEG
+#define DEFAULT_SW_B_NM_P_RPS 0.3/RAD_PER_DEG
 
 #define DEFAULT_NOMINAL_K_NM_P_RAD 160.0
 #define DEFAULT_NOMINAL_B_NM_P_RPS 20.0
@@ -18,7 +18,7 @@
 
 #define DEFAULT_ESW_THETA_RAD 0.0
 
-#define DEFAULT_FLAT_HS_THETA_RAD 0.0
+#define DEFAULT_FLAT_HS_THETA_RAD -0.2
 #define DEFAULT_FLAT_HS_K_NM_P_RAD 0.0
 #define DEFAULT_FLAT_LSW_THETA_RAD 0.0
 #define DEFAULT_FLAT_EST_K_NM_P_RAD 0.0
@@ -70,6 +70,9 @@
 
 int get_walking_state();
 struct control_params_s* get_control_params();
+void set_esw_theta_rad(float theta_rad);
+void set_sw_k_Nm_p_rad(float k_Nm_p_rad);
+void set_sw_b_Nm_p_rps(float b_Nm_p_rps);
 void set_nominal_theta_rad(float theta_rad);
 void set_nominal_k_Nm_p_rad(float k_Nm_p_rad);
 void set_nominal_b_Nm_p_rps(float b_Nm_p_rps);
@@ -96,6 +99,8 @@ static struct nominal_control_params_s
 static struct active_control_params_s
 {
 	float esw_theta_rad;
+	float sw_k_Nm_p_rad;
+	float sw_b_Nm_p_rps;
 	//uint16_t esw_lsw_min_samples;
 
 	float hard_stop_theta_rad;

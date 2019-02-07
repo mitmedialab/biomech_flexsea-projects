@@ -16,7 +16,7 @@ static float ideal_heelstrike_angle_rad[] = {FL_IDEAL_HEELSTRIKE_ANGLE_RAD,UR_ID
 //Copied from matlab pil simulation
 static void init_task_machine(){
 
-	tm.terrain_mode = MODE_NOMINAL;
+	tm.terrain_mode = MODE_FLAT;
 	tm.do_update_learner = 0;
 
     tm.latest_foot_static_samples = 0.0;
@@ -63,7 +63,7 @@ static void init_task_machine(){
 //Copied over from pil simulation
 static void update_gait_events(){
 
-    tm.gait_event_trigger = 0;
+    tm.gait_event_trigger = GAIT_EVENT_DEFAULT;
 
     if (tm.in_swing){
 
