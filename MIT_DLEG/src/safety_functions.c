@@ -24,7 +24,6 @@
 //****************************************************************************
 static int8_t errorConditions[ERROR_ARRAY_SIZE]; //massage extern until it works
 static int16_t safetyFlags; //bitmap of all errors. Also serves as boolean for error existence
-uint8_t l0, l1, l2; //shared LED codes used in main_fsm
 static int8_t motorMode;
 static const int16_t stm32ID[] = STM32ID;
 
