@@ -47,7 +47,7 @@ void  updateSensorValues(struct act_s *actx);
 //Control outputs
 float biomCalcImpedance(Act_s *actx, float k1, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
 void  setMotorTorque(struct act_s *actx, float tor_d);
-void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des);
+void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des, int8_t motorControl);
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float torqueSystemIDFrequencySweep(float omega, float t, float amplitude);
 float torqueSystemIDPRBS(void);

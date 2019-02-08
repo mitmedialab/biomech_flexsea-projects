@@ -85,6 +85,7 @@ typedef struct act_s
     int16_t regTemp;		// regulate temperature [C]
     int16_t motTemp;		// motor temperature [C]
     int32_t motCurr;		// motor current [mA]
+    int32_t motCurrDt;		// di/dt change in motor current [mA]
     int32_t desiredCurrent; // desired current from getMotorCurrent() [mA]
     int32_t currentOpLimit; // current throttling limit [mA]
     int8_t safetyFlag;		// todo: consider if necessary

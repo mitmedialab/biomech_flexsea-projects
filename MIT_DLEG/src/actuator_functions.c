@@ -34,6 +34,8 @@ int8_t isEnabledUpdateSensors = 0;
 int8_t fsm1State = STATE_POWER_ON;
 float currentScalar = CURRENT_SCALAR_INIT;
 
+int8_t zeroIt = 0;	//Used to allow re-zeroing of the load cell, ie for testing purposes
+float voltageGain = 1.0;
 
 //torque gain values
 // ARE THESE WORKING? CHECK THAT THEY'RE NOT BEING OVERWRITTEN BY USERWRITES!!!
@@ -147,7 +149,7 @@ static float windowAveraging(float currentVal) {
  * Output axial force on screw
  * Return: axialForce(float) -  Force on the screw in NEWTONS
  */
-static float getAxialForce(struct act_s *actx)
+static float getAxialForce(struct act_s *actx, int8_t tare)
 {
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
@@ -158,6 +160,15 @@ static float getAxialForce(struct act_s *actx)
 	float timerDelay = 100.;
 
 	strainReading = (float) rigid1.ex.strain;
+
+	if (tare)
+	{	// User input has requested re-zeroing the load cell, ie locked output testing.
+		tareState = -1;
+		timer = 0;
+		tareOffset = 0;
+		tare=0;
+
+	}
 
 	switch(tareState)
 	{
@@ -184,6 +195,7 @@ static float getAxialForce(struct act_s *actx)
 //			axialForce = mitFirFilter1kHz(axialForce);
 
 			break;
+
 
 		default:
 			//problem occurred
@@ -239,6 +251,22 @@ static float getJointTorque(struct act_s *actx)
 	}
 
 	return torque;
+}
+
+/*
+ * 	Determine rate of change of motor current
+ * 	Param: Act_s
+ * 	return: di/dt
+ */
+static float getMotorCurrentDt(struct act_s *actx)
+{
+	static float lastCurrent = 0.0;
+
+	float current = (actx->motCurr - lastCurrent)*SECONDS;
+
+	current = 0.8*lastCurrent + 0.2 * current;
+
+	return current;
 }
 
 /*
@@ -585,8 +613,16 @@ static float windowSmoothAxial(float val) {
  * 			actx->desiredCurrent = new desired current
  *
  */
-void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
+void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorControl)
 {
+	static int8_t isTransition = 0;
+	static int8_t lastMotorControl = 0;
+
+	if(lastMotorControl != motorControl)
+	{
+		isTransition = 1;
+	}
+
 //Angle Limit bumpers
 	actx->tauDes = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
@@ -594,7 +630,8 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	// motor current signal
-	int32_t I = (int32_t) ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes * CURRENT_SCALAR_INIT);
+	float I = ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes * CURRENT_SCALAR_INIT);
+	float V = (I * MOT_R) * voltageGain + ( MOT_KT * actx->motorVel )*CURRENT_SCALAR_INIT; // this caused major problems==> + (actx->motCurrDt * MOT_L);
 
 //	I = I + noLoadCurrent(I);	// Include current required to get moving
 
@@ -607,19 +644,40 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
 //		I = -actx->currentOpLimit;
 //	}
 
-//	actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
+	rigid1.mn.genVar[9] = isTransition;
 
-//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+	switch(motorControl)
+	{
+		case 0: // current control
+			if(isTransition)
+			{
+				mitInitCurrentController();
+				isTransition = 0;
+			}
+			setMotorCurrent( ( (int32_t) I ) , DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+			lastMotorControl = motorControl;
+			rigid1.mn.genVar[8] = (int16_t) (I);
+			actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
+
+			break;
+		case 1:	// voltage control
+			if(isTransition)
+			{
+				mitInitOpenController();
+				isTransition = 0;
+			}
+			setMotorVoltage( ( (int32_t) V ), DEVICE_CHANNEL); // consider open volt control
+			lastMotorControl = motorControl;
+			rigid1.mn.genVar[8] = (int16_t) (V);
+			actx->desiredCurrent = V;
+
+			break;
+		default:
+			break;
+	}
 
 
-	float Ifloat = ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes * CURRENT_SCALAR_INIT);
-	actx->desiredCurrent = Ifloat;// + noLoadCurrent(I); 	// demanded mA
-	rigid1.mn.genVar[8] = (int16_t) (Ifloat);
-	int32_t V = (int32_t) ( (MOT_R * Ifloat * 10.0 + ( (MOT_KT * actx->motorVel ) ) )  );
 
-
-	setMotorVoltage(V, DEVICE_CHANNEL); // consider open volt control
-	rigid1.mn.genVar[9] = (int16_t) (V);
 
 }
 
@@ -630,7 +688,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
  * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
  */
 float torqueSystemIDFrequencySweep(float omega, float t, float amplitude){
-	return amplitude * sinf(omega * ( t  ) );
+	return ( amplitude * sinf(omega * ( t  ) ) );
 }
 
 /*
@@ -704,21 +762,21 @@ void updateSensorValues(struct act_s *actx)
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
 	actx->motorPosNeutral = 0;		// TODO: set this on startup, include in the motor/joint angle transformations
 
-	actx->axialForce = getAxialForce(actx); //filtering happening inside function
+	actx->axialForce = getAxialForce(actx, zeroIt); //filtering happening inside function
 	actx->jointTorque = getJointTorque(actx);
 
 	updateJointTorqueRate(actx);
 
 	actx->motorPosRaw = *rigid1.ex.enc_ang;
 
-	actx->motorPos =  *rigid1.ex.enc_ang * RAD_PER_MOTOR_CNT; //counts
-	actx->motorVel =  *rigid1.ex.enc_ang_vel * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
+	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; //counts
+	actx->motorVel =  ( (float) *rigid1.ex.enc_ang_vel ) * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
 
 	actx->regTemp = rigid1.re.temp;
 	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
 	actx->motCurr = rigid1.ex.mot_current;
-
+	actx->motCurrDt = getMotorCurrentDt(actx);
 
 	actx->safetyFlag = isSafetyFlag;
 

@@ -83,7 +83,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 //****************************************************************************
 
 
-////Begin device specific configurations
+///Begin device specific configurations
 //
 ////Transmission
 //#ifdef IS_ANKLE					// Might UPDATE THIS WITH NEW SCREWs ankle = 0.002
