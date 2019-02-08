@@ -52,6 +52,8 @@ uint8_t mitRunningExoInfo[2] = {PORT_RS485_2, PORT_RS485_2};
 
 int16_t fsm1State;
 
+extern uint8_t calibrationFlags, calibrationNew;//FIXME
+
 #if(CONTROL_STRATEGY==GAIT_TORQUE_TRACKING)
 static float torqueProfileGain = DEFAULT_TORQUE_PROFILE_GAIN;
 int8_t bodyWeight = DEFAULT_BODY_WEIGHT;//user body weight (kg)
@@ -90,6 +92,7 @@ void parseSensorValues(actuation_parameters *actx);
 void packRigidVars(struct actuation_parameters  *actx);
 float motorTorqueToAnkleTorque(float motorTorque);
 float ankleTorqueToMotorTorque(float ankleTorque);
+
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -113,10 +116,10 @@ void RunningExo_fsm_1(void)
 {
 	#if(ACTIVE_PROJECT == PROJECT_MIT_RUNNING_EXO)
 
-    static uint32_t time = 0;
+    static uint32_t fsm1time = 0;
 
-    //Increment time (1 tick = 1ms nominally; need to confirm)
-    time++;
+    //Increment fsm1time (1 tick = 1ms nominally; need to confirm)
+    fsm1time++;
 
     //Clear control command
     torqueCommand = 0;
@@ -129,37 +132,53 @@ void RunningExo_fsm_1(void)
 	{
 		case STATE_IDLE:
 			//Same power-on delay as FSM2:
-			if(time >= AP_FSM2_POWER_ON_DELAY + 3*TIMESTEPS_PER_SECOND)
+			rigid1.mn.genVar[8] +=1;
+			rigid1.mn.genVar[1] = AP_FSM2_POWER_ON_DELAY +  TIMESTEPS_PER_SECOND;
+
+			if(fsm1time >= (uint32_t)(AP_FSM2_POWER_ON_DELAY + TIMESTEPS_PER_SECOND))
 			{
 				fsm1State = STATE_INIT;
-				time = 0;
+				fsm1time = 0;
 				//rigid1.mn.genVar[0]=fsm1State;
+				rigid1.mn.genVar[9] +=1;
+
 			}
+			rigid1.mn.genVar[7] +=1;
 
 			break;
 
+//		case STATE_INIT:
+//			//turned off for testing without Motor usage
+//			if(findPolesRunningExo())
+//			{
+//				fsm1State = STATE_ENABLE_SENSOR_UPDATE;
+//				fsm1time = 0;
+//				//rigid1.mn.genVar[1]=fsm1State;
+//			}
+//			//for testing
+////			fsm1State = 0;
+//
+//			break;
 		case STATE_INIT:
-			//turned off for testing without Motor usage
-			if(findPolesRunningExo())
-			{
-				fsm1State = STATE_ENABLE_SENSOR_UPDATE;
-				time = 0;
-				//rigid1.mn.genVar[1]=fsm1State;
+			if ((calibrationFlags==1)||(calibrationNew==1)){
+				calibrationFlags = 1;
+				calibrationNew = 1;
 			}
-			//for testing
-//			fsm1State = 0;
-
+			else{
+			fsm1State = STATE_ENABLE_SENSOR_UPDATE;
+			fsm1time = 0;
+			}
 			break;
 
 		case STATE_ENABLE_SENSOR_UPDATE:
 			//init_LPF(); //initialize hardware LPF
-			setControlMode(CTRL_OPEN);	//set to open loop voltage controller
+			setControlMode(CTRL_OPEN,0);	//set to open loop voltage controller
 
 			//zero encoder
 			act_para.initialMotorEncPosition=*(rigid1.ex.enc_ang);
 
 			fsm1State = STATE_TORQUE_TRACKING;
-			time = 0;
+			fsm1time = 0;
 
 			break;
 
