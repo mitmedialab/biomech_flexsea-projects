@@ -309,7 +309,7 @@ void trackTorque(void)
 	uint16_t currentIndex = 0;
 	lastPercentageStance = percentStance;
 	lastIndex = (int)(lastPercentageStance*(float)TABLE_SIZE);
-	percentStance = (float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration>1 ? 1:(float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevStanceDuration;//range=[0,1]
+	percentStance = (float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevGaitDuration>1 ? 1:(float)(runningExoState.timer-runningExoState.heelStrikeTime)/(float)runningExoState.prevGaitDuration;//range=[0,1]
 	currentIndex = (int)(percentStance*(float)TABLE_SIZE);
 	float torqueValue = 0;
 
