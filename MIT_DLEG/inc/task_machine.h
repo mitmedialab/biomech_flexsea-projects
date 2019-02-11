@@ -12,7 +12,7 @@
 
 //Copied from matlab pil simulation
  //Gait event thresholds
-#define MIN_TQ_FOR_FOOT_ON 1.0
+#define MIN_TQ_FOR_FOOT_ON 2.0
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 50
 #define MIN_TQ_FOR_FOOT_STATIC 5.0
 #define AA_DOT_AOMEGA_ERROR_THRESH 0.6
@@ -55,8 +55,8 @@
 //Copied from matlab pil simulation
 struct taskmachine_s
 {
-	uint8_t terrain_mode;
-    uint8_t terrain_mode_prev;
+	int terrain_mode;
+    int terrain_mode_prev;
 	uint8_t do_update_learner;
 
 	
@@ -114,13 +114,13 @@ enum Task_Machine_States {
 };
 
 enum Terrain_Modes {
-	MODE_FLAT,
-	MODE_URAMP,
-	MODE_DRAMP,
-	MODE_USTAIRS,
-	MODE_DSTAIRS,
-	MODE_NOMINAL,
-	MODE_PREDICT,
+	MODE_FLAT = 0,
+	MODE_URAMP = 1,
+	MODE_DRAMP = 2,
+	MODE_USTAIRS = 3,
+	MODE_DSTAIRS = 4,
+	MODE_NOMINAL = 5,
+	MODE_PREDICT = 6,
 };
 
 enum Gait_Events {

@@ -102,7 +102,7 @@ static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_th
 static void set_joint_torque_with_hardstop(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float hs_theta, float hs_k) {
 	actx->tauDes = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
 	if (actx->jointAngle < hs_theta){
-		actx->tauDes = actx->tauDes + hs_k*(actx->jointAngle - hs_theta);
+		actx->tauDes = actx->tauDes - hs_k*(actx->jointAngle - hs_theta);
 	}
 	setMotorTorque(actx, actx->tauDes);
 }
@@ -217,9 +217,9 @@ switch (state_machine_demux_state){
     case STATE_EST:
         set_joint_torque_with_hardstop(actx, tm, stance_entry_theta_rad, cp.active.est_k_Nm_p_rad, cp.active.est_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad);
 
-//        if (actx->jointAngle < cp.active.est_lst_min_theta_rad){
-//        	state_machine_demux_state = STATE_LST;
-//        }
+       if (actx->jointAngle < cp.active.hard_stop_theta_rad - cp.active.est_lst_min_theta_rad){
+       	state_machine_demux_state = STATE_LST;
+       }
 
     break;
     case STATE_LST:

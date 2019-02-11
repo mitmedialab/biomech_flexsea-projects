@@ -74,38 +74,33 @@ static void updateGenVars(){
 	  // rigid1.mn.genVar[3] = (int16_t) (get_task_machine()->stride_classified);
 	  // rigid1.mn.genVar[4] = (int16_t) (get_task_machine()->tq*100.0);
 
-	  rigid1.mn.genVar[0] = (int16_t) (get_task_machine()->terrain_mode);
-	  rigid1.mn.genVar[1] = (int16_t) (get_walking_state());
-	   rigid1.mn.genVar[2] = (int16_t) (act1.tauDes*100.0);
-	  rigid1.mn.genVar[3] = (int16_t) (get_control_params()->active.sw_k_Nm_p_rad*100.0);
-	  rigid1.mn.genVar[4] = (int16_t) (get_control_params()->active.sw_b_Nm_p_rps*100.0);
-	  rigid1.mn.genVar[5] = (int16_t) (get_control_params()->active.esw_theta_rad*100.0);
+	rigid1.mn.genVar[0] = (int16_t) (get_task_machine()->terrain_mode);
+	rigid1.mn.genVar[1] = (int16_t) (get_walking_state());
+	rigid1.mn.genVar[2] = (int16_t) (act1.jointTorque*100.0);
+	rigid1.mn.genVar[3] = (int16_t) (get_control_params()->adaptive.hard_stop_theta_rad[get_task_machine()->terrain_mode]*100.0);
+	rigid1.mn.genVar[4] = (int16_t) (get_control_params()->adaptive.hard_stop_k_Nm_p_rad[get_task_machine()->terrain_mode]*10.0);
+	rigid1.mn.genVar[5] = (int16_t) (get_control_params()->adaptive.lsw_theta_rad[get_task_machine()->terrain_mode]*100.0);
+	rigid1.mn.genVar[6] = (int16_t) (get_control_params()->adaptive.est_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
+	rigid1.mn.genVar[7] = (int16_t) (get_control_params()->adaptive.est_b_Nm_p_rps[get_task_machine()->terrain_mode]*100.0);
+	rigid1.mn.genVar[8] = (int16_t) (get_control_params()->adaptive.lst_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
+	rigid1.mn.genVar[9] = (int16_t) (get_control_params()->adaptive.lst_theta_rad[get_task_machine()->terrain_mode]*100.0);
 
-	if (get_task_machine()->terrain_mode == MODE_NOMINAL){
-		rigid1.mn.genVar[5] = (int16_t) (get_control_params()->nominal.theta_rad*100.0);
-		rigid1.mn.genVar[6] = (int16_t) (get_control_params()->nominal.k_Nm_p_rad*100.0);
-		rigid1.mn.genVar[7] = (int16_t) (get_control_params()->nominal.b_Nm_p_rps*100.0);
+	  // rigid1.mn.genVar[3] = (int16_t) (get_control_params()->active.sw_k_Nm_p_rad*100.0);
+	  // rigid1.mn.genVar[4] = (int16_t) (get_control_params()->active.sw_b_Nm_p_rps*100.0);
+	  // rigid1.mn.genVar[5] = (int16_t) (get_control_params()->active.esw_theta_rad*100.0);
 
-	}else if (get_task_machine()->terrain_mode != MODE_PREDICT){
+	// if (get_task_machine()->terrain_mode == MODE_NOMINAL){
+	// 	rigid1.mn.genVar[5] = (int16_t) (get_control_params()->nominal.theta_rad*100.0);
+	// 	rigid1.mn.genVar[6] = (int16_t) (get_control_params()->nominal.k_Nm_p_rad*100.0);
+	// 	rigid1.mn.genVar[7] = (int16_t) (get_control_params()->nominal.b_Nm_p_rps*100.0);
+
+	// }else if (get_task_machine()->terrain_mode != MODE_PREDICT){
 		
-		rigid1.mn.genVar[3] = (int16_t) (get_control_params()->adaptive.hard_stop_theta_rad[get_task_machine()->terrain_mode]*100.0);
-		rigid1.mn.genVar[4] = (int16_t) (get_control_params()->adaptive.hard_stop_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
-		rigid1.mn.genVar[5] = (int16_t) (get_control_params()->adaptive.lsw_theta_rad[get_task_machine()->terrain_mode]*100.0);
-		rigid1.mn.genVar[6] = (int16_t) (get_control_params()->adaptive.est_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
-		rigid1.mn.genVar[7] = (int16_t) (get_control_params()->adaptive.est_b_Nm_p_rps[get_task_machine()->terrain_mode]*100.0);
-		rigid1.mn.genVar[8] = (int16_t) (get_control_params()->adaptive.lst_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
-		rigid1.mn.genVar[9] = (int16_t) (get_control_params()->adaptive.lst_theta_rad[get_task_machine()->terrain_mode]*100.0);
-	}else {
+		
+	// }else {
 
-	}
+	// }
 }
-
-static void zeroUserWrites(){
-	for (int i= 1; i < 10; i++){
-		user_data_1.w[i] = 0;
-	}
-}
-
 
 /*
  * Updates the Input values based off of user data
@@ -114,20 +109,26 @@ static void zeroUserWrites(){
  */
 static void updateUserWrites(Act_s *actx, struct taskmachine_s* tm, WalkParams *wParams){
 	tm->terrain_mode_prev = tm->terrain_mode;
-	tm->terrain_mode = user_data_1.w[0];
+	tm->terrain_mode = (int) user_data_1.w[0];
 
-	if (tm->terrain_mode_prev != tm->terrain_mode){
-		zeroUserWrites();	
-	}
+	// if (tm->terrain_mode_prev != tm->terrain_mode){
+	// 	for (int i= 1; i < 10; i++){
+	// 			user_data_1.w[i] = 0;
+	// 		}	
+	// }
 
-	if (tm->terrain_mode == MODE_NOMINAL){
-		set_nominal_theta_rad( (float) user_data_1.w[1]  /100.0);
-		set_nominal_k_Nm_p_rad( (float) user_data_1.w[2] /100.0);
-		set_nominal_b_Nm_p_rps ( (float) user_data_1.w[3] /100.0);
-	}else if (tm->terrain_mode != MODE_PREDICT){
-		set_est_k_Nm_p_rad((float) user_data_1.w[1]  /100.0, tm->terrain_mode);
-		set_est_b_Nm_p_rps((float) user_data_1.w[2]  /100.0, tm->terrain_mode);
-		set_hard_stop_k_Nm_p_rad((float) user_data_1.w[3]  /100.0, tm->terrain_mode);
+	// if (tm->terrain_mode == MODE_NOMINAL){
+	// 	set_nominal_theta_rad( (float) user_data_1.w[1]  /100.0);
+	// 	set_nominal_k_Nm_p_rad( (float) user_data_1.w[2] /100.0);
+	// 	set_nominal_b_Nm_p_rps ( (float) user_data_1.w[3] /100.0);
+	// }else if (tm->terrain_mode != MODE_PREDICT){
+	// set_est_k_Nm_p_rad(((float) user_data_1.w[1])  /100.0, tm->terrain_mode);
+	// 	set_est_b_Nm_p_rps(((float) user_data_1.w[2])  /100.0, tm->terrain_mode);
+	// 	set_hard_stop_k_Nm_p_rad(((float) user_data_1.w[3])  /10.0, tm->terrain_mode);
+
+		set_lst_k_Nm_p_rad(((float) user_data_1.w[1])  /100.0, tm->terrain_mode);
+		set_lst_theta_rad(((float) user_data_1.w[2])  /100.0, tm->terrain_mode);
+		set_est_lst_min_theta_rad(((float) user_data_1.w[3])  /1000.0, tm->terrain_mode);
 		 // set_hard_stop_theta_rad((float) user_data_1.w[1]/100.0, tm->terrain_mode);
 		 // set_hard_stop_k_Nm_p_rad((float) user_data_1.w[2]/100.0, tm->terrain_mode);
 		 //set_lsw_theta_rad((float) user_data_1.w[3]/100.0, tm->terrain_mode);
@@ -137,9 +138,9 @@ static void updateUserWrites(Act_s *actx, struct taskmachine_s* tm, WalkParams *
 //		 set_lst_b_Nm_p_rps((float) user_data_1.w[7]/100.0, tm->terrain_mode);
 //		 set_lst_theta_rad((float) user_data_1.w[8]/100.0, tm->terrain_mode);
 //		 set_est_lst_min_theta_rad((float) user_data_1.w[9]/100.0, tm->terrain_mode);
-	}else {
-
-	}
+//	}else {
+//
+//	}
 }
 
 
@@ -151,10 +152,15 @@ static void updateUserWrites(Act_s *actx, struct taskmachine_s* tm, WalkParams *
 static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	//USER WRITE INITIALIZATION GOES HERE//////////////
 
+	// user_data_1.w[0] =  (int32_t) ( MODE_NOMINAL); 	
+	// user_data_1.w[1] =  (int32_t) ( DEFAULT_NOMINAL_THETA_RAD); 	
+	// user_data_1.w[2] =  (int32_t) ( DEFAULT_NOMINAL_K_NM_P_RAD); 
+	// user_data_1.w[3] =  (int32_t) ( DEFAULT_NOMINAL_B_NM_P_RPS); 
+
 	user_data_1.w[0] =  (int32_t) ( MODE_NOMINAL); 	
-	user_data_1.w[1] =  (int32_t) ( DEFAULT_NOMINAL_THETA_RAD); 	
-	user_data_1.w[2] =  (int32_t) ( DEFAULT_NOMINAL_K_NM_P_RAD); 
-	user_data_1.w[3] =  (int32_t) ( DEFAULT_NOMINAL_B_NM_P_RPS); 
+	user_data_1.w[1] =  (int32_t) ( DEFAULT_FLAT_LST_K_NM_P_RAD*100.0); 	
+	user_data_1.w[2] =  (int32_t) ( DEFAULT_FLAT_LST_THETA_RAD*100.0); 
+	user_data_1.w[3] =  (int32_t) ( DEFAULT_FLAT_EST_LST_MIN_THETA_RAD*1000.0); 
 
 	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
 }
