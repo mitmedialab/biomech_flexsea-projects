@@ -18,7 +18,7 @@ static void init_nominal_control_params_s()
 
 }
 
-static void init_terrain_dependent_control_params_s()
+static void init_adaptive_control_params_s()
 {
 
 	cp.adaptive.hard_stop_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
@@ -124,7 +124,7 @@ static void set_control_params_for_terrain(int terrain){
 
 void init_terrain_state_machine(){
 	init_nominal_control_params_s();
-	init_terrain_dependent_control_params_s();
+	init_adaptive_control_params_s();
 }
 
 int get_walking_state(){

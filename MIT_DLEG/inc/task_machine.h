@@ -46,11 +46,11 @@
 #define DS_IDEAL_ROM_RAD 1.06 //Sinitski 2012
 #define UR_IDEAL_ROM_RAD 0.642 //calculated from digitized McIntosh 2006 ankle angle
 #define DR_IDEAL_ROM_RAD 0.398 //calculated from digitized McIntosh 2006 ankle angle
-#define FL_IDEAL_HEELSTRIKE_ANGLE_RAD 0.03 //Sinitski 2012
-#define US_IDEAL_HEELSTRIKE_ANGLE_RAD 0.28 //Sinitski 2012
-#define DS_IDEAL_HEELSTRIKE_ANGLE_RAD -0.51 //Sinitski 2012
-#define UR_IDEAL_HEELSTRIKE_ANGLE_RAD 0.14 //calculated from digitized McIntosh 2006 ankle angle
-#define DR_IDEAL_HEELSTRIKE_ANGLE_RAD 0.03 //calculated from digitized McIntosh 2006 ankle angle
+#define FL_IDEAL_FOOTSTRIKE_ANGLE_RAD 0.03 //Sinitski 2012
+#define US_IDEAL_FOOTSTRIKE_ANGLE_RAD 0.28 //Sinitski 2012
+#define DS_IDEAL_FOOTSTRIKE_ANGLE_RAD -0.51 //Sinitski 2012
+#define UR_IDEAL_FOOTSTRIKE_ANGLE_RAD 0.14 //calculated from digitized McIntosh 2006 ankle angle
+#define DR_IDEAL_FOOTSTRIKE_ANGLE_RAD 0.03 //calculated from digitized McIntosh 2006 ankle angle
 
 //Copied from matlab pil simulation
 struct taskmachine_s

@@ -11,7 +11,7 @@ float example_stride_aa[] = {0.15, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.1
 static int stride_iterator = 0;
 static float ideal_net_work_j_per_kg[] = {FL_IDEAL_NET_WORK_J_PER_KG,UR_IDEAL_NET_WORK_J_PER_KG,DR_IDEAL_NET_WORK_J_PER_KG,US_IDEAL_NET_WORK_J_PER_KG,DS_IDEAL_NET_WORK_J_PER_KG};
 static float ideal_rom_rad[] = {FL_IDEAL_ROM_RAD,UR_IDEAL_ROM_RAD,DR_IDEAL_ROM_RAD,US_IDEAL_ROM_RAD,DS_IDEAL_ROM_RAD};
-static float ideal_heelstrike_angle_rad[] = {FL_IDEAL_HEELSTRIKE_ANGLE_RAD,UR_IDEAL_HEELSTRIKE_ANGLE_RAD,DR_IDEAL_HEELSTRIKE_ANGLE_RAD,US_IDEAL_HEELSTRIKE_ANGLE_RAD,DS_IDEAL_HEELSTRIKE_ANGLE_RAD};
+static float ideal_heelstrike_angle_rad[] = {FL_IDEAL_FOOTSTRIKE_ANGLE_RAD,UR_IDEAL_FOOTSTRIKE_ANGLE_RAD,DR_IDEAL_FOOTSTRIKE_ANGLE_RAD,US_IDEAL_FOOTSTRIKE_ANGLE_RAD,DS_IDEAL_FOOTSTRIKE_ANGLE_RAD};
 
 //Copied from matlab pil simulation
 static void init_task_machine(){

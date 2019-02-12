@@ -40,6 +40,9 @@
 #include "task_machine.h"
 #include "terrain_state_machine.h"
 
+#define SCALE_FACTOR_RAD 1000.0
+#define SCALE_FACTOR_ONE 1.0
+
 
 //****************************************************************************
 // Variable(s)
@@ -65,41 +68,49 @@ extern float torqueKd;
 // Macro(s)
 //****************************************************************************
 
+static void reInitializeUserWrites(){
+	if (get_task_machine()->terrain_mode == MODE_NOMINAL){
+		user_data_1.w[1] = (int32_t) (get_control_params()->nominal.theta_rad*SCALE_FACTOR_RAD);
+		user_data_1.w[2] = (int32_t) (get_control_params()->nominal.k_Nm_p_rad*SCALE_FACTOR_ONE);
+		user_data_1.w[3] = (int32_t) (get_control_params()->nominal.b_Nm_p_rps*SCALE_FACTOR_ONE);
 
+	}else if (get_task_machine()->terrain_mode != MODE_PREDICT){
+		user_data_1.w[1] = (int32_t) (get_control_params()->adaptive.hard_stop_theta_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_RAD);
+		user_data_1.w[2] = (int32_t) (get_control_params()->adaptive.hard_stop_k_Nm_p_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		user_data_1.w[3] = (int32_t) (get_control_params()->adaptive.lsw_theta_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_RAD);
+		user_data_1.w[4] = (int32_t) (get_control_params()->adaptive.est_k_Nm_p_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		user_data_1.w[5] = (int32_t) (get_control_params()->adaptive.est_b_Nm_p_rps[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		user_data_1.w[6] = (int32_t) (get_control_params()->adaptive.lst_k_Nm_p_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		user_data_1.w[7] = (int32_t) (get_control_params()->adaptive.lst_b_Nm_p_rps[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		user_data_1.w[8] = (int32_t) (get_control_params()->adaptive.lst_theta_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_RAD);
+		user_data_1.w[9] = (int32_t) (get_control_params()->adaptive.est_lst_min_theta_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_RAD);
+	}else {
+
+	}
+		
+}
 static void updateGenVars(){
 
-	  // rigid1.mn.genVar[0] = (int16_t) (get_task_machine()->terrain_mode);
-	  // rigid1.mn.genVar[1] = (int16_t) (get_task_machine()->net_work_j_p_kg*100.0);
-	  // rigid1.mn.genVar[2] = (int16_t) (get_task_machine()->in_swing);
-	  // rigid1.mn.genVar[3] = (int16_t) (get_task_machine()->stride_classified);
-	  // rigid1.mn.genVar[4] = (int16_t) (get_task_machine()->tq*100.0);
-
 	rigid1.mn.genVar[0] = (int16_t) (get_task_machine()->terrain_mode);
-	rigid1.mn.genVar[1] = (int16_t) (get_walking_state());
-	rigid1.mn.genVar[2] = (int16_t) (act1.jointTorque*100.0);
-	rigid1.mn.genVar[3] = (int16_t) (get_control_params()->adaptive.hard_stop_theta_rad[get_task_machine()->terrain_mode]*100.0);
-	rigid1.mn.genVar[4] = (int16_t) (get_control_params()->adaptive.hard_stop_k_Nm_p_rad[get_task_machine()->terrain_mode]*10.0);
-	rigid1.mn.genVar[5] = (int16_t) (get_control_params()->adaptive.lsw_theta_rad[get_task_machine()->terrain_mode]*100.0);
-	rigid1.mn.genVar[6] = (int16_t) (get_control_params()->adaptive.est_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
-	rigid1.mn.genVar[7] = (int16_t) (get_control_params()->adaptive.est_b_Nm_p_rps[get_task_machine()->terrain_mode]*100.0);
-	rigid1.mn.genVar[8] = (int16_t) (get_control_params()->adaptive.lst_k_Nm_p_rad[get_task_machine()->terrain_mode]*100.0);
-	rigid1.mn.genVar[9] = (int16_t) (get_control_params()->adaptive.lst_theta_rad[get_task_machine()->terrain_mode]*100.0);
 
-	  // rigid1.mn.genVar[3] = (int16_t) (get_control_params()->active.sw_k_Nm_p_rad*100.0);
-	  // rigid1.mn.genVar[4] = (int16_t) (get_control_params()->active.sw_b_Nm_p_rps*100.0);
-	  // rigid1.mn.genVar[5] = (int16_t) (get_control_params()->active.esw_theta_rad*100.0);
+	if (get_task_machine()->terrain_mode == MODE_NOMINAL){
+		rigid1.mn.genVar[1] = (int16_t) (get_control_params()->nominal.theta_rad*SCALE_FACTOR_RAD);
+		rigid1.mn.genVar[2] = (int16_t) (get_control_params()->nominal.k_Nm_p_rad*SCALE_FACTOR_ONE);
+		rigid1.mn.genVar[3] = (int16_t) (get_control_params()->nominal.b_Nm_p_rps*SCALE_FACTOR_ONE);
 
-	// if (get_task_machine()->terrain_mode == MODE_NOMINAL){
-	// 	rigid1.mn.genVar[5] = (int16_t) (get_control_params()->nominal.theta_rad*100.0);
-	// 	rigid1.mn.genVar[6] = (int16_t) (get_control_params()->nominal.k_Nm_p_rad*100.0);
-	// 	rigid1.mn.genVar[7] = (int16_t) (get_control_params()->nominal.b_Nm_p_rps*100.0);
+	}else if (get_task_machine()->terrain_mode != MODE_PREDICT){
+		rigid1.mn.genVar[1] = (int16_t) (get_control_params()->adaptive.hard_stop_theta_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_RAD);
+		rigid1.mn.genVar[2] = (int16_t) (get_control_params()->adaptive.hard_stop_k_Nm_p_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		rigid1.mn.genVar[3] = (int16_t) (get_control_params()->adaptive.lsw_theta_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_RAD);
+		rigid1.mn.genVar[4] = (int16_t) (get_control_params()->adaptive.est_k_Nm_p_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		rigid1.mn.genVar[5] = (int16_t) (get_control_params()->adaptive.est_b_Nm_p_rps[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		rigid1.mn.genVar[6] = (int16_t) (get_control_params()->adaptive.lst_k_Nm_p_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		rigid1.mn.genVar[7] = (int16_t) (get_control_params()->adaptive.lst_b_Nm_p_rps[get_task_machine()->terrain_mode]*SCALE_FACTOR_ONE);
+		rigid1.mn.genVar[8] = (int16_t) (get_control_params()->adaptive.lst_theta_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_RAD);
+		rigid1.mn.genVar[9] = (int16_t) (get_control_params()->adaptive.est_lst_min_theta_rad[get_task_machine()->terrain_mode]*SCALE_FACTOR_RAD);
+	}else {
 
-	// }else if (get_task_machine()->terrain_mode != MODE_PREDICT){
-		
-		
-	// }else {
-
-	// }
+	}
 }
 
 /*
@@ -111,60 +122,35 @@ static void updateUserWrites(Act_s *actx, struct taskmachine_s* tm, WalkParams *
 	tm->terrain_mode_prev = tm->terrain_mode;
 	tm->terrain_mode = (int) user_data_1.w[0];
 
-	// if (tm->terrain_mode_prev != tm->terrain_mode){
-	// 	for (int i= 1; i < 10; i++){
-	// 			user_data_1.w[i] = 0;
-	// 		}	
-	// }
+	if (tm->terrain_mode_prev != tm->terrain_mode){
+		reInitializeUserWrites();
+	}
 
-	// if (tm->terrain_mode == MODE_NOMINAL){
-	// 	set_nominal_theta_rad( (float) user_data_1.w[1]  /100.0);
-	// 	set_nominal_k_Nm_p_rad( (float) user_data_1.w[2] /100.0);
-	// 	set_nominal_b_Nm_p_rps ( (float) user_data_1.w[3] /100.0);
-	// }else if (tm->terrain_mode != MODE_PREDICT){
-	// set_est_k_Nm_p_rad(((float) user_data_1.w[1])  /100.0, tm->terrain_mode);
-	// 	set_est_b_Nm_p_rps(((float) user_data_1.w[2])  /100.0, tm->terrain_mode);
-	// 	set_hard_stop_k_Nm_p_rad(((float) user_data_1.w[3])  /10.0, tm->terrain_mode);
+	if (tm->terrain_mode == MODE_NOMINAL){
+		set_nominal_theta_rad((float) user_data_1.w[1]  /SCALE_FACTOR_RAD);
+		set_nominal_k_Nm_p_rad((float) user_data_1.w[2] /SCALE_FACTOR_ONE);
+		set_nominal_b_Nm_p_rps((float) user_data_1.w[3] /SCALE_FACTOR_ONE);
+	}else if (tm->terrain_mode != MODE_PREDICT){
+		set_hard_stop_theta_rad((float) user_data_1.w[1]/SCALE_FACTOR_RAD, tm->terrain_mode);
+		set_hard_stop_k_Nm_p_rad((float) user_data_1.w[2]/SCALE_FACTOR_ONE, tm->terrain_mode);
+		set_lst_theta_rad(((float) user_data_1.w[3])/SCALE_FACTOR_RAD, tm->terrain_mode);
+		set_est_k_Nm_p_rad(((float) user_data_1.w[4])/SCALE_FACTOR_ONE, tm->terrain_mode);
+		set_est_b_Nm_p_rps((float) user_data_1.w[5]/SCALE_FACTOR_ONE, tm->terrain_mode);
+		set_lst_k_Nm_p_rad((float) user_data_1.w[6]/SCALE_FACTOR_ONE, tm->terrain_mode);
+		set_lst_b_Nm_p_rps((float) user_data_1.w[7]/SCALE_FACTOR_ONE, tm->terrain_mode);
+		set_lst_theta_rad((float) user_data_1.w[8]/SCALE_FACTOR_RAD, tm->terrain_mode);
+		set_est_lst_min_theta_rad((float) user_data_1.w[9]/SCALE_FACTOR_RAD, tm->terrain_mode);
+	}else {
 
-		set_lst_k_Nm_p_rad(((float) user_data_1.w[1])  /100.0, tm->terrain_mode);
-		set_lst_theta_rad(((float) user_data_1.w[2])  /100.0, tm->terrain_mode);
-		set_est_lst_min_theta_rad(((float) user_data_1.w[3])  /1000.0, tm->terrain_mode);
-		 // set_hard_stop_theta_rad((float) user_data_1.w[1]/100.0, tm->terrain_mode);
-		 // set_hard_stop_k_Nm_p_rad((float) user_data_1.w[2]/100.0, tm->terrain_mode);
-		 //set_lsw_theta_rad((float) user_data_1.w[3]/100.0, tm->terrain_mode);
-//		 set_est_k_Nm_p_rad((float) user_data_1.w[4]/100.0, tm->terrain_mode);
-//		 set_est_b_Nm_p_rps((float) user_data_1.w[5]/100.0, tm->terrain_mode);
-//		 set_lst_k_Nm_p_rad((float) user_data_1.w[6]/100.0, tm->terrain_mode);
-//		 set_lst_b_Nm_p_rps((float) user_data_1.w[7]/100.0, tm->terrain_mode);
-//		 set_lst_theta_rad((float) user_data_1.w[8]/100.0, tm->terrain_mode);
-//		 set_est_lst_min_theta_rad((float) user_data_1.w[9]/100.0, tm->terrain_mode);
-//	}else {
-//
-//	}
+	}
 }
 
-
-/*
- * Initializes the Input values
- * Param: actx(Act_s) - Actuator structure to track sensor values
- * Param: wParams(WalkParams) -
- */
-static void initializeUserWrites(Act_s *actx, WalkParams *wParams){
-	//USER WRITE INITIALIZATION GOES HERE//////////////
-
-	// user_data_1.w[0] =  (int32_t) ( MODE_NOMINAL); 	
-	// user_data_1.w[1] =  (int32_t) ( DEFAULT_NOMINAL_THETA_RAD); 	
-	// user_data_1.w[2] =  (int32_t) ( DEFAULT_NOMINAL_K_NM_P_RAD); 
-	// user_data_1.w[3] =  (int32_t) ( DEFAULT_NOMINAL_B_NM_P_RPS); 
-
-	user_data_1.w[0] =  (int32_t) ( MODE_NOMINAL); 	
-	user_data_1.w[1] =  (int32_t) ( DEFAULT_FLAT_LST_K_NM_P_RAD*100.0); 	
-	user_data_1.w[2] =  (int32_t) ( DEFAULT_FLAT_LST_THETA_RAD*100.0); 
-	user_data_1.w[3] =  (int32_t) ( DEFAULT_FLAT_EST_LST_MIN_THETA_RAD*1000.0); 
-
-	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
+static void initializeUserWrites(){
+	user_data_1.w[0] = (int32_t) (MODE_NOMINAL);
+	user_data_1.w[1] = (int32_t) (DEFAULT_NOMINAL_THETA_RAD*SCALE_FACTOR_RAD);
+	user_data_1.w[2] = (int32_t) (DEFAULT_NOMINAL_K_NM_P_RAD*SCALE_FACTOR_ONE);
+	user_data_1.w[3] = (int32_t) (DEFAULT_NOMINAL_B_NM_P_RPS*SCALE_FACTOR_ONE);
 }
-
 
 #define FINDPOLES_DONE (calibrationFlags == 0) && (calibrationNew == 0)
 //****************************************************************************
