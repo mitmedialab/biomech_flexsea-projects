@@ -34,9 +34,9 @@
 #define TRAJECTORY_TORQUE_TRACKING 3
 
 //Active control strategy
-#define CONTROL_STRATEGY USER_TORQUE_COMMAND
-//#define PD_TUNING
-#define MOTOR_FEEDFOWARD_TUNING
+#define CONTROL_STRATEGY GAIT_TORQUE_TRACKING
+#define PD_TUNING
+//#define MOTOR_FEEDFOWARD_TUNING
 
 #if CONTROL_STRATEGY == TRAJECTORY_TORQUE_TRACKING
 	#define TRACK_PERIOD 3
@@ -45,7 +45,7 @@
 //Angle Limit
 //#define ENC_POS_MAX 1000000		//basically no limit, not used.
 //#define ENC_POS_MIN -28000			//not used.
-#define FEEDBACK_POS_MIN 10000		//TODO: this seems to change on every start up
+#define FEEDBACK_POS_MIN 69000		//TODO: this seems to change on every start up
 #define FEEDBACK_MIN_VOLTAGE -8.
 //Human parameters
 #define LEFT_ANKLE 0

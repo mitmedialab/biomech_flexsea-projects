@@ -57,6 +57,8 @@ void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Boo
 	//float omega = ((*(rigid1.ex.enc_ang_vel)*1.0)/ENCODER_CPR) * 2 * M_PI*1000;
 	float omega = act_para->motorAngularVel;
 
+	rigid1.mn.genVar[2] = torqueReference*100;
+
 	if(feedFoward)
     {
 		#ifndef MOTOR_FEEDFOWARD_TUNING
@@ -98,12 +100,15 @@ void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Boo
 
     	#ifdef PD_TUNING
     	vFeedBack =user_data_1.w[1]*1e-3*currentAnkleTorqueError+user_data_1.w[2]*1e-6*averagedDerivative;
+    	rigid1.mn.genVar[7] = currentAnkleTorque*1000;
+    	rigid1.mn.genVar[5]=currentAnkleTorqueError*10000;//debug
+
 		#else
     	vFeedBack = TORQUE_KP*currentAnkleTorqueError+TORQUE_KD*averagedDerivative;
 		#endif	//#ifdef PD_TUNING
     	targetV += vFeedBack;
 //    	rigid1.mn.genVar[5]=filteredDerivative;//debug
-    	rigid1.mn.genVar[0]=averagedDerivative;//debug
+//    	rigid1.mn.genVar[0]=averagedDerivative;//debug
 
     	previousAnkleTorqueError =previousAnkleTorqueError*(1-DERIVATIVE_WEIGHTING_FACTOR)+DERIVATIVE_WEIGHTING_FACTOR*currentAnkleTorqueError;
     }

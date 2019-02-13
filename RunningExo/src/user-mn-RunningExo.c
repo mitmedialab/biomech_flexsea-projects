@@ -206,7 +206,6 @@ void RunningExo_fsm_1(void)
 			    	}
 			    	runningExoState.timer+=1;					//increase timer
 			    	torqueCommand *= (int)runningExoState.enableOutput;			//safety check
-			    	rigid1.mn.genVar[2] = torqueCommand*100;
 			    	rigid1.mn.genVar[3] = runningExoState.state;
 					#endif //CONTROL_STRATEGY == TORQUE_TRACKING
 
@@ -228,7 +227,7 @@ void RunningExo_fsm_1(void)
 					#endif //#ifdef MOTOR_FEEDFOWARD_TUNING
 
 					#ifndef MOTOR_FEEDFOWARD_TUNING
-			    	setAnkleTorque(torqueCommand, &act_para, 1,0);
+			    	setAnkleTorque(torqueCommand, &act_para, 1,1);//FIXME
 					#endif //#ifndef MOTOR_FEEDFORWARD_TUNING
 			    }
 				break;
@@ -315,15 +314,11 @@ void trackTorque(void)
 
 	if (runningExoState.running)
 	{
-		#ifdef RUNNING_TORQUE_TRACKING
-			torqueValue = unitRunningTorque[currentIndex]*bodyWeight*torqueProfileGain;
-		#endif
+		torqueValue = unitRunningTorque[currentIndex]*bodyWeight*torqueProfileGain;
 	}
 	else
 	{
-		#ifdef WALKING_TORQUE_TRACKING
-			torqueValue = unitWalkingTorque[currentIndex]*bodyWeight*torqueProfileGain;
-		#endif
+		torqueValue = unitWalkingTorque[currentIndex]*bodyWeight*torqueProfileGain;
 	}
 
 	//Set motor output
@@ -665,7 +660,7 @@ int8_t findPolesRunningExo(void)
 			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitRunningExoInfo, SEND_TO_SLAVE);
 			polesState = 2;
 			timer = 0;
-			rigid1.mn.genVar[7]=polesState; //debug
+//			rigid1.mn.genVar[7]=polesState; //debug
 			return 0;
 
 		case 2:
@@ -674,10 +669,10 @@ int8_t findPolesRunningExo(void)
 			{
 				//Enable FSM2, position controller
 				enableActPackFSM2();
-				rigid1.mn.genVar[7]=4; //debug
+//				rigid1.mn.genVar[7]=4; //debug
 				return 1;
 			}
-			rigid1.mn.genVar[7]=3; //debug
+//			rigid1.mn.genVar[7]=3; //debug
 
 			return 0;
 
