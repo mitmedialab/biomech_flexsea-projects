@@ -35,11 +35,11 @@ derivativeFilter derFil={
 void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Bool feedFoward, _Bool feedBack)
 {
 	//Shutdown feedback if below minimum feedback position
-	if(act_para->currentMotorEncPosition< FEEDBACK_POS_MIN && feedBack)
-	{
-		setAnkleTorque(torqueReference, act_para, feedFoward, 0);
-		return;
-	}
+//	if(act_para->currentMotorEncPosition< FEEDBACK_POS_MIN && feedBack)
+//	{
+//		setAnkleTorque(torqueReference, act_para, feedFoward, 0);
+//		return;
+//	}
 
 	//TODO: Consider controller architecture of feedback and feedforward blocks
 	#ifndef MOTOR_FEEDFOWARD_TUNING

@@ -151,10 +151,10 @@
 #define ZERO_LOAD_VOLTAGE_TO_ADC		2.5		// V, stain gauge voltage converted to ADC after amplifier augmentation
 #define MAX_LOAD_TICKS					((uint16)((ADC_MAX_TICKS-ZERO_LOAD_TICKS)*(MAX_LOAD_VOLTAGE_TO_ADC-ZERO_LOAD_VOLTAGE_TO_ADC)/(ADC_MAX_TICKS_VOLTAGE-ZERO_LOAD_VOLTAGE_TO_ADC)))
 										// 28879 ticks, corresponding to 500 lb load
-#define FORCE_PER_TICK					(FORCE_MAX/MAX_LOAD_TICKS) // newton/tick, 0.0769785825165379
-
-#define FORCE_CALIB_M					0.074306 // Force = M*tick + B, from collected data set, applied load
-#define FORCE_CALIB_B					-2455.6817859 	// Force = M*tick + B, , from collected data set, applied load
+//#define FORCE_PER_TICK					(FORCE_MAX/MAX_LOAD_TICKS) // newton/tick, 0.0769785825165379
+//
+//#define FORCE_CALIB_M					0.074306 // Force = M*tick + B, from collected data set, applied load
+//#define FORCE_CALIB_B					-2455.6817859 	// Force = M*tick + B, , from collected data set, applied load
 										// r^2 = 0.999954358260752
 #define MIN_FEEDBACK_ANKLE_TORQUE		4.5//Nm minimum command to activate feedback system
 #define DERIVATIVE_WEIGHTING_FACTOR		0.01
@@ -162,10 +162,15 @@
 // Running exoskeleton parameter(s)
 //****************************************************************************
 #define MOMENT_ARM_ON_FOOT 				0.25 //m, cable tension force's applied arm
-#define ANKLE_TORQUE_PER_TICK			2.*(FORCE_PER_TICK*MOMENT_ARM_ON_FOOT) // N.m/tick, 0.01924465
-#define ANKLE_TORQUE_CALIB_M			0.0185766 // Torque = M*tick + B, from collected data set, applied load
-#define ANKLE_TORQUE_CALIB_B			-613.9204465 	// Torque = M*tick + B, , from collected data set, applied load
-										// r^2 = 0.999954358260752
+//#define ANKLE_TORQUE_PER_TICK			2.*(FORCE_PER_TICK*MOMENT_ARM_ON_FOOT) // N.m/tick, 0.01924465
+//#define ANKLE_TORQUE_CALIB_M			0.0185766 // Torque = M*tick + B, from collected data set, applied load
+//#define ANKLE_TORQUE_CALIB_B			-613.9204465 	// Torque = M*tick + B, , from collected data set, applied load
+//										// r^2 = 0.999954358260752
+
+//Force sensor calibration. Obtain the regression line of strain_readout = M*newton_load + B
+#define FORCE_SENSOR_CALIB_M			14.273	//ticks/newton
+#define FORCE_SENSOR_CALIB_B			32720.	//ticks
+
 #define SLACK_ANKLE_TORQUE				4. //prevent string slack
 #elif ACTIVE_LEG == RIGHT_ANKLE
 
@@ -228,9 +233,9 @@
 
 
 //Values for motor 3
-#define K1 0.547
-#define K2 0.119
-#define DEADBAND 0.439
+//#define K1 0.547
+//#define K2 0.119
+//#define DEADBAND 0.439
 
 #define OMEGA_THRESHOLD 0.2		//Prevent noise
 //#define DEADBAND 0.523

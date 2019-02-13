@@ -475,7 +475,9 @@ void getAnkleKinematics(struct actuation_parameters *actx)
 ////Determine torque at ankle
 void getAnkleTorque(struct actuation_parameters *actx)
 {
-	 actx->ankleTorqueMeasured = (ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B)*2.0; //N.m
+//	 actx->ankleTorqueMeasured = (ANKLE_TORQUE_CALIB_M * rigid1.ex.strain + ANKLE_TORQUE_CALIB_B)*2.0; //N.m
+	 actx->ankleTorqueMeasured = ((rigid1.ex.strain-FORCE_SENSOR_CALIB_B)/FORCE_SENSOR_CALIB_M)*2.0*MOMENT_ARM_ON_FOOT; //N.m
+
 	 actx->ankleTorqueMeasured = actx->ankleTorqueMeasured>0? actx->ankleTorqueMeasured:0;//negative torque is impos
 	 rigid1.mn.genVar[4] = actx->ankleTorqueMeasured*100;
 }
