@@ -29,6 +29,7 @@
 int8_t getMotorMode(void);
 int8_t* getSafetyConditions(void);
 int actuatorIsCorrect();
+int16_t getDeviceIdIncrementing();
 void checkSafeties(Act_s *actx);
 void handleSafetyConditions(Act_s *actx); //renamed from safetyFailure(void)
 int16_t getSafetyFlags(void);

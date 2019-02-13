@@ -58,6 +58,8 @@ extern uint8_t calibrationFlags, calibrationNew;
 extern int32_t currentOpLimit;
 extern int8_t zeroIt; 		// used for zeroing the load cell.
 extern float voltageGain;
+extern float velGain;
+extern float indGain;
 
 extern float torqueKp;
 extern float torqueKi;
@@ -106,10 +108,10 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.tauDes*100.);//(act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (*rigid1.ex.enc_ang_vel);		// comes in as rad/s
-	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
-	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
-	  rigid1.mn.genVar[7] = (int16_t) (rigid1.ex.mot_volt);			// mV
+	  rigid1.mn.genVar[4] = (int16_t) (act1.motCurrDt * MOT_L); //(*rigid1.ex.enc_ang_vel);		// comes in as rad/s
+//	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
+//	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
+//	  rigid1.mn.genVar[7] = (int16_t) getDeviceIdIncrementing() ;// (rigid1.ex.mot_volt);			// mV
 //	  rigid1.mn.genVar[8] = (int16_t) (act1.desiredCurrent); //(rigid1.re.current);			// mA
 //	  rigid1.mn.genVar[9] = (int16_t) (rigid1.ex.mot_current * (MOT_KT * (act1.linkageMomentArm * N_SCREW) * N_ETA) ); //(act1.tauDes*1000.); //(rigid1.re.vb);				// mV
 
@@ -279,7 +281,8 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 	zeroIt								    = ( (int8_t) user_data_1.w[2] );			// Manually zero the load cell
 	currentOrVoltage					    = ( (int8_t) user_data_1.w[3] );			// Manually zero the load cell
 	voltageGain								= ( (float) user_data_1.w[4] ) /10.0;
-
+	velGain								= ( (float) user_data_1.w[5] ) /10.0;
+	indGain								= ( (float) user_data_1.w[6] ) /10.0;
 //	torqueKp 								= ( (float) user_data_1.w[0] ) /1000.0;	// Reduce overall torque limit.
 //	torqueKi				 				= ( (float) user_data_1.w[1] ) /1000.0;	// Reduce overall torque limit.
 //	torqueKd				 				= ( (float) user_data_1.w[2] ) /1000.0;	// Reduce overall torque limit.
@@ -331,8 +334,11 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	user_data_1.w[1] =  (int32_t) ( 0.0 ); 	// frequency set point for freq test
 	user_data_1.w[2] =  (int32_t) ( 0.0 ); 	// torque input for freq test
 	user_data_1.w[3] =  (int32_t) ( 0.0 ); 	// torque input for freq test
-	user_data_1.w[3] =  (int32_t) ( 1.0 ); 	// torque input for freq test
-	//	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
+	user_data_1.w[4] =  (int32_t) ( 1.0 ); 	// torque input for freq test
+	user_data_1.w[5] =  (int32_t) ( 1.0 ); 	// torque input for freq test
+	user_data_1.w[6] =  (int32_t) ( 1.0 ); 	// torque input for freq test
+
+//	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
 //	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
 //	user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque*100 ); 			// Late stance power, torque threshhold
 //	user_data_1.w[4] =  (int32_t) ( wParams->lstPGDelTics ); 		// ramping rate

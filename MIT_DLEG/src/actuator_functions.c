@@ -35,7 +35,10 @@ int8_t fsm1State = STATE_POWER_ON;
 float currentScalar = CURRENT_SCALAR_INIT;
 
 int8_t zeroIt = 0;	//Used to allow re-zeroing of the load cell, ie for testing purposes
-float voltageGain = 1.0;
+float voltageGain = 1.0;	//tested
+float velGain = 1.1;	// tested
+float indGain = 1.73;	// tested
+
 
 //torque gain values
 // ARE THESE WORKING? CHECK THAT THEY'RE NOT BEING OVERWRITTEN BY USERWRITES!!!
@@ -262,11 +265,11 @@ static float getMotorCurrentDt(struct act_s *actx)
 {
 	static float lastCurrent = 0.0;
 
-	float current = (actx->motCurr - lastCurrent)*SECONDS;
+	float currentDt = (actx->motCurr - lastCurrent);	// units [A/sec]
 
-	current = 0.8*lastCurrent + 0.2 * current;
+	currentDt = 0.8*lastCurrent + 0.2 * currentDt;
 
-	return current;
+	return currentDt;
 }
 
 /*
@@ -624,15 +627,22 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 	}
 
 //Angle Limit bumpers
-	actx->tauDes = tauDes + actuateAngleLimits(actx);
+	actx->tauDes = tauDes;// + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	// motor current signal
-	float I = ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes * CURRENT_SCALAR_INIT);
-	float V = (I * MOT_R) * voltageGain + ( MOT_KT * actx->motorVel )*CURRENT_SCALAR_INIT; // this caused major problems==> + (actx->motCurrDt * MOT_L);
+	float I = ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes );		// [A]
+	float V = (I * MOT_R) * voltageGain + ( MOT_KT_TOT * actx->motorVel * velGain) + (actx->motCurrDt * MOT_L * indGain ); // [V] this caused major problems? ==> ;
 
+	rigid1.mn.genVar[5] = (int16_t) ( (I * MOT_R)* voltageGain * CURRENT_SCALAR_INIT );
+	rigid1.mn.genVar[6] = (int16_t) ( ( MOT_KT_TOT * actx->motorVel ) * velGain * CURRENT_SCALAR_INIT );
+	rigid1.mn.genVar[7] = (int16_t) ( actx->motCurrDt * MOT_L * indGain * CURRENT_SCALAR_INIT );
+
+
+	int32_t ImA = (int32_t) ( I * CURRENT_SCALAR_INIT );
+	int32_t VmV = (int32_t) ( V * CURRENT_SCALAR_INIT );
 //	I = I + noLoadCurrent(I);	// Include current required to get moving
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
@@ -644,8 +654,6 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 //		I = -actx->currentOpLimit;
 //	}
 
-	rigid1.mn.genVar[9] = isTransition;
-
 	switch(motorControl)
 	{
 		case 0: // current control
@@ -654,9 +662,10 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 				mitInitCurrentController();
 				isTransition = 0;
 			}
-			setMotorCurrent( ( (int32_t) I ) , DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
 			lastMotorControl = motorControl;
-			rigid1.mn.genVar[8] = (int16_t) (I);
+			rigid1.mn.genVar[8] = (int16_t) ( ImA );
+			rigid1.mn.genVar[9] = (int16_t) ( VmV );
 			actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
 
 			break;
@@ -666,11 +675,10 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 				mitInitOpenController();
 				isTransition = 0;
 			}
-			setMotorVoltage( ( (int32_t) V ), DEVICE_CHANNEL); // consider open volt control
+			setMotorVoltage( VmV, DEVICE_CHANNEL); // consider open volt control
 			lastMotorControl = motorControl;
-			rigid1.mn.genVar[8] = (int16_t) (V);
-			actx->desiredCurrent = V;
-
+			rigid1.mn.genVar[8] = (int16_t) ( ImA );
+			rigid1.mn.genVar[9] = (int16_t) ( VmV );
 			break;
 		default:
 			break;

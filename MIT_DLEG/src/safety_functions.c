@@ -373,9 +373,13 @@ int16_t getSafetyFlags(void) {
 int actuatorIsCorrect() {
 	int16_t* devID16 = getDeviceId16();
 
-	if (safetyFlags) {
-		return 0;
-	}
+	// If we are testing devices don't cancel all actions, probably need to be doing tests.
+	#if defined(NO_DEVICE) || defined(NO_ACTUATOR)
+	#else
+		if (safetyFlags) {
+			return 0;
+		}
+	#endif
 
 	//check all six values of stm32ID match
 	for (int i = 0; i < 6; i++) {
@@ -385,6 +389,38 @@ int actuatorIsCorrect() {
 	}
 
 	return 1;
+}
+
+/*
+ * Output device ID so we can record it for new boards.
+ * Step through each ID, hold for a delay, then increment.
+ * Output of -1 defines end of the ID and a restart of ID.
+ */
+int16_t getDeviceIdIncrementing(void) {
+	static int16_t internalTimer = 0;
+	static int8_t i = 0;
+	int16_t* devID16 = getDeviceId16();
+	int16_t output = 0;
+
+	internalTimer++;
+
+	if (internalTimer < 1500)
+	{
+		if (i < 6)
+		{
+			output =  (*(devID16 + i));
+
+		} else
+		{
+			i = -1;
+			output = -1;	// notification of restarting output
+		}
+	} else
+	{
+		internalTimer = 0; //reset timer
+		i++;
+	}
+	return output;
 }
 
 
@@ -428,6 +464,8 @@ void checkSafeties(Act_s *actx) {
  */
 void handleSafetyConditions(Act_s *actx) {
 
+#if defined(NO_DEVICE) || defined(NO_ACTUATOR)
+#else
 	//TODO figure out if MODE_DISABLED should be blocking/ how to do it
 	if (errorConditions[ERROR_MOTOR_ENCODER] != SENSOR_NOMINAL)
 		motorMode = MODE_DISABLED;
@@ -478,7 +516,7 @@ void handleSafetyConditions(Act_s *actx) {
 
 			break;
 	}
-
+#endif // NO_DEVICE || NO_ACTUATOR
 }
 
 
