@@ -116,7 +116,7 @@ struct statistics_s
 	float* x;
 	float* y;
 
-	uint8_t k_est;
+	int k_est;
 
 
 	//Segmentation, state,and mutex variables

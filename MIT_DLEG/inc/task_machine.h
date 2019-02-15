@@ -12,7 +12,7 @@
 
 //Copied from matlab pil simulation
  //Gait event thresholds
-#define MIN_TQ_FOR_FOOT_ON 2.0
+#define MIN_TQ_FOR_FOOT_ON 3.0
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 50
 #define MIN_TQ_FOR_FOOT_STATIC 5.0
 #define AA_DOT_AOMEGA_ERROR_THRESH 0.6
@@ -85,18 +85,23 @@ struct taskmachine_s
     float net_work_j_p_kg;
     float stance_rom_rad;
     float heelstrike_angle_rad;
+    float peak_power_timing_percent;
 
     float* net_work_error_j_p_kg;
     float* stance_rom_error_rad;
     float* heelstrike_angle_error_rad;
+    float* peak_power_timing_error_percent;
 
-    float torque_raw; //testing purposes only
-    float angle_raw; //testing purposes only
+    bool net_work_within_bounds;
+    bool stance_rom_within_bounds;
+    bool heelstrike_angle_within_bounds;
+    bool peak_power_timing_within_bounds;
+
 
     //subject specific params
     float weight_kg;
 
-    float tau_desired;
+    int est_pred_correct; //used as combined variable holding k_est (hundreds), k_pred (tens), and correctness (ones). ex. 441 or 430
 
 };
 

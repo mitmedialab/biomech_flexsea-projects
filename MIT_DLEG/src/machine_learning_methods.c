@@ -125,7 +125,7 @@ static void init_predictor(){
   pred.max_score = -FLT_MAX;
 
   pred.predicting_task = 0;
-  pred.demux_state = 0;
+  pred.demux_state = PRED_UPDATE_RNG;
   pred.segment = 0;
   pred.subsegment = 0;
 }
@@ -136,6 +136,7 @@ void update_statistics_demux(struct taskmachine_s* tm){
       case STATS_BACK_ESTIMATE: //constant flops
           stats.k_est = K_FLAT;
           back_estimate(tm, &stats);
+          tm->est_pred_correct = stats.k_est*100 +  pred.k_pred*10 + (int)(stats.k_est == pred.k_pred);
           stats.demux_state = STATS_UPDATE_CLASS_SUM;
       break;
       case STATS_UPDATE_CLASS_SUM: //f flops per cycle

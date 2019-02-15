@@ -17,6 +17,8 @@
 #define ACCEL_MPS2_PER_LSB  0.98 * GRAVITY_MPS2 / ACCEL_LSB_PER_G
 #define N_ACCEL_MPS2_PER_LSB -0.98 * ACCEL_MPS2_PER_LSB
 #define GYRO_RPS_PER_LSB RAD_PER_DEG / GYRO_LSB_PER_DPS
+#define AACCY_BIAS -0.278
+#define AACCZ_BIAS 0.196
 
 
 static struct kinematics_s kin;
@@ -82,8 +84,8 @@ static void update_acc( struct fx_rigid_mn_s* mn){
 	kin.aAccYprev = kin.aAccZ;
 	kin.aAccZprev = kin.aAccZ;
 	kin.aAccX = FILTA*kin.aAccX + FILTB * (ACCEL_MPS2_PER_LSB * (float) mn->accel.x);
-	kin.aAccY = FILTA*kin.aAccY  + FILTB * (ACCEL_MPS2_PER_LSB * (float) mn->accel.z);
-	kin.aAccZ = FILTA*kin.aAccZ  + FILTB * (N_ACCEL_MPS2_PER_LSB * (float) mn->accel.y);
+	kin.aAccY = FILTA*kin.aAccY  + FILTB * (ACCEL_MPS2_PER_LSB * (float) mn->accel.z + AACCY_BIAS); 
+	kin.aAccZ = FILTA*kin.aAccZ  + FILTB * (N_ACCEL_MPS2_PER_LSB * (float) mn->accel.y + AACCZ_BIAS); 
 }
 
 static void update_omega(struct fx_rigid_mn_s* mn){
