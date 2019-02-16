@@ -36,6 +36,50 @@
 // Include(s)
 //****************************************************************************
 
+//Constants for tuning the controller
+#define AUTOCAL					0
+#define LEFTY					1
+
+#define VIRTUALFIELD			0
+#define DFDAMPING				5 //Keep below 6
+#define IESPRING				5
+#define SAFEZONE				100
+
+#define PFTORQUEGAIN			50
+#define DFTORQUEGAIN			50
+#define PFDFSTIFFGAIN			100
+#define DPONTHRESH				0.1
+
+#define INTORQUEGAIN			40
+#define EVTORQUEGAIN			40
+#define INEVSTIFFGAIN			10
+#define IEONTHRESH				0.1
+
+#define COCONTHRESH				0.5
+
+//STIMULATION THRESHOLDS
+#define ISON_STIM				0
+#define BLANKWINDOW				0
+#define DPSTIM_ONTHRESH			1500
+#define IESTIM_ONTHRESH			500
+#define STIMSTIFFGAIN			3 //Keep at 5 or lower
+
+
+//MANUAL CALIBRATION
+#define MANMIN_LG				949
+#define MANMAX_LG 				32862
+
+#define MANMIN_TP				578
+#define MANMAX_TP			 	10135
+
+#define MANMIN_TA				1175
+#define MANMAX_TA			    101771
+
+#define MANMIN_PL				1173
+#define MANMAX_PL				63669
+
+// Other Constants
+#define REST_MOTOR_ANGLE 	1000
 
 //****************************************************************************
 // Shared variable(s)

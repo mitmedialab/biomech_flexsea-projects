@@ -480,11 +480,14 @@ void ankle_2dof_independent_demo(void)
 	state_t++;
 
 	//State machine:
+	user_data_1.r[5] = state;
 	switch(state)
 	{
-		case -5:	//Wait for 10 seconds to let everything load
+		case -5:	//Wait for 5 seconds to let everything load
 
 			my_control = CTRL_OPEN;
+			user_data_1.r[2] = 3250;
+			user_data_1.r[3] = 3252;
 			my_pwm[0] = 0;
 			my_pwm[1] = 0;
 			init_angle = (*exec1.enc_ang);
@@ -496,6 +499,60 @@ void ankle_2dof_independent_demo(void)
 
 			break;
 
+
+		case -4: //move the motors to maximum plantar flexion
+
+			my_control = CTRL_OPEN;
+
+			if(user_data_1.w[0] ==1)
+			{
+				my_pwm[0] = -user_data_1.w[1];
+				my_pwm[1] = -user_data_1.w[1];
+			}
+			else
+			{
+				my_pwm[0] = -1400;
+				my_pwm[1] = -1400;
+			}
+
+			user_data_1.r[4] = my_pwm[0];
+			if (state_t>3000)
+			{
+				state = -3;
+				state_t = -1;
+				angle_zero_1 = *exec1.enc_ang; 	//exec1.enc_display;
+				angle_zero_2 = *exec2.enc_ang;	//exec2.enc_display;
+			}
+
+            break;
+
+		case -3: //move the motor to 20 degrees from maximum dorsiflexion and stop
+
+			my_control = CTRL_OPEN;
+
+			if(user_data_1.w[0] ==1)
+			{
+				my_pwm[0] = user_data_1.w[1];
+				my_pwm[1] = user_data_1.w[1];
+			}
+			else
+			{
+				my_pwm[0] = 1400;
+				my_pwm[1] = 1400;
+			}
+
+			user_data_1.r[4] = my_pwm[0];
+
+			if (state_t>3000)
+			{
+				state = -4;
+				state_t = -1;
+				angle_zero_1 = *exec1.enc_ang; 	//exec1.enc_display;
+				angle_zero_2 = *exec2.enc_ang;	//exec2.enc_display;
+			}
+
+
+			/*
 		case -4:	//Spin one motor CW...
 
 			my_control = CTRL_OPEN;
@@ -541,6 +598,8 @@ void ankle_2dof_independent_demo(void)
 			//No exit
 
 			break;
+*/
+
 
 		default:
 			//Handle exceptions here
