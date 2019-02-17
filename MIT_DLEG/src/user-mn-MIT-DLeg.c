@@ -282,7 +282,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 	currentOrVoltage					    = ( (int8_t) user_data_1.w[3] );			// Manually zero the load cell
 	voltageGain								= ( (float) user_data_1.w[4] ) /10.0;
 	velGain								= ( (float) user_data_1.w[5] ) /10.0;
-	indGain								= ( (float) user_data_1.w[6] ) /10.0;
+	indGain								= ( (float) user_data_1.w[610] ) /10.0;
 //	torqueKp 								= ( (float) user_data_1.w[0] ) /1000.0;	// Reduce overall torque limit.
 //	torqueKi				 				= ( (float) user_data_1.w[1] ) /1000.0;	// Reduce overall torque limit.
 //	torqueKd				 				= ( (float) user_data_1.w[2] ) /1000.0;	// Reduce overall torque limit.
