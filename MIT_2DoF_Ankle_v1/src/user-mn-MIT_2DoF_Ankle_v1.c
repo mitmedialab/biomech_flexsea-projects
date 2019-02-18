@@ -56,9 +56,12 @@ int32_t dp_stiffness = 0, ei_stiffness = 0;
 
 int32_t ank_angs_1[6] = {0,0,0,0,0,0};
 int32_t mot_angs_1[6] = {0,0,0,0,0,0};
+
 int32_t ank_angs_2[6] = {0,0,0,0,0,0};
 int32_t mot_angs_2[6] = {0,0,0,0,0,0};
+
 int32_t ank_angs_t[6] = {0,0,0,0,0,0};
+
 int32_t ank_angs_dp[6] = {0,0,0,0,0,0};
 int32_t ank_angs_ie[6] = {0,0,0,0,0,0};
 
@@ -95,6 +98,7 @@ void init_ankle_2dof(void)
 {
 	my_control = CTRL_NONE;
 	state = -5;
+	// state = 1;
 }
 
 //Ankle 2-DoF Finite State Machine.
@@ -363,7 +367,7 @@ static void ankle_2dof_refresh_values(void)
 	//motor angle in degrees
 	//(*exec1.enc_ang) -> positive in plantarflexion
 	//(*exec2.enc_ang) -> positive in dorsiflexion
-	mot_ang_1 = -((*exec1.enc_ang)-angle_zero_1)/46-129; //46 should be 45.5
+	mot_ang_1 = ((*exec1.enc_ang)-angle_zero_1)/46-129; //46 should be 45.5
 	mot_ang_2 = ((*exec2.enc_ang)-angle_zero_2)/46-129;  //46 should be 45.5
 
 	ankle_trans_1 = get_ankle_trans(mot_ang_1);
@@ -417,8 +421,8 @@ static void ankle_2dof_refresh_values(void)
 	mot_vel_1 = (mot_angs_1[0]-mot_angs_1[5]);
 	mot_vel_2 = (mot_angs_2[0]-mot_angs_2[5]);
 
-	user_data_1.r[0] = ank_angs_1[0];
-	user_data_1.r[1] = ank_angs_2[0];
+	// user_data_1.r[0] = ank_angs_1[0];
+	// user_data_1.r[1] = ank_angs_2[0];
 
 	ank_angs_ie[0]  = (ank_angs_1[0]-ank_angs_2[0])/2;
 	ank_angs_dp[0]  = (ank_angs_1[0]+ank_angs_2[0])/2;
@@ -463,7 +467,7 @@ void set_ankle_torque_1(int32_t des_torque) //des_torque in mNm
 	int32_t motor_torque = des_torque/(ankle_trans_1/10); 	//[mNm] at the motor
 	int32_t des_motor_current = motor_torque*10; 			//[mA] at the motor
 	my_cur[0] = des_motor_current; 							//[current IU]
-	user_data_1.r[2] = des_motor_current; 					//[current IU]
+	// user_data_1.r[2] = des_motor_current; 					//[current IU]
 }
 
 void set_ankle_torque_2(int32_t des_torque) //des_torque in mNm
@@ -471,7 +475,7 @@ void set_ankle_torque_2(int32_t des_torque) //des_torque in mNm
 	int32_t motor_torque = des_torque/(ankle_trans_2/10); 	//[mNm] at the motor
 	int32_t des_motor_current = motor_torque*10; 			//[mA] at the motor
 	my_cur[1] = des_motor_current; 							//[current IU]
-	user_data_1.r[3] = des_motor_current; 					//[current IU]
+	// user_data_1.r[3] = des_motor_current; 					//[current IU]
 }
 
 //Demo code to test hardware and software. This is not a walking controller.
@@ -495,7 +499,7 @@ void ankle_2dof_independent_demo(void)
 
 			my_pwm[0] = 0;
 			my_pwm[1] = 0;
-			init_angle = (*exec1.enc_ang);
+			// init_angle = (*exec1.enc_ang);
 			if (state_t > 7000)
 			{
 				state_t = -1;
@@ -509,10 +513,10 @@ void ankle_2dof_independent_demo(void)
 
 			my_control = CTRL_OPEN;
 
-			my_pwm[0] = -1300; // 1.3V
-			my_pwm[1] = -1300;
+			my_pwm[0] = -1350; // 1.3V
+			my_pwm[1] = -1350;
 
-			if (state_t> 8000)
+			if (state_t> 10000)
 			{
 				state = -3;
 				state_t = -1;
@@ -526,32 +530,30 @@ void ankle_2dof_independent_demo(void)
 
 			my_control = CTRL_OPEN;
 
-			my_pwm[0] = 1200;
-			my_pwm[1] = 1200;
+			my_pwm[0] = 1250;
+			my_pwm[1] = 1250;
 
 			if (ank_angs_1[0]<REST_MOTOR_ANGLE)
 			{
 				my_pwm[0] = 0;
+
 			}
 			if (ank_angs_2[0]<REST_MOTOR_ANGLE)
 			{
 				my_pwm[1] = 0;
 			}
-			if( state_t > 10000)
-			{
-				my_pwm[0]= 0;
-				my_pwm[1]= 0;
 
-			}
 			if (ank_angs_1[0]<REST_MOTOR_ANGLE && ank_angs_2[0]<REST_MOTOR_ANGLE)
 			{
 				// state = -2;
 				state = 1;
 				state_t = -1;
 			}
-			user_data_1.r[2] =REST_MOTOR_ANGLE;
-			user_data_1.r[3] =  exec1.gyro.x;//ank_angs_dp[0]*100;
-			user_data_1.r[4] = exec2.gyro.x;
+			// user_data_1.r[2] = REST_MOTOR_ANGLE;
+			user_data_1.r[1] = mot_ang_1;//ank_angs_dp[0]*100;
+			user_data_1.r[2] =  mot_ang_2;//ank_angs_ie[0]*100;
+			user_data_1.r[3] = ank_angs_1[0];//ank_angs_dp[0]*100;
+			user_data_1.r[4] = ank_angs_2[0];
 
 			break;
 
@@ -611,8 +613,8 @@ void ankle_2dof_independent_demo(void)
 
 			my_pwm[0] = 0;
 			my_pwm[1] = 0;
-			user_data_1.r[3] =  *exec1.enc_ang;//ank_angs_dp[0]*100;
-			user_data_1.r[4] =  *exec2.enc_ang;//ank_angs_ie[0]*100;
+			// user_data_1.r[3] =  *exec1.enc_ang;//ank_angs_dp[0]*100;
+			// user_data_1.r[4] =  *exec2.enc_ang;//ank_angs_ie[0]*100;
 			break;
 		case 2:
 			/*
