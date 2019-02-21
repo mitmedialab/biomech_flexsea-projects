@@ -389,13 +389,13 @@ float actuateAngleLimits(Act_s *actx){
  * the No load current requirement to get motor moving.
  * Param: desCurr(float) - 
  */
-float noLoadCurrent(float desCurr) {
+int32_t noLoadCurrent(float desCurr) {
 	if (desCurr > 0) {
-		return MOT_NOLOAD_CURRENT_POS;
+		return (int32_t) MOT_NOLOAD_CURRENT_POS;
 	} else if (desCurr < 0) {
-		return MOT_NOLOAD_CURRENT_NEG;
+		return (int32_t) MOT_NOLOAD_CURRENT_NEG;
 	} else {
-		return 0;
+		return (int32_t) 0;
 	}
 }
 
@@ -413,25 +413,115 @@ float noLoadCurrent(float desCurr) {
  */
 void setMotorTorque(struct act_s *actx, float tauDes)
 {
+
+	//Saturation limit on Torque
+	if (tauDes > ABS_TORQUE_LIMIT_INIT) {
+		tauDes = ABS_TORQUE_LIMIT_INIT;
+	} else if (tauDes < -ABS_TORQUE_LIMIT_INIT) {
+		tauDes = -ABS_TORQUE_LIMIT_INIT;
+	}
+
 	//Angle Limit bumpers
 	actx->tauDes = tauDes ;//+ actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
-	static float tauErrLast = 0, tauErrInt = 0;
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
-	// Error is done at the motor. todo: could be done at the joint, messes with our gains.
+	//PID around motor torque
+//	float tauC = getCompensatorPIDOutput(actx) * voltageGain;
+	//DEBUG
+	rigid1.mn.genVar[7] = (int16_t) (getCompensatorPIDOutput(actx) * voltageGain*1000.0);
+
+	// Custom Compensator Controller
+	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes) * voltageGain;
+	rigid1.mn.genVar[6] = (int16_t) (tauC*1000.0);
+
+	// Feedforward term
+	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
+
+	float tauCCombined = tauC + tauFF;
+
+	// motor current signal
+	float Icalc = ( 1.0/(MOT_KT * N ) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
+
+	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
+
+	//DEBUG todo: check if you want to use this, or some other friction compensation methods
+//	I = I + noLoadCurrent(I);	// Include current required to get moving
+
+	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+	if (I > actx->currentOpLimit)
+	{
+		I = actx->currentOpLimit;
+	} else if (I < -actx->currentOpLimit)
+	{
+		I = -actx->currentOpLimit;
+	}
+
+	actx->desiredCurrent = I; 	// demanded mA
+
+	//TODO: not working right now
+//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+
+	rigid1.mn.genVar[8] = (int16_t) ( I );
+
+	//variables used in cmd-rigid offset 5, for multipacket
+	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
+	rigid1.mn.userVar[6] = actx->tauDes*1000;
+}
+
+/*
+ * Control compensator based on system Identification and simulation
+ * Input is system state
+ * return:	torque command value to the motor driver
+ */
+float getCompensatorCustomOutput(float tauMeas, float tauRef)
+{
+	static float y[3] = {0, 0, 0};
+	static float e[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	// shift previous values into new locations
+	e[k-2] = e[k-1];
+	e[k-1] = e[k];
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+	// update current state to new values
+	e[k] = tauRef - tauMeas;
+	rigid1.mn.genVar[4] = (int16_t) ( e[k] * 1000);
+
+	y[k] = 1.948*y[k-1] - 0.9483*y[k-2] + 1380.4*( e[k-1] - 0.9811*e[k-2] ) * ( e[k] - 1.982*e[k-1] + 0.9825*e[k-2] );	// Notch Filter, does not go below zero, but otherwise stable.
+//	y[k] = 1.01831*y[k-1] - 0.01831*y[k-2] + 4006.6/1000.0*(e[k] - 1.995*e[k-1] + 0.9957*e[k-2]);		// This one drives downwards (negative), but does have positive and negative directionality
+
+	rigid1.mn.genVar[5] = (int16_t) ( y[k]/31.0 *1000);
+	// todo: consider saturating and tracking the saturated torque value inside of here?
+
+	return ( y[k]/31.0) ;
+
+}
+
+/*
+ * Control PID Controller
+ * input:	Act_s structure
+ * return:	desired torque signal to motor
+ */
+float getCompensatorPIDOutput(Act_s *actx)
+{
+
+	static float tauErrLast = 0, tauErrInt = 0;
+
+	// Error is torque at the joint
 	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
 	tauErrInt = tauErrInt + tauErr;				// [Nm]
 	tauErrLast = tauErr;
 
-	//PID around motor torque
 	float tauC = tauErr*torqueKp + tauErrDot*torqueKd + tauErrInt*torqueKi;	// torq Compensator
 
 	// Feedforward term
 	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
-
 
 	float tauCCombined = tauC + tauFF;
 
@@ -449,27 +539,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 		tauErrInt = 0;
 	}
 
-	// motor current signal
-	int32_t I = (int32_t) ( 1.0/(MOT_KT * N * N_ETA) * tauCOutput * CURRENT_SCALAR_INIT );
+	return tauCOutput;
 
-	I = I + noLoadCurrent(I);	// Include current required to get moving
-
-	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
-	if (I > actx->currentOpLimit)
-	{
-		I = actx->currentOpLimit;
-	} else if (I < -actx->currentOpLimit)
-	{
-		I = -actx->currentOpLimit;
-	}
-
-	actx->desiredCurrent = I; 	// demanded mA
-
-	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-
-	//variables used in cmd-rigid offset 5, for multipacket
-	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
-	rigid1.mn.userVar[6] = actx->tauDes*1000;
 }
 
 
@@ -684,9 +755,6 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 			break;
 	}
 
-
-
-
 }
 
 /*
@@ -696,6 +764,20 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
  * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
  */
 float torqueSystemIDFrequencySweep(float omega, float t, float amplitude){
+	static float lastOmega = 0;
+
+	// todo want this to transition only as sign is increasing, no quick transitions
+//	// only make a transition at a zero crossing and if the input has changed
+//	if (lastOmega != omega)
+//	{
+//		float testCase = fmodf(lastOmega*t, (float)M_PI*2);
+//		//todo: wait to transition to new signal
+//		if ( testCase <= 0.01 )
+//			lastOmega = omega;
+//		else
+//			omega = lastOmega;
+//	}
+
 	return ( amplitude * sinf(omega * ( t  ) ) );
 }
 

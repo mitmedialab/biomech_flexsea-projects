@@ -108,7 +108,7 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.tauDes*100.);//(act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (act1.motCurrDt * MOT_L); //(*rigid1.ex.enc_ang_vel);		// comes in as rad/s
+//	  rigid1.mn.genVar[4] = (int16_t) (act1.motCurrDt * MOT_L); //(*rigid1.ex.enc_ang_vel);		// comes in as rad/s
 //	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
 //	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
 //	  rigid1.mn.genVar[7] = (int16_t) getDeviceIdIncrementing() ;// (rigid1.ex.mot_volt);			// mV
@@ -215,12 +215,15 @@ void MITDLegFsm1(void)
 				}
 
 				// Inside here is where user code goes
+				//DEBUG remove this because joint encoder can't update in locked state.
 //				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 
-//					float tor = biomCalcImpedance(&act1, 1.5, 0.2, 0);
-					float tor = torqueSystemIDFrequencySweep( (freqInput*2*M_PI), ( ( (float)fsmTime) /SECONDS), torqInput);
-					setMotorTorqueOpenLoop( &act1, tor, currentOrVoltage);
+					float tor = biomCalcImpedance(&act1, torqInput, freqInput, 0);
+//					float tor = torqueSystemIDFrequencySweep( (freqInput*2*M_PI), ( ( (float)fsmTime) /SECONDS), torqInput);
 
+//					setMotorTorqueOpenLoop( &act1, tor, currentOrVoltage);
+
+					setMotorTorque( &act1, tor);
 
 //					runMainUserApplication(&act1);
 
@@ -280,7 +283,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 	freqInput								= ( (float) user_data_1.w[1] ) /10.0;	// Reduce overall torque limit.
 	zeroIt								    = ( (int8_t) user_data_1.w[2] );			// Manually zero the load cell
 	currentOrVoltage					    = ( (int8_t) user_data_1.w[3] );			// Manually zero the load cell
-	voltageGain								= ( (float) user_data_1.w[4] ) /10.0;
+	voltageGain								= ( (float) user_data_1.w[4] ) /1000.0;
 	velGain								= ( (float) user_data_1.w[5] ) /10.0;
 	indGain								= ( (float) user_data_1.w[610] ) /10.0;
 //	torqueKp 								= ( (float) user_data_1.w[0] ) /1000.0;	// Reduce overall torque limit.
@@ -318,6 +321,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 //	torqueKd								= 0.0;
 	torqInput								= 0.0;
 	freqInput								= 0.0;
+	voltageGain								= 0.0;
 //	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
 //	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
 //	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]

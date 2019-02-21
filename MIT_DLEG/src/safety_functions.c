@@ -464,6 +464,8 @@ void checkSafeties(Act_s *actx) {
  */
 void handleSafetyConditions(Act_s *actx) {
 
+	static int8_t lastMotorMode = MODE_ENABLED;
+
 #if defined(NO_DEVICE) || defined(NO_ACTUATOR)
 #else
 	//TODO figure out if MODE_DISABLED should be blocking/ how to do it
@@ -499,10 +501,12 @@ void handleSafetyConditions(Act_s *actx) {
 
 	switch (motorMode){
 		case MODE_DISABLED:
-			disableMotor();
+			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
+			//			disableMotor();
 			break;
 		case MODE_PASSIVE:
-			actuatePassiveMode(actx); //position control to neutral angle
+			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
+//			actuatePassiveMode(actx); //position control to neutral angle
 			break;
 		case MODE_OVERTEMP:
 			if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
@@ -513,9 +517,13 @@ void handleSafetyConditions(Act_s *actx) {
 			}
 			break;
 		case MODE_ENABLED:
-
+			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
+			{
+				mitInitCurrentController();
+			}
 			break;
 	}
+	lastMotorMode = motorMode;
 #endif // NO_DEVICE || NO_ACTUATOR
 }
 

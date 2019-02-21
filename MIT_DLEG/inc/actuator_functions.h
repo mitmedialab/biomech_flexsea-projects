@@ -48,11 +48,13 @@ void  updateSensorValues(struct act_s *actx);
 float biomCalcImpedance(Act_s *actx, float k1, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
 void  setMotorTorque(struct act_s *actx, float tor_d);
 void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des, int8_t motorControl);
+float getCompensatorPIDOutput(Act_s *actx);
+float getCompensatorCustomOutput(float tauMeas, float tauRef);									// calculate compensator output value
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float torqueSystemIDFrequencySweep(float omega, float t, float amplitude);
 float torqueSystemIDPRBS(void);
 bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output); // integral term anti-windup clamp check
 float actuateAngleLimits(Act_s *actx);	// apply virtual spring/damper on angle limits
-float noLoadCurrent(float desCurr);
+int32_t noLoadCurrent(float desCurr);
 
 #define WINDOW_SIZE 10
