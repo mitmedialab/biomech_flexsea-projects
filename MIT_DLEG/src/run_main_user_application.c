@@ -14,6 +14,9 @@
 void runMainUserApplication(Act_s *actx){
 
 	actx->tauDes = biomCalcImpedance(actx, actx->desiredJointK_f, actx->desiredJointB_f, actx->desiredJointAngleDeg_f);
-	setMotorTorque(actx, actx->tauDes);
+
+	if (actx->motorOnFlag) {
+		setMotorTorque(actx, actx->tauDes);
+	}
 
 }

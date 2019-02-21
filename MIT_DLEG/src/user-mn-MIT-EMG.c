@@ -42,9 +42,42 @@ int16_t emgMisc[3] = {0,0,0};
 extern uint8_t i2c2_dma_tx_buf[24]; //from i2c.c
 extern uint8_t i2c2_dma_rx_buf[24]; //from i2c.c
 extern I2C_HandleTypeDef hi2c2;
+
+int16_t emgScalers[8] = {1,1,1,1,1,1,1,1};
 //****************************************************************************
 // Function(s)
 //****************************************************************************
+
+//scales raw EMG data from EMG board before ever transmitting to Plan
+//adjust using user writes
+void scaleEMGMultipacket(void) {
+
+	//update emgScalers with user write values
+	if (sizeof(emgScalers)/sizeof(int16_t) <= sizeof(user_data_1.w)/sizeof(int32_t)) {
+		for (uint i = 0; i < sizeof(emgScalers)/sizeof(int16_t); i++) {
+
+			//pull scalers from user writes
+			if (user_data_1.w[i] > 0) {
+				emgScalers[i] = user_data_1.w[i];
+			}
+
+			//1 is no scaling
+			if (emgScalers[i] != 1) {
+				float act_norm = ((float) emgData[i])/((float) emgScalers[i]);
+				emgData[i] = (int16_t) (act_norm*10000); //this value sent to odroid to be divided by 10,000 later
+			}
+
+
+			//catch leaks and negative scalers
+			if (emgData[i] < 0) {
+				emgData[i] = 0;
+			} else if (emgData[i] > 10000) {
+				emgData[i] = 10000;
+			}
+
+		}
+	}
+}
 
 /*
  * Updates the value of emgReadyFlag based off of input from rigid1
@@ -74,8 +107,10 @@ void mitEmgDecode(void)
 {
 	//ToDo: need to include packet check function
 		emgTimestamp = (uint16_t)i2c2_dma_rx_buf[5] + (uint16_t)i2c2_dma_rx_buf[6]*100;
-	  memcpy(emgData, i2c2_dma_rx_buf+8,16);
-		memcpy(emgMisc, i2c2_dma_rx_buf+2,6);
+		memcpy(emgTimestamp, i2c2_dma_rx_buf+5,2);
+		memcpy(emgData, i2c2_dma_rx_buf+7,16);
+		scaleEMGMultipacket();
+//		memcpy(emgMisc, i2c2_dma_rx_buf+2,6);
 		/*
 		for(uint8_t i=0;i<8;i++)
 			rigid1.mn.genVar[i] = emgData[i];

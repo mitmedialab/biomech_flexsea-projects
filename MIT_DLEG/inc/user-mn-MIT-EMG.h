@@ -68,6 +68,9 @@ void mitEmgI2c2Fsm(void);
 uint8_t mitEmgGetState(void); //read value when only 1 is returned
 void mitEmgChangeState(uint8_t); //activate / deactive the EMG peripheral
 
+
+void scaleEMGMultipacket(void);
+
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
@@ -80,7 +83,7 @@ void mitEmgChangeState(uint8_t); //activate / deactive the EMG peripheral
 
 #define EMG_LINE_THRESHOLD 3475 // 2.8V/3.3V *4096
 #define EMG_TIMER_THRESHOLD 250 //250ms
-#define EMG_TIMER_PRESCALER 1 // comm freq = 1kHz/presc
+#define EMG_TIMER_PRESCALER 2 // comm freq = 1kHz/presc
 
 #ifdef PROJECT_MIT_DLEG
 //#define EMG_LINE_READY 1 //AIN1-CON

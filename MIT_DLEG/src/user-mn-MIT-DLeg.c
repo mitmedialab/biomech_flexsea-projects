@@ -50,6 +50,19 @@ float torqInput = 0.0;
 int8_t onEntry = 0;
 Act_s act1;
 
+//NEED TO SET CORRECTLY FOR MULTIPACKET MULTIDOF
+#ifdef IS_KNEE
+
+uint8_t jointDof = KNEE;
+
+#elif defined(IS_ANKLE)
+
+uint8_t jointDof = ANKLE_DP;
+//uint8_t jointDof = ANKLE_IE;
+
+#endif
+
+
 // EXTERNS
 extern uint8_t calibrationFlags, calibrationNew;
 extern int32_t currentOpLimit;
@@ -67,6 +80,9 @@ extern float torqueKd;
 // Public Function(s)
 //****************************************************************************
 
+uint8_t getJointDof(void) {
+	return jointDof;
+}
 //MIT DLeg Finite State Machine.
 
 /*
@@ -98,11 +114,11 @@ void MITDLegFsm1(void)
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
 	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
-	  rigid1.mn.genVar[1] = (int16_t) (act1.tauDes*100);
-	  rigid1.mn.genVar[2] = (int16_t) (act1.desiredCurrent);
-	  rigid1.mn.genVar[3] = (int16_t) (act1.jointTorque*100.);
-	  rigid1.mn.genVar[4] = (int16_t) (act1.jointAngleDegrees*100.);
-
+	  rigid1.mn.genVar[1] = (int16_t) (emgData[0]);
+	  rigid1.mn.genVar[2] = (int16_t) (emgData[1]);
+	  rigid1.mn.genVar[3] = (int16_t) (emgData[2]);
+	  rigid1.mn.genVar[4] = (int16_t) (emgData[3]);
+	  rigid1.mn.genVar[5] = (int16_t) (emgData[4]);
 
     //begin main FSM
 	switch(fsm1State)
@@ -129,7 +145,9 @@ void MITDLegFsm1(void)
 				#ifndef NO_DEVICE
 					fsm1State = STATE_FIND_POLES;
 				#else
-					fsm1State = STATE_DEBUG;
+//					fsm1State = STATE_DEBUG;
+					///DEBUG TODO CHANGE THIS FOR REAL TESTING
+					fsm1State = STATE_FIND_POLES;
 				#endif
 				act1.currentOpLimit = CURRENT_LIMIT_INIT;
 				onEntry = 1;
@@ -141,20 +159,19 @@ void MITDLegFsm1(void)
 
 		case STATE_FIND_POLES:
 
-//			stateMachine.current_state = STATE_INIT;
-			if (!actuatorIsCorrect(&act1)){
+			///DEBUG TODO CHANGE THIS BACK TO !actuatorIsCorrect(&act1)
+			if (actuatorIsCorrect(&act1)){
 				setLEDStatus(0,0,1); //flash red; needs reset
 			} else{
 				if (onEntry) {
-					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
-					calibrationFlags = 1, calibrationNew = 1;
+					// odroid turns on findpoles. If odroid never initiates pole finding, fsm will hang here.
 					isEnabledUpdateSensors = 0;
 					onEntry = 0;
-
 				}
 
 				// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
-				if (FINDPOLES_DONE){
+				// for multipacket, calibrationProgress == 2
+				if (calibrationProgress == 2){
 					fsm1State = STATE_INIT_USER_WRITES;
 					fsmTime = 0;
 					isEnabledUpdateSensors = 1;
@@ -191,7 +208,6 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				updateUserWrites(&act1, &walkParams);
 				//TODO consider changing logic so onentry is only true for one cycle.
 				if (onEntry && fsmTime > DELAY_TICKS_AFTER_FIND_POLES) {
 					act1.currentOpLimit = CURRENT_LIMIT_INIT;

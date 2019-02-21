@@ -48,6 +48,7 @@
 //****************************************************************************
 extern struct act_s act1;	//define actuator structure shared
 extern int8_t isEnabledUpdateSensors;
+extern uint8_t jointDof;
 
 //****************************************************************************
 // Structure(s)
@@ -59,6 +60,7 @@ extern int8_t isEnabledUpdateSensors;
 void initMITDLeg(void);
 void MITDLegFsm1(void);
 void MITDLegFsm2(void);
+uint8_t getJointDof(void);
 
 //****************************************************************************
 // Private Function Prototype(s):

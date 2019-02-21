@@ -713,7 +713,10 @@ void updateSensorValues(struct act_s *actx)
 	getJointAngleKinematic(actx);
 
 	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
+	actx->intJointAngleDegrees = actx->jointAngleDegrees;
+
 	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
+	actx->intJointVelDegrees = actx->jointVelDegrees;
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
 	actx->motorPosNeutral = 0;		// TODO: set this on startup, include in the motor/joint angle transformations
@@ -724,6 +727,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->axialForce = windowAveraging(actx->axialForce);	// Filter signal
 
 	actx->jointTorque = getJointTorque(actx);
+	actx->intJointTorque = actx->jointTorque;
 
 	updateJointTorqueRate(actx);
 
