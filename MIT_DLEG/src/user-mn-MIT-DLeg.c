@@ -111,7 +111,7 @@ void MITDLegFsm1(void)
 //	  rigid1.mn.genVar[4] = (int16_t) (act1.motCurrDt * MOT_L); //(*rigid1.ex.enc_ang_vel);		// comes in as rad/s
 //	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
 //	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
-//	  rigid1.mn.genVar[7] = (int16_t) getDeviceIdIncrementing() ;// (rigid1.ex.mot_volt);			// mV
+	  rigid1.mn.genVar[7] = (int16_t) getDeviceIdIncrementing() ;// (rigid1.ex.mot_volt);			// mV
 //	  rigid1.mn.genVar[8] = (int16_t) (act1.desiredCurrent); //(rigid1.re.current);			// mA
 //	  rigid1.mn.genVar[9] = (int16_t) (rigid1.ex.mot_current * (MOT_KT * (act1.linkageMomentArm * N_SCREW) * N_ETA) ); //(act1.tauDes*1000.); //(rigid1.re.vb);				// mV
 

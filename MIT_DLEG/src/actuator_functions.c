@@ -428,12 +428,12 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	//PID around motor torque
-//	float tauC = getCompensatorPIDOutput(actx) * voltageGain;
+	float tauC = getCompensatorPIDOutput(actx) * voltageGain;
 	//DEBUG
-	rigid1.mn.genVar[7] = (int16_t) (getCompensatorPIDOutput(actx) * voltageGain*1000.0);
+//	rigid1.mn.genVar[7] = (int16_t) (getCompensatorPIDOutput(actx) * voltageGain*1000.0);
 
 	// Custom Compensator Controller
-	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes) * voltageGain;
+//	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes) * voltageGain;
 	rigid1.mn.genVar[6] = (int16_t) (tauC*1000.0);
 
 	// Feedforward term
