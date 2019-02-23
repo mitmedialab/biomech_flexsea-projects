@@ -49,7 +49,6 @@ extern "C" {
 #include "mn-MotorControl.h"
 #endif	//BOARD_TYPE_FLEXSEA_MANAGE
 
-
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -323,6 +322,7 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 {
 	uint16_t index = 0;
 	uint8_t offset = 0;
+	uint8_t processed = 0;
 	(void)mInfo;	//Unused for now
 
 	#ifdef BOARD_TYPE_FLEXSEA_EXECUTE
@@ -334,103 +334,120 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 
 	#endif
 
+	#if (defined BOARD_TYPE_FLEXSEA_PLAN || defined BOARD_TYPE_FLEXSEA_MANAGE)
+		struct rigid_s *ri = &rigid1;
+	#endif
+
+	//This is for communication between Ex and Mn
 	#ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
-		struct rigid_s *ri = &rigid1;
-		index = 0;
-		offset = msgBuf[index++];
-
-		if(offset == 0)
+		if(mInfo->xid >= FLEXSEA_EXECUTE_BASE)
 		{
-			*(ri->ex.enc_ang) = (int32_t) REBUILD_UINT32(msgBuf, &index);
-			*(ri->ex.enc_ang_vel) = (int32_t) REBUILD_UINT32(msgBuf, &index);
-			*(ri->ex.joint_ang) = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			*(ri->ex.joint_ang_vel) = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			ri->ex.mot_current = (int32_t) REBUILD_UINT32(msgBuf, &index);
-			ri->ex.mot_acc = (int32_t) REBUILD_UINT32(msgBuf, &index);
-			ri->ex.mot_volt = (int32_t) ((int16_t)REBUILD_UINT16(msgBuf, &index) << 3);
-			ri->ex.ctrl.current.setpoint_val = (int32_t) ((int16_t)REBUILD_UINT16(msgBuf, &index) << 3);
-			ri->ex.strain = REBUILD_UINT16(msgBuf, &index);
-			ri->ex.status = REBUILD_UINT16(msgBuf, &index);
+			index = 0;
+			offset = msgBuf[index++];
+
+			if(offset == 0)
+			{
+				*(ri->ex.enc_ang) = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				*(ri->ex.enc_ang_vel) = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				*(ri->ex.joint_ang) = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				*(ri->ex.joint_ang_vel) = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				ri->ex.mot_current = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				ri->ex.mot_acc = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				ri->ex.mot_volt = (int32_t) ((int16_t)REBUILD_UINT16(msgBuf, &index) << 3);
+				ri->ex.ctrl.current.setpoint_val = (int32_t) ((int16_t)REBUILD_UINT16(msgBuf, &index) << 3);
+				ri->ex.strain = REBUILD_UINT16(msgBuf, &index);
+				ri->ex.status = REBUILD_UINT16(msgBuf, &index);
+			}
+
+			processed = 1;
 		}
 
 	#endif
 
-	#ifdef BOARD_TYPE_FLEXSEA_PLAN
+	//This used to be only on Plan, but now that Manages can communicate we expanded:
+	#if (defined BOARD_TYPE_FLEXSEA_PLAN || defined BOARD_TYPE_FLEXSEA_MANAGE)
 
-		struct rigid_s *ri = &rigid1;
-		index = 0;
-		offset = msgBuf[index++];
+		if(!processed)
+		{
+			if(mInfo->xid == FLEXSEA_MANAGE_2)
+			{
+				ri = &rigid2;
+			}
+			index = 0;
+			offset = msgBuf[index++];
 
-		if(offset == 0)
-		{
-			ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
-			*(ri->ex.enc_ang) = (int32_t) REBUILD_UINT32(msgBuf, &index);
-			ri->mn.gyro.x = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			ri->mn.gyro.y = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			ri->mn.gyro.z = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			ri->mn.accel.x = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			ri->mn.accel.y = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			ri->mn.accel.z = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			*(ri->ex.joint_ang) = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			ri->ex.mot_volt = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
-			ri->ex.mot_current = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
-			ri->re.temp = msgBuf[index++];
-			//(27 bytes)
-		}
-		else if(offset == 1)
-		{
-			ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
-			*(ri->ex.enc_ang_vel) = (int32_t) REBUILD_UINT32(msgBuf, &index);
-			*(ri->ex.joint_ang_vel) = (int16_t) REBUILD_UINT16(msgBuf, &index);
-			ri->re.vb = REBUILD_UINT16(msgBuf, &index);
-			ri->re.current = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[0] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[1] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[2] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[3] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[4] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[5] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			//(26 bytes)
+		
+			if(offset == 0)
+			{
+				ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
+				*(ri->ex.enc_ang) = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				ri->mn.gyro.x = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				ri->mn.gyro.y = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				ri->mn.gyro.z = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				ri->mn.accel.x = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				ri->mn.accel.y = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				ri->mn.accel.z = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				*(ri->ex.joint_ang) = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				ri->ex.mot_volt = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
+				ri->ex.mot_current = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
+				ri->re.temp = msgBuf[index++];
+				//(27 bytes)
+			}
+			else if(offset == 1)
+			{
+				ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
+				*(ri->ex.enc_ang_vel) = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				*(ri->ex.joint_ang_vel) = (int16_t) REBUILD_UINT16(msgBuf, &index);
+				ri->re.vb = REBUILD_UINT16(msgBuf, &index);
+				ri->re.current = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[0] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[1] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[2] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[3] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[4] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[5] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				//(26 bytes)
 
-			//In some cases genVar contains Strain data:
-			strain1.ch[0].strain_filtered = ri->mn.genVar[0];
-			strain1.ch[1].strain_filtered = ri->mn.genVar[1];
-			strain1.ch[2].strain_filtered = ri->mn.genVar[2];
-			strain1.ch[3].strain_filtered = ri->mn.genVar[3];
-			strain1.ch[4].strain_filtered = ri->mn.genVar[4];
-			strain1.ch[5].strain_filtered = ri->mn.genVar[5];
-			strain1.preDecoded = 1;
+				//In some cases genVar contains Strain data:
+				strain1.ch[0].strain_filtered = ri->mn.genVar[0];
+				strain1.ch[1].strain_filtered = ri->mn.genVar[1];
+				strain1.ch[2].strain_filtered = ri->mn.genVar[2];
+				strain1.ch[3].strain_filtered = ri->mn.genVar[3];
+				strain1.ch[4].strain_filtered = ri->mn.genVar[4];
+				strain1.ch[5].strain_filtered = ri->mn.genVar[5];
+				strain1.preDecoded = 1;
+			}
+			else if(offset == 2)
+			{
+				ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
+				ri->ex.mot_acc = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				ri->ex.ctrl.current.setpoint_val = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
+				ri->re.status = REBUILD_UINT16(msgBuf, &index);
+				ri->ex.strain = REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[6] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[7] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[8] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[9] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				//(22 bytes)
+			}
+			else if(offset == 3)
+			{
+				ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
+				ri->re.vg = REBUILD_UINT16(msgBuf, &index);
+				ri->re.v5 = REBUILD_UINT16(msgBuf, &index);
+				ri->mn.analog[0] = REBUILD_UINT16(msgBuf, &index);
+				ri->mn.analog[1] = REBUILD_UINT16(msgBuf, &index);
+				ri->mn.analog[2] = REBUILD_UINT16(msgBuf, &index);
+				ri->mn.analog[3] = REBUILD_UINT16(msgBuf, &index);
+				//(16 bytes)
+			}
+			else
+			{
+				//...
+			}
 		}
-		else if(offset == 2)
-		{
-			ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
-			ri->ex.mot_acc = (int32_t) REBUILD_UINT32(msgBuf, &index);
-			ri->ex.ctrl.current.setpoint_val = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
-			ri->re.status = REBUILD_UINT16(msgBuf, &index);
-			ri->ex.strain = REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[6] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[7] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[8] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			ri->mn.genVar[9] = (int16_t)REBUILD_UINT16(msgBuf, &index);
-			//(22 bytes)
-		}
-		else if(offset == 3)
-		{
-			ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
-			ri->re.vg = REBUILD_UINT16(msgBuf, &index);
-			ri->re.v5 = REBUILD_UINT16(msgBuf, &index);
-			ri->mn.analog[0] = REBUILD_UINT16(msgBuf, &index);
-			ri->mn.analog[1] = REBUILD_UINT16(msgBuf, &index);
-			ri->mn.analog[2] = REBUILD_UINT16(msgBuf, &index);
-			ri->mn.analog[3] = REBUILD_UINT16(msgBuf, &index);
-			//(16 bytes)
-		}
-		else
-		{
-			//...
-		}
-
+		
 	#endif	//BOARD_TYPE_FLEXSEA_PLAN
 
 	newActPackRRpacketAvailableFlag = 1;

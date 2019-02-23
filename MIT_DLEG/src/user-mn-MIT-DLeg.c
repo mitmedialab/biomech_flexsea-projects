@@ -16,13 +16,17 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************
-	[Lead developer] Luke Mooney, lmooney at dephy dot com.
+
+	[Lead developer] Jean-Francois Duval, jfduval at dephy dot com.
 	[Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors] Tony Shu, tony shu at mit dot edu, Matthew Carney mcarney at mit dot edu
 *****************************************************************************
 	[This file] user-mn-MIT_DLeg_2dof: User code running on Manage
-*****************************************************************************/
+*****************************************************************************
+	[Change log] (Convention: YYYY-MM-DD | author | comment)
+	* 2018-02-24 | jfduval | New release
+****************************************************************************/
 
 #if defined INCLUDE_UPROJ_MIT_DLEG || defined BOARD_TYPE_FLEXSEA_PLAN
 #if defined BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
@@ -42,6 +46,12 @@
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
+
+
+uint8_t mitDlegInfo[2] = {PORT_RS485_1, PORT_RS485_1};
+uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
+#define THIS_ACTPACK		0
+#define SLAVE_ACTPACK		1
 
 
 float freqInput = 0.0;
@@ -130,6 +140,7 @@ void MITDLegFsm1(void)
 				onEntry = 1;
 				fsmTime = 0;
 				fsm1State = STATE_INITIALIZE_SENSORS;
+				enableMITfsm2 = 1;	// for comms to SLAVE
 			}
 
 			break;
@@ -227,6 +238,16 @@ void MITDLegFsm1(void)
 
 //					runMainUserApplication(&act1);
 
+
+
+// DEBUG todo: this is how to talk to slave or this actuator, setMotorVoltage(value)
+//			setControlMode(CTRL_OPEN, THIS_ACTPACK);
+//			setControlMode(CTRL_OPEN, SLAVE_ACTPACK);
+//			setMotorVoltage(0, THIS_ACTPACK);
+//			setMotorVoltage(0, SLAVE_ACTPACK);
+//			fsm1State = 1;
+//			deltaT = 0;
+
 //				}
 
 				break;
@@ -256,7 +277,41 @@ void MITDLegFsm2(void)
 {
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
-		//Currently unused - we use ActPack's FSM2 for comm
+	//Sensor mapping:
+//	rigid1.mn.genVar[0] = rigid1.ex.status & 0xFF;
+//	rigid1.mn.genVar[5] = rigid1.ex.strain;
+
+	//Modified version of ActPack
+	static uint32_t timer = 0;
+
+	//Wait X seconds before communicating
+	if(timer < AP_FSM2_POWER_ON_DELAY)
+	{
+		mitFSM2ready = 0;
+		timer++;
+		return;
+	}
+
+	mitFSM2ready = 1;
+
+	//External controller can fully disable the comm:
+	//if(ActPackSys == SYS_NORMAL && ActPackCoFSM == APC_FSM2_ENABLED){enableAPfsm2 = 1;}
+	//else {enableAPfsm2 = 0;}
+
+	//FSM1 can disable this one:
+	if(enableMITfsm2)
+	{
+			writeEx[1].offset = 0;
+			tx_cmd_actpack_rw(TX_N_DEFAULT, writeEx[1].offset, writeEx[1].ctrl, writeEx[1].setpoint, \
+											writeEx[1].setGains, writeEx[1].g[0], writeEx[1].g[1], \
+											writeEx[1].g[2], writeEx[1].g[3], 0);
+
+			packAndSend(P_AND_S_DEFAULT, FLEXSEA_MANAGE_2, mitDlegInfo, SEND_TO_SLAVE);
+
+			//Reset KEEP/CHANGE once set:
+			//if(writeEx[0].setGains == CHANGE){writeEx[0].setGains = KEEP;}
+			if(writeEx[1].setGains == CHANGE){writeEx[1].setGains = KEEP;}
+	}
 
 	#endif	//ACTIVE_PROJECT == PROJECT_MIT_DLEG
 }

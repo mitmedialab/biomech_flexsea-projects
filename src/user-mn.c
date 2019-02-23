@@ -67,6 +67,7 @@
 
 #ifdef DEPHY
 #include "dephy-mn.h"
+#include "user-mn-DpEb42.h"
 #endif
 
 //****************************************************************************
@@ -233,8 +234,8 @@ void user_fsm_2(void)
 
 		//MIT D-Leg:
 		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-//		MIT_DLeg_fsm_1();
-		ActPack_fsm_2();	// used for communication
+		MITDLegFsm1();
+//		ActPack_fsm_2();	// used for communication
 		#endif	//PROJECT_MIT_DLEG
 
 		//MIT Pocket 2xDC / PocketClimb:

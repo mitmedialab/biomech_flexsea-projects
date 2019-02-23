@@ -166,6 +166,7 @@ void ActPack_fsm_2(void)
 														writeEx[1].setpoint, writeEx[1].setGains, writeEx[1].g[0], \
 														writeEx[1].g[1], writeEx[1].g[2], writeEx[1].g[3], 0);
 			#endif
+
 			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, apInfo, SEND_TO_SLAVE);
 
 			//Reset KEEP/CHANGE once set:

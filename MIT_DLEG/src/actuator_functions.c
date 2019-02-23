@@ -21,7 +21,7 @@
 
 //Variables which aren't static may be updated by Plan in the future
 
-uint8_t mitDlegInfo[2] = {PORT_RS485_2, PORT_RS485_2};
+extern uint8_t mitDlegInfo[2];// = {PORT_RS485_2, PORT_RS485_2};
 
 //SAFETY FLAGS - in addition to enum, so can be cleared but don't lose other flags that may exist.
 static int8_t isSafetyFlag = 0;

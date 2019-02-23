@@ -82,6 +82,16 @@ void getLastRigidData(struct rigid_s *r){(*r) = rigid1;}
 
 void initializeRigidPointers(struct rigid_s *r)
 {
+	r->ex._enc_ang_ = 0;
+	r->ex._enc_ang_vel_ = 0;
+	r->ex._joint_ang_ = 0;
+	r->ex._joint_ang_vel_ = 0;
+	r->ex._joint_ang_from_mot_ = 0;
+
+	r->ctrl._ank_ang_deg_ = 0;
+	r->ctrl._ank_vel_ = 0;
+	r->ctrl._ank_ang_from_mot_ = 0;
+
 	r->ex.enc_ang = &r->ex._enc_ang_;
 	r->ex.enc_ang_vel = &r->ex._enc_ang_vel_;
 	r->ex.joint_ang = &r->ex._joint_ang_;
