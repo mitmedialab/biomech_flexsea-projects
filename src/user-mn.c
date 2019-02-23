@@ -234,7 +234,7 @@ void user_fsm_2(void)
 
 		//MIT D-Leg:
 		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-		MITDLegFsm1();
+		MITDLegFsm2();
 //		ActPack_fsm_2();	// used for communication
 		#endif	//PROJECT_MIT_DLEG
 

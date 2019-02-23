@@ -140,7 +140,7 @@ void MITDLegFsm1(void)
 				onEntry = 1;
 				fsmTime = 0;
 				fsm1State = STATE_INITIALIZE_SENSORS;
-				enableMITfsm2 = 1;	// for comms to SLAVE
+				enableMITfsm2 = 0;	// for comms to SLAVE
 			}
 
 			break;

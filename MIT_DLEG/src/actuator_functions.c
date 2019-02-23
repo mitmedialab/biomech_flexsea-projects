@@ -21,7 +21,7 @@
 
 //Variables which aren't static may be updated by Plan in the future
 
-extern uint8_t mitDlegInfo[2];// = {PORT_RS485_2, PORT_RS485_2};
+//extern uint8_t mitDlegInfo[2];// = {PORT_RS485_2, PORT_RS485_2};
 
 //SAFETY FLAGS - in addition to enum, so can be cleared but don't lose other flags that may exist.
 static int8_t isSafetyFlag = 0;
@@ -588,52 +588,52 @@ void mitInitOpenController(void) {
  *
  *  Return: 0(int8_t)
  */
-int8_t findPoles(void) {
-	static uint32_t timer = 0;
-	static int8_t polesState = 0;
-
-	timer++;
-
-	switch(polesState) {
-		case 0:
-			//Disable FSM2:
-			disableActPackFSM2();
-			if(timer > 100)
-			{
-				polesState = 1;
-			}
-
-			return 0;
-
-		case 1:
-			//Send Find Poles command:
-
-			tx_cmd_calibration_mode_rw(TX_N_DEFAULT, CALIBRATION_FIND_POLES);
-			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitDlegInfo, SEND_TO_SLAVE);
-			polesState = 2;
-			timer = 0;
-
-			return 0;
-
-		case 2:
-
-			if(timer >= 44*SECONDS)
-			{
-				//Enable FSM2, position controller
-				enableActPackFSM2();
-				return 1;
-			}
-			return 0;
-
-
-		default:
-
-			return 0;
-
-	}
-
-	return 0;
-}
+//int8_t findPoles(void) {
+//	static uint32_t timer = 0;
+//	static int8_t polesState = 0;
+//
+//	timer++;
+//
+//	switch(polesState) {
+//		case 0:
+//			//Disable FSM2:
+//			disableActPackFSM2();
+//			if(timer > 100)
+//			{
+//				polesState = 1;
+//			}
+//
+//			return 0;
+//
+//		case 1:
+//			//Send Find Poles command:
+//
+//			tx_cmd_calibration_mode_rw(TX_N_DEFAULT, CALIBRATION_FIND_POLES);
+//			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitDlegInfo, SEND_TO_SLAVE);
+//			polesState = 2;
+//			timer = 0;
+//
+//			return 0;
+//
+//		case 2:
+//
+//			if(timer >= 44*SECONDS)
+//			{
+//				//Enable FSM2, position controller
+//				enableActPackFSM2();
+//				return 1;
+//			}
+//			return 0;
+//
+//
+//		default:
+//
+//			return 0;
+//
+//	}
+//
+//	return 0;
+//}
 
 /*
  *  TODO:find out what this function does and how its used
