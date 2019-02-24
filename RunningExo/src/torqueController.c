@@ -35,11 +35,11 @@ derivativeFilter derFil={
 void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Bool feedFoward, _Bool feedBack)
 {
 	//Shutdown feedback if below minimum feedback position
-//	if(act_para->currentMotorEncPosition< FEEDBACK_POS_MIN && feedBack)
-//	{
-//		setAnkleTorque(torqueReference, act_para, feedFoward, 0);
-//		return;
-//	}
+	if(act_para->currentMotorEncPosition< FEEDBACK_POS_MIN && feedBack)
+	{
+		setAnkleTorque(torqueReference, act_para, feedFoward, 0);
+		return;
+	}
 
 	//TODO: Consider controller architecture of feedback and feedforward blocks
 	#ifndef MOTOR_FEEDFOWARD_TUNING
@@ -68,10 +68,12 @@ void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Boo
 //			motorTorque += ankleTorqueToMotorTorque(EXO_ANKLE_DEADBAND);
 //		}
 		motorTorque*=FRICTION_COMPENSATION;
-		vFeedForward = motorTorque*K1;
+//		vFeedForward = motorTorque*K1;
+		vFeedForward = motorTorque*user_data_1.w[1]/1000.;
+
 		if(abs(omega)>OMEGA_THRESHOLD)
 		{
-			vFeedForward += omega*K2;
+			vFeedForward += omega*user_data_1.w[2]/1000.;
 		}
 		targetV += vFeedForward;
 		//TODO:Fixed deadband when omega is opposite of torque
@@ -99,9 +101,9 @@ void setAnkleTorque(float torqueReference, actuation_parameters* act_para,  _Boo
 //    	float filteredDerivative = updateDerivativeFilter(&derFil, dAnkleTorqueError);
 
     	#ifdef PD_TUNING
-    	vFeedBack =user_data_1.w[1]*1e-3*currentAnkleTorqueError+user_data_1.w[2]*1e-6*averagedDerivative;
-    	rigid1.mn.genVar[7] = currentAnkleTorque*1000;
-    	rigid1.mn.genVar[5]=currentAnkleTorqueError*10000;//debug
+    	vFeedBack =user_data_1.w[0]*1e-3*currentAnkleTorqueError;//+user_data_1.w[2]*1e-6*averagedDerivative;
+//    	rigid1.mn.genVar[7] = currentAnkleTorque*1000;
+//    	rigid1.mn.genVar[5]=currentAnkleTorqueError*10000;//debug
 
 		#else
     	vFeedBack = TORQUE_KP*currentAnkleTorqueError+TORQUE_KD*averagedDerivative;

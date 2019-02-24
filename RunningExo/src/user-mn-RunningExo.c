@@ -217,7 +217,7 @@ void RunningExo_fsm_1(void)
 
 			    	#if CONTROL_STRATEGY == USER_TORQUE_COMMAND
 			    		//User torque command input from GUI
-						torqueCommand = user_data_1.w[0]*1.0/10.0;
+						torqueCommand = user_data_1.w[3]*1.0/10.0;
 			    		//echo torque command
 			    		rigid1.mn.genVar[2] = torqueCommand*10.0;
 					#endif //CONTROL_STRATEGY == USER_TORQUE_COMMAND
@@ -327,7 +327,10 @@ void trackTorque(void)
 }
 #endif //CONTROL_STRATEGY == GAIT_TORQUE_TRACKING
 
-#if(CONTROL_STRATEGY==TRAJECTORY_TORQUE_TRACKING)
+#if(CONTROL_STRATEGY==TRAJECTORY_TORQUE_TRACKING||CONTROL_STRATEGY==FREQ_RESPONSE)
+static float trackPeriod = TRACK_PERIOD;
+static u32_t start_time = 0.;
+
 void trackTorque(void)
 //Tracks torque trajectory at 1 Hz
 {
@@ -341,7 +344,17 @@ void trackTorque(void)
 	{
 		percentStance = 0;
 	}
-	//echo the torque value that is tracked
+	//echo the torque period that is tracked
+	user_mn.genVar[7] = 1./trackPeriod;
+	if(CONTROL_STRATEGY == FREQ_RESPONSE)
+	{
+
+		if(time-start_time < 5)
+		{
+			trackPeriod/=1.1;
+			start_time =time
+		}
+	}
 
 }
 #endif //CONTROL_STRATEGY ==TRAJECTORY_TORQUE_TRACKING

@@ -32,6 +32,7 @@
 #define GAIT_TORQUE_TRACKING 1
 #define USER_TORQUE_COMMAND 2
 #define TRAJECTORY_TORQUE_TRACKING 3
+#define FREQ_RESPONSE 4
 
 //Active control strategy
 #define CONTROL_STRATEGY GAIT_TORQUE_TRACKING
@@ -39,18 +40,18 @@
 //#define MOTOR_FEEDFOWARD_TUNING
 
 #if CONTROL_STRATEGY == TRAJECTORY_TORQUE_TRACKING
-	#define TRACK_PERIOD 3
+	#define TRACK_PERIOD 5
 #endif
 
 //Angle Limit
 //#define ENC_POS_MAX 1000000		//basically no limit, not used.
 //#define ENC_POS_MIN -28000			//not used.
-#define FEEDBACK_POS_MIN 69000		//TODO: this seems to change on every start up
+#define FEEDBACK_POS_MIN -7500		//TODO: this seems to change on every start up
 #define FEEDBACK_MIN_VOLTAGE -8.
 //Human parameters
 #define LEFT_ANKLE 0
 #define Right_ANKLE 1
-#define DEFAULT_BODY_WEIGHT 68 // kg, subject's body weight
+#define DEFAULT_BODY_WEIGHT 70 // kg, subject's body weight
 #define	MAX_UNIT_RUNNING_TORQUE	2 // N.m/kg, we use 2 here, can be changed according to the applied torque profile
 #define ACTIVE_LEG 0
 #define DISABLED_STEPS 5
@@ -161,7 +162,7 @@
 //****************************************************************************
 // Running exoskeleton parameter(s)
 //****************************************************************************
-#define MOMENT_ARM_ON_FOOT 				0.25 //m, cable tension force's applied arm
+#define MOMENT_ARM_ON_FOOT 				0.15 //m, cable tension force's applied arm
 //#define ANKLE_TORQUE_PER_TICK			2.*(FORCE_PER_TICK*MOMENT_ARM_ON_FOOT) // N.m/tick, 0.01924465
 //#define ANKLE_TORQUE_CALIB_M			0.0185766 // Torque = M*tick + B, from collected data set, applied load
 //#define ANKLE_TORQUE_CALIB_B			-613.9204465 	// Torque = M*tick + B, , from collected data set, applied load
@@ -169,9 +170,9 @@
 
 //Force sensor calibration. Obtain the regression line of strain_readout = M*newton_load + B
 #define FORCE_SENSOR_CALIB_M			14.273	//ticks/newton
-#define FORCE_SENSOR_CALIB_B			32720.	//ticks
+#define FORCE_SENSOR_CALIB_B			32800.	//ticks
 
-#define SLACK_ANKLE_TORQUE				4. //prevent string slack
+#define SLACK_ANKLE_TORQUE				1. //prevent string slack
 #elif ACTIVE_LEG == RIGHT_ANKLE
 
 #define LOAD_MAX_IN_POUND				500		// lb, maximum mass the force sensor can measure
