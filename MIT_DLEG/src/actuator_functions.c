@@ -736,7 +736,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
 			lastMotorControl = motorControl;
 			rigid1.mn.genVar[8] = (int16_t) ( ImA );
-			rigid1.mn.genVar[9] = (int16_t) ( VmV );
+//			rigid1.mn.genVar[9] = (int16_t) ( VmV );
 			actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
 
 			break;
@@ -749,7 +749,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 			setMotorVoltage( VmV, DEVICE_CHANNEL); // consider open volt control
 			lastMotorControl = motorControl;
 			rigid1.mn.genVar[8] = (int16_t) ( ImA );
-			rigid1.mn.genVar[9] = (int16_t) ( VmV );
+//			rigid1.mn.genVar[9] = (int16_t) ( VmV );
 			break;
 		default:
 			break;

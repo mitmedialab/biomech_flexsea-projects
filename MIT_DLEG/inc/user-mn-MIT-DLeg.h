@@ -42,7 +42,7 @@
 #include "actuator_functions.h"
 #include "walking_state_machine.h"
 #include "state_variables.h"
-
+#include "cmd-ActPack.h"
 
 
 //****************************************************************************

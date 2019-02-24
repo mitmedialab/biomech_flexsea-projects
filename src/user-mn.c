@@ -244,7 +244,7 @@ void user_fsm_2(void)
 		#endif	//PROJECT_POCKET_2XDC
 
 		//Dephy's Actuator Package (ActPack)
-		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK && (ACTIVE_PROJECT != PROJECT_MIT_DLEG) )
+		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK  ) //&& (ACTIVE_PROJECT != PROJECT_MIT_DLEG)
 		ActPack_fsm_2();
 		#endif	//PROJECT_ACTPACK
 

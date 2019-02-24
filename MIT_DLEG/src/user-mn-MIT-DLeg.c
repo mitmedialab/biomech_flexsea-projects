@@ -123,7 +123,7 @@ void MITDLegFsm1(void)
 //	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
 	  rigid1.mn.genVar[7] = (int16_t) getDeviceIdIncrementing() ;// (rigid1.ex.mot_volt);			// mV
 //	  rigid1.mn.genVar[8] = (int16_t) (act1.desiredCurrent); //(rigid1.re.current);			// mA
-//	  rigid1.mn.genVar[9] = (int16_t) (rigid1.ex.mot_current * (MOT_KT * (act1.linkageMomentArm * N_SCREW) * N_ETA) ); //(act1.tauDes*1000.); //(rigid1.re.vb);				// mV
+	  rigid1.mn.genVar[9] = (int16_t) rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 
 
     //begin main FSM
@@ -140,7 +140,7 @@ void MITDLegFsm1(void)
 				onEntry = 1;
 				fsmTime = 0;
 				fsm1State = STATE_INITIALIZE_SENSORS;
-				enableMITfsm2 = 0;	// for comms to SLAVE
+
 			}
 
 			break;
@@ -149,13 +149,19 @@ void MITDLegFsm1(void)
 
 			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 
-				#ifndef NO_DEVICE
-					fsm1State = STATE_FIND_POLES;
-				#else
+				#if defined(NO_DEVICE)  || defined(NO_ACTUATOR)
 					fsm1State = STATE_DEBUG;
+				#else
+					fsm1State = STATE_FIND_POLES;
 				#endif
 				act1.currentOpLimit = CURRENT_LIMIT_INIT;
 				onEntry = 1;
+
+				#if (ACTIVE_SUBPROJECT == SUBPROJECT_A)
+					enableMITfsm2 = 1;	// Turn on communication to to SLAVE
+				#else
+					enableMITfsm2 = 0;	// If it's slave, then don't bother turning on comms?
+				#endif
 			}
 
 
@@ -275,24 +281,25 @@ void MITDLegFsm1(void)
  */
 void MITDLegFsm2(void)
 {
-	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
+	//Verify we are Master and communicating to Slave
+	#if (ACTIVE_PROJECT == PROJECT_MIT_DLEG) // TODO: should this be here? or is this bidirectional && (ACTIVE_SUBPROJECT == SUBPROJECT_A)
 
 	//Sensor mapping:
 //	rigid1.mn.genVar[0] = rigid1.ex.status & 0xFF;
 //	rigid1.mn.genVar[5] = rigid1.ex.strain;
 
 	//Modified version of ActPack
-	static uint32_t timer = 0;
+	static uint32_t Fsm2Timer = 0;
 
 	//Wait X seconds before communicating
-	if(timer < AP_FSM2_POWER_ON_DELAY)
+	if(Fsm2Timer < AP_FSM2_POWER_ON_DELAY)
 	{
 		mitFSM2ready = 0;
-		timer++;
+		Fsm2Timer++;
 		return;
 	}
 
-	mitFSM2ready = 1;
+//	mitFSM2ready = 1;	//TODO: I think this should be in an else statement and an && logic on enabling comms
 
 	//External controller can fully disable the comm:
 	//if(ActPackSys == SYS_NORMAL && ActPackCoFSM == APC_FSM2_ENABLED){enableAPfsm2 = 1;}
