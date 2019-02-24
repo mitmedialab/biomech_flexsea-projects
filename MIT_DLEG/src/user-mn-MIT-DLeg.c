@@ -118,12 +118,12 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.tauDes*100.);//(act1.jointAngleDegrees*1000.);	// deg
-//	  rigid1.mn.genVar[4] = (int16_t) (act1.motCurrDt * MOT_L); //(*rigid1.ex.enc_ang_vel);		// comes in as rad/s
+	  rigid1.mn.genVar[4] = (int16_t) rigid2.mn.genVar[1]; //(act1.motCurrDt * MOT_L); //(*rigid1.ex.enc_ang_vel);		// comes in as rad/s
 //	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
 //	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
 	  rigid1.mn.genVar[7] = (int16_t) getDeviceIdIncrementing() ;// (rigid1.ex.mot_volt);			// mV
 //	  rigid1.mn.genVar[8] = (int16_t) (act1.desiredCurrent); //(rigid1.re.current);			// mA
-	  rigid1.mn.genVar[9] = (int16_t) rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
+	  rigid1.mn.genVar[9] = (int16_t) rigid2.ex.mot_current; //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 
 
     //begin main FSM
@@ -299,7 +299,7 @@ void MITDLegFsm2(void)
 		return;
 	}
 
-//	mitFSM2ready = 1;	//TODO: I think this should be in an else statement and an && logic on enabling comms
+	mitFSM2ready = 1;	//TODO: I think this should be in an else statement and an && logic on enabling comms
 
 	//External controller can fully disable the comm:
 	//if(ActPackSys == SYS_NORMAL && ActPackCoFSM == APC_FSM2_ENABLED){enableAPfsm2 = 1;}

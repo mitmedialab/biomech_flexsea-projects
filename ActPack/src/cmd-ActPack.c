@@ -365,6 +365,7 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 
 	#endif
 
+
 	//This used to be only on Plan, but now that Manages can communicate we expanded:
 	#if (defined BOARD_TYPE_FLEXSEA_PLAN || defined BOARD_TYPE_FLEXSEA_MANAGE)
 

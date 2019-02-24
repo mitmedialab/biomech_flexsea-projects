@@ -490,7 +490,7 @@ float getCompensatorCustomOutput(float tauMeas, float tauRef)
 
 	// update current state to new values
 	e[k] = tauRef - tauMeas;
-	rigid1.mn.genVar[4] = (int16_t) ( e[k] * 1000);
+//	rigid1.mn.genVar[4] = (int16_t) ( e[k] * 1000);
 
 	y[k] = 1.948*y[k-1] - 0.9483*y[k-2] + 1380.4*( e[k-1] - 0.9811*e[k-2] ) * ( e[k] - 1.982*e[k-1] + 0.9825*e[k-2] );	// Notch Filter, does not go below zero, but otherwise stable.
 //	y[k] = 1.01831*y[k-1] - 0.01831*y[k-2] + 4006.6/1000.0*(e[k] - 1.995*e[k-1] + 0.9957*e[k-2]);		// This one drives downwards (negative), but does have positive and negative directionality
