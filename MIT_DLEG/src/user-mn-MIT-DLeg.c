@@ -93,7 +93,7 @@ static void reInitializeUserWrites(){
 	    	user_data_1.w[9] = (int32_t)(get_control_params()->adaptive.est_lst_min_theta_rad[get_task_machine()->control_mode]*SCALE_FACTOR_1000);
 		break;
 		case GUI_MODE_NOM_CONTROL:
-		user_data_1.w[1] = MODE_NOMINAL;
+			user_data_1.w[1] = MODE_NOMINAL;
 			user_data_1.w[2] = (int32_t)(get_control_params()->nominal.theta_rad*SCALE_FACTOR_1000);
 			user_data_1.w[3] = (int32_t)(get_control_params()->nominal.k_Nm_p_rad);
 			user_data_1.w[4] = (int32_t)(get_control_params()->nominal.b_Nm_p_rps);
@@ -117,7 +117,7 @@ static void reInitializeUserWrites(){
 static void updateGenVars(){
 
 
-	int16_t guimode_state_inswing = gui_mode*100 + get_walking_state()*10 + get_task_machine()->in_swing;
+	int16_t guimode_state_inswing = 1000 + gui_mode*100 + get_walking_state()*10 + get_task_machine()->in_swing;
 	rigid1.mn.genVar[0] = guimode_state_inswing;
 	rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*10.0);
 	rigid1.mn.genVar[2] = (int16_t) (act1.jointAngle*SCALE_FACTOR_1000);
@@ -236,11 +236,6 @@ static void updateUserWrites(Act_s *actx, struct taskmachine_s* tm, WalkParams *
 	gui_mode_prev = gui_mode;
 }
 
-static void initializeUserWrites(){
-	user_data_1.w[0] = (int32_t) (gui_mode);
-	for (int i=1; i < 10; i++)
-		user_data_1.w[i] = 0;
-}
 
 #define FINDPOLES_DONE (calibrationFlags == 0) && (calibrationNew == 0)
 //****************************************************************************
@@ -351,7 +346,7 @@ void MITDLegFsm1(void)
 			//Set usewrites to initial values
 			walkParams.initializedStateMachineVariables = 0;
 			if (!walkParams.initializedStateMachineVariables){
-				initializeUserWrites(&act1, &walkParams);
+				reInitializeUserWrites();
 
 			}
 
