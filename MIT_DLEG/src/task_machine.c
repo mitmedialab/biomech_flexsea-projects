@@ -15,7 +15,7 @@ static float ideal_heelstrike_angle_rad[] = {FL_IDEAL_FOOTSTRIKE_ANGLE_RAD,UR_ID
 //Copied from matlab pil simulation
 static void init_task_machine(){
 
-	tm.terrain_mode = MODE_NOMINAL;
+	tm.control_mode = MODE_NOMINAL;
 	tm.do_update_learner = 1;
 
     tm.latest_foot_static_samples = 0.0;
@@ -169,32 +169,13 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 
 		predict_task_demux(&tm, get_kinematics());
 
-		 update_back_estimation_features(&tm, get_kinematics());
+		update_back_estimation_features(&tm, get_kinematics());
 		update_prediction_features(&tm, get_kinematics());
 
-		switch (tm.terrain_mode){
-			
-			case MODE_FLAT:
-				terrain_state_machine_demux(&tm, rigid, actx, K_FLAT);
-				break;
-			case MODE_URAMP:
-				terrain_state_machine_demux(&tm, rigid, actx, K_URAMP);
-				break;
-			case MODE_DRAMP:
-				terrain_state_machine_demux(&tm, rigid, actx, K_DRAMP);
-				break;
-			case MODE_USTAIRS:
-				terrain_state_machine_demux(&tm, rigid, actx, K_USTAIRS);
-				break;
-			case MODE_DSTAIRS:
-				terrain_state_machine_demux(&tm, rigid, actx, K_DSTAIRS);
-				break;
-			case MODE_NOMINAL:
-				terrain_state_machine_demux(&tm, rigid, actx, K_NOMINAL);
-				break;
-			case MODE_PREDICT:
-				terrain_state_machine_demux(&tm, rigid, actx, get_predictor()->k_pred);
-				break;
+		if (tm.control_mode == MODE_ADAPTIVE){
+			terrain_state_machine_demux(&tm, rigid, actx, get_predictor()->k_pred);
+		}else{
+			terrain_state_machine_demux(&tm, rigid, actx, tm.control_mode);
 		}
     	tm.elapsed_samples = tm.elapsed_samples + 1.0;
     	break;

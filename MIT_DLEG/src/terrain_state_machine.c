@@ -181,25 +181,28 @@ void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain){
 }
 
 
-void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int current_terrain){
+void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int terrain_mode){
 static int sample_counter = 0;
 static int on_entry = 0;
 static int prev_state_machine_demux_state = STATE_ESW;
 static float stance_entry_theta_rad = 0.0;
 
-if (current_terrain == K_NOMINAL){
+if (terrain_mode == MODE_NOMINAL){
 	set_joint_torque(actx, tm, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps);
 	return;
+}else if (terrain_mode == MODE_POSITION){
+	set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+	return;
 }
-set_control_params_for_terrain(current_terrain);
 
 switch (state_machine_demux_state){
+	set_control_params_for_terrain(terrain_mode);
 	case STATE_ESW:
 		if (on_entry)
 			sample_counter = 0;
 		// set_joint_torque(actx, tm, POSITION_CONTROL_GAIN_K_NM_P_RAD, POSITION_CONTROL_GAIN_B_NM_P_RPS, cp.active.esw_theta_rad);
 		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
-        if (tm->gait_event_trigger = GAIT_EVENT_WINDOW_CLOSE)
+        if (tm->gait_event_trigger = GAIT_EVENT_WINDOW_CLOSE && terrain_mode != MODE_POSITION)
         	state_machine_demux_state = STATE_LSW;
         
     break;

@@ -55,8 +55,7 @@
 //Copied from matlab pil simulation
 struct taskmachine_s
 {
-	int terrain_mode;
-    int terrain_mode_prev;
+	int control_mode;
 	uint8_t do_update_learner;
 
 	
@@ -118,14 +117,15 @@ enum Task_Machine_States {
 	RUN_TASK_MACHINE,
 };
 
-enum Terrain_Modes {
-	MODE_FLAT = 0,
-	MODE_URAMP = 1,
-	MODE_DRAMP = 2,
-	MODE_USTAIRS = 3,
-	MODE_DSTAIRS = 4,
-	MODE_NOMINAL = 5,
-	MODE_PREDICT = 6,
+enum Control_Modes {
+	MODE_FLAT = 1,
+	MODE_URAMP = 2,
+	MODE_DRAMP = 3,
+	MODE_USTAIRS = 4,
+	MODE_DSTAIRS = 5,
+    MODE_NOMINAL = 0,
+    MODE_POSITION = 6,
+	MODE_ADAPTIVE = 7,
 };
 
 enum Gait_Events {
@@ -136,13 +136,12 @@ enum Gait_Events {
     GAIT_EVENT_WINDOW_CLOSE = 4,
 };
 
-enum Terrains {
-    K_FLAT = 0,
-	K_URAMP = 1,
-	K_DRAMP = 2,
-	K_USTAIRS = 3,
-	K_DSTAIRS = 4,
-	K_NOMINAL = 5,
-};
+ enum Terrain_Classes {
+     K_FLAT = 0,
+ 	K_URAMP = 1,
+ 	K_DRAMP = 2,
+ 	K_USTAIRS = 3,
+ 	K_DSTAIRS = 4,
+ };
 
 #endif
