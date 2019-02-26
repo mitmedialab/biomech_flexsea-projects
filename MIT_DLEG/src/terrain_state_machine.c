@@ -10,14 +10,6 @@ static int state_machine_demux_state = STATE_EARLY_SWING;
 
 static struct control_params_s cp;
 
-static void init_nominal_control_params_s()
-{
-	cp.nominal.theta_rad = DEFAULT_NOMINAL_THETA_RAD;
-	cp.nominal.k_Nm_p_rad = DEFAULT_NOMINAL_K_NM_P_RAD;
-	cp.nominal.b_Nm_p_rps = DEFAULT_NOMINAL_B_NM_P_RPS;
-
-}
-
 static void init_adaptive_control_params_s()
 {
 
@@ -33,6 +25,37 @@ static void init_adaptive_control_params_s()
 
 	cp.adaptive.est_lst_min_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
 
+}
+
+static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b) {
+	actx->tauDes = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
+	setMotorTorque(actx, actx->tauDes);
+}
+
+static void set_joint_torque_with_hardstop(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float hs_theta, float hs_k) {
+	actx->tauDes = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
+	if (actx->jointAngle < hs_theta){
+		actx->tauDes = actx->tauDes - hs_k*(actx->jointAngle - hs_theta);
+	}
+	setMotorTorque(actx, actx->tauDes);
+}
+
+static void set_control_params_for_terrain(int terrain){
+
+	cp.active.hard_stop_theta_rad = cp.adaptive.hard_stop_theta_rad[terrain];
+	cp.active.hard_stop_k_Nm_p_rad = cp.adaptive.hard_stop_k_Nm_p_rad[terrain];
+
+	cp.active.lsw_theta_rad = cp.adaptive.lsw_theta_rad[terrain];
+	cp.active.est_k_Nm_p_rad = cp.adaptive.est_k_Nm_p_rad[terrain];
+	cp.active.est_b_Nm_p_rps = cp.adaptive.est_b_Nm_p_rps[terrain];
+	cp.active.lst_k_Nm_p_rad = cp.adaptive.lst_k_Nm_p_rad[terrain];
+	cp.active.lst_b_Nm_p_rps = cp.adaptive.lst_b_Nm_p_rps[terrain];
+	cp.active.lst_theta_rad = cp.adaptive.lst_theta_rad[terrain];
+
+	cp.active.est_lst_min_theta_rad = cp.adaptive.est_lst_min_theta_rad[terrain];
+}
+
+void reset_terrain_state_machine_parameters(){
 	cp.adaptive.hard_stop_theta_rad[K_FLAT] = DEFAULT_FLAT_HS_THETA_RAD;
 	cp.adaptive.hard_stop_theta_rad[K_URAMP] = DEFAULT_URAMP_HS_THETA_RAD;
 	cp.adaptive.hard_stop_theta_rad[K_DRAMP] = DEFAULT_DRAMP_HS_THETA_RAD;
@@ -91,40 +114,14 @@ static void init_adaptive_control_params_s()
 	cp.active.sw_k_Nm_p_rad = DEFAULT_SW_K_NM_P_RAD;
 	cp.active.sw_b_Nm_p_rps = DEFAULT_SW_B_NM_P_RPS;
 
-
-}
-
-static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b) {
-	actx->tauDes = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
-	setMotorTorque(actx, actx->tauDes);
-}
-
-static void set_joint_torque_with_hardstop(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float hs_theta, float hs_k) {
-	actx->tauDes = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
-	if (actx->jointAngle < hs_theta){
-		actx->tauDes = actx->tauDes - hs_k*(actx->jointAngle - hs_theta);
-	}
-	setMotorTorque(actx, actx->tauDes);
-}
-
-static void set_control_params_for_terrain(int terrain){
-
-	cp.active.hard_stop_theta_rad = cp.adaptive.hard_stop_theta_rad[terrain];
-	cp.active.hard_stop_k_Nm_p_rad = cp.adaptive.hard_stop_k_Nm_p_rad[terrain];
-
-	cp.active.lsw_theta_rad = cp.adaptive.lsw_theta_rad[terrain];
-	cp.active.est_k_Nm_p_rad = cp.adaptive.est_k_Nm_p_rad[terrain];
-	cp.active.est_b_Nm_p_rps = cp.adaptive.est_b_Nm_p_rps[terrain];
-	cp.active.lst_k_Nm_p_rad = cp.adaptive.lst_k_Nm_p_rad[terrain];
-	cp.active.lst_b_Nm_p_rps = cp.adaptive.lst_b_Nm_p_rps[terrain];
-	cp.active.lst_theta_rad = cp.adaptive.lst_theta_rad[terrain];
-
-	cp.active.est_lst_min_theta_rad = cp.adaptive.est_lst_min_theta_rad[terrain];
+	cp.nominal.theta_rad = DEFAULT_NOMINAL_THETA_RAD;
+	cp.nominal.k_Nm_p_rad = DEFAULT_NOMINAL_K_NM_P_RAD;
+	cp.nominal.b_Nm_p_rps = DEFAULT_NOMINAL_B_NM_P_RPS;
 }
 
 void init_terrain_state_machine(){
-	init_nominal_control_params_s();
 	init_adaptive_control_params_s();
+	reset_terrain_state_machine_parameters();
 }
 
 int get_walking_state(){
@@ -195,8 +192,9 @@ if (terrain_mode == MODE_NOMINAL){
 	return;
 }
 
+set_control_params_for_terrain(terrain_mode);
 switch (state_machine_demux_state){
-	set_control_params_for_terrain(terrain_mode);
+	
 	case STATE_ESW:
 		if (on_entry)
 			sample_counter = 0;

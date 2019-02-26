@@ -14,7 +14,7 @@ static float ideal_heelstrike_angle_rad[] = {FL_IDEAL_FOOTSTRIKE_ANGLE_RAD,UR_ID
 
 //Copied from matlab pil simulation
 static void init_task_machine(){
-
+	tm.initialized = 0;
 	tm.control_mode = MODE_NOMINAL;
 	tm.do_update_learner = 1;
 
@@ -44,9 +44,9 @@ static void init_task_machine(){
     tm.stance_rom_rad = 0.0;
     tm.heelstrike_angle_rad = 0.0;
 
-    tm.net_work_error_j_p_kg = (float*)calloc(N_CLASSES, sizeof(float));
-    tm.stance_rom_error_rad = (float*)calloc(N_CLASSES, sizeof(float));
-    tm.heelstrike_angle_error_rad = (float*)calloc(N_CLASSES, sizeof(float));
+    tm.net_work_error_j_p_kg = (float*)calloc(N_CLASSES+1, sizeof(float));
+    tm.stance_rom_error_rad = (float*)calloc(N_CLASSES+1, sizeof(float));
+    tm.heelstrike_angle_error_rad = (float*)calloc(N_CLASSES+1, sizeof(float));
 
     tm.weight_kg = 100.0; //TODO: THIS NEEDS TO CHANGE
 
@@ -124,9 +124,19 @@ static void update_ankle_dynamics(Act_s* actx)
     if (tm.gait_event_trigger == GAIT_EVENT_FOOT_OFF){
         tm.net_work_j_p_kg = tm.net_work_j_p_kg*SAMPLE_PERIOD/tm.weight_kg;
         tm.stance_rom_rad = (get_back_estimator()->max_stance_theta - get_back_estimator()->min_stance_theta)*RAD_PER_DEG;
-        tm.net_work_error_j_p_kg[get_statistics()->k_est] = tm.net_work_j_p_kg - ideal_net_work_j_per_kg[get_statistics()->k_est];
-        tm.stance_rom_error_rad[get_statistics()->k_est] = tm.stance_rom_rad - ideal_rom_rad[get_statistics()->k_est];
-        tm.heelstrike_angle_error_rad[get_statistics()->k_est] = tm.heelstrike_angle_rad - ideal_heelstrike_angle_rad[get_statistics()->k_est];
+
+        if (tm.control_mode < MODE_POSITION){
+        	tm.net_work_error_j_p_kg[tm.control_mode] = tm.net_work_j_p_kg - ideal_net_work_j_per_kg[tm.control_mode];
+        	tm.stance_rom_error_rad[tm.control_mode] = tm.stance_rom_rad - ideal_rom_rad[tm.control_mode];
+        	tm.heelstrike_angle_error_rad[tm.control_mode] = tm.heelstrike_angle_rad - ideal_heelstrike_angle_rad[tm.control_mode];
+        } 
+        else if (tm.control_mode == MODE_ADAPTIVE)
+        {
+        	tm.net_work_error_j_p_kg[get_statistics()->k_est] = tm.net_work_j_p_kg - ideal_net_work_j_per_kg[get_statistics()->k_est];
+        	tm.stance_rom_error_rad[get_statistics()->k_est] = tm.stance_rom_rad - ideal_rom_rad[get_statistics()->k_est];
+        	tm.heelstrike_angle_error_rad[get_statistics()->k_est] = tm.heelstrike_angle_rad - ideal_heelstrike_angle_rad[get_statistics()->k_est];
+        }
+        
     }
 }
 
@@ -154,6 +164,7 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
     case INIT_TERRAIN_STATE_MACHINE:
             init_terrain_state_machine();
             task_machine_demux_state = RUN_TASK_MACHINE;
+            tm.initialized = 1;
         break;
     case RUN_TASK_MACHINE:
 

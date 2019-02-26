@@ -88,6 +88,7 @@ void set_lst_theta_rad(float lst_theta_rad, int terrain);
 void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain);
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int current_terrain);
 void init_terrain_state_machine();
+void reset_terrain_state_machine_parameters();
 
 static struct nominal_control_params_s
 {

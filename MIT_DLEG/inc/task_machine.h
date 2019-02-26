@@ -55,6 +55,8 @@
 //Copied from matlab pil simulation
 struct taskmachine_s
 {
+    uint8_t initialized;
+    
 	int control_mode;
 	uint8_t do_update_learner;
 
@@ -118,12 +120,12 @@ enum Task_Machine_States {
 };
 
 enum Control_Modes {
-	MODE_FLAT = 1,
-	MODE_URAMP = 2,
-	MODE_DRAMP = 3,
-	MODE_USTAIRS = 4,
-	MODE_DSTAIRS = 5,
-    MODE_NOMINAL = 0,
+	MODE_FLAT = 0,
+	MODE_URAMP = 1,
+	MODE_DRAMP = 2,
+	MODE_USTAIRS = 3,
+	MODE_DSTAIRS = 4,
+    MODE_NOMINAL = 5,
     MODE_POSITION = 6,
 	MODE_ADAPTIVE = 7,
 };
