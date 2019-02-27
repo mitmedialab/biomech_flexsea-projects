@@ -122,7 +122,7 @@ void MITDLegFsm1(void)
 //	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
 //	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
 	  rigid1.mn.genVar[7] = (int16_t) getDeviceIdIncrementing() ;// (rigid1.ex.mot_volt);			// mV
-//	  rigid1.mn.genVar[8] = (int16_t) (act1.desiredCurrent); //(rigid1.re.current);			// mA
+	  rigid1.mn.genVar[8] = (int16_t) rigid2.mn.genVar[1]; //(act1.desiredCurrent); //(rigid1.re.current);			// mA
 	  rigid1.mn.genVar[9] = (int16_t) rigid2.ex.mot_current; //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 
 
@@ -157,11 +157,7 @@ void MITDLegFsm1(void)
 				act1.currentOpLimit = CURRENT_LIMIT_INIT;
 				onEntry = 1;
 
-				#if (ACTIVE_SUBPROJECT == SUBPROJECT_A)
-					enableMITfsm2 = 1;	// Turn on communication to to SLAVE
-				#else
-					enableMITfsm2 = 0;	// If it's slave, then don't bother turning on comms?
-				#endif
+
 			}
 
 
@@ -199,18 +195,15 @@ void MITDLegFsm1(void)
 			/*reserve for additional initialization*/
 
 			//Initialize Filters for Torque Sensing
-//			initMitFir();			// Initialize software filter
 			initSoftFIRFilt();	// Initialize software filter
 
 			mitInitCurrentController();		//initialize Current Controller with gains
-//			mitInitOpenController();
 
-
-			//Set usewrites to initial values
+			//Set userwrites to initial values
 			walkParams.initializedStateMachineVariables = 0;
 			if (!walkParams.initializedStateMachineVariables){
 				initializeUserWrites(&act1, &walkParams);
-
+				walkParams.initializedStateMachineVariables = 1;
 			}
 
 			//absolute torque limit scaling factor TODO: possibly remove
@@ -225,8 +218,8 @@ void MITDLegFsm1(void)
 		case STATE_MAIN:
 			{
 				updateUserWrites(&act1, &walkParams);
-				//TODO consider changing logic so onentry is only true for one cycle.
-				if (onEntry && fsmTime > DELAY_TICKS_AFTER_FIND_POLES) {
+
+				if (onEntry > DELAY_TICKS_AFTER_FIND_POLES) {
 					act1.currentOpLimit = CURRENT_LIMIT_INIT;
 					onEntry = 0;
 				}
@@ -235,12 +228,11 @@ void MITDLegFsm1(void)
 				//DEBUG remove this because joint encoder can't update in locked state.
 //				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 
-					float tor = biomCalcImpedance(&act1, torqInput, freqInput, 0);
+					float tor = getImpedanceTorque(&act1, torqInput, freqInput, 0);
 //					float tor = torqueSystemIDFrequencySweep( (freqInput*2*M_PI), ( ( (float)fsmTime) /SECONDS), torqInput);
 
 //					setMotorTorqueOpenLoop( &act1, tor, currentOrVoltage);
-
-					setMotorTorque( &act1, tor);
+//					setMotorTorque( &act1, tor);
 
 //					runMainUserApplication(&act1);
 
@@ -284,12 +276,9 @@ void MITDLegFsm2(void)
 	//Verify we are Master and communicating to Slave
 	#if (ACTIVE_PROJECT == PROJECT_MIT_DLEG) // TODO: should this be here? or is this bidirectional && (ACTIVE_SUBPROJECT == SUBPROJECT_A)
 
-	//Sensor mapping:
-//	rigid1.mn.genVar[0] = rigid1.ex.status & 0xFF;
-//	rigid1.mn.genVar[5] = rigid1.ex.strain;
-
 	//Modified version of ActPack
 	static uint32_t Fsm2Timer = 0;
+	static uint8_t offsetCounter = 0;
 
 	//Wait X seconds before communicating
 	if(Fsm2Timer < AP_FSM2_POWER_ON_DELAY)
@@ -297,27 +286,44 @@ void MITDLegFsm2(void)
 		mitFSM2ready = 0;
 		Fsm2Timer++;
 		return;
+	} else
+	{
+		// If Master enable Comms, if Slave Do not need to turn it on.
+		#if (ACTIVE_SUBPROJECT == SUBPROJECT_A)
+			enableMITfsm2 = 1;	// Turn on communication to to SLAVE
+		#else
+			enableMITfsm2 = 0;	// If it's slave, then don't bother turning on comms?
+		#endif
+		mitFSM2ready = 1;
 	}
 
-	mitFSM2ready = 1;	//TODO: I think this should be in an else statement and an && logic on enabling comms
+//	mitFSM2ready = 1;	//TODO: I think this should be in an else statement and an && logic on enabling comms
 
 	//External controller can fully disable the comm:
 	//if(ActPackSys == SYS_NORMAL && ActPackCoFSM == APC_FSM2_ENABLED){enableAPfsm2 = 1;}
 	//else {enableAPfsm2 = 0;}
 
+	rigid1.mn.genVar[5] = offsetCounter;
 	//FSM1 can disable this one:
 	if(enableMITfsm2)
 	{
-			writeEx[1].offset = 0;
+			writeEx[1].offset = offsetCounter;
 			tx_cmd_actpack_rw(TX_N_DEFAULT, writeEx[1].offset, writeEx[1].ctrl, writeEx[1].setpoint, \
 											writeEx[1].setGains, writeEx[1].g[0], writeEx[1].g[1], \
-											writeEx[1].g[2], writeEx[1].g[3], 0);
+											writeEx[1].g[2], writeEx[1].g[3], 0);	// todo: try this offset counter thing
 
 			packAndSend(P_AND_S_DEFAULT, FLEXSEA_MANAGE_2, mitDlegInfo, SEND_TO_SLAVE);
+
 
 			//Reset KEEP/CHANGE once set:
 			//if(writeEx[0].setGains == CHANGE){writeEx[0].setGains = KEEP;}
 			if(writeEx[1].setGains == CHANGE){writeEx[1].setGains = KEEP;}
+
+			offsetCounter++;
+			if (offsetCounter > 3)
+			{
+				offsetCounter = 0;
+			}
 	}
 
 	#endif	//ACTIVE_PROJECT == PROJECT_MIT_DLEG
@@ -353,8 +359,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 //	torqueKd				 				= ( (float) user_data_1.w[2] ) /1000.0;	// Reduce overall torque limit.
 
 
-	//	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
-
+//	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
 //	wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
 //	wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
 //	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate

@@ -560,6 +560,36 @@ float biomCalcImpedance(Act_s *actx,float k1, float b, float thetaSet)
 
 }
 
+//Used for testing purposes. See state_machine
+/*
+ * Simple Impedance Controller
+ * Param:	actx(struct act_s) - Actuator structure to track sensor values
+ * Param:	thetaSet(float) - desired theta in DEGREES
+ * Param:	k1(float) - impedance parameter
+ * Param:	b(float) - impedance parameter
+ * return: 	torD(float) -  desired torque
+ */
+float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet)
+{
+	return k1 * (thetaSet - actx->jointAngleDegrees ) - b*actx->jointVelDegrees;
+}
+
+//Used for testing purposes. See state_machine
+/*
+ * Quadratic Impedance Controller
+ * Param:	actx(struct act_s) - Actuator structure to track sensor values
+ * Param:	thetaSet(float) - desired theta in DEGREES
+ * Param:	k1(float) - impedance parameter
+ * Param:	b(float) - impedance parameter
+ * Param:	k2(float) - quadratic impedance parameter
+ * return: 	torD(float) -  desired torque
+ */
+float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet, float k2)
+{
+	float thetaDelta = thetaSet - actx->jointAngleDegrees;
+	return k1 * ( thetaDelta ) + k2 * powf( thetaDelta, 2) - b*actx->jointVelDegrees;
+}
+
 /*
  *  Initialize Current controller on Execute, Set initial gains.
  */
@@ -707,9 +737,9 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 	float I = ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes );		// [A]
 	float V = (I * MOT_R) * voltageGain + ( MOT_KT_TOT * actx->motorVel * velGain) + (actx->motCurrDt * MOT_L * indGain ); // [V] this caused major problems? ==> ;
 
-	rigid1.mn.genVar[5] = (int16_t) ( (I * MOT_R)* voltageGain * CURRENT_SCALAR_INIT );
-	rigid1.mn.genVar[6] = (int16_t) ( ( MOT_KT_TOT * actx->motorVel ) * velGain * CURRENT_SCALAR_INIT );
-	rigid1.mn.genVar[7] = (int16_t) ( actx->motCurrDt * MOT_L * indGain * CURRENT_SCALAR_INIT );
+//	rigid1.mn.genVar[5] = (int16_t) ( (I * MOT_R)* voltageGain * CURRENT_SCALAR_INIT );
+//	rigid1.mn.genVar[6] = (int16_t) ( ( MOT_KT_TOT * actx->motorVel ) * velGain * CURRENT_SCALAR_INIT );
+//	rigid1.mn.genVar[7] = (int16_t) ( actx->motCurrDt * MOT_L * indGain * CURRENT_SCALAR_INIT );
 
 
 	int32_t ImA = (int32_t) ( I * CURRENT_SCALAR_INIT );
@@ -735,7 +765,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 			}
 			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
 			lastMotorControl = motorControl;
-			rigid1.mn.genVar[8] = (int16_t) ( ImA );
+//			rigid1.mn.genVar[8] = (int16_t) ( ImA );
 //			rigid1.mn.genVar[9] = (int16_t) ( VmV );
 			actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
 
@@ -748,7 +778,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 			}
 			setMotorVoltage( VmV, DEVICE_CHANNEL); // consider open volt control
 			lastMotorControl = motorControl;
-			rigid1.mn.genVar[8] = (int16_t) ( ImA );
+//			rigid1.mn.genVar[8] = (int16_t) ( ImA );
 //			rigid1.mn.genVar[9] = (int16_t) ( VmV );
 			break;
 		default:

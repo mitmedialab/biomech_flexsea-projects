@@ -20,7 +20,7 @@ CubicSpline cubicSpline;
 
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
 GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
-GainParams lswGains = {1.5,0.0,  0.3, -5.0};
+GainParams lswGains = {1.5, 0.0,  0.3, -5.0};
 GainParams estGains = {0.0, 0.0, 0.2, 0.0};	// may want to increase this damping, at least.
 GainParams lstPowerGains = {4.5,0.0,  0.1, 14};
 
@@ -33,7 +33,6 @@ GainParams lstPowerGains = {4.5,0.0,  0.1, 14};
 //****************************************************************************
 
 /** Impedance Control Level-ground Walking FSM
-	Based on BiOM ankle and simplified.
 	Finds desired torque.
 	Param: actx(Act_s) - Actuator structure to track sensor values
 
@@ -45,11 +44,9 @@ void runFlatGroundFSM(Act_s *actx) {
     static uint32_t timeInState = 0;
     static int8_t passedStanceThresh = 0;
 
-
-
     stateMachine.onEntrySmState = stateMachine.currentState; // save the state on entry, assigned to last_currentState on exit
 
-    actx->tauDes = 0;
+    actx->tauDes = 0; //todo: probably remove this.
 
     // Check for state change, then set isTransitioning flag
     if (stateMachine.currentState == stateMachine.lastSmState) {
@@ -68,6 +65,8 @@ void runFlatGroundFSM(Act_s *actx) {
             break;
 
         case STATE_INIT: //1
+
+        	actx->tauDes = 0;	// Initialize to no commanded torque
 
         	stateMachine.currentState = STATE_EARLY_STANCE;
 
