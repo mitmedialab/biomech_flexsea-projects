@@ -891,7 +891,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->motCurr = rigid1.ex.mot_current;
 	actx->motCurrDt = getMotorCurrentDt(actx);
 
-	actx->safetyFlag = isSafetyFlag;
+	actx->safetyFlag = getSafetyFlags(); //todo: I don't think this is in use anymore MC
 
 	if(actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT)
 	{

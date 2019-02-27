@@ -61,7 +61,7 @@ int8_t currentOrVoltage = 0;
 
 
 int8_t onEntry = 0;
-Act_s act1;
+Act_s act1, act2;
 
 // EXTERNS
 extern uint8_t calibrationFlags, calibrationNew;
@@ -117,9 +117,9 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
-	  rigid1.mn.genVar[3] = (int16_t) (act1.tauDes*100.);//(act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) rigid2.mn.genVar[1]; //(*rigid1.ex.enc_ang_vel);		// comes in as rad/s
-	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
+	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle*100.);	//(act1.jointAngleDegrees*1000.);	// deg
+	  rigid1.mn.genVar[4] = (int16_t) (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
+	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
 	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
 	  rigid1.mn.genVar[7] = (int16_t) (rigid1.ex.mot_volt);			// mV, //getDeviceIdIncrementing() ;
 	  rigid1.mn.genVar[8] = (int16_t) (rigid2.ex.mot_current);			// mA
@@ -232,8 +232,9 @@ void MITDLegFsm1(void)
 				//DEBUG removed this because joint encoder can't update in locked state.
 //				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 
-					float tor = getImpedanceTorque(&act1, torqInput, freqInput, 0);
-
+//					float tor = getImpedanceTorque(&act1, torqInput, freqInput, 0);
+					float tor = getImpedanceTorque(&act1, 1.0, .1, 0);
+					act1.tauDes = tor;
 //					setMotorTorque( &act1, tor);
 
 //					runMainUserApplication(&act1);
@@ -273,7 +274,7 @@ void MITDLegFsm1(void)
 void MITDLegFsm2(void)
 {
 	//Verify we are Master and communicating to Slave
-	#if (ACTIVE_PROJECT == PROJECT_MIT_DLEG) // TODO: should this be here? or is this bidirectional && (ACTIVE_SUBPROJECT == SUBPROJECT_A)
+	#if (ACTIVE_PROJECT == PROJECT_MIT_DLEG) && (ACTIVE_SUBPROJECT == SUBPROJECT_A)
 
 	//Modified version of ActPack
 	static uint32_t Fsm2Timer = 0;
@@ -295,7 +296,7 @@ void MITDLegFsm2(void)
 	//FSM1 can disable this one:
 	if(enableMITfsm2)
 	{
-			writeEx[1].offset = 1;
+			writeEx[1].offset = 4;
 			tx_cmd_actpack_rw(TX_N_DEFAULT, writeEx[1].offset, writeEx[1].ctrl, writeEx[1].setpoint, \
 											writeEx[1].setGains, writeEx[1].g[0], writeEx[1].g[1], \
 											writeEx[1].g[2], writeEx[1].g[3], 0);	// todo: try this offset counter thing

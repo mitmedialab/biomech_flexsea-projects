@@ -48,7 +48,7 @@
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
-extern struct act_s act1;	//define actuator structure shared
+extern struct act_s act1, act2;	//define actuator structure shared
 extern int8_t isEnabledUpdateSensors;
 
 //****************************************************************************

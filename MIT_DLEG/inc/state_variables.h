@@ -97,7 +97,7 @@ typedef struct act_s
     int32_t motCurrDt;		// di/dt change in motor current [mA]
     int32_t desiredCurrent; // desired current from getMotorCurrent() [mA]
     int32_t currentOpLimit; // current throttling limit [mA]
-    int8_t safetyFlag;		// todo: consider if necessary
+    int16_t safetyFlag;		// todo: consider if necessary
 
     //following are multipacket specific
     int8_t motorOnFlag;

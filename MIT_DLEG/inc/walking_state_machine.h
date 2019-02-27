@@ -50,7 +50,7 @@ extern GainParams estGains;
 extern GainParams lstPowerGains;
 extern WalkParams walkParams;
 extern WalkingStateMachine stateMachine;
-extern Act_s act1;
+extern Act_s act1, act2;
 
 //****************************************************************************
 // Prototype(s):

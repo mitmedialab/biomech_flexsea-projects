@@ -49,6 +49,15 @@ extern "C" {
 #include "mn-MotorControl.h"
 #endif	//BOARD_TYPE_FLEXSEA_MANAGE
 
+#ifdef INCLUDE_UPROJ_MIT_DLEG
+#include "state_variables.h"
+extern Act_s act1, act2;
+#endif
+
+//****************************************************************************
+// Shared Variable(s)
+//****************************************************************************
+
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -184,6 +193,11 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 		int16_t *encoder = ri->ex.joint_ang;
 		int16_t *encoderVel = ri->ex.joint_ang_vel;
 
+		//Biomech:
+		#ifdef INCLUDE_UPROJ_MIT_DLEG
+			Act_s *act = &act1;
+		#endif
+
 		//Arguments:
 		if(offset == 0)
 		{
@@ -269,7 +283,17 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 			shBuf[index++] = rigid1.re.temp;
 			//(25 bytes)
 		}
-
+		else if(offset == 6)
+		{
+			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
+			SPLIT_16((uint16_t)(ri->ex.mot_volt >> 3), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->ex.mot_current >> 3), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[0]), shBuf, &index);
+			SPLIT_32((uint32_t)(act->jointTorque*1000.0), shBuf, &index);			// Nm*1000
+			SPLIT_32((uint32_t)(act->jointAngleDegrees*1000.0), shBuf, &index);		// deg *1000
+			SPLIT_32((uint32_t)(act->jointVel*1000.0), shBuf, &index);		// rad/s *1000
+			//(22 bytes)
+		}
 
 	#endif	//BOARD_TYPE_FLEXSEA_MANAGE
 
@@ -366,7 +390,11 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 
 	#if (defined BOARD_TYPE_FLEXSEA_PLAN || defined BOARD_TYPE_FLEXSEA_MANAGE)
 		struct rigid_s *ri = &rigid1;
+		#ifdef INCLUDE_UPROJ_MIT_DLEG
+				struct act_s *act = &act1;
+		#endif
 	#endif
+
 
 	//This is for communication between Ex and Mn
 	#ifdef BOARD_TYPE_FLEXSEA_MANAGE
@@ -404,6 +432,10 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 			if(mInfo->xid == FLEXSEA_MANAGE_2)
 			{
 				ri = &rigid2;
+
+				#ifdef INCLUDE_UPROJ_MIT_DLEG
+					act = &act2;
+				#endif
 			}
 			index = 0;
 			offset = msgBuf[index++];
@@ -502,6 +534,18 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 				ri->re.current = (int16_t)REBUILD_UINT16(msgBuf, &index);
 				ri->re.temp = msgBuf[index++];
 				//(25 bytes)
+			}
+			else if(offset == 6)	//TODO: this is not working yet, start to bring values directly across into values for act2.
+			{
+				ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
+				ri->ex.mot_volt = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
+				ri->ex.mot_current = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
+				act->safetyFlag  = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				act->jointTorque 	 	= ( (float) REBUILD_UINT32(msgBuf, &index) ) /1000.0;	//todo: This works, but issue with signed vs unsigned values.
+				act->jointAngleDegrees 	= ( (float) REBUILD_UINT32(msgBuf, &index) ) /1000.0;	//todo: This works, but issue with signed vs unsigned values.
+				act->jointVel			= ( (float) REBUILD_UINT32(msgBuf, &index) ) /1000.0;	//todo: This works, but issue with signed vs unsigned values.
+
+				//(22 bytes)
 			}
 			else
 			{
