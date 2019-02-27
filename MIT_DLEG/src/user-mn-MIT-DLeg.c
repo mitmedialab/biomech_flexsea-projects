@@ -307,7 +307,7 @@ void MITDLegFsm2(void)
 	//FSM1 can disable this one:
 	if(enableMITfsm2)
 	{
-			writeEx[1].offset = offsetCounter;
+			writeEx[1].offset = 4;
 			tx_cmd_actpack_rw(TX_N_DEFAULT, writeEx[1].offset, writeEx[1].ctrl, writeEx[1].setpoint, \
 											writeEx[1].setGains, writeEx[1].g[0], writeEx[1].g[1], \
 											writeEx[1].g[2], writeEx[1].g[3], 0);	// todo: try this offset counter thing

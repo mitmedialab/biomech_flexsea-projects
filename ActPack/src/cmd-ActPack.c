@@ -239,6 +239,22 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 			SPLIT_16((ri->mn.analog[2]), shBuf, &index);
 			SPLIT_16((ri->mn.analog[3]), shBuf, &index);
 			//(16 bytes)
+		} else if(offset == 4)
+		{
+			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
+			SPLIT_16((uint16_t)(ri->ex.mot_volt >> 3), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->ex.mot_current >> 3), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[0]), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[1]), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[2]), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[3]), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[4]), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[5]), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[6]), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[7]), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[8]), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->mn.genVar[9]), shBuf, &index);
+			//(28 bytes)
 		}
 
 	#endif	//BOARD_TYPE_FLEXSEA_MANAGE
@@ -442,6 +458,23 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 				ri->mn.analog[2] = REBUILD_UINT16(msgBuf, &index);
 				ri->mn.analog[3] = REBUILD_UINT16(msgBuf, &index);
 				//(16 bytes)
+			}
+			else if(offset == 4)
+			{
+				ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
+				ri->ex.mot_volt = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
+				ri->ex.mot_current = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
+				ri->mn.genVar[0] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[1] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[2] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[3] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[4] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[5] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[6] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[7] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[8] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->mn.genVar[9] = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				//(28 bytes)
 			}
 			else
 			{
