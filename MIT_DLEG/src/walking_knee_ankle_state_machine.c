@@ -80,14 +80,14 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 			if (isTransitioning && !passedStanceThresh) {
 				ankleWalkParams.scaleFactor = 1.0;
 //					ankleGainsEst.k1 = ankleWalkParams.earlyStanceK0;
-				ankleGainsEst.thetaDes = ankleAct->jointAngleDegrees;	// used by updateImpedanceParams, if in use, could be turned off.
+//				ankleGainsEst.thetaDes = ankleAct->jointAngleDegrees;	// used by updateImpedanceParams, if in use, could be turned off.
 				passedStanceThresh = 0;
 			}
 
 			//Try moving this into MID-STANCE
 			//updateAnkleVirtualHardstopTorque(ankleAct, &ankleWalkParams);	// Bring in
 
-			updateImpedanceParams(ankleAct, &ankleWalkParams);	//Todo: Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
+//			updateImpedanceParams(ankleAct, &ankleWalkParams);	//Todo: Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
 			ankleAct->tauDes = getImpedanceTorque(ankleAct, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes);
 			kneeAct->tauDes = getImpedanceTorque(kneeAct, kneeGainsEst.k1, kneeGainsEst.b, kneeGainsEst.thetaDes);
 

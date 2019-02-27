@@ -119,13 +119,13 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
-	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle*100.);	//(act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
-	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
-	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
-	  rigid1.mn.genVar[7] = (int16_t) (rigid1.ex.mot_volt);			// mV, //getDeviceIdIncrementing() ;
-	  rigid1.mn.genVar[8] = (int16_t) (rigid2.ex.mot_current);			// mA
-	  rigid1.mn.genVar[9] = (int16_t) (rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
+	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
+	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
+	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
+	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_volt);	// mA
+	  rigid1.mn.genVar[7] = (int16_t) (*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
+	  rigid1.mn.genVar[8] = (int16_t) (*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 
     //begin main FSM
 	switch(fsm1State)
@@ -227,9 +227,10 @@ void MITDLegFsm1(void)
 					 ****************************************/
 
 //					float tor = getImpedanceTorque(&act1, torqInput, freqInput, 0);
-					float tor = getImpedanceTorque(&act1, 1.0, .1, 0);
-					act1.tauDes = tor;
-//					setMotorTorque( &act1, tor);
+//					float tor = getImpedanceTorque(&act1, 1.0, .1, 0);
+				//					act1.tauDes = tor;
+					setKneeAnkleFlatGroundFSM(&act1, &act2);
+					setMotorTorque( &act1, act1.tauDes);
 
 //					runMainUserApplication(&act1);
 
@@ -363,9 +364,9 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
  */
 void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
-//	wParams->earlyStanceK0 = 6.23;
-//	wParams->earlyStanceKF = 0.1;
-//	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
+	wParams->earlyStanceK0 = 6.23;
+	wParams->earlyStanceKF = 0.1;
+	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 
 ////	torqueKp				 				= 0.0; 	//user_data_1.w[0] = 100
 ////	torqueKi 								= 0.0;
