@@ -3,7 +3,7 @@
 #define FLEXSEA_PROJECTS_MIT_DLEG_INC_RUN_MAIN_USER_APPLICATION_H_
 
 
-#include "walking_state_machine.h"
+//#include "walking_state_machine.h"
 #include "state_variables.h"
 #include <user-mn-MIT-DLeg.h>
 //#include "user-mn-MIT-EMG.h"

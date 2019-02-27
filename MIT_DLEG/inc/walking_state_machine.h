@@ -62,7 +62,7 @@ void runFlatGroundFSM(Act_s *actx);
 // Static Functions:
 //****************************************************************************
 
-void updateImpedanceParams(Act_s *actx, WalkParams *wParams);
+void updateAnkleImpedanceParams(Act_s *actx, WalkParams *wParams);
 float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams);
 void updateVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
 

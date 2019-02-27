@@ -40,7 +40,8 @@
 #include "main.h"
 //#include "user-mn-MIT-EMG.h"
 #include "actuator_functions.h"
-#include "walking_state_machine.h"
+//#include "walking_state_machine.h"
+#include "walking_knee_ankle_state_machine.h"
 #include "state_variables.h"
 #include "cmd-ActPack.h"
 
@@ -50,6 +51,7 @@
 //****************************************************************************
 extern struct act_s act1, act2;	//define actuator structure shared
 extern int8_t isEnabledUpdateSensors;
+
 
 //****************************************************************************
 // Structure(s)

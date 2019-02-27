@@ -6,7 +6,7 @@ extern "C" {
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-#include "walking_state_machine.h"
+#include <walking_state_machine.h>
 #include <user-mn-MIT-DLeg.h>
 //#include "user-mn-MIT-EMG.h"
 #include "spline_functions.h"
@@ -18,12 +18,11 @@ WalkingStateMachine stateMachine;
 WalkParams walkParams;
 CubicSpline cubicSpline;
 
-// Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective)
-GainParams eswGains = {1.5, 0.0, 0.3, -10.0};
-GainParams lswGains = {1.5, 0.0,  0.3, -5.0};
-GainParams estGains = {0.0, 0.0, 0.2, 0.0};	// may want to increase this damping, at least.
-GainParams lstPowerGains = {4.5,0.0,  0.1, 14};
-
+// Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
+GainParams gainsEsw = {1.5, 0.0, 0.3, -10.0};
+GainParams gainsLsw = {1.5, 0.0,  0.3, -5.0};
+GainParams gainsEst = {0.0, 0.0, 0.2, 0.0};	// may want to increase this damping, at least.
+GainParams gainsLst = {4.5,0.0,  0.1, 14};
 
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
@@ -79,14 +78,14 @@ void runFlatGroundFSM(Act_s *actx) {
 				walkParams.virtualHardstopTq = 0.0;
 
 				// initialize cubic spline params once
-				initializeCubicSplineParams(&cubicSpline, actx, eswGains, 100.0); // last parameter is res_factor (delta X - time)
+				initializeCubicSplineParams(&cubicSpline, actx, gainsEsw, 100.0); // last parameter is res_factor (delta X - time)
 			}
 
 			// Cubic Spline
 			calcCubicSpline(&cubicSpline);
-			eswGains.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
+			gainsEsw.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
-            actx->tauDes = calcJointTorque(eswGains, actx, &walkParams);
+            actx->tauDes = calcJointTorque(gainsEsw, actx, &walkParams);
 
             //Early Swing transition vectors
 
@@ -104,7 +103,7 @@ void runFlatGroundFSM(Act_s *actx) {
 				walkParams.transitionId = 0;
 			}
 
-			actx->tauDes = calcJointTorque(lswGains, actx, &walkParams);
+			actx->tauDes = calcJointTorque(gainsLsw, actx, &walkParams);
 
 
 			//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
@@ -142,17 +141,17 @@ void runFlatGroundFSM(Act_s *actx) {
 				if (isTransitioning) {
 					walkParams.scaleFactor = 1.0;
 
-					estGains.k1 = walkParams.earlyStanceK0;
-					estGains.thetaDes = actx->jointAngleDegrees;
+					gainsEst.k1 = walkParams.earlyStanceK0;
+					gainsEst.thetaDes = actx->jointAngleDegrees;
 
 					passedStanceThresh = 0;
 				}
 
 
 				updateVirtualHardstopTorque(actx, &walkParams);
-//				updateImpedanceParams(actx, &walkParams);	//Todo: Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
+//				updateAnkleImpedanceParams(actx, &walkParams);	//Todo: Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
 
-				actx->tauDes = walkParams.virtualHardstopTq + calcJointTorque(estGains, actx, &walkParams);
+				actx->tauDes = walkParams.virtualHardstopTq + calcJointTorque(gainsEst, actx, &walkParams);
 
 
 				//Early Stance transition vectors
@@ -186,7 +185,7 @@ void runFlatGroundFSM(Act_s *actx) {
 
 
 				//Linear ramp push off
-				actx->tauDes = walkParams.virtualHardstopTq + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(lstPowerGains, actx, &walkParams);
+				actx->tauDes = walkParams.virtualHardstopTq + (walkParams.samplesInLSP/walkParams.lstPGDelTics) * calcJointTorque(gainsLst, actx, &walkParams);
 
 
 
@@ -234,19 +233,19 @@ float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams) {
 
 
 //
-/** This ramps down the Stiffness of early stance K, picking up the user and bringing them up to estGains.thetaDes
+/** This ramps down the Stiffness of early stance K, picking up the user and bringing them up to gainsEst.thetaDes
     NOTE/TODO: Hugh may prefer much more stiffness here, this ramps down teh stiffness.
 	Param: actx(Act_s) - Actuator structure to track sensor values
 	Param: wParams(WalkParams) - Parameters relating to walking states
 */
-void updateImpedanceParams(Act_s *actx, WalkParams *wParams) {
+void updateAnkleImpedanceParams(Act_s *actx, WalkParams *wParams) {
 
 	wParams->scaleFactor = wParams->scaleFactor * wParams->earlyStanceDecayConstant;
 
-    estGains.k1 = wParams->earlyStanceKF + wParams->scaleFactor * (wParams->earlyStanceK0 - wParams->earlyStanceKF);
+    gainsEst.k1 = wParams->earlyStanceKF + wParams->scaleFactor * (wParams->earlyStanceK0 - wParams->earlyStanceKF);
 
-    if (actx->jointAngleDegrees < estGains.thetaDes) {
-    	estGains.thetaDes = actx->jointAngleDegrees;
+    if (actx->jointAngleDegrees < gainsEst.thetaDes) {
+    	gainsEst.thetaDes = actx->jointAngleDegrees;
     }
 }
 

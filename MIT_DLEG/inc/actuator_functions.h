@@ -29,7 +29,8 @@
 #include <math.h>
 #include <stdbool.h>
 
-#include "walking_state_machine.h"
+//#include "walking_state_machine.h"
+#include "walking_knee_ankle_state_machine.h"
 #include "state_variables.h"
 //DEBUG
 #include "software_filter.h"

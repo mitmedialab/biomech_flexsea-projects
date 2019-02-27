@@ -30,6 +30,7 @@ extern "C" {
 // Structure(s):
 //****************************************************************************
 
+
 enum {
 
 	STATE_INIT = -2,
@@ -42,6 +43,7 @@ enum {
 	STATE_LATE_SWING = 4,
 
 	STATE_STANDING = 5,
+	STATE_STANDING_UNLOADED = 6,
 
 	STATE_EMG_STAND_ON_TOE = 7,
     STATE_LSW_EMG = 8
@@ -128,6 +130,7 @@ typedef struct walkParams {
     float earlyStanceDecayConstant;
     float virtualHardstopK;
     float virtualHardstopEngagementAngle;
+    float neutralPosition;
 
     int8_t initializedStateMachineVariables;
 
