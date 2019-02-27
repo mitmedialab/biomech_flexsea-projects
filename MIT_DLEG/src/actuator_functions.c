@@ -413,7 +413,6 @@ int32_t noLoadCurrent(float desCurr) {
  */
 void setMotorTorque(struct act_s *actx, float tauDes)
 {
-
 	//Saturation limit on Torque
 	if (tauDes > ABS_TORQUE_LIMIT_INIT) {
 		tauDes = ABS_TORQUE_LIMIT_INIT;
@@ -422,7 +421,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	}
 
 	//Angle Limit bumpers
-	actx->tauDes = tauDes ;//+ actuateAngleLimits(actx);
+	actx->tauDes = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
@@ -432,9 +431,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	//DEBUG
 //	rigid1.mn.genVar[7] = (int16_t) (getCompensatorPIDOutput(actx) * voltageGain*1000.0);
 
-	// Custom Compensator Controller
+	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
 //	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes) * voltageGain;
-	rigid1.mn.genVar[6] = (int16_t) (tauC*1000.0);
 
 	// Feedforward term
 	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
@@ -460,10 +458,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	actx->desiredCurrent = I; 	// demanded mA
 
-	//TODO: not working right now
-//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-
-	rigid1.mn.genVar[8] = (int16_t) ( I );
+	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
 	//variables used in cmd-rigid offset 5, for multipacket
 	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
@@ -540,9 +535,7 @@ float getCompensatorPIDOutput(Act_s *actx)
 	}
 
 	return tauCOutput;
-
 }
-
 
 
 //Used for testing purposes. See state_machine
@@ -560,7 +553,7 @@ float biomCalcImpedance(Act_s *actx,float k1, float b, float thetaSet)
 
 }
 
-//Used for testing purposes. See state_machine
+// Preferred Nomenclature Impedance Command
 /*
  * Simple Impedance Controller
  * Param:	actx(struct act_s) - Actuator structure to track sensor values

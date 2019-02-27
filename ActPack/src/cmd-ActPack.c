@@ -256,6 +256,20 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 			SPLIT_16((uint16_t)(ri->mn.genVar[9]), shBuf, &index);
 			//(28 bytes)
 		}
+		else if(offset == 5)
+		{
+			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
+			SPLIT_16((uint16_t)(ri->ex.mot_volt >> 3), shBuf, &index);
+			SPLIT_16((uint16_t)(ri->ex.mot_current >> 3), shBuf, &index);
+			SPLIT_32((uint32_t)*(ri->ex.enc_ang), shBuf, &index);
+			SPLIT_32((uint32_t)*(ri->ex.enc_ang_vel), shBuf, &index);
+			SPLIT_32((uint32_t)ri->ex.mot_acc, shBuf, &index);
+			SPLIT_16(rigid1.re.vb, shBuf, &index);
+			SPLIT_16((uint16_t)rigid1.re.current, shBuf, &index);
+			shBuf[index++] = rigid1.re.temp;
+			//(25 bytes)
+		}
+
 
 	#endif	//BOARD_TYPE_FLEXSEA_MANAGE
 
@@ -475,6 +489,19 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 				ri->mn.genVar[8] = (int16_t)REBUILD_UINT16(msgBuf, &index);
 				ri->mn.genVar[9] = (int16_t)REBUILD_UINT16(msgBuf, &index);
 				//(28 bytes)
+			}
+			else if(offset == 5)
+			{
+				ri->ctrl.timestamp = REBUILD_UINT32(msgBuf, &index);
+				ri->ex.mot_volt = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
+				ri->ex.mot_current = (int32_t)(((int16_t)REBUILD_UINT16(msgBuf, &index)) << 3);
+				*(ri->ex.enc_ang) = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				*(ri->ex.enc_ang_vel) = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				ri->ex.mot_acc = (int32_t) REBUILD_UINT32(msgBuf, &index);
+				ri->re.vb = REBUILD_UINT16(msgBuf, &index);
+				ri->re.current = (int16_t)REBUILD_UINT16(msgBuf, &index);
+				ri->re.temp = msgBuf[index++];
+				//(25 bytes)
 			}
 			else
 			{

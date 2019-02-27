@@ -114,24 +114,23 @@ void MITDLegFsm1(void)
 
     //Increment fsm_time (1 tick = 1ms nominally)
     fsmTime++;
-	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//erros
+	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.tauDes*100.);//(act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) rigid2.mn.genVar[1]; //(act1.motCurrDt * MOT_L); //(*rigid1.ex.enc_ang_vel);		// comes in as rad/s
-//	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
-//	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
-	  rigid1.mn.genVar[7] = (int16_t) getDeviceIdIncrementing() ;// (rigid1.ex.mot_volt);			// mV
-	  rigid1.mn.genVar[8] = (int16_t) rigid2.mn.genVar[1]; //(act1.desiredCurrent); //(rigid1.re.current);			// mA
-	  rigid1.mn.genVar[9] = (int16_t) rigid2.ex.mot_current; //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
-
+	  rigid1.mn.genVar[4] = (int16_t) rigid2.mn.genVar[1]; //(*rigid1.ex.enc_ang_vel);		// comes in as rad/s
+	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang); 		//cpr, 16384 cpr
+	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_current);		// mA
+	  rigid1.mn.genVar[7] = (int16_t) (rigid1.ex.mot_volt);			// mV, //getDeviceIdIncrementing() ;
+	  rigid1.mn.genVar[8] = (int16_t) (rigid2.ex.mot_current);			// mA
+	  rigid1.mn.genVar[9] = (int16_t) (rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 
     //begin main FSM
 	switch(fsm1State)
 	{
 		//this state is always reached
 		case STATE_POWER_ON:
-			stateMachine.currentState = STATE_IDLE;
+			stateMachine.currentState = STATE_POWER_ON;
 			//Same power-on delay as FSM2:
 			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 				//sensor update happens in mainFSM2(void) in main_fsm.c
@@ -149,20 +148,25 @@ void MITDLegFsm1(void)
 
 			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 
-				#if defined(NO_DEVICE)  || defined(NO_ACTUATOR)
-					fsm1State = STATE_DEBUG;
+				#if defined(NO_DEVICE)
+					fsm1State = STATE_DEBUG;				// Skip over All states and sit in debug mode
+				#elif defined(NO_ACTUATOR)
+					fsm1State = STATE_INIT_USER_WRITES;		// Still run controls, but skip Find Poles
 				#else
 					fsm1State = STATE_FIND_POLES;
 				#endif
 				act1.currentOpLimit = CURRENT_LIMIT_INIT;
 				onEntry = 1;
 
-
+				// If Master, enable Comm's, if Slave Do not need to turn it on.
+				#if (ACTIVE_SUBPROJECT == SUBPROJECT_A)
+					enableMITfsm2 = 1;	// Turn on communication to to SLAVE
+				#else
+					enableMITfsm2 = 0;	// If it's slave, then don't bother turning on comms?
+				#endif
 			}
 
-
 			break;
-
 
 		case STATE_FIND_POLES:
 
@@ -225,13 +229,11 @@ void MITDLegFsm1(void)
 				}
 
 				// Inside here is where user code goes
-				//DEBUG remove this because joint encoder can't update in locked state.
+				//DEBUG removed this because joint encoder can't update in locked state.
 //				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 
 					float tor = getImpedanceTorque(&act1, torqInput, freqInput, 0);
-//					float tor = torqueSystemIDFrequencySweep( (freqInput*2*M_PI), ( ( (float)fsmTime) /SECONDS), torqInput);
 
-//					setMotorTorqueOpenLoop( &act1, tor, currentOrVoltage);
 //					setMotorTorque( &act1, tor);
 
 //					runMainUserApplication(&act1);
@@ -264,9 +266,6 @@ void MITDLegFsm1(void)
 }
 
 
-
-
-
 /*
  *  Second state machine for the DLeg project
  *  Currently seems unused
@@ -286,28 +285,17 @@ void MITDLegFsm2(void)
 		mitFSM2ready = 0;
 		Fsm2Timer++;
 		return;
-	} else
-	{
-		// If Master enable Comms, if Slave Do not need to turn it on.
-		#if (ACTIVE_SUBPROJECT == SUBPROJECT_A)
-			enableMITfsm2 = 1;	// Turn on communication to to SLAVE
-		#else
-			enableMITfsm2 = 0;	// If it's slave, then don't bother turning on comms?
-		#endif
-		mitFSM2ready = 1;
 	}
 
-//	mitFSM2ready = 1;	//TODO: I think this should be in an else statement and an && logic on enabling comms
 
 	//External controller can fully disable the comm:
 	//if(ActPackSys == SYS_NORMAL && ActPackCoFSM == APC_FSM2_ENABLED){enableAPfsm2 = 1;}
 	//else {enableAPfsm2 = 0;}
 
-	rigid1.mn.genVar[5] = offsetCounter;
 	//FSM1 can disable this one:
 	if(enableMITfsm2)
 	{
-			writeEx[1].offset = 4;
+			writeEx[1].offset = 1;
 			tx_cmd_actpack_rw(TX_N_DEFAULT, writeEx[1].offset, writeEx[1].ctrl, writeEx[1].setpoint, \
 											writeEx[1].setGains, writeEx[1].g[0], writeEx[1].g[1], \
 											writeEx[1].g[2], writeEx[1].g[3], 0);	// todo: try this offset counter thing
@@ -319,11 +307,12 @@ void MITDLegFsm2(void)
 			//if(writeEx[0].setGains == CHANGE){writeEx[0].setGains = KEEP;}
 			if(writeEx[1].setGains == CHANGE){writeEx[1].setGains = KEEP;}
 
-			offsetCounter++;
-			if (offsetCounter > 3)
-			{
-				offsetCounter = 0;
-			}
+			// Was in use to step through multiple offsets, not in use currently.
+//			offsetCounter++;
+//			if (offsetCounter > 3)
+//			{
+//				offsetCounter = 0;
+//			}
 	}
 
 	#endif	//ACTIVE_PROJECT == PROJECT_MIT_DLEG
