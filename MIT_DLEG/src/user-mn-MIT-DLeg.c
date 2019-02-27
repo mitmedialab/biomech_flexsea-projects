@@ -64,8 +64,8 @@ extern float torqueKp;
 extern float torqueKi;
 extern float torqueKd;
 
-static int gui_mode = GUI_MODE_FL_CONTROL;
-static int gui_mode_prev = GUI_MODE_FL_CONTROL;
+static int gui_mode = GUI_MODE_NOM_CONTROL;
+static int gui_mode_prev = GUI_MODE_NOM_CONTROL;
 
 
 //****************************************************************************
@@ -105,6 +105,8 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 			user_data_1.w[1] = (int32_t)(get_control_params()->active.esw_theta_rad*SCALE_FACTOR_1000);
 			user_data_1.w[2] = (int32_t)(get_control_params()->active.sw_k_Nm_p_rad);
 			user_data_1.w[3] = (int32_t)(get_control_params()->active.sw_b_Nm_p_rps);
+			user_data_1.w[4] = (int32_t)(get_minimum_jerk_values()->T[1]*SCALE_FACTOR_1000);
+			user_data_1.w[5] = (int32_t)(get_minimum_jerk_values()->enabled);
 		break;
 		case GUI_MODE_GAIT_EVENTS:
 	    case GUI_MODE_KINEMATICS:
@@ -194,6 +196,8 @@ static void initializeUserWrites(struct taskmachine_s* tm){
 			user_data_1.w[1] = (int32_t)(DEFAULT_ESW_THETA_RAD*SCALE_FACTOR_1000);
 			user_data_1.w[2] = (int32_t)(DEFAULT_SW_K_NM_P_RAD);
 			user_data_1.w[3] = (int32_t)(DEFAULT_SW_B_NM_P_RPS);
+			user_data_1.w[4] = (int32_t)(DEFAULT_MINIMUM_JERK_TRAJECTORY_TIME*SCALE_FACTOR_1000);
+			user_data_1.w[5] = 1;
 		break;
 		case GUI_MODE_GAIT_EVENTS:
 	    case GUI_MODE_KINEMATICS:
@@ -241,6 +245,9 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[4] = (int16_t) (get_control_params()->active.sw_k_Nm_p_rad*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[5] = (int16_t) (get_control_params()->active.sw_b_Nm_p_rps*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[6] = (int16_t) (act1.jointVel*SCALE_FACTOR_1000);
+			rigid1.mn.genVar[7] = (int16_t) (get_minimum_jerk_values()->des_theta*SCALE_FACTOR_1000);
+			rigid1.mn.genVar[8] = (int16_t) (get_minimum_jerk_values()->params[0]*SCALE_FACTOR_1000);
+			rigid1.mn.genVar[9] = (int16_t) (get_minimum_jerk_values()->update_counter);
 		break;
 		case GUI_MODE_GAIT_EVENTS:
 			rigid1.mn.genVar[3] = (int16_t) (tm->elapsed_samples);
@@ -280,6 +287,7 @@ static void updateGenVars(struct taskmachine_s* tm){
 	    case GUI_MODE_PREDICTION:
 			rigid1.mn.genVar[3] = (int16_t) (get_predictor()->k_pred);
 		break;
+
 
 	}
 }
@@ -321,9 +329,11 @@ static void updateUserWrites(struct taskmachine_s* tm){
 			set_nominal_b_Nm_p_rps((float) user_data_1.w[3] );
 		break;
 		case GUI_MODE_SW_CONTROL:
-			set_esw_theta_rad(((float) user_data_1.w[1])/SCALE_FACTOR_1000);
-			set_sw_k_Nm_p_rad(((float) user_data_1.w[2]));
-			set_sw_b_Nm_p_rps(((float) user_data_1.w[3]));
+			set_esw_theta_rad((float) user_data_1.w[1]/SCALE_FACTOR_1000);
+			set_sw_k_Nm_p_rad((float) user_data_1.w[2]);
+			set_sw_b_Nm_p_rps((float) user_data_1.w[3]);
+			set_minimum_jerk_trajectory_period((float) user_data_1.w[4]/SCALE_FACTOR_1000);
+			enable_minimum_jerk((uint8_t) user_data_1.w[5]);
 		break;
 		case GUI_MODE_GAIT_EVENTS:
 	    case GUI_MODE_KINEMATICS:

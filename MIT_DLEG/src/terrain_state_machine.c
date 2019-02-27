@@ -9,6 +9,7 @@ static int state_machine_demux_state = STATE_EARLY_SWING;
 
 
 static struct control_params_s cp;
+static struct minimum_jerk_values_s mj;
 
 static void init_adaptive_control_params_s()
 {
@@ -25,6 +26,56 @@ static void init_adaptive_control_params_s()
 
 	cp.adaptive.est_lst_min_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
 
+
+
+}
+
+static void init_minimum_jerk_values_s(){
+	mj.params = (float*)calloc(6, sizeof(float));
+	mj.T = (float*)calloc(6, sizeof(float));
+	mj.T[0] = 1.0;
+	mj.T[1] = DEFAULT_MINIMUM_JERK_TRAJECTORY_TIME;
+	mj.T[2] = mj.T[1]*mj.T[1];
+	mj.T[3] = mj.T[2]*mj.T[1];
+	mj.T[4] = mj.T[3]*mj.T[1];
+	mj.T[5] = mj.T[4]*mj.T[1];
+	mj.update_counter = UINT_MAX;
+	mj.enabled = 1;
+}
+
+static float set_minimum_jerk_trajectory_params(Act_s* actx, float theta_target, float theta_dot_target, float theta_ddot_target){
+
+	mj.theta_target = theta_target;
+	mj.theta_dot_target = theta_dot_target;
+	mj.theta_ddot_target = theta_ddot_target;
+
+	mj.params[0] = actx->jointAngle;
+	mj.params[1] = 0.0;
+	mj.params[2] = 0.0;
+
+	float b3 = mj.theta_target - actx->jointAngle - mj.T[1]*mj.params[1] - 0.5*mj.T[2]*mj.params[2];
+	float b4 = mj.theta_dot_target - mj.params[1] - mj.T[1]*mj.params[2];
+	float b5 = mj.theta_ddot_target - mj.params[2];
+
+	mj.params[3] = (10.0/mj.T[3])*b3 + (-4.0/mj.T[2])*b4 + (0.5/mj.T[1])*b5;
+	mj.params[4] = (-15.0/mj.T[4])*b3 + (7.0/mj.T[3])*b4 + (-1.0/mj.T[2])*b5;
+	mj.params[5] = (6.0/mj.T[5])*b3 + (-3.0/mj.T[4])*b4 + (0.5/mj.T[3])*b5;
+
+	mj.update_counter = 0;
+	mj.total_trajectory_updates =(uint)(mj.T[1] * 1000.0); //TODO: put the actual variable for sampling rate here
+}
+
+static void set_next_theta_for_minimum_jerk(){
+	mj.update_counter++;
+
+	float t = (float)(mj.update_counter)/1000.0;
+	float t2 = t*t;
+	float t3 = t2*t;
+	float t4 = t3*t;
+	float t5 = t4*t;
+
+	mj.des_theta = mj.params[0] + mj.params[1]*t + mj.params[2]*t2 + mj.params[3]*t3 +
+		mj.params[4]*t4 + mj.params[5]*t5;
 }
 
 static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b) {
@@ -39,6 +90,8 @@ static void set_joint_torque_with_hardstop(Act_s* actx, struct taskmachine_s* tm
 	}
 	setMotorTorque(actx, actx->tauDes);
 }
+
+
 
 static void set_control_params_for_terrain(int terrain){
 
@@ -119,17 +172,37 @@ void reset_terrain_state_machine_parameters(){
 	cp.nominal.b_Nm_p_rps = DEFAULT_NOMINAL_B_NM_P_RPS;
 }
 
+
+
 void init_terrain_state_machine(){
 	init_adaptive_control_params_s();
 	reset_terrain_state_machine_parameters();
+	init_minimum_jerk_values_s();
 }
 
 int get_walking_state(){
 	return state_machine_demux_state;
 }
+
+struct minimum_jerk_values_s* get_minimum_jerk_values(){
+	return &mj;
+}
 struct control_params_s* get_control_params(){
 	return &cp;
 }
+
+void set_minimum_jerk_trajectory_period(float T){
+	mj.T[1] = T;
+	mj.T[2] = mj.T[1]*mj.T[1];
+	mj.T[3] = mj.T[2]*mj.T[1];
+	mj.T[4] = mj.T[3]*mj.T[1];
+	mj.T[5] = mj.T[4]*mj.T[1];
+}
+
+void enable_minimum_jerk(uint8_t enabled){
+	mj.enabled = enabled;
+}
+
 void set_esw_theta_rad(float theta_rad){
 	cp.active.esw_theta_rad = theta_rad;
 }
@@ -188,7 +261,16 @@ if (terrain_mode == MODE_NOMINAL){
 	set_joint_torque(actx, tm, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps);
 	return;
 }else if (terrain_mode == MODE_POSITION){
-	set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+	if (mj.enabled){
+		if (mj.update_counter < mj.total_trajectory_updates){
+				set_next_theta_for_minimum_jerk();
+				set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+		}else{
+				set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0);
+		}
+	}else{
+		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+	}
 	return;
 }
 
@@ -200,8 +282,11 @@ switch (state_machine_demux_state){
 			sample_counter = 0;
 		// set_joint_torque(actx, tm, POSITION_CONTROL_GAIN_K_NM_P_RAD, POSITION_CONTROL_GAIN_B_NM_P_RPS, cp.active.esw_theta_rad);
 		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
-        if (tm->gait_event_trigger = GAIT_EVENT_WINDOW_CLOSE && terrain_mode != MODE_POSITION)
+
+        if (tm->gait_event_trigger = GAIT_EVENT_WINDOW_CLOSE && terrain_mode){
         	state_machine_demux_state = STATE_LSW;
+        	set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0);
+        }
         
     break;
     case STATE_LSW:

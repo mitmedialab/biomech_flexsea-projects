@@ -69,8 +69,13 @@
 #define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
 #define DEFAULT_DSTAIRS_EST_LST_MIN_THETA_RAD 0.05
 
+#define DEFAULT_MINIMUM_JERK_TRAJECTORY_TIME 1.0
+
 int get_walking_state();
+struct minimum_jerk_values_s* get_minimum_jerk_values();
 struct control_params_s* get_control_params();
+void set_minimum_jerk_trajectory_period(float T);
+void enable_minimum_jerk(uint8_t enabled);
 void set_esw_theta_rad(float theta_rad);
 void set_sw_k_Nm_p_rad(float k_Nm_p_rad);
 void set_sw_b_Nm_p_rps(float b_Nm_p_rps);
@@ -142,6 +147,19 @@ struct control_params_s{
  	struct active_control_params_s active;
 	struct nominal_control_params_s nominal;
 };
+
+struct minimum_jerk_values_s{
+	float* T;
+	float* params;
+	float theta_target;
+	float theta_dot_target;
+	float theta_ddot_target;
+	float des_theta;
+	uint update_counter;
+	uint total_trajectory_updates;
+	uint8_t enabled;
+};
+
 
 enum Walking_States {
    STATE_ESW = 2,               /// 2

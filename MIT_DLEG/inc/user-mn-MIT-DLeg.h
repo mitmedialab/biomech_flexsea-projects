@@ -75,6 +75,7 @@ enum Gui_Modes {
     GUI_MODE_LEARNING = 9,
     GUI_MODE_FEATURES = 10,
     GUI_MODE_PREDICTION = 11,
+    GUI_MODE_MINIMUM_JERK = 12,
 };
 
 #endif	//INC_MIT_DLEG
