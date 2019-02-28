@@ -16,7 +16,7 @@ static float ideal_heelstrike_angle_rad[] = {FL_IDEAL_FOOTSTRIKE_ANGLE_RAD,UR_ID
 static void init_task_machine(){
 	tm.initialized = 0;
 	tm.control_mode = MODE_NOMINAL;
-	tm.do_update_learner = 1;
+	tm.do_update_learner = 0;
 
     tm.latest_foot_static_samples = 0.0;
     tm.elapsed_samples = 0.0;
@@ -173,10 +173,13 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_ankle_dynamics(actx);
 		update_gait_events();
 		update_kinematics(&rigid->mn,&tm);
-		update_statistics_demux(&tm);
 
-		if (tm.do_update_learner)
+		
+
+		if (tm.do_update_learner){
+			update_statistics_demux(&tm);
 			update_learner_demux();
+		}
 
 		predict_task_demux(&tm, get_kinematics());
 

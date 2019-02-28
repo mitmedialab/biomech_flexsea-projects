@@ -107,6 +107,7 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 			user_data_1.w[3] = (int32_t)(get_control_params()->active.sw_b_Nm_p_rps);
 			user_data_1.w[4] = (int32_t)(get_minimum_jerk_values()->T[1]*SCALE_FACTOR_1000);
 			user_data_1.w[5] = (int32_t)(get_minimum_jerk_values()->enabled);
+			user_data_1.w[6] = (int32_t)(get_minimum_jerk_values()->angle_tol_rad*SCALE_FACTOR_1000);
 		break;
 		case GUI_MODE_GAIT_EVENTS:
 	    case GUI_MODE_KINEMATICS:
@@ -198,6 +199,7 @@ static void initializeUserWrites(struct taskmachine_s* tm){
 			user_data_1.w[3] = (int32_t)(DEFAULT_SW_B_NM_P_RPS);
 			user_data_1.w[4] = (int32_t)(DEFAULT_MINIMUM_JERK_TRAJECTORY_TIME*SCALE_FACTOR_1000);
 			user_data_1.w[5] = 1;
+			user_data_1.w[6] = (int32_t)(DEFAULT_MINIMUM_JERK_ANGLE_TOL_RAD*SCALE_FACTOR_1000);
 		break;
 		case GUI_MODE_GAIT_EVENTS:
 	    case GUI_MODE_KINEMATICS:
@@ -235,7 +237,8 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[6] = (int16_t) (tm->stance_rom_error_rad[gui_mode]*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[7] = (int16_t) (tm->peak_power_timing_percent);
 			rigid1.mn.genVar[8] = (int16_t) (tm->peak_power_timing_error_percent[gui_mode]);
-			rigid1.mn.genVar[9] = withinBiologicalBounds;
+			// rigid1.mn.genVar[9] = withinBiologicalBounds;
+			rigid1.mn.genVar[9] = (int16_t) (get_minimum_jerk_values()->des_theta*SCALE_FACTOR_1000);
 
 	    }
 		break;
@@ -268,12 +271,12 @@ static void updateGenVars(struct taskmachine_s* tm){
 			break;
 	    case GUI_MODE_LEARNING:
 			rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
-			rigid1.mn.genVar[4] = (int16_t) (get_predictor()->A[0]);
-			rigid1.mn.genVar[5] = (int16_t) (get_predictor()->A[73]);
-			rigid1.mn.genVar[6] = (int16_t) (get_predictor()->A[146]);
-			rigid1.mn.genVar[7] = (int16_t) (get_predictor()->A[219]);
-			rigid1.mn.genVar[8] = (int16_t) (get_predictor()->A[292]);
-			rigid1.mn.genVar[9] = (int16_t) (get_predictor()->B[0]);
+			rigid1.mn.genVar[4] = (int16_t) (get_predictor()->A[0]*get_predictor()->A[73]*get_predictor()->A[146]*get_predictor()->A[219]*get_predictor()->A[292]*get_predictor()->B[0]);
+			rigid1.mn.genVar[5] = (int16_t) (get_statistics()->pop_k[0]);
+			rigid1.mn.genVar[6] = (int16_t) (get_statistics()->pop_k[1]);
+			rigid1.mn.genVar[7] = (int16_t) (get_statistics()->pop_k[2]);
+			rigid1.mn.genVar[8] = (int16_t) (get_statistics()->pop_k[3]);
+			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->pop_k[4]);
 			break;
 	    case GUI_MODE_FEATURES:
 			rigid1.mn.genVar[3] = (int16_t) (tm->latest_foot_static_samples);
@@ -313,6 +316,7 @@ static void updateUserWrites(struct taskmachine_s* tm){
 	    case GUI_MODE_US_CONTROL:
 	    case GUI_MODE_DS_CONTROL:
 	    	tm->control_mode = gui_mode;
+	    	tm->do_update_learner = 0;
 			set_hard_stop_theta_rad((float) user_data_1.w[1]/SCALE_FACTOR_1000, tm->control_mode);
 			set_hard_stop_k_Nm_p_rad((float) user_data_1.w[2], tm->control_mode);
 			set_lst_theta_rad(((float) user_data_1.w[3])/SCALE_FACTOR_1000, tm->control_mode);
@@ -324,22 +328,32 @@ static void updateUserWrites(struct taskmachine_s* tm){
 			set_est_lst_min_theta_rad((float) user_data_1.w[9]/SCALE_FACTOR_1000, tm->control_mode);
 		break;
 		case GUI_MODE_NOM_CONTROL:
+			tm->do_update_learner = 0;
 			set_nominal_theta_rad((float) user_data_1.w[1]  /SCALE_FACTOR_1000);
 			set_nominal_k_Nm_p_rad((float) user_data_1.w[2] );
 			set_nominal_b_Nm_p_rps((float) user_data_1.w[3] );
 		break;
 		case GUI_MODE_SW_CONTROL:
+			tm->do_update_learner = 0;
 			set_esw_theta_rad((float) user_data_1.w[1]/SCALE_FACTOR_1000);
 			set_sw_k_Nm_p_rad((float) user_data_1.w[2]);
 			set_sw_b_Nm_p_rps((float) user_data_1.w[3]);
 			set_minimum_jerk_trajectory_period((float) user_data_1.w[4]/SCALE_FACTOR_1000);
 			enable_minimum_jerk((uint8_t) user_data_1.w[5]);
+			set_minimum_jerk_angle_tol_rad((float)user_data_1.w[6]/SCALE_FACTOR_1000);
 		break;
 		case GUI_MODE_GAIT_EVENTS:
+			tm->do_update_learner = 0;
+		break;
 	    case GUI_MODE_KINEMATICS:
+	    	tm->do_update_learner = 0;
+	    break;
 	    case GUI_MODE_LEARNING:
+	    	tm->do_update_learner = 1;
+	    	break;
 	    case GUI_MODE_FEATURES:
 	    case GUI_MODE_PREDICTION:
+	    	tm->do_update_learner = 0;
 	    	tm->control_mode = user_data_1.w[1];
 		break;
 
