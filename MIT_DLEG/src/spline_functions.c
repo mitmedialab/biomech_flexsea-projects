@@ -49,6 +49,9 @@ void solveTridiagonalMatrix(CubicSpline *cSpline){
 	float e[3], f[3], g[2];
 	float x[3];
 	float y[3];
+	float xDelta[2];
+	float yDelta[2];
+
 	int n = 3; // f vector length
 	float factor;
 	float k[3];
@@ -60,16 +63,21 @@ void solveTridiagonalMatrix(CubicSpline *cSpline){
 	y[1] = cSpline->yInt1;
 	y[2] = cSpline->yf1;
 
-	B[0] = 2.0 / (x[1] - x[0]);
-	B[1] = 2.0 * ((1/(x[1]-x[0])) + (1/(x[2]-x[1])));
-	B[2] = 2.0 / (x[2]-x[1]);
-	A[0] = 1.0 / (x[1]-x[0]);
-	A[1] = 1.0 / (x[2]-x[1]);
-	C[0] = 1.0 / (x[1]-x[0]);
-	C[1] = 1.0 / (x[2]-x[1]);
-	r[0] = 3.0 * ((y[1]-y[0])/(pow(x[1]-x[0],2)));
-	r[1] = 3.0 * (((y[1]-y[0])/(pow(x[1]-x[0],2))) + ((y[2]-y[1])/(pow(x[2]-x[1],2))));
-	r[2] = 3.0 * ((y[2]-y[1])/(pow(x[2]-x[1],2)));
+	xDelta[0] = x[1] - x[0];
+	xDelta[1] = x[2] - x[1];
+	yDelta[0] = y[1] - y[0];
+	yDelta[1] = y[2] - y[1];
+
+	B[0] = 2.0 / (xDelta[0]);
+	B[1] = 2.0 * ((1/(xDelta[0])) + (1/(xDelta[1])));
+	B[2] = 2.0 / (xDelta[1]);
+	A[0] = 1.0 / (xDelta[0]);
+	A[1] = 1.0 / (xDelta[1]);
+	C[0] = 1.0 / (xDelta[0]);
+	C[1] = 1.0 / (xDelta[1]);
+	r[0] = 3.0 * ((yDelta[0])/(pow(xDelta[0],2)));
+	r[1] = 3.0 * (((yDelta[0])/(pow(xDelta[0],2))) + ((yDelta[1])/(pow(xDelta[1],2))));
+	r[2] = 3.0 * ((yDelta[1])/(pow(xDelta[1],2)));
 
 	e[0] = 0;
 	e[1] = A[0];
@@ -91,10 +99,10 @@ void solveTridiagonalMatrix(CubicSpline *cSpline){
 		k[i] = (r[i] - (g[i] * k[i+1])) / f[i];
 	}
 	// ai and bi computation
-	a1 = k[0]*(x[1]-x[0]) - (y[1]-y[0]);
-	a2 = k[1]*(x[2]-x[1]) - (y[2]-y[1]);
-	b1 = -1.0*k[1]*(x[1]-x[0]) + (y[1]-y[0]);
-	b2 = -1.0*k[2]*(x[2]-x[1]) + (y[2]-y[1]);
+	a1 = k[0]*(xDelta[0]) - (yDelta[0]);
+	a2 = k[1]*(xDelta[1]) - (yDelta[1]);
+	b1 = -1.0*k[1]*(xDelta[0]) + (yDelta[0]);
+	b2 = -1.0*k[2]*(xDelta[1]) + (yDelta[1]);
 	cSpline->a11 = a1;
 	cSpline->a21 = a2;
 	cSpline->b11 = b1;
@@ -108,15 +116,15 @@ void solveTridiagonalMatrix(CubicSpline *cSpline){
 	y[2] = cSpline->yf2;
 
 	B[0] = 2.0 / (x[1] - x[0]);
-	B[1] = 2.0 * ((1/(x[1]-x[0])) + (1/(x[2]-x[1])));
-	B[2] = 2.0 / (x[2]-x[1]);
-	A[0] = 1.0 / (x[1]-x[0]);
-	A[1] = 1.0 / (x[2]-x[1]);
-	C[0] = 1.0 / (x[1]-x[0]);
-	C[1] = 1.0 / (x[2]-x[1]);
-	r[0] = 3.0 * ((y[1]-y[0])/(pow(x[1]-x[0],2)));
-	r[1] = 3.0 * (((y[1]-y[0])/(pow(x[1]-x[0],2))) + ((y[2]-y[1])/(pow(x[2]-x[1],2))));
-	r[2] = 3.0 * ((y[2]-y[1])/(pow(x[2]-x[1],2)));
+	B[1] = 2.0 * ((1/(xDelta[0])) + (1/(xDelta[1])));
+	B[2] = 2.0 / (xDelta[1]);
+	A[0] = 1.0 / (xDelta[0]);
+	A[1] = 1.0 / (xDelta[1]);
+	C[0] = 1.0 / (xDelta[0]);
+	C[1] = 1.0 / (xDelta[1]);
+	r[0] = 3.0 * ((yDelta[0])/(pow(xDelta[0],2)));
+	r[1] = 3.0 * (((yDelta[0])/(pow(xDelta[0],2))) + ((yDelta[1])/(pow(xDelta[1],2))));
+	r[2] = 3.0 * ((yDelta[1])/(pow(xDelta[1],2)));
 
 	e[0] = 0;
 	e[1] = A[0];
@@ -138,10 +146,10 @@ void solveTridiagonalMatrix(CubicSpline *cSpline){
 		k[i] = (r[i] - (g[i] * k[i+1])) / f[i];
 	}
 	// ai and bi computation
-	a1 = k[0]*(x[1]-x[0]) - (y[1]-y[0]);
-	a2 = k[1]*(x[2]-x[1]) - (y[2]-y[1]);
-	b1 = -1.0*k[1]*(x[1]-x[0]) + (y[1]-y[0]);
-	b2 = -1.0*k[2]*(x[2]-x[1]) + (y[2]-y[1]);
+	a1 = k[0]*(xDelta[0]) - (yDelta[0]);
+	a2 = k[1]*(xDelta[1]) - (yDelta[1]);
+	b1 = -1.0*k[1]*(xDelta[0]) + (yDelta[0]);
+	b2 = -1.0*k[2]*(xDelta[1]) + (yDelta[1]);
 	cSpline->a12 = a1;
 	cSpline->a22 = a2;
 	cSpline->b12 = b1;
@@ -160,6 +168,8 @@ void calcCubicSpline(CubicSpline *cSpline){
 	float x2[3];
 	float y[3];
 	float y2[3];
+	float xDelta[2];
+	float yDelta[2];
 	x[0] = cSpline->xi1;
 	x[1] = cSpline->xInt1;
 	x[2] = cSpline->xf1;
@@ -173,10 +183,15 @@ void calcCubicSpline(CubicSpline *cSpline){
 	y2[1] = cSpline->yInt2;
 	y2[2] = cSpline->yf2;
 
+	xDelta[0] = x[1] - x[0];
+	xDelta[1] = x[2] - x[1];
+	yDelta[0] = y[1] - y[0];
+	yDelta[1] = y[2] - y[1];
+
 	if (cSpline->timeState <= (cSpline->resFactor/2.0)){
-		t = ((float)cSpline->timeState - x[0]) / (x[1]-x[0]);
+		t = ((float)cSpline->timeState - x[0]) / (xDelta[0]);
 		q[0] = (1-t)*y[0] + t*y[1] + (t*(1-t)*(cSpline->a11*(1-t)+(cSpline->b11*t)));
-		t = ((float)cSpline->timeState - x[1]) / (x[2]-x[1]);
+		t = ((float)cSpline->timeState - x[1]) / (xDelta[1]);
 		q[1] = (1-t)*y[1] + t*y[2] + (t*(1-t)*(cSpline->a21*(1-t)+(cSpline->b21*t)));
 		if(cSpline->timeState <= ((cSpline->resFactor/2.0)*.4))
 			cSpline->Y = q[0];

@@ -66,6 +66,18 @@ Act_s act1, act2;
 
 // EXTERNS
 
+extern GainParams ankleGainsEst;
+extern GainParams ankleGainsMst;
+extern GainParams ankleGainsLst;
+extern GainParams ankleGainsEsw;
+extern GainParams ankleGainsLsw;
+
+extern GainParams kneeGainsEst;
+extern GainParams kneeGainsMst;
+extern GainParams kneeGainsLst;
+extern GainParams kneeGainsEsw;
+extern GainParams kneeGainsLsw;
+
 extern uint8_t calibrationFlags, calibrationNew;
 extern int32_t currentOpLimit;
 extern int8_t zeroIt; 		// used for zeroing the load cell.
@@ -273,7 +285,6 @@ void MITDLegFsm2(void)
 
 	//Modified version of ActPack
 	static uint32_t Fsm2Timer = 0;
-	static uint8_t offsetCounter = 0;
 
 	//Wait X seconds before communicating
 	if(Fsm2Timer < AP_FSM2_POWER_ON_DELAY)
@@ -298,17 +309,10 @@ void MITDLegFsm2(void)
 
 			packAndSend(P_AND_S_DEFAULT, FLEXSEA_MANAGE_2, mitDlegInfo, SEND_TO_SLAVE);
 
-
 			//Reset KEEP/CHANGE once set:
 			//if(writeEx[0].setGains == CHANGE){writeEx[0].setGains = KEEP;}
 			if(writeEx[1].setGains == CHANGE){writeEx[1].setGains = KEEP;}
 
-			// Was in use to step through multiple offsets, not in use currently.
-//			offsetCounter++;
-//			if (offsetCounter > 3)
-//			{
-//				offsetCounter = 0;
-//			}
 	}
 
 	#endif	//ACTIVE_PROJECT == PROJECT_MIT_DLEG
@@ -332,28 +336,40 @@ void MITDLegFsm2(void)
  */
 void updateUserWrites(Act_s *actx, WalkParams *wParams){
   
-//	torqInput								= ( (float) user_data_1.w[0] ) /10.0;	// Reduce overall torque limit.
-//	freqInput								= ( (float) user_data_1.w[1] ) /10.0;	// Reduce overall torque limit.
-//	zeroIt								    = ( (int8_t) user_data_1.w[2] );			// Manually zero the load cell
-//	currentOrVoltage					    = ( (int8_t) user_data_1.w[3] );			// Manually zero the load cell
-//	voltageGain								= ( (float) user_data_1.w[4] ) /1000.0;
-//	velGain								= ( (float) user_data_1.w[5] ) /10.0;
-//	indGain								= ( (float) user_data_1.w[610] ) /10.0;
-////	torqueKp 								= ( (float) user_data_1.w[0] ) /1000.0;	// Reduce overall torque limit.
-////	torqueKi				 				= ( (float) user_data_1.w[1] ) /1000.0;	// Reduce overall torque limit.
-////	torqueKd				 				= ( (float) user_data_1.w[2] ) /1000.0;	// Reduce overall torque limit.
+	#ifdef IS_ANKLE
+		wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
+		wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
+		wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
+		wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
+		ankleGainsLst.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
+		ankleGainsLst.thetaDes 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
+		ankleGainsLst.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
+		ankleGainsEst.k1			 			= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
+		ankleGainsEst.b			 				= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
+	#elif defined(IS_KNEE)
 
+		kneeGainsEst.k1			 				= ( (float) user_data_1.w[0] ) / 100.0;	// [Nm/deg]
+		kneeGainsEst.b			 				= ( (float) user_data_1.w[1] ) / 100.0;	// [Nm/s]
+		kneeGainsEst.thetaDes			 		= ( (float) user_data_1.w[2] ) / 100.0;	// [Nm/deg]
 
-	wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
-	wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
-	wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
-	wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
-	ankleGainsLst.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
-	ankleGainsLst.thetaDes 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
-	ankleGainsLst.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
-	ankleGainsEst.k1			 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
-	ankleGainsEst.b			 					= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
+		kneeGainsLst.k1							= ( (float) user_data_1.w[3] ) / 100.0;	// [Nm/deg]
+		kneeGainsLst.b		 					= ( (float) user_data_1.w[4] ) / 100.0;	// [Deg]
+		kneeGainsLst.thetaDes 					= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/s]
 
+		kneeGainsEsw.k1							= ( (float) user_data_1.w[6] ) / 100.0;	// [Nm/deg]
+		kneeGainsEsw.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
+		kneeGainsEsw.thetaDes 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/s]
+
+		// These are generally redundant
+		kneeGainsMst.k1 = kneeGainsEst.k1;
+		kneeGainsMst.b 	= kneeGainsEst.b;
+		kneeGainsMst.thetaDes = kneeGainsEst.thetaDes;
+
+		kneeGainsLsw.k1	= kneeGainsEsw.k1;
+		kneeGainsLsw.b	= kneeGainsEsw.b;
+		kneeGainsLsw.thetaDes	= kneeGainsEsw.thetaDes;
+
+	#endif
 
 }
 
@@ -363,18 +379,12 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
  * Param: wParams(WalkParams) -
  */
 void initializeUserWrites(Act_s *actx, WalkParams *wParams){
+#ifdef IS_ANKLE
 
 	wParams->earlyStanceK0 = 6.23;
 	wParams->earlyStanceKF = 0.1;
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 
-////	torqueKp				 				= 0.0; 	//user_data_1.w[0] = 100
-////	torqueKi 								= 0.0;
-////	torqueKd								= 0.0;
-//	torqInput								= 0.0;
-//	freqInput								= 0.0;
-//	voltageGain								= 0.0;
-	wParams->neutralPosition				= 0.0;
 	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
 	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
 	wParams->lspEngagementTorque 			= 74.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
@@ -382,18 +392,10 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	ankleGainsLst.k1						= 4.0;	//user_data_1.w[5] = 400 [Nm/deg]
 	ankleGainsLst.thetaDes 					= 18;	//user_data_1.w[6] = 1800 [Deg]
 	ankleGainsLst.b		 					= 0.20;	//user_data_1.w[7] = 30   [Nm/s]
-	ankleGainsEst.k1			 					= 1.50;	//user_data_1.w[8] = 150  [Nm/deg]
-	ankleGainsEst.b			 					= 0.30;	//user_data_1.w[9] = 32  [Nm/s]
+	ankleGainsEst.k1			 			= 1.50;	//user_data_1.w[8] = 150  [Nm/deg]
+	ankleGainsEst.b			 				= 0.30;	//user_data_1.w[9] = 32  [Nm/s]
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
-
-//	user_data_1.w[0] =  (int32_t) ( 0.0 ); 	// torque scalar
-//	user_data_1.w[1] =  (int32_t) ( 0.0 ); 	// frequency set point for freq test
-//	user_data_1.w[2] =  (int32_t) ( 0.0 ); 	// torque input for freq test
-//	user_data_1.w[3] =  (int32_t) ( 0.0 ); 	// torque input for freq test
-//	user_data_1.w[4] =  (int32_t) ( 1.0 ); 	// torque input for freq test
-//	user_data_1.w[5] =  (int32_t) ( 1.0 ); 	// torque input for freq test
-//	user_data_1.w[6] =  (int32_t) ( 1.0 ); 	// torque input for freq test
 
 	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
 	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
@@ -406,6 +408,28 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	user_data_1.w[9] =  (int32_t) ( ankleGainsEst.b * 100 ); 			// 0.1 x 100
 
 	///////////////////////////////////////////////////
+
+#elif defined(IS_KNEE)
+	//USER WRITE INITIALIZATION GOES HERE//////////////
+
+	user_data_1.w[0] =  (int32_t) ( kneeGainsEst.k1*100 );
+	user_data_1.w[1] =  (int32_t) ( kneeGainsEst.b*100 );
+	user_data_1.w[2] =  (int32_t) ( kneeGainsEst.thetaDes*100 );
+
+	user_data_1.w[3] =  (int32_t) ( kneeGainsLst.k1*100 );
+	user_data_1.w[4] =  (int32_t) ( kneeGainsLst.b*100 );
+	user_data_1.w[5] =  (int32_t) ( kneeGainsLst.thetaDes * 100 );
+
+	user_data_1.w[6] =  (int32_t) ( kneeGainsEsw.k1 * 100 );
+	user_data_1.w[7] =  (int32_t) ( kneeGainsEsw.b * 100 );
+	user_data_1.w[8] =  (int32_t) ( kneeGainsEsw.thetaDes* 100 );
+
+
+	///////////////////////////////////////////////////
+#endif
+
+
+
 
 	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
 }
