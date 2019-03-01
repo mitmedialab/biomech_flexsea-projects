@@ -322,7 +322,8 @@ void ankle_2dof_fsm_2(void)
 			tx_cmd_ankle2dof_r(TX_N_DEFAULT, 0, my_control, my_cur[0], my_pwm[0]);
 			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, info, SEND_TO_SLAVE);
 
-			ex_refresh_fsm_state++;
+			// ex_refresh_fsm_state++;
+			ex_refresh_fsm_state=3;
 
 			break;
 
@@ -338,8 +339,8 @@ void ankle_2dof_fsm_2(void)
 			info[0] = PORT_RS485_2;
 			tx_cmd_ankle2dof_r(TX_N_DEFAULT, 1, my_control, my_cur[1], my_pwm[1]);
 			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_2, info, SEND_TO_SLAVE);
-
-			ex_refresh_fsm_state++;
+			ex_refresh_fsm_state=1;
+			// ex_refresh_fsm_state++;
 
 			break;
 
