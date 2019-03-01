@@ -26,11 +26,11 @@ GainParams ankleGainsEsw = {1.5, 0.0, 0.2, -8.0};
 GainParams ankleGainsLsw = {1.5, 0.0,  0.2, -5.0};
 
 //Knee, Positive Knee Flexion
-GainParams kneeGainsEst = {2.5, 0.0, 0.2, 10.0};
-GainParams kneeGainsMst = {2.5, 0.0, 0.2, 10.0};
-GainParams kneeGainsLst = {2.5, 0.0, 0.2, 15.0};
-GainParams kneeGainsEsw = {1.5, 0.0, 0.5, 50.0};
-GainParams kneeGainsLsw = {1.5, 0.0, 0.5, 50.0};
+GainParams kneeGainsEst = {1.5, 0.0, 0.2, 10.0};
+GainParams kneeGainsMst = {1.5, 0.0, 0.2, 10.0};
+GainParams kneeGainsLst = {1.5, 0.0, 0.2, 15.0};
+GainParams kneeGainsEsw = {1.5, 0.0, 0.2, 50.0};
+GainParams kneeGainsLsw = {1.5, 0.0, 0.2, 50.0};
 
 
 
