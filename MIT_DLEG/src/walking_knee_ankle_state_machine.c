@@ -51,10 +51,21 @@ GainParams kneeGainsLsw = {1.5, 0.0, 0.5, 50.0};
 	ptorqueDes pointer to float meant to be updated with desired torque TODO:find out what this is
 */ //void setKneeAnkleFlatGroundFSM(Act_s *actx);
 void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
+	// knee references to ankleAct, only controlling one actuator,
+	// but keeping this in case I want to control separate actuators later?
+	kneeAct = &ankleAct;
 
     static int8_t isTransitioning = 0;
     static uint32_t timeInState = 0;
     static int8_t passedStanceThresh = 0;
+
+    kneeAnkleStateMachine.onEntrySlaveSmState = kneeAnkleStateMachine.slaveCurrentState; // save the state on entry, assigned to last_currentState on exit
+
+    //TODO: See if this is reasonable, change state to slave state, unless in early swing. In that case only switch when local state decides to change
+//    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING)
+//    {
+//    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
+//    }
 
     kneeAnkleStateMachine.onEntrySmState = kneeAnkleStateMachine.currentState; // save the state on entry, assigned to last_currentState on exit
 

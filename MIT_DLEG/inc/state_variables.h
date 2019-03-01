@@ -10,10 +10,12 @@ extern "C" {
 
 //Joint Type: activate one of these for joint limit angles.
 //measured from nominal joint configuration, in degrees
+//0. Update ./flexsea-projects/inc/User-mn.h to specify ACTIVE_SUBPROJECT
 
 //1. Select joint type
-#define IS_ANKLE
-//#define IS_KNEE
+//#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this
+#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this
+
 
 //2. Select device
 #define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
@@ -50,9 +52,12 @@ enum {
 };
 
 typedef struct{
-    int8_t currentState;
+    int8_t 	 currentState;
+    int8_t 	 slaveCurrentState;
     uint16_t onEntrySmState;
+    int8_t 	 onEntrySlaveSmState;
     uint16_t lastSmState;
+    uint32_t timeStampFromSlave;
 
 } WalkingStateMachine;
 

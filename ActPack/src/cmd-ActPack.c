@@ -51,6 +51,8 @@ extern "C" {
 
 #ifdef INCLUDE_UPROJ_MIT_DLEG
 #include "state_variables.h"
+#include "walking_knee_ankle_state_machine.h"
+extern WalkingStateMachine kneeAnkleStateMachine;
 extern Act_s act1, act2;
 #endif
 
@@ -196,6 +198,8 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 		//Biomech:
 		#ifdef INCLUDE_UPROJ_MIT_DLEG
 			Act_s *act = &act1;
+			WalkingStateMachine *kneeAnkleSM = &kneeAnkleStateMachine;
+
 		#endif
 
 		//Arguments:
@@ -293,6 +297,12 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 			SPLIT_32((uint32_t)(act->jointAngleDegrees*1000.0), shBuf, &index);		// deg *1000
 			SPLIT_32((uint32_t)(act->jointVel*1000.0), shBuf, &index);		// rad/s *1000
 			//(22 bytes)
+		}
+		else if(offset == 7)
+		{
+			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
+			shBuf[index++] = (int8_t) (kneeAnkleSM->currentState);	// send current state
+			//(5 bytes)
 		}
 
 	#endif	//BOARD_TYPE_FLEXSEA_MANAGE
@@ -392,6 +402,7 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 		struct rigid_s *ri = &rigid1;
 		#ifdef INCLUDE_UPROJ_MIT_DLEG
 				struct act_s *act = &act1;
+				WalkingStateMachine *kneeAnkleSM = &kneeAnkleStateMachine;
 		#endif
 	#endif
 
@@ -546,6 +557,12 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 				act->jointVel			= ( (float) REBUILD_UINT32(msgBuf, &index) ) /1000.0;	//todo: This works, but issue with signed vs unsigned values.
 
 				//(22 bytes)
+			}
+			else if(offset == 7)
+			{
+				kneeAnkleSM->timeStampFromSlave = REBUILD_UINT32(msgBuf, &index);
+				kneeAnkleSM->slaveCurrentState = msgBuf[index++];	// receive state of slave device
+				//(5 bytes)
 			}
 			else
 			{

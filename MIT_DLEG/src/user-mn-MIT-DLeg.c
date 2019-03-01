@@ -136,9 +136,10 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
 	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_volt);	// mA
 	  rigid1.mn.genVar[7] = (int16_t) (*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-	  rigid1.mn.genVar[8] = (int16_t) (*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
-	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
-
+	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); (*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+#ifdef IS_KNEE
+	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
+#endif
     //begin main FSM
 	switch(fsm1State)
 	{
@@ -302,7 +303,7 @@ void MITDLegFsm2(void)
 	//FSM1 can disable this one:
 	if(enableMITfsm2)
 	{
-			writeEx[1].offset = 4;
+			writeEx[1].offset = 7;	// grab only this offset.
 			tx_cmd_actpack_rw(TX_N_DEFAULT, writeEx[1].offset, writeEx[1].ctrl, writeEx[1].setpoint, \
 											writeEx[1].setGains, writeEx[1].g[0], writeEx[1].g[1], \
 											writeEx[1].g[2], writeEx[1].g[3], 0);	// todo: try this offset counter thing
