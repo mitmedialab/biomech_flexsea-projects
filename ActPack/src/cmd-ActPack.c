@@ -198,7 +198,7 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 		//Biomech:
 		#ifdef INCLUDE_UPROJ_MIT_DLEG
 			Act_s *act = &act1;
-			WalkingStateMachine *kneeAnkleSM = &kneeAnkleStateMachine;
+//			WalkingStateMachine *kneeAnkleSM = &kneeAnkleStateMachine;
 
 		#endif
 
@@ -301,7 +301,8 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 		else if(offset == 7)
 		{
 			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
-			shBuf[index++] = (int8_t) (kneeAnkleSM->currentState);	// send current state
+//			shBuf[index++] = (int8_t) (kneeAnkleSM.currentState);	// send current state
+			shBuf[index++] = (int8_t) (kneeAnkleStateMachine.currentState);	// send current state
 			//(5 bytes)
 		}
 
@@ -402,7 +403,7 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 		struct rigid_s *ri = &rigid1;
 		#ifdef INCLUDE_UPROJ_MIT_DLEG
 				struct act_s *act = &act1;
-				WalkingStateMachine *kneeAnkleSM = &kneeAnkleStateMachine;
+//				WalkingStateMachine *kneeAnkleSM = &kneeAnkleStateMachine;
 		#endif
 	#endif
 
@@ -560,8 +561,10 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 			}
 			else if(offset == 7)
 			{
-				kneeAnkleSM->timeStampFromSlave = REBUILD_UINT32(msgBuf, &index);
-				kneeAnkleSM->slaveCurrentState = msgBuf[index++];	// receive state of slave device
+//				kneeAnkleSM->timeStampFromSlave = REBUILD_UINT32(msgBuf, &index);
+//				kneeAnkleSM->slaveCurrentState = msgBuf[index++];	// receive state of slave device
+				kneeAnkleStateMachine.timeStampFromSlave = REBUILD_UINT32(msgBuf, &index);
+				kneeAnkleStateMachine.slaveCurrentState = msgBuf[index++];	// receive state of slave device
 				//(5 bytes)
 			}
 			else
