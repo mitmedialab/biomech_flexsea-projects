@@ -157,7 +157,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 
 				//Late Stance Power transition vectors
 					//todo: Should there be a way to jump back into early_stance in the event of running?
-				if (abs(ankleAct->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && timeInState > LST_TO_ESW_DELAY) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
+				if (abs(ankleAct->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && timeInState > LST_TO_ESW_DELAY && (ankleAct->jointAngleDegrees >=  ankleGainsLst.thetaDes -2.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
 					kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;
 				}
 			#elif defined(IS_KNEE)
