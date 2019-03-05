@@ -29,12 +29,71 @@
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
-#ifndef INC_ANKLE_2DOF_H
-#define INC_ANKLE_2DOF_H
+#ifndef INC_ANKLE_2DOF_STMJOINT_H
+#define INC_ANKLE_2DOF_STMJOINT_H
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
+//****************************************************************************
+// EASY ACCESS
+//****************************************************************************
+
+//Constants for tuning the controller
+#define CTRL_IMPEDANCE          0
+#define AUTOCAL					0
+#define LEFTY					1
+
+#define VIRTUALFIELD			0
+#define DFDAMPING				5 //Keep below 6
+#define IESPRING				5
+#define SAFEZONE				100
+
+#define PFTORQUEGAIN			50
+#define DFTORQUEGAIN			50
+#define PFDFSTIFFGAIN			100
+#define DPONTHRESH				0.1
+
+#define INTORQUEGAIN			40
+#define EVTORQUEGAIN			40
+#define INEVSTIFFGAIN			10
+#define IEONTHRESH				0.1
+
+#define COCONTHRESH				0.5
+
+//STIMULATION THRESHOLDS
+#define ISON_STIM				0
+#define BLANKWINDOW				0
+#define DPSTIM_ONTHRESH			1500
+#define IESTIM_ONTHRESH			500
+#define STIMSTIFFGAIN			3 //Keep at 5 or lower
+
+
+//MANUAL CALIBRATION
+#define MANMIN_LG				949
+#define MANMAX_LG 				32862
+
+#define MANMIN_TP				578
+#define MANMAX_TP			 	10135
+
+#define MANMIN_TA				1175
+#define MANMAX_TA			    101771
+
+#define MANMIN_PL				1173
+#define MANMAX_PL				63669
+
+// #define MANMIN_LG				1000
+// #define MANMAX_LG 				10000
+//
+// #define MANMIN_TP				1000
+// #define MANMAX_TP			 	10000
+//
+// #define MANMIN_TA				1000
+// #define MANMAX_TA			    10000
+//
+// #define MANMIN_PL				1000
+// #define MANMAX_PL				10000
+//
 
 //****************************************************************************
 // Include(s)
@@ -44,39 +103,31 @@
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
-extern uint8_t my_control;
-extern int16_t my_pwm[2];
-extern int16_t my_cur[2];
-extern int32_t ank_angs_1[6];
 
-extern int32_t ank_angs_2[6];
+
+
+// extern int16_t per_PFDF;
+// extern int16_t per_INEV;
+// extern uint16_t stiff_PFDF;
+// extern int16_t DP_torque_trans;
+// extern int16_t IE_torque_trans;
+// extern int32_t EMGavgs[4];
 
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
 
-void init_ankle_2dof(void);
-void ankle_2dof_fsm_1(void);
-void ankle_2dof_fsm_2(void);
+uint8_t ankle_2dof_STMjoint_EMG_fsm(void);
+uint8_t ankle_2dof_STMjoint_calibration_fsm(void);
+uint8_t ankle_2dof_STMjoint_init(void);
+void interpret_EMG (float k, float b, float J);
 
-void set_ankle_torque_1(int32_t);
-void set_ankle_torque_2(int32_t);
+float ankle_2dof_get_PFDF(void);
+float ankle_2dof_get_INEV(void);
 
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
-
-
-//Constants used by get_ankle_ang():
-#define A0 					(202.2+1140.0)
-#define A1 					1302.0
-#define A2					-39.06
-#define B1 					14.76
-#define B2 					-7.874
-#define W					0.00223
-
-// Other Constants
-#define REST_MOTOR_ANGLE 	1000
 
 //****************************************************************************
 // Structure(s)

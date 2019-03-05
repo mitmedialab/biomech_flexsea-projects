@@ -29,12 +29,16 @@
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
-#ifndef INC_ANKLE_2DOF_H
-#define INC_ANKLE_2DOF_H
+#ifndef INC_ANKLE_2DOF_CONTROL_H
+#define INC_ANKLE_2DOF_CONTROL_H
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
+//****************************************************************************
+// EASY ACCESS
+//****************************************************************************
+
 
 //****************************************************************************
 // Include(s)
@@ -44,39 +48,27 @@
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
-extern uint8_t my_control;
-extern int16_t my_pwm[2];
-extern int16_t my_cur[2];
-extern int32_t ank_angs_1[6];
-
-extern int32_t ank_angs_2[6];
 
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
 
-void init_ankle_2dof(void);
-void ankle_2dof_fsm_1(void);
-void ankle_2dof_fsm_2(void);
+uint8_t ankle_2dof_control_init_impedance(void);
+uint8_t ankle_2dof_control_init_position(void);
+void ankle_2dof_control_update(void);
+void ankle_2dof_control_update_target(float pfdf, float inev);
+void ankle_2dof_control_update_position(float pfdf, float inev, float kp, float ki, float kd);
+void ankle_2dof_control_update_impedance(float pfdf, float inev, float kp, float ki, float kd);
 
-void set_ankle_torque_1(int32_t);
-void set_ankle_torque_2(int32_t);
+uint8_t ankle_2dof_control_demo_position_fsm(void);
+uint8_t ankle_2dof_control_demo_impedance_fsm(void);
+
 
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
-
-
-//Constants used by get_ankle_ang():
-#define A0 					(202.2+1140.0)
-#define A1 					1302.0
-#define A2					-39.06
-#define B1 					14.76
-#define B2 					-7.874
-#define W					0.00223
-
-// Other Constants
-#define REST_MOTOR_ANGLE 	1000
+// #define MAX_VOLTAGE 15000
+// #define MAX_CURRENT 20000
 
 //****************************************************************************
 // Structure(s)

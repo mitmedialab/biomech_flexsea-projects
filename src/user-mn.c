@@ -62,6 +62,8 @@
 //MIT's 2-DoF Ankle:
 #if(ACTIVE_PROJECT == PROJECT_ANKLE_2DOF)
 #include "user-mn-MIT_2DoF_Ankle_v1.h"
+#include "user-mn-MIT_2DoF_control_API.h"
+#include "user-mn-MIT_2DoF_STM_vjointEMG.h"
 #endif
 
 //Dephy's Actuator Package (ActPack)
