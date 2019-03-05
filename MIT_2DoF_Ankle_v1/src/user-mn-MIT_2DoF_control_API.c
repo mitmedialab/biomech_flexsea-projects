@@ -32,7 +32,7 @@ extern int16_t my_cur[2];
 extern int32_t ank_angs_1[6];
 extern int32_t ank_angs_2[6];
 
-static float target_ankle_angle[2][5] ={0,0};
+static float target_ankle_angle[2][5] ={{0,0,0,0,0},{0,0,0,0,0}};
 
 //****************************************************************************
 // Private Function Prototype(s):

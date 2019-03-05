@@ -135,6 +135,50 @@ uint8_t ankle_2dof_STMjoint_calibration_fsm(void)
     state_t++;
     switch(cal_state)
     {
+        case -1: // Monitor the calibration value
+            pfdf_out = 0;
+            inev_out = 0;
+
+            switch(user_data_1.w[1])
+            {
+                case 0:
+                    if(state_t>10000)
+                    {
+                        ret =1;
+                        cal_state = 0;
+                        next_cal_state =1;
+                    }
+
+                    break;
+                case 1:
+                case 2:
+                    user_data_1.r[2] =cals[user_data_1.w[1]-1][0];
+                    user_data_1.r[3] =cals[user_data_1.w[1]-1][1];
+                    user_data_1.r[4] =cals[user_data_1.w[1]-1][2];
+                    user_data_1.r[5] =cals[user_data_1.w[1]-1][3];
+                    break;
+
+                default:
+                    user_data_1.r[2] =1;
+                    user_data_1.r[3] =2;
+                    user_data_1.r[4] =-1;
+                    user_data_1.r[5] =-1;
+                    break;
+            }
+
+            if(user_data_1.w[1]==-1)
+            {
+                ret =1;
+                cal_state = 0;
+                next_cal_state =1;
+                user_data_1.w[1] = 0;
+            }
+
+                // next_cal_state =1;
+                // ret = 1;
+
+            break;
+
         case 0: //REST
             pfdf_out = 0;
             inev_out = 0;
@@ -160,9 +204,8 @@ uint8_t ankle_2dof_STMjoint_calibration_fsm(void)
                 cals[0][2] = basecals_tot[2]/rest_ctr;
                 cals[0][3] = basecals_tot[3]/rest_ctr;
 
-                cal_state = 0;
-                next_cal_state =1;
-                ret = 1;
+                cal_state = -1;
+                state_t = -1;
             }
 
             break;
@@ -249,7 +292,7 @@ uint8_t ankle_2dof_STMjoint_EMG_fsm(void)
     if(user_data_1.w[9] == 1)
     {
         fsm_state =1;
-        user_data_1.w[0] = 0;
+        user_data_1.w[9] = 0;
     }
 
     get_EMG();

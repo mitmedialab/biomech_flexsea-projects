@@ -40,7 +40,7 @@
 //****************************************************************************
 
 //Constants for tuning the controller
-#define CTRL_IMPEDANCE          0
+
 #define AUTOCAL					0
 #define LEFTY					1
 
@@ -121,6 +121,7 @@ uint8_t ankle_2dof_STMjoint_EMG_fsm(void);
 uint8_t ankle_2dof_STMjoint_calibration_fsm(void);
 uint8_t ankle_2dof_STMjoint_init(void);
 void interpret_EMG (float k, float b, float J);
+void get_EMG(void);
 
 float ankle_2dof_get_PFDF(void);
 float ankle_2dof_get_INEV(void);

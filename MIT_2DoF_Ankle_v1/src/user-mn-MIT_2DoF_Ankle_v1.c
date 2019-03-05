@@ -209,11 +209,10 @@ void ankle_2dof_fsm_1(void)
 	// ankle_2dof_control_update();
 
 	user_data_1.r[0] = main_fsm_state;
-	user_data_1.r[1] = my_cur[0];
-	user_data_1.r[2] = my_cur[1];
 
 	static float pfdf_control;
 	static float inev_control;
+
 
 	switch(main_fsm_state)
 	{
@@ -232,8 +231,6 @@ void ankle_2dof_fsm_1(void)
 			break;
 
 		case 1: //STM paper EMG based actuation
-
-
 			state_transition = ankle_2dof_STMjoint_init();
 			break;
 
@@ -243,6 +240,13 @@ void ankle_2dof_fsm_1(void)
 			pfdf_control = ankle_2dof_get_PFDF();
 			inev_control = ankle_2dof_get_INEV();
 			ankle_2dof_control_update_position(pfdf_control,inev_control, 30,0,0);
+			break;
+
+		case 50:
+			pfdf_control = (float)user_data_1.w[8]*0.001;
+			inev_control = (float)user_data_1.w[9]*0.001;
+
+			ankle_2dof_control_update_position(pfdf_control, inev_control, 30,0,0);
 			break;
 
 		case 99:
