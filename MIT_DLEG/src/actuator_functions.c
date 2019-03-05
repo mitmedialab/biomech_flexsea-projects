@@ -425,6 +425,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	// Error is done at the motor. todo: could be done at the joint, messes with our gains.
 	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
+	actx->tauErr = tauErr;
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
 
 	tauErrInt = tauErrInt + tauErr;				// [Nm]

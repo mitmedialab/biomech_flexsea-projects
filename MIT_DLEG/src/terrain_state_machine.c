@@ -41,14 +41,30 @@ static void init_minimum_jerk_values_s(){
 	mj.T[5] = mj.T[4]*mj.T[1];
 	mj.update_counter = UINT_MAX;
 	mj.angle_tol_rad = DEFAULT_MINIMUM_JERK_ANGLE_TOL_RAD;
+	mj.trajectory_defined = 0;
 	mj.enabled = 1;
+
 }
 
-static float set_minimum_jerk_trajectory_params(Act_s* actx, float theta_target, float theta_dot_target, float theta_ddot_target){
+static float set_minimum_jerk_trajectory_params(Act_s* actx, float theta_target, float theta_dot_target, float theta_ddot_target, float desired_trajectory_period_s){
 
-	mj.theta_target = theta_target;
+	float distance_to_target_rads = fabs(theta_target - actx->jointAngle);
+
+	float trajectory_period_s;
+	
+	if (distance_to_target_rads > MINIMUM_JERK_MAX_MEAN_SPEED_RPS * desired_trajectory_period_s ){
+		trajectory_period_s = distance_to_target_rads / MINIMUM_JERK_MAX_MEAN_SPEED_RPS;
+	}else{
+		trajectory_period_s = desired_trajectory_period_s;
+	}
+
+	mj.theta_target  = theta_target;
 	mj.theta_dot_target = theta_dot_target;
 	mj.theta_ddot_target = theta_ddot_target;
+	
+	set_minimum_jerk_trajectory_period(trajectory_period_s);
+
+	
 
 	mj.params[0] = actx->jointAngle;
 	mj.params[1] = 0.0;
@@ -273,7 +289,7 @@ if (terrain_mode == MODE_NOMINAL){
 				set_next_theta_for_minimum_jerk(actx);
 				set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
 		}else{
-				set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0);
+				set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.0);
 		}
 	}else{
 		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
@@ -291,8 +307,9 @@ switch (state_machine_demux_state){
 			if (mj.update_counter < mj.total_trajectory_updates){
 					set_next_theta_for_minimum_jerk(actx);
 					set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
-			}else{
-					set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0);
+			}else if (!mj.trajectory_defined){
+					mj.trajectory_defined = 1;
+					set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, PREDICTION_CUTOFF_SAMPLES/1000.0);
 			}
 		}else{
 			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
@@ -309,7 +326,7 @@ switch (state_machine_demux_state){
 					set_next_theta_for_minimum_jerk(actx);
 					set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
 			}else{
-					set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0);
+					set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0, 0.001);
 			}
 		}else{
 			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
@@ -318,7 +335,7 @@ switch (state_machine_demux_state){
     	//Transition condition should be, you have a certain velocity of the ankle joint opposing the direction of the torque??
     	//TODO: make terrain specific transition condition here
         if (!tm->in_swing){
-        	state_machine_demux_state = STATE_EST;
+        	//state_machine_demux_state = STATE_EST;
         	stance_entry_theta_rad = actx->jointAngle;
         }
 

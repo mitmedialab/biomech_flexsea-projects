@@ -10,10 +10,11 @@
 #include "actuator_functions.h"
 
 
+//#define DEFAULT_SW_K_NM_P_RAD 1000.0
 #define DEFAULT_SW_K_NM_P_RAD 2.5/RAD_PER_DEG
 #define DEFAULT_SW_B_NM_P_RPS 0.4/RAD_PER_DEG
 
-#define DEFAULT_NOMINAL_K_NM_P_RAD 160.0
+#define DEFAULT_NOMINAL_K_NM_P_RAD 100.0
 #define DEFAULT_NOMINAL_B_NM_P_RPS 20.0
 #define DEFAULT_NOMINAL_THETA_RAD 0.0
 
@@ -63,7 +64,7 @@
 #define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 0.0
 #define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.51
 #define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 10.0
-#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 40.0
+#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 20.0
 #define DEFAULT_DSTAIRS_LST_K_NM_P_RAD 10.0
 #define DEFAULT_DSTAIRS_LST_B_NM_P_RPS 0.0
 #define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
@@ -71,6 +72,7 @@
 
 #define DEFAULT_MINIMUM_JERK_TRAJECTORY_TIME 0.2
 #define DEFAULT_MINIMUM_JERK_ANGLE_TOL_RAD 0.05
+#define MINIMUM_JERK_MAX_MEAN_SPEED_RPS 1.5
 
 int get_walking_state();
 struct minimum_jerk_values_s* get_minimum_jerk_values();
@@ -160,6 +162,7 @@ struct minimum_jerk_values_s{
 	uint update_counter;
 	uint total_trajectory_updates;
 	float angle_tol_rad;
+	uint8_t trajectory_defined;
 	uint8_t enabled;
 };
 
