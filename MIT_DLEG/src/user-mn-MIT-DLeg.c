@@ -86,7 +86,7 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 	    	tm->control_mode = gui_mode;
 	    	user_data_1.w[1] = (int32_t)(get_control_params()->adaptive.hard_stop_theta_rad[tm->control_mode]*SCALE_FACTOR_1000);
 	    	user_data_1.w[2] = (int32_t)(get_control_params()->adaptive.hard_stop_k_Nm_p_rad[tm->control_mode]);
-	    	user_data_1.w[3] = (int32_t)(get_control_params()->adaptive.lst_theta_rad[tm->control_mode]*SCALE_FACTOR_1000);
+	    	user_data_1.w[3] = (int32_t)(get_control_params()->adaptive.lsw_theta_rad[tm->control_mode]*SCALE_FACTOR_1000);
 	    	user_data_1.w[4] = (int32_t)(get_control_params()->adaptive.est_k_Nm_p_rad[tm->control_mode]);
 	    	user_data_1.w[5] = (int32_t)(get_control_params()->adaptive.est_b_Nm_p_rps[tm->control_mode]);
 	    	user_data_1.w[6] = (int32_t)(get_control_params()->adaptive.lst_k_Nm_p_rad[tm->control_mode]);
@@ -316,7 +316,7 @@ static void updateUserWrites(struct taskmachine_s* tm){
 	    	tm->do_update_learner = 0;
 			set_hard_stop_theta_rad((float) user_data_1.w[1]/SCALE_FACTOR_1000, tm->control_mode);
 			set_hard_stop_k_Nm_p_rad((float) user_data_1.w[2], tm->control_mode);
-			set_lst_theta_rad(((float) user_data_1.w[3])/SCALE_FACTOR_1000, tm->control_mode);
+			set_lsw_theta_rad(((float) user_data_1.w[3])/SCALE_FACTOR_1000, tm->control_mode);
 			set_est_k_Nm_p_rad(((float) user_data_1.w[4]), tm->control_mode);
 			set_est_b_Nm_p_rps((float) user_data_1.w[5], tm->control_mode);
 			set_lst_k_Nm_p_rad((float) user_data_1.w[6], tm->control_mode);

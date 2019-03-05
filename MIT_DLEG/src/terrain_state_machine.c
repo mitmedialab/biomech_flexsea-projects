@@ -303,17 +303,17 @@ switch (state_machine_demux_state){
 	case STATE_ESW:
 		if (on_entry)
 			sample_counter = 0;
-		if (mj.enabled){
-			if (mj.update_counter < mj.total_trajectory_updates){
-					set_next_theta_for_minimum_jerk(actx);
-					set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
-			}else if (!mj.trajectory_defined){
-					mj.trajectory_defined = 1;
-					set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, PREDICTION_CUTOFF_SAMPLES/1000.0);
-			}
-		}else{
+		// if (mj.enabled){
+		// 	if (mj.update_counter < mj.total_trajectory_updates){
+		// 			set_next_theta_for_minimum_jerk(actx);
+		// 			set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+		// 	}else if (!mj.trajectory_defined){
+		// 			mj.trajectory_defined = 1;
+		// 			set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, PREDICTION_CUTOFF_SAMPLES/1000.0);
+		// 	}
+		// }else{
 			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
-		}
+		// }
 
         if (tm->gait_event_trigger == GAIT_EVENT_WINDOW_CLOSE){
         	state_machine_demux_state = STATE_LSW;
@@ -321,21 +321,21 @@ switch (state_machine_demux_state){
         
     break;
     case STATE_LSW:
-    	if (mj.enabled){
-			if (mj.update_counter < mj.total_trajectory_updates){
-					set_next_theta_for_minimum_jerk(actx);
-					set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
-			}else{
-					set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0, 0.001);
-			}
-		}else{
+  //   	if (mj.enabled){
+		// 	if (mj.update_counter < mj.total_trajectory_updates){
+		// 			set_next_theta_for_minimum_jerk(actx);
+		// 			set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+		// 	}else{
+		// 			set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0, 0.001);
+		// 	}
+		// }else{
 			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
-		}
+		// }
 
     	//Transition condition should be, you have a certain velocity of the ankle joint opposing the direction of the torque??
     	//TODO: make terrain specific transition condition here
         if (!tm->in_swing){
-        	//state_machine_demux_state = STATE_EST;
+        	state_machine_demux_state = STATE_EST;
         	stance_entry_theta_rad = actx->jointAngle;
         }
 
