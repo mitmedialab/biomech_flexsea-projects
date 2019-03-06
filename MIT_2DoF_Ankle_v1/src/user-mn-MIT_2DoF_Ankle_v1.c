@@ -226,7 +226,7 @@ void ankle_2dof_fsm_1(void)
 		 	break;
 
 		case 0:
-			main_fsm_state =1;
+			main_fsm_state =50;
 
 			break;
 

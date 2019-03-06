@@ -141,8 +141,15 @@ uint8_t ankle_2dof_STMjoint_calibration_fsm(void)
 
             switch(user_data_1.w[1])
             {
+                case -1:
+                    ret =1;
+                    cal_state = 0;
+                    next_cal_state =1;
+                    user_data_1.w[1] = 0;
+                    break;
+                /*
                 case 0:
-                    if(state_t>10000)
+                    if(state_t>15000)
                     {
                         ret =1;
                         cal_state = 0;
@@ -150,6 +157,7 @@ uint8_t ankle_2dof_STMjoint_calibration_fsm(void)
                     }
 
                     break;
+                    */
                 case 1:
                 case 2:
                     user_data_1.r[2] =cals[user_data_1.w[1]-1][0];
@@ -165,17 +173,6 @@ uint8_t ankle_2dof_STMjoint_calibration_fsm(void)
                     user_data_1.r[5] =-1;
                     break;
             }
-
-            if(user_data_1.w[1]==-1)
-            {
-                ret =1;
-                cal_state = 0;
-                next_cal_state =1;
-                user_data_1.w[1] = 0;
-            }
-
-                // next_cal_state =1;
-                // ret = 1;
 
             break;
 
@@ -324,30 +321,32 @@ uint8_t ankle_2dof_STMjoint_EMG_fsm(void)
 
 void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an integrated signal.
 {
- int16_t EMG_baseline[4] = {2027,2027,2470,2470};
- for( uint16_t musc = 0; musc < 4; musc ++)
- {
- 	uint16_t cur_ain_val = get_adc1(musc);
- 	int16_t cur_read = abs(cur_ain_val-EMG_baseline[musc]) * isnot_stim[musc] + cals[0][musc]/100 * (1 - isnot_stim[musc]);
-
- 	EMGwindow[musc][win_front] = cur_read;
-     if( win_front == 99)
+     int16_t EMG_baseline[4] = {2027,2027,2470,2470};
+     for( uint16_t musc = 0; musc < 4; musc ++)
      {
-     	EMGavgs[musc] = (EMGavgs[musc] + cur_read - EMGwindow[musc][0]);
+     	uint16_t cur_ain_val = get_adc1(musc);
+     	int16_t cur_read = abs(cur_ain_val-EMG_baseline[musc]) * isnot_stim[musc] + cals[0][musc]/100 * (1 - isnot_stim[musc]);
+
+     	EMGwindow[musc][win_front] = cur_read;
+         if( win_front == 99)
+         {
+         	EMGavgs[musc] = (EMGavgs[musc] + cur_read - EMGwindow[musc][0]);
+         }
+         else
+         {
+         	EMGavgs[musc] = (EMGavgs[musc] + cur_read - EMGwindow[musc][win_front + 1]);
+         }
+     }
+     if( win_front < 99)
+     {
+     	win_front ++;
      }
      else
      {
-     	EMGavgs[musc] = (EMGavgs[musc] + cur_read - EMGwindow[musc][win_front + 1]);
+     	win_front = 0;
      }
- }
- if( win_front < 99)
- {
- 	win_front ++;
- }
- else
- {
- 	win_front = 0;
- }
+
+     return;
 }
 
 void interpret_EMG (float k, float b, float J)

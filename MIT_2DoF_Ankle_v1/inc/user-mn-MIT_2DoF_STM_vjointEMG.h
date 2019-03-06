@@ -41,7 +41,7 @@
 
 //Constants for tuning the controller
 
-#define AUTOCAL					0
+#define AUTOCAL					1
 #define LEFTY					1
 
 #define VIRTUALFIELD			0
