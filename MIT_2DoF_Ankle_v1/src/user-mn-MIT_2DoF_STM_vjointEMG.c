@@ -98,7 +98,7 @@ uint8_t ankle_2dof_STMjoint_init(void)
 
 		if (AUTOCAL == 1)
 		{
-			for(y = 0; y < 4; y++) cals[1][y] = 7000;
+			for(y = 0; y < 4; y++) cals[1][y] = 1000;
 			for(y = 0; y < 4; y++) cals[0][y] = 0;
 
             user_data_1.w[9] = 1; //recall calibration process
@@ -317,8 +317,6 @@ uint8_t ankle_2dof_STMjoint_EMG_fsm(void)
 }
 
 
-
-
 void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an integrated signal.
 {
      int16_t EMG_baseline[4] = {2027,2027,2470,2470};
@@ -351,16 +349,50 @@ void get_EMG(void) //Read the EMG signal, rectify, and integrate. Output an inte
 
 void interpret_EMG (float k, float b, float J)
 {
-	int PF_torque_gain = PFTORQUEGAIN; //Denotes simulated torque at act = 1; Nm per act (0-1)
-	int DF_torque_gain = DFTORQUEGAIN;
-	int PFDF_stiffness_gain = PFDFSTIFFGAIN; // Denotes stiffness at mean(act1,act2) = 1;
+	static int PF_torque_gain = PFTORQUEGAIN; //Denotes simulated torque at act = 1; Nm per act (0-1)
+	static int DF_torque_gain = DFTORQUEGAIN;
+	static int PFDF_stiffness_gain = PFDFSTIFFGAIN; // Denotes stiffness at mean(act1,act2) = 1;
 
-	int IN_torque_gain = INTORQUEGAIN;
-	int EV_torque_gain = EVTORQUEGAIN;
-	int INEV_stiffness_gain = INEVSTIFFGAIN;
+	static int IN_torque_gain = INTORQUEGAIN;
+	static int EV_torque_gain = EVTORQUEGAIN;
+	static int INEV_stiffness_gain = INEVSTIFFGAIN;
 
 	float onthresh_dp = DPONTHRESH; //
 	float onthresh_ie = IEONTHRESH; //
+
+    if(user_data_1.w[5] !=0)
+    {
+        PF_torque_gain = user_data_1.w[5];
+    }
+    else
+    {
+        PF_torque_gain = PFTORQUEGAIN;
+    }
+    if(user_data_1.w[6] !=0)
+    {
+        DF_torque_gain = user_data_1.w[6];
+    }
+    else
+    {
+        DF_torque_gain = DFTORQUEGAIN;
+    }
+
+    if(user_data_1.w[7] !=0)
+    {
+        IN_torque_gain = user_data_1.w[7];
+    }
+    else
+    {
+        IN_torque_gain = INTORQUEGAIN;
+    }
+    if(user_data_1.w[8] !=0)
+    {
+        EV_torque_gain = user_data_1.w[8];
+    }
+    else
+    {
+        EV_torque_gain = EVTORQUEGAIN;
+    }
 
 	// Calculate LG activation
 	float LGact = 0;

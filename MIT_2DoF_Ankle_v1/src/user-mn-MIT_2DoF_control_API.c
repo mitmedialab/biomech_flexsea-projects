@@ -179,7 +179,7 @@ void ankle_2dof_control_update_target(float pfdf, float inev)
 	static const int16_t ANKLE_ANGLE_REST = 1000;
 	static const int16_t ANKLE_ANGLE_MAX_PF = 2400;
 
-	static const int16_t ANKLE_ANGLE_INEV_CONTRIB = 285;
+	static const int16_t ANKLE_ANGLE_INEV_CONTRIB = 290;
 
 	static float temp=0;
 

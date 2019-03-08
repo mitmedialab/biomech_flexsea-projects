@@ -54,7 +54,7 @@
 #define PFDFSTIFFGAIN			100
 #define DPONTHRESH				0.1
 
-#define INTORQUEGAIN			40
+#define INTORQUEGAIN			40//40
 #define EVTORQUEGAIN			40
 #define INEVSTIFFGAIN			10
 #define IEONTHRESH				0.1
