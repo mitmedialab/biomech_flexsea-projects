@@ -46,6 +46,11 @@ struct kinematics_s
     float pAy;
     float pAz;
 
+    float aAccXYZscaling;
+    int accelQuietSamples;
+    float meanAccelSumSqr;
+    float accelSumSqr;
+
 };
 
 
