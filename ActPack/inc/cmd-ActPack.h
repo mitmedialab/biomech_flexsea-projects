@@ -26,7 +26,10 @@ extern "C" {
 // Include(s)
 //****************************************************************************
 
-#include "flexsea_system.h"
+#include <stdint.h>
+
+struct _MultiPacketInfo_s;
+typedef struct _MultiPacketInfo_s MultiPacketInfo;
 
 //****************************************************************************
 // Prototype(s):

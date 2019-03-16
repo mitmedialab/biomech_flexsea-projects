@@ -14,10 +14,6 @@
 	* 2017-09-27 | jfduval | Initial release
 	*
 ****************************************************************************/
-
-
-
-
 #ifndef INC_ACTPACK_MN_H
 #define INC_ACTPACK_MN_H
 

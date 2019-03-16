@@ -10,38 +10,54 @@ extern "C" {
 
 //Joint Type: activate one of these for joint limit angles.
 //measured from nominal joint configuration, in degrees
+//0. Update ./flexsea-projects/inc/User-mn.h to specify ACTIVE_SUBPROJECT
 
 //1. Select joint type
-#define IS_ANKLE
-//#define IS_KNEE
+//#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this
+#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this
+
 
 //2. Select device
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
 //#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
-//#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
+#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
-#define NO_DEVICE
+//#define DEVICE_M14			// Standalone motor for testbench
+//#define DEVICE_M15			// Standalone motor for testbench
+//#define DEVICE_M16			// Standalone motor for testbench
+//#define NO_DEVICE				// use if not connected to an actuator or any hardware
+//#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
 
 //****************************************************************************
 // Structure(s):
 //****************************************************************************
 
+
 enum {
-	STATE_IDLE = 0,
-	STATE_INIT = 1,
-	STATE_EARLY_SWING = 2,
-	STATE_LATE_SWING = 3,
-	STATE_EARLY_STANCE = 4,
-    STATE_LATE_STANCE = 5,
-    STATE_LATE_STANCE_POWER = 6,
-    STATE_EMG_STAND_ON_TOE = 7,
+
+	STATE_INIT = -2,
+	STATE_IDLE = -1,
+
+	STATE_EARLY_STANCE = 0,
+    STATE_MID_STANCE = 1,
+	STATE_LATE_STANCE_POWER = 2,
+	STATE_EARLY_SWING = 3,
+	STATE_LATE_SWING = 4,
+
+	STATE_STANDING = 5,
+	STATE_STANDING_UNLOADED = 6,
+
+	STATE_EMG_STAND_ON_TOE = 7,
     STATE_LSW_EMG = 8
 };
 
 typedef struct{
-    int8_t currentState;
+    int8_t 	 currentState;
+    int8_t 	 slaveCurrentState;
     uint16_t onEntrySmState;
+    int8_t 	 onEntrySlaveSmState;
     uint16_t lastSmState;
+    uint32_t timeStampFromSlave;
 
 } WalkingStateMachine;
 
@@ -85,9 +101,10 @@ typedef struct act_s
     int16_t regTemp;		// regulate temperature [C]
     int16_t motTemp;		// motor temperature [C]
     int32_t motCurr;		// motor current [mA]
+    int32_t motCurrDt;		// di/dt change in motor current [mA]
     int32_t desiredCurrent; // desired current from getMotorCurrent() [mA]
     int32_t currentOpLimit; // current throttling limit [mA]
-    int8_t safetyFlag;		// todo: consider if necessary
+    int16_t safetyFlag;		// todo: consider if necessary
 
     //following are multipacket specific
     int8_t motorOnFlag;
@@ -118,6 +135,7 @@ typedef struct walkParams {
     float earlyStanceDecayConstant;
     float virtualHardstopK;
     float virtualHardstopEngagementAngle;
+    float neutralPosition;
 
     int8_t initializedStateMachineVariables;
 

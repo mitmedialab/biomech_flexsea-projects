@@ -308,7 +308,7 @@ void user_fsm(void);
 	#define MOTOR_ORIENTATION 	CLOCKWISE_ORIENTATION
 
 	//Runtime finite state machine (FSM):
-    #define CO_ENABLE_ACTPACK
+    //#define CO_ENABLE_ACTPACK	//Deprecated
 	//#define FINDPOLES //define if you want to find the poles
 
 	#ifdef FINDPOLES

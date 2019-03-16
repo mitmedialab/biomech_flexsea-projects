@@ -67,6 +67,7 @@
 
 #ifdef DEPHY
 #include "dephy-mn.h"
+#include "user-mn-DpEb42.h"
 #endif
 
 //****************************************************************************
@@ -233,8 +234,8 @@ void user_fsm_2(void)
 
 		//MIT D-Leg:
 		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
-//		MIT_DLeg_fsm_1();
-		ActPack_fsm_2();	// used for communication
+		MITDLegFsm2();
+//		ActPack_fsm_2();	// used for communication
 		#endif	//PROJECT_MIT_DLEG
 
 		//MIT Pocket 2xDC / PocketClimb:
@@ -243,7 +244,7 @@ void user_fsm_2(void)
 		#endif	//PROJECT_POCKET_2XDC
 
 		//Dephy's Actuator Package (ActPack)
-		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK && (ACTIVE_PROJECT != PROJECT_MIT_DLEG) )
+		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK  ) //&& (ACTIVE_PROJECT != PROJECT_MIT_DLEG)
 		ActPack_fsm_2();
 		#endif	//PROJECT_ACTPACK
 

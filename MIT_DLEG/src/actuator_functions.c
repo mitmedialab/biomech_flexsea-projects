@@ -21,7 +21,7 @@
 
 //Variables which aren't static may be updated by Plan in the future
 
-uint8_t mitDlegInfo[2] = {PORT_RS485_2, PORT_RS485_2};
+//extern uint8_t mitDlegInfo[2];// = {PORT_RS485_2, PORT_RS485_2};
 
 //SAFETY FLAGS - in addition to enum, so can be cleared but don't lose other flags that may exist.
 static int8_t isSafetyFlag = 0;
@@ -34,16 +34,18 @@ int8_t isEnabledUpdateSensors = 0;
 int8_t fsm1State = STATE_POWER_ON;
 float currentScalar = CURRENT_SCALAR_INIT;
 
+int8_t zeroIt = 0;	//Used to allow re-zeroing of the load cell, ie for testing purposes
+float voltageGain = 1.0;	//tested
+float velGain = 1.1;	// tested
+float indGain = 1.73;	// tested
+
 
 //torque gain values
+// ARE THESE WORKING? CHECK THAT THEY'RE NOT BEING OVERWRITTEN BY USERWRITES!!!
 float torqueKp = TORQ_KP_INIT;
 float torqueKi = TORQ_KI_INIT;
 float torqueKd = TORQ_KD_INIT;
 
-//current gain values
-int16_t currentKp = ACTRL_I_KP_INIT;
-int16_t currentKi = ACTRL_I_KI_INIT;
-int16_t currentKd = ACTRL_I_KD_INIT;
 
 //motor param terms
 float motJ = MOT_J;
@@ -124,12 +126,33 @@ static void getJointAngleKinematic(struct act_s *actx)
 
 }
 
+/*
+ *  Filter using moving average.  This one works well for small window sizes
+ *  larger windowsizes gets better accuracy with windowAverageingLarge
+ *  uses WINDOW_SIZE
+ *  Param: currentVal(float) - current value given
+ *  Return: average(float) - e rolling average of all previous and current values
+ */
+//UNDERGRAD TODO: figure out whythis isn't working
+static float windowAveraging(float currentVal) {
+
+	static int16_t index = -1;
+	static float window[WINDOW_SIZE];
+	static float average = 0;
+
+	index = (index + 1) % WINDOW_SIZE;
+	average = average - window[index]/WINDOW_SIZE;
+	window[index] = currentVal;
+	average = average + window[index]/WINDOW_SIZE;
+
+	return average;
+}
 
 /**
  * Output axial force on screw
  * Return: axialForce(float) -  Force on the screw in NEWTONS
  */
-static float getAxialForce(void)
+static float getAxialForce(struct act_s *actx, int8_t tare)
 {
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
@@ -141,13 +164,21 @@ static float getAxialForce(void)
 
 	strainReading = (float) rigid1.ex.strain;
 
+	if (tare)
+	{	// User input has requested re-zeroing the load cell, ie locked output testing.
+		tareState = -1;
+		timer = 0;
+		tareOffset = 0;
+		tare=0;
+
+	}
+
 	switch(tareState)
 	{
 		case -1:
 			//Tare the balance using average of numSamples readings
 			timer++;
 
-			//DEBUG
 			if(timer >= timerDelay && timer < numSamples + timerDelay) {
 				tareOffset += (strainReading)/numSamples;
 			} else if (timer >= numSamples + timerDelay) {
@@ -159,12 +190,15 @@ static float getAxialForce(void)
 		case 0:
 
 			axialForce =  FORCE_DIR * (strainReading - tareOffset) * forcePerTick;
-			//DEBUG
-//			axialForce =  FORCE_DIR * (strainReading) * forcePerTick;
+
 			// Filter the signal
-//			axialForce = windowAveraging(axialForce, 5);
+//			axialForce = 0.8*actx->axialForce + 0.2*axialForce;
+//			axialForce = windowAveraging(axialForce);
+			axialForce = runSoftFirFilt(axialForce);
+//			axialForce = mitFirFilter1kHz(axialForce);
 
 			break;
+
 
 		default:
 			//problem occurred
@@ -223,6 +257,22 @@ static float getJointTorque(struct act_s *actx)
 }
 
 /*
+ * 	Determine rate of change of motor current
+ * 	Param: Act_s
+ * 	return: di/dt
+ */
+static float getMotorCurrentDt(struct act_s *actx)
+{
+	static float lastCurrent = 0.0;
+
+	float currentDt = (actx->motCurr - lastCurrent);	// units [A/sec]
+
+	currentDt = 0.8*lastCurrent + 0.2 * currentDt;
+
+	return currentDt;
+}
+
+/*
  *  Determine torque rate at joint using window averaging
  *  Param:	actx(struct act_s) - Actuator structure to track sensor values
  *  Return: average(float) - joint torque rate in NEWTON-METERS PER SECOND
@@ -249,60 +299,7 @@ static float windowJointTorqueRate(struct act_s *actx) {
 }
 
 
-/*
- *  Filter using moving average.  This one works well for small window sizes
- *  larger windowsizes gets better accuracy with windowAverageingLarge
- *  uses WINDOW_SIZE
- *  Param: currentVal(float) - current value given
- *  Return: average(float) - e rolling average of all previous and current values
- */
-//UNDERGRAD TODO: figure out whythis isn't working
-static float windowAveraging(float currentVal) {
 
-	static int16_t index = -1;
-	static float window[WINDOW_SIZE];
-	static float average = 0;
-
-	index = (index + 1) % WINDOW_SIZE;
-	average = average - window[index]/WINDOW_SIZE;
-	window[index] = currentVal;
-	average = average + window[index]/WINDOW_SIZE;
-
-	return average;
-}
-
-/*
- *  Description
- *  Param:	actx(struct act_s) - Actuator structure to track sensor values
- *  Param: N(float) -
- *  Return: tauRestoring(float) -
- */
-static float calcRestoringCurrent(struct act_s *actx, float N) {
-	//Soft angle limits with virtual spring. Raise flag for safety check.
-
-	float angleDiff = 0;
-	float tauRestoring = 0;
-	float k = 0.2; // N/m
-	float b = 0; // Ns/m
-
-	//Oppose motion using linear spring with damping
-	if (actx->jointAngleDegrees - jointMinSoftDeg < 0) {
-
-		angleDiff = actx->jointAngleDegrees - jointMinSoftDeg;
-		angleDiff = pow(angleDiff,4);
-		tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
-
-	} else if (actx->jointAngleDegrees - jointMaxSoftDeg > 0) {
-
-		angleDiff = actx->jointAngleDegrees - jointMaxSoftDeg;
-		angleDiff = pow(angleDiff,4);
-		tauRestoring = -k*angleDiff - b*actx->jointVelDegrees;
-
-	}
-
-	return tauRestoring;
-
-}
 
 /*
  * Update the joint torque rate in the Actuator structure
@@ -392,13 +389,13 @@ float actuateAngleLimits(Act_s *actx){
  * the No load current requirement to get motor moving.
  * Param: desCurr(float) - 
  */
-float noLoadCurrent(float desCurr) {
+int32_t noLoadCurrent(float desCurr) {
 	if (desCurr > 0) {
-		return MOT_NOLOAD_CURRENT_POS;
+		return (int32_t) MOT_NOLOAD_CURRENT_POS;
 	} else if (desCurr < 0) {
-		return MOT_NOLOAD_CURRENT_NEG;
+		return (int32_t) MOT_NOLOAD_CURRENT_NEG;
 	} else {
-		return 0;
+		return (int32_t) 0;
 	}
 }
 
@@ -416,30 +413,116 @@ float noLoadCurrent(float desCurr) {
  */
 void setMotorTorque(struct act_s *actx, float tauDes)
 {
+	//Saturation limit on Torque
+	if (tauDes > ABS_TORQUE_LIMIT_INIT) {
+		tauDes = ABS_TORQUE_LIMIT_INIT;
+	} else if (tauDes < -ABS_TORQUE_LIMIT_INIT) {
+		tauDes = -ABS_TORQUE_LIMIT_INIT;
+	}
+
 	//Angle Limit bumpers
 	actx->tauDes = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
-	static float tauErrLast = 0, tauErrInt = 0;
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
-	// Error is done at the motor. todo: could be done at the joint, messes with our gains.
+	//PID around motor torque
+	float tauC = getCompensatorPIDOutput(actx) * voltageGain;
+	//DEBUG
+//	rigid1.mn.genVar[7] = (int16_t) (getCompensatorPIDOutput(actx) * voltageGain*1000.0);
+
+	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
+//	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes) * voltageGain;
+
+	// Feedforward term
+	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
+
+	float tauCCombined = tauC + tauFF;
+
+	// motor current signal
+	float Icalc = ( 1.0/(MOT_KT * N ) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
+
+	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
+
+	//DEBUG todo: check if you want to use this, or some other friction compensation methods
+//	I = I + noLoadCurrent(I);	// Include current required to get moving
+
+	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+	if (I > actx->currentOpLimit)
+	{
+		I = actx->currentOpLimit;
+	} else if (I < -actx->currentOpLimit)
+	{
+		I = -actx->currentOpLimit;
+	}
+
+	actx->desiredCurrent = I; 	// demanded mA
+
+	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+
+	//variables used in cmd-rigid offset 5, for multipacket
+	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
+	rigid1.mn.userVar[6] = actx->tauDes*1000;
+}
+
+/*
+ * Control compensator based on system Identification and simulation
+ * Input is system state
+ * return:	torque command value to the motor driver
+ */
+float getCompensatorCustomOutput(float tauMeas, float tauRef)
+{
+	static float y[3] = {0, 0, 0};
+	static float e[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	// shift previous values into new locations
+	e[k-2] = e[k-1];
+	e[k-1] = e[k];
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+	// update current state to new values
+	e[k] = tauRef - tauMeas;
+//	rigid1.mn.genVar[4] = (int16_t) ( e[k] * 1000);
+
+	y[k] = 1.948*y[k-1] - 0.9483*y[k-2] + 1380.4*( e[k-1] - 0.9811*e[k-2] ) * ( e[k] - 1.982*e[k-1] + 0.9825*e[k-2] );	// Notch Filter, does not go below zero, but otherwise stable.
+//	y[k] = 1.01831*y[k-1] - 0.01831*y[k-2] + 4006.6/1000.0*(e[k] - 1.995*e[k-1] + 0.9957*e[k-2]);		// This one drives downwards (negative), but does have positive and negative directionality
+
+	rigid1.mn.genVar[5] = (int16_t) ( y[k]/31.0 *1000);
+	// todo: consider saturating and tracking the saturated torque value inside of here?
+
+	return ( y[k]/31.0) ;
+
+}
+
+/*
+ * Control PID Controller
+ * input:	Act_s structure
+ * return:	desired torque signal to motor
+ */
+float getCompensatorPIDOutput(Act_s *actx)
+{
+
+	static float tauErrLast = 0, tauErrInt = 0;
+
+	// Error is torque at the joint
 	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
 	tauErrInt = tauErrInt + tauErr;				// [Nm]
 	tauErrLast = tauErr;
 
-	//PID around motor torque
 	float tauC = tauErr*torqueKp + tauErrDot*torqueKd + tauErrInt*torqueKi;	// torq Compensator
 
 	// Feedforward term
 	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
 
-
 	float tauCCombined = tauC + tauFF;
 
 	//Saturation limit on Torque
 	float tauCOutput = tauCCombined;
+
 	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
 		tauCOutput = ABS_TORQUE_LIMIT_INIT;
 	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
@@ -451,27 +534,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 		tauErrInt = 0;
 	}
 
-	// motor current signal
-	int32_t I = (int32_t) ( 1.0/(MOT_KT * N * N_ETA) * tauCOutput * CURRENT_SCALAR_INIT);
-
-	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
-	if (I > actx->currentOpLimit)
-	{
-		I = actx->currentOpLimit;
-	} else if (I < -actx->currentOpLimit)
-	{
-		I = -actx->currentOpLimit;
-	}
-
-	actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
-
-	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-
-	//variables used in cmd-rigid offset 5, for multipacket
-	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
-	rigid1.mn.userVar[6] = actx->tauDes*1000;
+	return tauCOutput;
 }
-
 
 
 //Used for testing purposes. See state_machine
@@ -489,17 +553,57 @@ float biomCalcImpedance(Act_s *actx,float k1, float b, float thetaSet)
 
 }
 
+// Preferred Nomenclature Impedance Command
 /*
- *  TODO: find out what this function does and how it is used
+ * Simple Impedance Controller
+ * Param:	actx(struct act_s) - Actuator structure to track sensor values
+ * Param:	thetaSet(float) - desired theta in DEGREES
+ * Param:	k1(float) - impedance parameter
+ * Param:	b(float) - impedance parameter
+ * return: 	torD(float) -  desired torque
+ */
+float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet)
+{
+	return k1 * (thetaSet - actx->jointAngleDegrees ) - b*actx->jointVelDegrees;
+}
+
+//Used for testing purposes. See state_machine
+/*
+ * Quadratic Impedance Controller
+ * Param:	actx(struct act_s) - Actuator structure to track sensor values
+ * Param:	thetaSet(float) - desired theta in DEGREES
+ * Param:	k1(float) - impedance parameter
+ * Param:	b(float) - impedance parameter
+ * Param:	k2(float) - quadratic impedance parameter
+ * return: 	torD(float) -  desired torque
+ */
+float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet, float k2)
+{
+	float thetaDelta = thetaSet - actx->jointAngleDegrees;
+	return k1 * ( thetaDelta ) + k2 * powf( thetaDelta, 2) - b*actx->jointVelDegrees;
+}
+
+/*
+ *  Initialize Current controller on Execute, Set initial gains.
  */
 void mitInitCurrentController(void) {
 
 	act1.currentOpLimit = CURRENT_ENTRY_INIT;
 	setControlMode(CTRL_CURRENT, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
-	setControlGains(currentKp, currentKi, currentKd, 0, DEVICE_CHANNEL);
+	setControlGains(ACTRL_I_KP_INIT, ACTRL_I_KI_INIT, ACTRL_I_KD_INIT, 0, DEVICE_CHANNEL);
 }
 
+void mitInitOpenController(void) {
+
+	act1.currentOpLimit = CURRENT_ENTRY_INIT;
+
+	setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
+	writeEx[DEVICE_CHANNEL].setpoint = 0;
+	setControlGains(0, 0, 0, 0, DEVICE_CHANNEL);
+
+
+}
 
 /*
  *  Updates the static variables tim
@@ -507,52 +611,52 @@ void mitInitCurrentController(void) {
  *
  *  Return: 0(int8_t)
  */
-int8_t findPoles(void) {
-	static uint32_t timer = 0;
-	static int8_t polesState = 0;
-
-	timer++;
-
-	switch(polesState) {
-		case 0:
-			//Disable FSM2:
-			disableActPackFSM2();
-			if(timer > 100)
-			{
-				polesState = 1;
-			}
-
-			return 0;
-
-		case 1:
-			//Send Find Poles command:
-
-			tx_cmd_calibration_mode_rw(TX_N_DEFAULT, CALIBRATION_FIND_POLES);
-			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitDlegInfo, SEND_TO_SLAVE);
-			polesState = 2;
-			timer = 0;
-
-			return 0;
-
-		case 2:
-
-			if(timer >= 44*SECONDS)
-			{
-				//Enable FSM2, position controller
-				enableActPackFSM2();
-				return 1;
-			}
-			return 0;
-
-
-		default:
-
-			return 0;
-
-	}
-
-	return 0;
-}
+//int8_t findPoles(void) {
+//	static uint32_t timer = 0;
+//	static int8_t polesState = 0;
+//
+//	timer++;
+//
+//	switch(polesState) {
+//		case 0:
+//			//Disable FSM2:
+//			disableActPackFSM2();
+//			if(timer > 100)
+//			{
+//				polesState = 1;
+//			}
+//
+//			return 0;
+//
+//		case 1:
+//			//Send Find Poles command:
+//
+//			tx_cmd_calibration_mode_rw(TX_N_DEFAULT, CALIBRATION_FIND_POLES);
+//			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitDlegInfo, SEND_TO_SLAVE);
+//			polesState = 2;
+//			timer = 0;
+//
+//			return 0;
+//
+//		case 2:
+//
+//			if(timer >= 44*SECONDS)
+//			{
+//				//Enable FSM2, position controller
+//				enableActPackFSM2();
+//				return 1;
+//			}
+//			return 0;
+//
+//
+//		default:
+//
+//			return 0;
+//
+//	}
+//
+//	return 0;
+//}
 
 /*
  *  TODO:find out what this function does and how its used
@@ -606,45 +710,98 @@ static float windowSmoothAxial(float val) {
  * 			actx->desiredCurrent = new desired current
  *
  */
-void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes)
+void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorControl)
 {
-	// Saturate desired torque
-		if (tauDes > ABS_TORQUE_LIMIT_INIT) {
-				tauDes = ABS_TORQUE_LIMIT_INIT;
-		} else if (tauDes < -ABS_TORQUE_LIMIT_INIT) {
-			tauDes = -ABS_TORQUE_LIMIT_INIT;
-		}
-		actx->tauDes = tauDes;
+	static int8_t isTransition = 0;
+	static int8_t lastMotorControl = 0;
 
-		float N = actx->linkageMomentArm * N_SCREW;	// Drivetrain Reduction Ratio
+	if(lastMotorControl != motorControl)
+	{
+		isTransition = 1;
+	}
 
-		//Angle Limit bumpers
-		float tauCOutput = actx->tauDes + actuateAngleLimits(actx);
+//Angle Limit bumpers
+	actx->tauDes = tauDes;// + actuateAngleLimits(actx);
+	actx->tauMeas = actx->jointTorque;
 
-		// motor current signal
-		int32_t I = (int32_t) ( 1/(MOT_KT * N * N_ETA) * tauCOutput * CURRENT_SCALAR_INIT);
+	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
-		//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
-		if (I > actx->currentOpLimit)
-		{
-			I = actx->currentOpLimit;
-		} else if (I < -actx->currentOpLimit)
-		{
-			I = -actx->currentOpLimit;
-		}
+	// motor current signal
+	float I = ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes );		// [A]
+	float V = (I * MOT_R) * voltageGain + ( MOT_KT_TOT * actx->motorVel * velGain) + (actx->motCurrDt * MOT_L * indGain ); // [V] this caused major problems? ==> ;
 
-		actx->desiredCurrent = I; 	// demanded mA
-		setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+//	rigid1.mn.genVar[5] = (int16_t) ( (I * MOT_R)* voltageGain * CURRENT_SCALAR_INIT );
+//	rigid1.mn.genVar[6] = (int16_t) ( ( MOT_KT_TOT * actx->motorVel ) * velGain * CURRENT_SCALAR_INIT );
+//	rigid1.mn.genVar[7] = (int16_t) ( actx->motCurrDt * MOT_L * indGain * CURRENT_SCALAR_INIT );
+
+
+	int32_t ImA = (int32_t) ( I * CURRENT_SCALAR_INIT );
+	int32_t VmV = (int32_t) ( V * CURRENT_SCALAR_INIT );
+//	I = I + noLoadCurrent(I);	// Include current required to get moving
+
+	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+//	if (I > actx->currentOpLimit)
+//	{
+//		I = actx->currentOpLimit;
+//	} else if (I < -actx->currentOpLimit)
+//	{
+//		I = -actx->currentOpLimit;
+//	}
+
+	switch(motorControl)
+	{
+		case 0: // current control
+			if(isTransition)
+			{
+				mitInitCurrentController();
+				isTransition = 0;
+			}
+			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
+			lastMotorControl = motorControl;
+//			rigid1.mn.genVar[8] = (int16_t) ( ImA );
+//			rigid1.mn.genVar[9] = (int16_t) ( VmV );
+			actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
+
+			break;
+		case 1:	// voltage control
+			if(isTransition)
+			{
+				mitInitOpenController();
+				isTransition = 0;
+			}
+			setMotorVoltage( VmV, DEVICE_CHANNEL); // consider open volt control
+			lastMotorControl = motorControl;
+//			rigid1.mn.genVar[8] = (int16_t) ( ImA );
+//			rigid1.mn.genVar[9] = (int16_t) ( VmV );
+			break;
+		default:
+			break;
+	}
+
 }
 
 /*
  * Compute where we are in frequency sweep
  * Param: omega(float) - ____ in RADIANS PER SECOND
  * Param: t(float) - time in SECONDS
- * Return: frequecy(float) - where in frequecy sweep the system currently is
+ * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
  */
-float frequencySweep(float omega, float t){
-	return sinf(omega * ( t  ) );
+float torqueSystemIDFrequencySweep(float omega, float t, float amplitude){
+	static float lastOmega = 0;
+
+	// todo want this to transition only as sign is increasing, no quick transitions
+//	// only make a transition at a zero crossing and if the input has changed
+//	if (lastOmega != omega)
+//	{
+//		float testCase = fmodf(lastOmega*t, (float)M_PI*2);
+//		//todo: wait to transition to new signal
+//		if ( testCase <= 0.01 )
+//			lastOmega = omega;
+//		else
+//			omega = lastOmega;
+//	}
+
+	return ( amplitude * sinf(omega * ( t  ) ) );
 }
 
 /*
@@ -653,7 +810,7 @@ float frequencySweep(float omega, float t){
  * Start when received signal
  * Return: torqueSetPoint(float) - TODO:find out what this value represents
  */
-float torqueSystemID(void)
+float torqueSystemIDPRBS(void)
 {
 	// Pseudo Random Binary for systemID
 	static const int16_t inputDataSet[2047] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1,1,1,1,1,1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,1,1,1,1};
@@ -718,27 +875,23 @@ void updateSensorValues(struct act_s *actx)
 	actx->linkageMomentArm = getLinkageMomentArm(actx->jointAngle);
 	actx->motorPosNeutral = 0;		// TODO: set this on startup, include in the motor/joint angle transformations
 
-
-//	actx->axialForce = 0.8*actx->axialForce + 0.2*getAxialForce();	// Filter signal
-	actx->axialForce = getAxialForce();
-	actx->axialForce = windowAveraging(actx->axialForce);	// Filter signal
-
+	actx->axialForce = getAxialForce(actx, zeroIt); //filtering happening inside function
 	actx->jointTorque = getJointTorque(actx);
 
 	updateJointTorqueRate(actx);
 
 	actx->motorPosRaw = *rigid1.ex.enc_ang;
 
-	actx->motorPos =  *rigid1.ex.enc_ang * RAD_PER_MOTOR_CNT; //counts
-	actx->motorVel =  *rigid1.ex.enc_ang_vel * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
+	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; //counts
+	actx->motorVel =  ( (float) *rigid1.ex.enc_ang_vel ) * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
 
 	actx->regTemp = rigid1.re.temp;
 	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
 	actx->motCurr = rigid1.ex.mot_current;
+	actx->motCurrDt = getMotorCurrentDt(actx);
 
-
-	actx->safetyFlag = isSafetyFlag;
+	actx->safetyFlag = getSafetyFlags(); //todo: I don't think this is in use anymore MC
 
 	if(actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT)
 	{
