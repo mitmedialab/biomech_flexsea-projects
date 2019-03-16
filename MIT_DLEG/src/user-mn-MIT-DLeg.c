@@ -244,7 +244,8 @@ void MITDLegFsm1(void)
 //					float tor = getImpedanceTorque(&act1, torqInput, freqInput, 0);
 //					float tor = getImpedanceTorque(&act1, 1.0, .1, 0);
 				//					act1.tauDes = tor;
-					setKneeAnkleFlatGroundFSM(&act1, &act2);
+//					setKneeAnkleFlatGroundFSM(&act1, &act2);
+					setKneeAnkleFlatGroundFSM(&act1);
 					setMotorTorque( &act1, act1.tauDes);
 
 //					runMainUserApplication(&act1);

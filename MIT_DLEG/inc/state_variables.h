@@ -13,14 +13,14 @@ extern "C" {
 //0. Update ./flexsea-projects/inc/User-mn.h to specify ACTIVE_SUBPROJECT
 
 //1. Select joint type
-#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this
-//#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this
+//#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this
+#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this
 
 
 //2. Select device
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
-//#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
+//#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
+#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
 //#define DEVICE_M14			// Standalone motor for testbench
 //#define DEVICE_M15			// Standalone motor for testbench

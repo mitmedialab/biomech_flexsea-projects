@@ -60,8 +60,8 @@ extern Act_s act1, act2;
 // Prototype(s):
 //****************************************************************************
 
-//void setKneeAnkleFlatGroundFSM(Act_s *actx);
-void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct);
+void setKneeAnkleFlatGroundFSM(Act_s *actx);
+//void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct);
 
 //****************************************************************************
 // Static Functions:

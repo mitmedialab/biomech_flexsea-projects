@@ -45,15 +45,16 @@ GainParams kneeGainsLsw = {1.5, 0.0, 0.2, 50.0};
 	Ankle is SLAVE:	determines walking state. Sends out the state to the Knee
 	Knee is MASTER: receives kneeAnkleStateMachine.currentState updates from
 					the Ankle actuator, and changes impedance settings accordingly
-	Param: ankleAct(Act_s) - Actuator structure to track sensor values
-	Param: kneeAct(Act_s)
+	Param: actx(Act_s) - Actuator structure to track sensor values
+	Param: actx(Act_s)
 
 	ptorqueDes pointer to float meant to be updated with desired torque TODO:find out what this is
 */ //void setKneeAnkleFlatGroundFSM(Act_s *actx);
-void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
-	// knee references to ankleAct, only controlling one actuator,
+//void setKneeAnkleFlatGroundFSM(Act_s *actx, Act_s *actx) {
+void setKneeAnkleFlatGroundFSM(Act_s *actx) {
+	// knee references to actx, only controlling one actuator,
 	// but keeping this in case I want to control separate actuators later?
-	kneeAct = &ankleAct;
+//	actx = &actx;
 
     static int8_t isTransitioning = 0;
     static uint32_t timeInState = 0;
@@ -87,9 +88,9 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 
         case STATE_INIT:
 			#ifdef IS_ANKLE
-        		ankleAct->tauDes = 0.0;	// Initialize to no commanded torque
+        		actx->tauDes = 0.0;	// Initialize to no commanded torque
 			#elif defined(IS_KNEE)
-        		kneeAct->tauDes = 0.0;
+        		actx->tauDes = 0.0;
 			#endif
 
         	kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;	// enter into early stance, this has stability.
@@ -101,20 +102,20 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 			if (isTransitioning && !passedStanceThresh) {
 				ankleWalkParams.scaleFactor = 1.0;
 //					ankleGainsEst.k1 = ankleWalkParams.earlyStanceK0;
-//				ankleGainsEst.thetaDes = ankleAct->jointAngleDegrees;	// used by updateImpedanceParams, if in use, could be turned off.
-	//			updateImpedanceParams(ankleAct, &ankleWalkParams);	//Todo: Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
+//				ankleGainsEst.thetaDes = actx->jointAngleDegrees;	// used by updateImpedanceParams, if in use, could be turned off.
+	//			updateImpedanceParams(actx, &ankleWalkParams);	//Todo: Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
 				passedStanceThresh = 0;
 			}
 
 			#ifdef IS_ANKLE
-				updateAnkleVirtualHardstopTorque(ankleAct, &ankleWalkParams);
-				ankleAct->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(ankleAct, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes);
-				if (JNT_ORIENT*ankleAct->jointAngleDegrees > ankleWalkParams.virtualHardstopEngagementAngle) {
+				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
+				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes);
+				if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParams.virtualHardstopEngagementAngle) {
 					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
 					passedStanceThresh = 1;
 				}
 			#elif defined(IS_KNEE)
-				kneeAct->tauDes = getImpedanceTorque(kneeAct, kneeGainsEst.k1, kneeGainsEst.b, kneeGainsEst.thetaDes);
+				actx->tauDes = getImpedanceTorque(actx, kneeGainsEst.k1, kneeGainsEst.b, kneeGainsEst.thetaDes);
 			#endif
 
 			break;
@@ -125,16 +126,16 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 
 			}
 			#ifdef IS_ANKLE
-        		updateAnkleVirtualHardstopTorque(ankleAct, &ankleWalkParams);	// Bring in
-        		ankleAct->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(ankleAct, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
+        		updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);	// Bring in
+        		actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
 
     			// Stance transition vectors, only go into next state. This is a stable place to be.
-    			if (ankleAct->jointTorque > ankleWalkParams.lspEngagementTorque) {
+    			if (actx->jointTorque > ankleWalkParams.lspEngagementTorque) {
     				kneeAnkleStateMachine.currentState = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
     			}
 
 			#elif defined(IS_KNEE)
-        		kneeAct->tauDes = getImpedanceTorque(kneeAct, kneeGainsMst.k1, kneeGainsMst.b, kneeGainsMst.thetaDes);
+        		actx->tauDes = getImpedanceTorque(actx, kneeGainsMst.k1, kneeGainsMst.b, kneeGainsMst.thetaDes);
 			#endif
 
         	break;
@@ -143,7 +144,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 
 			if (isTransitioning) {
 				ankleWalkParams.samplesInLSP = 0.0;
-				ankleWalkParams.lspEntryTq = ankleAct->jointTorque;
+				ankleWalkParams.lspEntryTq = actx->jointTorque;
 			}
 
 			// This is the scaling factor for ramping into powered pushoff
@@ -151,17 +152,17 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 				ankleWalkParams.samplesInLSP++;
 			}
 			#ifdef IS_ANKLE
-				updateAnkleVirtualHardstopTorque(ankleAct, &ankleWalkParams);
+				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
 				//Linear ramp to push off
-				ankleAct->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(ankleAct, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);
+				actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);
 
 				//Late Stance Power transition vectors
 					//todo: Should there be a way to jump back into early_stance in the event of running?
-				if (abs(ankleAct->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && timeInState > LST_TO_ESW_DELAY && (ankleAct->jointAngleDegrees >=  ankleGainsLst.thetaDes -2.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
+				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && timeInState > LST_TO_ESW_DELAY && (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -2.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
 					kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;
 				}
 			#elif defined(IS_KNEE)
-				kneeAct->tauDes = getImpedanceTorque(kneeAct, kneeGainsLst.k1, kneeGainsLst.b, kneeGainsLst.thetaDes);
+				actx->tauDes = getImpedanceTorque(actx, kneeGainsLst.k1, kneeGainsLst.b, kneeGainsLst.thetaDes);
 			#endif
 
             break;
@@ -173,7 +174,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 				ankleWalkParams.virtualHardstopTq = 0.0;
 
 				// initialize cubic spline params once
-				initializeCubicSplineParams(&cubicSpline, ankleAct, ankleGainsEsw, 100.0); // last parameter is res_factor (delta X - time)
+				initializeCubicSplineParams(&cubicSpline, actx, ankleGainsEsw, 100.0); // last parameter is res_factor (delta X - time)
 			}
 
 			#ifdef IS_ANKLE
@@ -181,18 +182,18 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 				calcCubicSpline(&cubicSpline);
 				ankleGainsEsw.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
-				ankleAct->tauDes = getImpedanceTorque(ankleAct, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
+				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
 
-				if(ankleAct->jointAngleDegrees <= ankleGainsEsw.thetaDes || timeInState >= ESW_TO_LSW_DELAY)
+				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes || timeInState >= ESW_TO_LSW_DELAY)
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
 				}
 
 			#elif defined(IS_KNEE)
-				kneeAct->tauDes = getImpedanceTorque(kneeAct, kneeGainsEsw.k1, kneeGainsEsw.b, kneeGainsEsw.thetaDes);
+				actx->tauDes = getImpedanceTorque(actx, kneeGainsEsw.k1, kneeGainsEsw.b, kneeGainsEsw.thetaDes);
 
 				// This State is different, Knee decides on its own when to transition to STATE_LATE_SWING
-				if(kneeAct->jointVelDegrees < 0 )
+				if(actx->jointVelDegrees < 0 )
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
 				}
@@ -215,30 +216,30 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 
 			#ifdef IS_ANKLE
 
-				ankleAct->tauDes = getImpedanceTorque(ankleAct, ankleGainsLsw.k1, ankleGainsLsw.b, ankleGainsLsw.thetaDes);
+				actx->tauDes = getImpedanceTorque(actx, ankleGainsLsw.k1, ankleGainsLsw.b, ankleGainsLsw.thetaDes);
 
 				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 				if(timeInState > LSW_TO_EST_DELAY) {
 
 					// Late Swing -> Early Stance (hard toe strike) - Running
-					if ( ankleAct->jointTorque > HARD_TOESTRIKE_TORQUE_THRESH || ankleAct->jointVelDegrees > HARD_TOESTRIKE_VEL_THRESH_DEG)
+					if ( actx->jointTorque > HARD_TOESTRIKE_TORQUE_THRESH || actx->jointVelDegrees > HARD_TOESTRIKE_VEL_THRESH_DEG)
 					{
 						kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
 						ankleWalkParams.transitionId = 0;
 					}
 					// Late Swing -> Early Stance (hard heal strike)
-					else if ( fabs(ankleAct->jointTorque) > HARD_HEELSTRIKE_TORQUE_THRESH && fabs(ankleAct->jointTorqueRate) > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH)
+					else if ( fabs(actx->jointTorque) > HARD_HEELSTRIKE_TORQUE_THRESH && fabs(actx->jointTorqueRate) > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH)
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParams.transitionId = 1;
 					}
 					// Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
-					else if ( ankleAct->jointTorque < GENTLE_HEELSTRIKE_TORQUE_THRESH && ankleAct->jointAngleDegrees <= (ankleGainsEst.thetaDes + 1.0) )
+					else if ( actx->jointTorque < GENTLE_HEELSTRIKE_TORQUE_THRESH && actx->jointAngleDegrees <= (ankleGainsEst.thetaDes + 1.0) )
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParams.transitionId = 2;
 					}
-					else if ( fabs(ankleAct->jointTorque) > GENTLE_HEELSTRIKE_TORQUE_THRESH)
+					else if ( fabs(actx->jointTorque) > GENTLE_HEELSTRIKE_TORQUE_THRESH)
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParams.transitionId = 3;
@@ -248,10 +249,10 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 				}
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 			#elif defined(IS_KNEE)
-				kneeAct->tauDes = getImpedanceTorque(kneeAct, kneeGainsLsw.k1, kneeGainsLsw.b, kneeGainsLsw.thetaDes);
+				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, kneeGainsLsw.thetaDes);
 				if(timeInState > LSW_TO_EST_DELAY)
 				{
-					if (kneeAct->jointAngleDegrees <= kneeGainsLsw.thetaDes + 1.0)
+					if (actx->jointAngleDegrees <= kneeGainsLsw.thetaDes + 1.0)
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 					}
@@ -263,7 +264,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
         default:
 
             //turn off control.
-            ankleAct->tauDes = 0;
+            actx->tauDes = 0;
             kneeAnkleStateMachine.currentState = STATE_INIT;
 
             break;
@@ -281,13 +282,13 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 //	Calculates desired torque based on impedance gain parameters
 //
 //	Param: gainParams(GainParams) - struct with all the state's impedance parameters
-//	Param: ankleAct(Act_s) - Actuator structure to track sensor values
+//	Param: actx(Act_s) - Actuator structure to track sensor values
 //	Param: wParams(WalkParams) - Parameters relating to walking states
 //    Return: float desired torque at joint in NEWTON-METERS
 //*/
 //float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams) {
 //
-//	return gainParams.k1 * (gainParams.thetaDes - ankleAct->jointAngleDegrees) \
+//	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
 //         - gainParams.b * actx.jointVelDegrees ;
 //}
 
@@ -296,7 +297,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct) {
 //
 /** This ramps down the Stiffness of early stance K, picking up the user and bringing them up to ankleGainsEst.thetaDes
     NOTE/TODO: Hugh may prefer much more stiffness here, this ramps down teh stiffness.
-	Param: ankleAct(Act_s) - Actuator structure to track sensor values
+	Param: actx(Act_s) - Actuator structure to track sensor values
 	Param: wParams(WalkParams) - Parameters relating to walking states
 */
 void updateImpedanceParams(Act_s *actx, WalkParams *wParams) {
@@ -311,7 +312,7 @@ void updateImpedanceParams(Act_s *actx, WalkParams *wParams) {
 }
 
 /** TODO: Find out what this does
-	Param: ankleAct(Act_s) - Actuator structure to track sensor values
+	Param: actx(Act_s) - Actuator structure to track sensor values
 	Param: wParams(WalkParams) - Parameters relating to walking states
 */
 void updateAnkleVirtualHardstopTorque(Act_s *actx, WalkParams *wParams) {
