@@ -241,24 +241,15 @@ void MITDLegFsm1(void)
 					 *  Below here is where user code goes
 					 ****************************************/
 
-//					float tor = getImpedanceTorque(&act1, torqInput, freqInput, 0);
-//					float tor = getImpedanceTorque(&act1, 1.0, .1, 0);
-				//					act1.tauDes = tor;
-//					setKneeAnkleFlatGroundFSM(&act1, &act2);
-					setKneeAnkleFlatGroundFSM(&act1);
+					float tor = getImpedanceTorque(&act1, 1.0, .1, 0);
+					act1.tauDes = tor;
+
 					setMotorTorque( &act1, act1.tauDes);
 
 //					runMainUserApplication(&act1);
 
 
 
-// DEBUG todo: this is how to talk to slave or this actuator, setMotorVoltage(value)
-//			setControlMode(CTRL_OPEN, THIS_ACTPACK);
-//			setControlMode(CTRL_OPEN, SLAVE_ACTPACK);
-//			setMotorVoltage(0, THIS_ACTPACK);
-//			setMotorVoltage(0, SLAVE_ACTPACK);
-//			fsm1State = 1;
-//			deltaT = 0;
 
 //				}
 
