@@ -132,15 +132,15 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
 	  rigid1.mn.genVar[2] = (int16_t) (act1.motorPosDelta);//(act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (act1.springDelta*1000.); //(act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.linkageLengthNonLinearity*100.); //(act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
 	  rigid1.mn.genVar[5] = (int16_t) (act1.axialForce*10); //(rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
-	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_volt);	// mA
+	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
 	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+//	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
-	  rigid1.mn.genVar[9] = (int16_t) (fsm1State);
+	  rigid1.mn.genVar[9] = (int16_t) (act1.screwLengthDelta*10000);//(fsm1State);
 #endif
     //begin main FSM
 	switch(fsm1State)
@@ -154,20 +154,23 @@ void MITDLegFsm1(void)
 				isEnabledUpdateSensors = 1;
 				onEntry = 1;
 				fsmTime = 0;
-				fsm1State = STATE_INITIALIZE_SENSORS;
+				fsm1State = STATE_INITIALIZE_SETTINGS;
 
 			}
 
 			break;
 
-		case STATE_INITIALIZE_SENSORS:
+		case STATE_INITIALIZE_SETTINGS:
 
 			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 
 				#if defined(NO_DEVICE)
 					fsm1State = STATE_DEBUG;				// Skip over All states and sit in debug mode
 				#elif defined(NO_ACTUATOR)
-					fsm1State = STATE_INIT_USER_WRITES;		// Still run controls, but skip Find Poles
+					fsm1State = STATE_INITIALIZE_SENSORS;		// Still run controls, but skip Find Poles
+					calibrationFlags = 0, calibrationNew = 0;
+					isEnabledUpdateSensors = 1;
+					onEntry = 1;
 				#else
 					fsm1State = STATE_FIND_POLES;
 				#endif
@@ -181,7 +184,7 @@ void MITDLegFsm1(void)
 					enableMITfsm2 = 0;	// If it's slave, then don't bother turning on comms?
 				#endif
 
-				setMotorNeutralPosition(&act1);	// initialize to define motor initial position
+
 			}
 
 			break;
@@ -200,13 +203,28 @@ void MITDLegFsm1(void)
 
 				// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
 				if (FINDPOLES_DONE){
-					fsm1State = STATE_INIT_USER_WRITES;
+					fsm1State = STATE_INITIALIZE_SENSORS;
 					fsmTime = 0;
 					isEnabledUpdateSensors = 1;
 					onEntry = 1;
+
+
 				}
 			}
 
+			break;
+
+		case STATE_INITIALIZE_SENSORS:
+
+			setMotorNeutralPosition(&act1);	// initialize to define motor initial position
+
+			if (fsmTime > 200)
+			{
+				fsm1State = STATE_INIT_USER_WRITES;
+				fsmTime = 0;
+				isEnabledUpdateSensors = 1;
+				onEntry = 1;
+			}
 			break;
 
 		case STATE_INIT_USER_WRITES:

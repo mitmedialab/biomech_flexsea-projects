@@ -26,7 +26,7 @@ extern "C" {
 //#define DEVICE_M15			// Standalone motor for testbench
 //#define DEVICE_M16			// Standalone motor for testbench
 //#define NO_DEVICE				// use if not connected to an actuator or any hardware
-//#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
+#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
 
 //****************************************************************************
 // Structure(s):
@@ -87,7 +87,7 @@ typedef struct act_s
     float jointTorque;
     float tauMeas;          // torque contribution from series spring
     float tauDes;           // FSM des torque - tauMeas
-    float springDelta;		// track deflection of spring
+    float screwLengthDelta;		// track deflection of spring
     float linkageLengthNonLinearity;	// track difference in calculated and measured length
     float lastJointAngle;
     float lastJointVel;

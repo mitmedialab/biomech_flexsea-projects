@@ -44,6 +44,7 @@ void	mitInitOpenController(void);
 
 // Sensor values
 void  updateSensorValues(struct act_s *actx);
+void setMotorNeutralPosition(struct act_s *actx);
 
 //Control outputs
 float biomCalcImpedance(Act_s *actx, float k1, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic

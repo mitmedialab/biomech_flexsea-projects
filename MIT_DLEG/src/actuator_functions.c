@@ -216,12 +216,11 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
  * Param: theta(float) - the angle of the joint in RADIANS
  * Return: projLength(float) - moment arm projected length in METERS
  */
-static float getLinkageMomentArm(struct act_s *actx, float theta)
+static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
 	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0;
-	static float deltaMotorMeas = 0, deltaMotorCalc;
+	static float deltaLengthMotorMeas = 0, deltaMotorCalc;
 	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
-	static int8_t tareState = -1;
 
 	CAng = M_PI - theta - (MA_TF); 	// angle
     c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
@@ -231,20 +230,21 @@ static float getLinkageMomentArm(struct act_s *actx, float theta)
 
     projLength = (MA_B * sinf(A))/1000.;
 
-    if (tareState == -1)
+    if (tareState == 1)
     {
-    	c0 = c;	// save initial length of actuator
+    	c0 = c;	// save initial length of actuator	//NOTE: THIS SEEMS TO OUTPUT A FUNNY VALUE
+    	actx->motorPosNeutral = *rigid1.ex.enc_ang;
     	tareState = 0;
     }
 
     // Keep track of spring deflection, expected and actual
-    actx->springDelta = (c-c0); // This is deflection of spring [m]
+//    rigid1.mn.genVar[8] = (int16_t) (c0 * 10);
+    actx->screwLengthDelta = (c-c0); // This is deflection of spring [m]
     actx->motorPosDelta = (actx->motorPosRaw - actx->motorPosNeutral);
 
-    deltaMotorCalc = (int32_t) (actx->springDelta * MOTOR_COUNTS_PER_RADIAN); // counts
-    deltaMotorMeas = screwTravelPerMotorCnt * ( (float) actx->motorPosDelta );
 
-    actx->linkageLengthNonLinearity = deltaMotorMeas - deltaMotorCalc;	// Difference for now, todo: use to calc force.
+    deltaLengthMotorMeas = screwTravelPerMotorCnt * ( (float) actx->motorPosDelta ); // correct
+    actx->linkageLengthNonLinearity = deltaLengthMotorMeas - actx->screwLengthDelta;	// Difference for now, todo: use to calc force. NOT WORKING YET
 
     return projLength;
 
@@ -884,28 +884,31 @@ void setMotorNeutralPosition(struct act_s *actx)
 	uint16_t numSamples = 100;
 	static int32_t motorEncReading = 0;
 
-	switch(tareState)
-		{
-			case -1:
-				//Tare the balance using average of numSamples readings
-				sample++;
+	float r = getLinkageMomentArm(&act1, act1.jointAngle, 1);
 
-				if(sample <= numSamples)
-				{
-					motorEncReading =  motorEncReading + (int32_t)(*rigid1.ex.enc_ang/sample);
-				}
-				else
-				{
-					actx->motorPosNeutral = motorEncReading;
-					tareState = 0;
-				}
-
-				break;
-
-			case 0:
-
-				break;
-		}
+//	switch(tareState)
+//		{
+//			case -1:
+//				//Tare the balance using average of numSamples readings
+//				sample++;
+//
+//				if(sample <= numSamples)
+//				{
+//					motorEncReading =  motorEncReading + (int32_t)(*rigid1.ex.enc_ang/sample);
+//				}
+//				else
+//				{
+//					actx->motorPosNeutral = motorEncReading;
+//					float r = getLinkageMomentArm(&act1, act1.jointAngle, 1);
+//					tareState = 0;
+//				}
+//
+//				break;
+//
+//			case 0:
+//
+//				break;
+//		}
 
 }
 
@@ -921,7 +924,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
 	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
 
-	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle);
+	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, 0);
 
 	actx->axialForce = getAxialForce(actx, zeroIt); //filtering happening inside function
 	actx->jointTorque = getJointTorque(actx);
