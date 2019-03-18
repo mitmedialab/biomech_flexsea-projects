@@ -130,10 +130,10 @@ void MITDLegFsm1(void)
     fsmTime++;
 	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
-	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
+	  rigid1.mn.genVar[2] = (int16_t) (act1.motorPosDelta);//(act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
-	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.springDelta*1000.); //(act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
+	  rigid1.mn.genVar[5] = (int16_t) (act1.axialForce*10); //(rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
 	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_volt);	// mA
 	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
 	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
@@ -180,6 +180,8 @@ void MITDLegFsm1(void)
 				#else
 					enableMITfsm2 = 0;	// If it's slave, then don't bother turning on comms?
 				#endif
+
+				setMotorNeutralPosition(&act1);	// initialize to define motor initial position
 			}
 
 			break;
@@ -240,15 +242,13 @@ void MITDLegFsm1(void)
 					/****************************************
 					 *  Below here is where user code goes
 					 ****************************************/
-
-//					float tor = getImpedanceTorque(&act1, torqInput, freqInput, 0);
 //					float tor = getImpedanceTorque(&act1, 1.0, .1, 0);
-				//					act1.tauDes = tor;
-//					setKneeAnkleFlatGroundFSM(&act1, &act2);
-					setKneeAnkleFlatGroundFSM(&act1);
-					setMotorTorque( &act1, act1.tauDes);
+//					act1.tauDes = tor;
 
-//					runMainUserApplication(&act1);
+//					setKneeAnkleFlatGroundFSM(&act1);
+					setMotorTorque( &act1, 0);
+
+
 
 
 
