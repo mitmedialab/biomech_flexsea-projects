@@ -219,7 +219,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
 	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0;
-	static float deltaLengthMotorMeas = 0, deltaMotorCalc;
+	static float deltaLengthMotorMeas = 0, deltaMotorCalc=0;
 	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
 
 	CAng = M_PI - theta - (MA_TF); 	// angle
@@ -381,23 +381,36 @@ float actuateAngleLimits(Act_s *actx){
 
 	// apply unidirectional spring
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
-		tauK = JOINT_SOFT_K * (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
-
-		// apply unidirectional damper
-		if ( actx->jointVelDegrees < 0) {
-
-			tauB = -JOINT_SOFT_B * actx->jointVelDegrees;
-		}
+		float thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+		tauK = JOINT_SOFT_K * (thetaDelta);
+		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+//		// apply unidirectional damper REMOVED, this slows it down more.
+//		if ( actx->jointVelDegrees < 0.0) { //<
+//
+//			tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+//		} else
+//		{
+//			tauB = 0.0;
+//		}
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
-		tauK = JOINT_SOFT_K * (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
+		float thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
+		tauK = JOINT_SOFT_K * (thetaDelta);
 
-		// apply unidirectional damper
-		if ( actx->jointVelDegrees > 0) {
-
-		tauB = -JOINT_SOFT_B * actx->jointVelDegrees;
-
-		}
+		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+//		// apply unidirectional damper
+//		if ( actx->jointVelDegrees > 0.0) {
+//
+//			tauB = -JOINT_SOFT_B * actx->jointVelDegrees;
+//
+//		} else
+//		{
+//			tauB = 0.0;
+//		}
+	} else
+	{
+		tauK = 0.0;
+		tauB = 0.0;
 	}
 
 	return tauK + tauB;

@@ -130,17 +130,17 @@ void MITDLegFsm1(void)
     fsmTime++;
 	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
-	  rigid1.mn.genVar[2] = (int16_t) (act1.motorPosDelta);//(act1.jointVel*1000.);			// radians/s
+	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (act1.linkageLengthNonLinearity*100.); //(act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
-	  rigid1.mn.genVar[5] = (int16_t) (act1.axialForce*10); //(rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
+	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
 	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
 	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-//	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
-	  rigid1.mn.genVar[9] = (int16_t) (act1.screwLengthDelta*10000);//(fsm1State);
+	  rigid1.mn.genVar[9] = (int16_t) (fsm1State);
 #endif
     //begin main FSM
 	switch(fsm1State)
@@ -260,11 +260,11 @@ void MITDLegFsm1(void)
 					/****************************************
 					 *  Below here is where user code goes
 					 ****************************************/
-//					float tor = getImpedanceTorque(&act1, 1.0, .1, 0);
+//					float tor = getImpedanceTorque(&act1, .5, .1, 10);
 //					act1.tauDes = tor;
 
-//					setKneeAnkleFlatGroundFSM(&act1);
-					setMotorTorque( &act1, 0);
+					setKneeAnkleFlatGroundFSM(&act1);
+					setMotorTorque( &act1, act1.tauDes);
 
 
 
@@ -383,6 +383,8 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		kneeGainsEsw.k1							= ( (float) user_data_1.w[6] ) / 100.0;	// [Nm/deg]
 		kneeGainsEsw.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
 		kneeGainsEsw.thetaDes 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/s]
+
+		//user_data_1.w[9] in use!
 
 		// These are generally redundant
 		kneeGainsMst.k1 = kneeGainsEst.k1;
