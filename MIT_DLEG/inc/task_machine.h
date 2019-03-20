@@ -10,12 +10,9 @@
 #include <math.h>
 #include "terrain_state_machine.h"
 
-//Copied from matlab pil simulation
  //Gait event thresholds
-#define MIN_TQ_FOR_FOOT_ON 3.0
+#define MIN_TQ_FOR_FOOT_ON 1.0
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 50
-#define MIN_TQ_FOR_FOOT_STATIC 5.0
-#define AA_DOT_AOMEGA_ERROR_THRESH 0.8
 #define PREDICTION_CUTOFF_SAMPLES 250.0
 
  //Timing constants
@@ -61,7 +58,6 @@ struct taskmachine_s
 	uint8_t do_update_learner;
 
 	
-	float latest_foot_static_samples;
     float elapsed_samples;
     float latest_foot_off_samples;
     uint8_t in_swing;
@@ -77,11 +73,11 @@ struct taskmachine_s
     float tq_dot;
     float aa;
     float aa_dot;
-    float aa_dot_aOmegaX_error;
+
 
     float tq_prev;
     float aa_prev;
-    float aa_dot_aOmegaX_error_prev ;
+
 
     float net_work_j_p_kg;
     float stance_rom_rad;

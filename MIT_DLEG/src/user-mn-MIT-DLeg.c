@@ -249,18 +249,18 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[6] = (int16_t) (act1.jointVel*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[7] = (int16_t) (get_minimum_jerk_values()->des_theta*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[8] = (int16_t) (get_minimum_jerk_values()->update_counter);
-			rigid1.mn.genVar[0] = (int16_t) (get_minimum_jerk_values()->enabled);
+			rigid1.mn.genVar[9] = (int16_t) (get_minimum_jerk_values()->enabled);
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL:
 			rigid1.mn.genVar[3] = (int16_t) (get_predictor()->k_pred);
 		break;
 		case GUI_MODE_GAIT_EVENTS:
 			rigid1.mn.genVar[3] = (int16_t) (tm->elapsed_samples);
-			rigid1.mn.genVar[4] = (int16_t) (tm->latest_foot_static_samples);
+			rigid1.mn.genVar[4] = (int16_t) (get_kinematics()->latest_foot_static_samples);
 			rigid1.mn.genVar[5] = (int16_t) (tm->latest_foot_off_samples);
 			rigid1.mn.genVar[6] = (int16_t) (tm->aa_dot*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->aOmegaX*SCALE_FACTOR_1000);
-			rigid1.mn.genVar[8] = (int16_t) (tm->aa_dot_aOmegaX_error*SCALE_FACTOR_1000);
+			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->aa_dot_aOmegaX_error*SCALE_FACTOR_1000);
 			break;
 	    case GUI_MODE_KINEMATICS:
 			// rigid1.mn.genVar[3] = (int16_t) (tm->latest_foot_static_samples);
@@ -270,7 +270,7 @@ static void updateGenVars(struct taskmachine_s* tm){
 			// rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->aAy*SCALE_FACTOR_1000);
 			// rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->aAz*SCALE_FACTOR_1000);
 			// rigid1.mn.genVar[9] = (int16_t) (get_kinematics()->pAz*SCALE_FACTOR_1000);
-			rigid1.mn.genVar[3] = (int16_t) (tm->latest_foot_static_samples);
+			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->latest_foot_static_samples);
 			rigid1.mn.genVar[4] = (int16_t) (get_kinematics()->aAccY*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[5] = (int16_t) (get_kinematics()->aAccZ*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[6] = (int16_t) (get_kinematics()->aOmegaX*SCALE_FACTOR_1000);
@@ -288,7 +288,7 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->pop_k[4]);
 			break;
 	    case GUI_MODE_FEATURES:
-			rigid1.mn.genVar[3] = (int16_t) (tm->latest_foot_static_samples);
+			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->latest_foot_static_samples);
 			rigid1.mn.genVar[4] = (int16_t) (tm->latest_foot_off_samples);
 			rigid1.mn.genVar[5] = (int16_t) (tm->do_learning_for_stride);
 			rigid1.mn.genVar[6] = (int16_t) (get_curr_features()->max[0]);

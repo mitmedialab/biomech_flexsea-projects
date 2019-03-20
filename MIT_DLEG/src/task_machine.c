@@ -18,7 +18,6 @@ static void init_task_machine(){
 	tm.control_mode = MODE_NOMINAL;
 	tm.do_update_learner = 0;
 
-    tm.latest_foot_static_samples = 0.0;
     tm.elapsed_samples = 0.0;
     tm.latest_foot_off_samples = 10000.0;
     tm.in_swing = 0;
@@ -34,11 +33,9 @@ static void init_task_machine(){
     tm.tq_dot = 0.0;
     tm.aa = 0.0;
     tm.aa_dot = 0.0;
-    tm.aa_dot_aOmegaX_error = 0.0;
 
     tm.tq_prev = 0.0;
     tm.aa_prev = 0.0;
-    tm.aa_dot_aOmegaX_error_prev = 0.0;
 
     tm.net_work_j_p_kg = 0.0;
     tm.stance_rom_rad = 0.0;
@@ -73,19 +70,10 @@ static void update_gait_events(){
               tm.in_swing = 0;
               tm.low_torque_counter = 0;
               tm.gait_event_trigger = GAIT_EVENT_FOOT_ON; 
-              tm.latest_foot_static_samples = tm.elapsed_samples;
           }
     }
     else{
-          float abserr = fabs(tm.aa_dot_aOmegaX_error);
-          float abstq = fabs(tm.tq);
-          if (abserr < fabs(tm.aa_dot_aOmegaX_error_prev) &&
-              abserr < AA_DOT_AOMEGA_ERROR_THRESH && abstq > MIN_TQ_FOR_FOOT_STATIC){
-            tm.gait_event_trigger = GAIT_EVENT_FOOT_STATIC;
-            tm.latest_foot_static_samples = tm.elapsed_samples;
-          }
-
-          if (abstq < MIN_TQ_FOR_FOOT_ON)
+          if (fabs(tm.tq) < MIN_TQ_FOR_FOOT_ON)
             tm.low_torque_counter = tm.low_torque_counter + 1;
           else
             tm.low_torque_counter = 0;
@@ -106,12 +94,10 @@ static void update_ankle_dynamics(Act_s* actx)
 {
     tm.tq_prev = tm.tq;
     tm.aa_prev = tm.aa;
-    tm.aa_dot_aOmegaX_error_prev = tm.aa_dot_aOmegaX_error;
     tm.tq = FILTA*tm.tq + FILTB*actx->jointTorque;//placeholder for sv.torqueRaw. NEED TO CHANGE!!!!;
     tm.tq_dot = FILTA * tm.tq_dot + FILTB* (tm.tq - tm.tq_prev);
     tm.aa = FILTA*tm.aa + FILTB*actx->jointAngleDegrees;//placeholder for sv.angleRaw. NEED TO CHANGE!!!!;
     tm.aa_dot = FILTA*tm.aa_dot + FILTB*(tm.aa - tm.aa_prev)*RAD_PER_DEG_X_SAMPLE_RATE_HZ;
-    tm.aa_dot_aOmegaX_error = FILTA *tm.aa_dot_aOmegaX_error + FILTB*(tm.aa_dot - get_kinematics()->aOmegaX);
 
     if (!tm.in_swing)
     	tm.net_work_j_p_kg = tm.net_work_j_p_kg + tm.tq*tm.aa_dot;
