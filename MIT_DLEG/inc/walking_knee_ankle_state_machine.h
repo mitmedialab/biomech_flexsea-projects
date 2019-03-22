@@ -31,16 +31,16 @@ extern "C" {
 #define JNT_ORIENT								-JOINT_ANGLE_DIR	// 				JOINT_ANGLE_DIR is defined in user-mn-MIT-DLeg-2dof
 
 #define K_VIRTUAL_HARDSTOP_NM_P_DEG				 7.13				// Nm/deg		Stiffness of virtual hardstop mimicking BiOM physical hardstop
-#define HARD_HEELSTRIKE_TORQUE_THRESH           -5 		// -80 Nm       Foot-strike detector
-#define GENTLE_HEELSTRIKE_TORQUE_THRESH           -3 		// -80 Nm       Foot-strike detector
+#define HARD_HEELSTRIKE_TORQUE_THRESH           -5 					// -80 Nm       Foot-strike detector
+#define GENTLE_HEELSTRIKE_TORQUE_THRESH           -3 				// -80 Nm       Foot-strike detector
 #define HARD_HEELSTRIKE_TORQ_RATE_THRESH        -600 * JNT_ORIENT	// Nm/sec       Foot-strike detector                          			3->4
 #define GENTLE_TOESTRIKE_THRESH					 3
-#define HARD_TOESTRIKE_TORQUE_THRESH			 70.0					// [Nm] TODO: needs to be update for each user
+#define HARD_TOESTRIKE_TORQUE_THRESH			 70.0				// [Nm] TODO: needs to be update for each user
 #define HARD_TOESTRIKE_ANGLE_THRESH              140/K_VIRTUAL_HARDSTOP_NM_P_DEG * JNT_ORIENT // Degree          Toe-strike detector
-#define HARD_TOESTRIKE_VEL_THRESH_DEG			 100.0	//[Deg/s] TODO: Find a decent value for this
-#define	GENTLE_HEELSTRIKE_TORQ_RATE_THRESH       60     // Nm/sec       Gentle foot-strike detector
+#define HARD_TOESTRIKE_VEL_THRESH_DEG			 100.0				//[Deg/s] TODO: Find a decent value for this
+#define	GENTLE_HEELSTRIKE_TORQ_RATE_THRESH       60     			// Nm/sec       Gentle foot-strike detector
 #define ANKLE_UNLOADED_TORQUE_THRESH              3.0            	// Nm           Foot unloaded threshold                       			5->2
-#define EARLYSTANCE_DECAY_CONSTANT                0.994987437  //was 0.99           Decay constant for early stance
+#define EARLYSTANCE_DECAY_CONSTANT                0.994987437  		//was 0.99           Decay constant for early stance
 #define ANGLE_VIRTUAL_HARDSTOP_NM_P_DEG	0.0 	//Virtual hardstop engagement angle
 
 

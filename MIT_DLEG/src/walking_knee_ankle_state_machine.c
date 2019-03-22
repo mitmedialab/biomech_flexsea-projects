@@ -26,9 +26,9 @@ GainParams ankleGainsEsw = {1.5, 0.0, 0.2, -8.0};
 GainParams ankleGainsLsw = {1.5, 0.0,  0.2, -5.0};
 
 //Knee, Positive Knee Flexion
-GainParams kneeGainsEst = {1.5, 0.0, 0.2, 10.0};
-GainParams kneeGainsMst = {1.5, 0.0, 0.2, 10.0};
-GainParams kneeGainsLst = {1.5, 0.0, 0.2, 15.0};
+GainParams kneeGainsEst = {2.5, 0.0, 0.2, 10.0};
+GainParams kneeGainsMst = {3.5, 0.0, 0.2, 10.0};
+GainParams kneeGainsLst = {2.5, 0.0, 0.2, 15.0};
 GainParams kneeGainsEsw = {1.5, 0.0, 0.2, 50.0};
 GainParams kneeGainsLsw = {1.5, 0.0, 0.2, 50.0};
 
@@ -147,18 +147,19 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				ankleWalkParams.lspEntryTq = actx->jointTorque;
 			}
 
-			// This is the scaling factor for ramping into powered pushoff
-			if (ankleWalkParams.samplesInLSP < ankleWalkParams.lstPGDelTics){
-				ankleWalkParams.samplesInLSP++;
-			}
 			#ifdef IS_ANKLE
+				// This is the scaling factor for ramping into powered pushoff
+				if (ankleWalkParams.samplesInLSP < ankleWalkParams.lstPGDelTics){
+					ankleWalkParams.samplesInLSP++;
+				}
+
 				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
 				//Linear ramp to push off
 				actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);
 
 				//Late Stance Power transition vectors
 					//todo: Should there be a way to jump back into early_stance in the event of running?
-				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && timeInState > LST_TO_ESW_DELAY && (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -2.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
+				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && timeInState > LST_TO_ESW_DELAY && (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -1.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
 					kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;
 				}
 			#elif defined(IS_KNEE)

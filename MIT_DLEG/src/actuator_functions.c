@@ -45,6 +45,7 @@ float indGain = 1.73;	// tested
 float torqueKp = TORQ_KP_INIT;
 float torqueKi = TORQ_KI_INIT;
 float torqueKd = TORQ_KD_INIT;
+float errorKi = 0.0;
 
 
 //motor param terms
@@ -354,20 +355,23 @@ bool integralAntiWindup(float tauErr, float tauCTotal, float tauCOutput) {
 		inSatLimit = 1;
 	}
 
+	//check if the error is increasing  in teh direction of saturation
 	int8_t errSign = 0;
 	if (tauErr > 0 && tauCTotal > 0) {
 		errSign = 1;
 	} else if (tauErr < 0 && tauCTotal < 0) {
-		errSign = -1;
+		errSign = 1;//-1;
 	} else {
 		errSign = 0;
 	}
 
-	if (inSatLimit && errSign) {
-		return 1;
-	} else {
-		return 0;
-	}
+	// if saturated and error is going in that direction use antiwindup.
+//	if (inSatLimit && errSign) {
+//		return 1;
+//	} else {
+//		return 0;
+//	}
+	return inSatLimit;
 }
 
 /*
@@ -377,13 +381,17 @@ bool integralAntiWindup(float tauErr, float tauCTotal, float tauCOutput) {
  */
 //TODO: check that damping ratio is in the correct direction.
 float actuateAngleLimits(Act_s *actx){
+	static float bumperTorq=0.0;
 	float tauK = 0; float tauB = 0;
 
 	// apply unidirectional spring
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
 		float thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
-		tauK = JOINT_SOFT_K * (thetaDelta);
-		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+		tauK = JOINT_SOFT_K * (thetaDelta)*(thetaDelta);
+		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees); //
+
+		bumperTorq = tauK + tauB;
+
 //		// apply unidirectional damper REMOVED, this slows it down more.
 //		if ( actx->jointVelDegrees < 0.0) { //<
 //
@@ -393,12 +401,17 @@ float actuateAngleLimits(Act_s *actx){
 //			tauB = 0.0;
 //		}
 
+
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
 		float thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
-		tauK = JOINT_SOFT_K * (thetaDelta);
+		tauK = -JOINT_SOFT_K * (thetaDelta)*(thetaDelta);
 
 		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
-//		// apply unidirectional damper
+
+		bumperTorq = tauK + tauB;
+
+
+		//		// apply unidirectional damper
 //		if ( actx->jointVelDegrees > 0.0) {
 //
 //			tauB = -JOINT_SOFT_B * actx->jointVelDegrees;
@@ -411,9 +424,11 @@ float actuateAngleLimits(Act_s *actx){
 	{
 		tauK = 0.0;
 		tauB = 0.0;
+		bumperTorq = tauK + tauB;
 	}
 
-	return tauK + tauB;
+
+	return bumperTorq;
 }
 
 /*
@@ -452,16 +467,17 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 		tauDes = -ABS_TORQUE_LIMIT_INIT;
 	}
 
-	//Angle Limit bumpers
-	actx->tauDes = tauDes + actuateAngleLimits(actx);
+//	//Angle Limit bumpers
+//	actx->tauDes = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	//PID around motor torque
 	float tauC = getCompensatorPIDOutput(actx) * voltageGain;
-	//DEBUG
-//	rigid1.mn.genVar[7] = (int16_t) (getCompensatorPIDOutput(actx) * voltageGain*1000.0);
+	//Angle Limit bumpers
+	tauC = tauC + actuateAngleLimits(actx);
+
 
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
 //	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes) * voltageGain;
@@ -470,6 +486,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
 
 	float tauCCombined = tauC + tauFF;
+
+	rigid1.mn.genVar[6] = (int16_t) (tauCCombined*100.0);
 
 	// motor current signal
 	float Icalc = ( 1.0/(MOT_KT * N ) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
@@ -537,23 +555,49 @@ float getCompensatorCustomOutput(float tauMeas, float tauRef)
 float getCompensatorPIDOutput(Act_s *actx)
 {
 
-	static float tauErrLast = 0, tauErrInt = 0;
+	static float tauErrLast = 0.0, tauErrInt = 0.0;
+	static int8_t tauErrIntWindup = 0;
+	static float tauCCombined = 0.0, tauCOutput = 0.0;
 
 	// Error is torque at the joint
 	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
-	tauErrInt = tauErrInt + tauErr;				// [Nm]
 	tauErrLast = tauErr;
+
+	// If there is no Integral Windup problem continue integrating error
+	if (~tauErrIntWindup)
+	{
+		tauErrInt = tauErrInt + tauErr;				// [Nm]
+	} else
+	{
+		//https://ocw.mit.edu/courses/aeronautics-and-astronautics/16-30-feedback-control-systems-fall-2010/lecture-notes/MIT16_30F10_lec23.pdf
+		// try Antiwindup
+		// 0) test, don't increase tauErrInt; // seems like it locks up in a direction
+		// 1) test, set error to zero. // works okay, but kinda locks up at end limits
+		// 2) test, don't test for sign of error, just if saturated. // locks up more, slower response
+		// 3) test, set Ki = 0; this seems dangerous, rather know what this is doing.
+		// 4) test, try a scalar on the error => tauErrInt = tauErrInt + errorKi * (tauCOutput - tauCCombined); // this seemed unstable, not driving the right direction
+		tauErrInt = 0.0;	// this is reasonably stable.
+	}
+
+	//anti hunting for Integral term, if we're not moving, don't worry about it.
+	if (fabs(actx->jointVel) < 0.1 )//&& fabs(actx->jointTorque) < 2.0)
+	{
+		tauErrInt = 0.0;
+	}
+
+
+	rigid1.mn.genVar[5] = (int16_t) (tauErrInt * 10.0);
 
 	float tauC = tauErr*torqueKp + tauErrDot*torqueKd + tauErrInt*torqueKi;	// torq Compensator
 
 	// Feedforward term
 	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
 
-	float tauCCombined = tauC + tauFF;
+	tauCCombined = tauC + tauFF;
 
 	//Saturation limit on Torque
-	float tauCOutput = tauCCombined;
+	tauCOutput = tauCCombined;
 
 	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
 		tauCOutput = ABS_TORQUE_LIMIT_INIT;
@@ -562,9 +606,11 @@ float getCompensatorPIDOutput(Act_s *actx)
 	}
 
 	// Clamp and turn off integral term if it's causing a torque saturation
-	if ( integralAntiWindup(tauErr, tauCCombined, tauCOutput) ){
-		tauErrInt = 0;
-	}
+//	if ( integralAntiWindup(tauErr, tauCCombined, tauCOutput) ){
+//		tauErrInt = 0;
+//	}
+	tauErrIntWindup = integralAntiWindup(tauErr, tauCCombined, tauCOutput);
+
 
 	return tauCOutput;
 }

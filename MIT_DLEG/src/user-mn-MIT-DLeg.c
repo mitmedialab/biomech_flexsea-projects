@@ -55,9 +55,12 @@ uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
 #define SLAVE_ACTPACK		1
 
 
-float freqInput = 0.0;
-float freqRad = 0.0;
-float torqInput = 0.0;
+float freqInput 	= 0.0;
+float freqRad 		= 0.0;
+float inputTheta 	= 0.0;
+float inputK 		= 0.0;
+float inputB 		= 0.0;
+float inputTorq 	= 0.0;
 int8_t currentOrVoltage = 0;
 
 
@@ -88,6 +91,7 @@ extern float indGain;
 extern float torqueKp;
 extern float torqueKi;
 extern float torqueKd;
+extern float errorKi;
 
 //****************************************************************************
 // Macro(s)
@@ -133,8 +137,8 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
 	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
-	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
-	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
+//	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
+//	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
 	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
 	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
@@ -260,13 +264,22 @@ void MITDLegFsm1(void)
 					/****************************************
 					 *  Below here is where user code goes
 					 ****************************************/
-//					float tor = getImpedanceTorque(&act1, .5, .1, 10);
-//					act1.tauDes = tor;
+				#if defined(IS_ACTUATOR_TESTING)
+					if (fabs(inputTorq) > 0)
+					{
+						float tor = inputTorq;
+						act1.tauDes = tor;
+					}
+					else
+					{
+						float tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
+						act1.tauDes = tor;
+					}
 
+				#else
 					setKneeAnkleFlatGroundFSM(&act1);
+				#endif
 					setMotorTorque( &act1, act1.tauDes);
-
-
 
 
 
@@ -395,6 +408,15 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		kneeGainsLsw.b	= kneeGainsEsw.b;
 		kneeGainsLsw.thetaDes	= kneeGainsEsw.thetaDes;
 
+	#elif defined(IS_ACTUATOR_TESTING)
+		inputTheta								= ( (float) user_data_1.w[0] ) /100.0;
+		inputK									= ( (float) user_data_1.w[1] ) /100.0;
+		inputB									= ( (float) user_data_1.w[2] ) /100.0;
+		torqueKp								= ( (float) user_data_1.w[3] ) /1000.0;
+		torqueKi								= ( (float) user_data_1.w[4] ) /1000.0;
+		torqueKd								= ( (float) user_data_1.w[5] ) /1000.0;
+		inputTorq								= ( (float) user_data_1.w[6] ) /100.0;
+		errorKi									= ( (float) user_data_1.w[7] ) /1000.0;
 	#endif
 
 }
@@ -452,6 +474,15 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
 
 	///////////////////////////////////////////////////
+#elif defined(IS_ACTUATOR_TESTING)
+	inputTheta								= 0.0;
+	inputK									= 0.0;
+	inputB									= 0.0;
+	torqueKp								= 0.0;
+	torqueKi								= 0.0;
+	torqueKd								= 0.0;
+	inputTorq								= 0.0;
+	errorKi									=0.0;
 #endif
 
 
