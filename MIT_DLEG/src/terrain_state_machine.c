@@ -103,9 +103,9 @@ static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_th
 }
 
 static void set_joint_torque_with_hardstop(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float hs_theta, float hs_k) {
-	actx->tauDes = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
+	actx->tauDes = k * (des_theta - tm->aa*RAD_PER_DEG) - b * tm->aa_dot ;
 	if (actx->jointAngle < hs_theta){
-		actx->tauDes = actx->tauDes - hs_k*(actx->jointAngle - hs_theta);
+		actx->tauDes = actx->tauDes - hs_k*(tm->aa*RAD_PER_DEG - hs_theta);
 	}
 	setMotorTorque(actx, actx->tauDes);
 }

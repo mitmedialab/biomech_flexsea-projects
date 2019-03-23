@@ -226,14 +226,21 @@ static void updateGenVars(struct taskmachine_s* tm){
 	    case GUI_MODE_DS_CONTROL:
 	    case GUI_MODE_NOM_CONTROL:
 	    {
-	    	int16_t withinBiologicalBounds = (int16_t)tm->net_work_within_bounds*100 + (int16_t)tm->stance_rom_within_bounds*10 + (int16_t)tm->peak_power_timing_within_bounds*1;
-			rigid1.mn.genVar[3] = (int16_t) (tm->net_work_j_p_kg);
-			rigid1.mn.genVar[4] = (int16_t) (tm->net_work_error_j_p_kg[gui_mode]);
-			rigid1.mn.genVar[5] = (int16_t) (tm->stance_rom_rad*SCALE_FACTOR_1000);
-			rigid1.mn.genVar[6] = (int16_t) (tm->stance_rom_error_rad[gui_mode]*SCALE_FACTOR_1000);
-			rigid1.mn.genVar[7] = (int16_t) (tm->peak_power_timing_percent);
-			rigid1.mn.genVar[8] = (int16_t) (tm->peak_power_timing_error_percent[gui_mode]);
-			 rigid1.mn.genVar[9] = withinBiologicalBounds;
+	    	rigid1.mn.genVar[3] =  (int16_t) tm->control_mode;
+	    	rigid1.mn.genVar[4] = (int16_t) (tm->net_work_j*100.0);
+	    	rigid1.mn.genVar[5] = (int16_t) (tm->max_power_w*10.0);
+	    	rigid1.mn.genVar[6] = (int16_t) (tm->min_power_w*10.0);
+	    	rigid1.mn.genVar[7] = (int16_t) (tm->tq*10.0);
+	    	rigid1.mn.genVar[8] = (int16_t) (tm->aa*RAD_PER_DEG*SCALE_FACTOR_1000);
+
+//	    	int16_t withinBiologicalBounds = (int16_t)tm->net_work_within_bounds*100 + (int16_t)tm->stance_rom_within_bounds*10 + (int16_t)tm->peak_power_timing_within_bounds*1;
+//			rigid1.mn.genVar[3] = (int16_t) (tm->net_work_j_p_kg);
+//			rigid1.mn.genVar[4] = (int16_t) (tm->net_work_error_j_p_kg[gui_mode]);
+//			rigid1.mn.genVar[5] = (int16_t) (tm->stance_rom_rad*SCALE_FACTOR_1000);
+//			rigid1.mn.genVar[6] = (int16_t) (tm->stance_rom_error_rad[gui_mode]*SCALE_FACTOR_1000);
+//			rigid1.mn.genVar[7] = (int16_t) (tm->peak_power_timing_percent);
+//			rigid1.mn.genVar[8] = (int16_t) (tm->peak_power_timing_error_percent[gui_mode]);
+//			 rigid1.mn.genVar[9] = withinBiologicalBounds;
 //			rigid1.mn.genVar[9] = (int16_t) (get_minimum_jerk_values()->des_theta*SCALE_FACTOR_1000);
 //			rigid1.mn.genVar[7] = (int16_t) tm->in_swing;
 //			rigid1.mn.genVar[8] = (int16_t) get_walking_state();

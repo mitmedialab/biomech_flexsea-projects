@@ -11,7 +11,7 @@
 #include "terrain_state_machine.h"
 
  //Gait event thresholds
-#define MIN_TQ_FOR_FOOT_ON 1.0
+#define MIN_TQ_FOR_FOOT_ON 3.0
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 50
 #define PREDICTION_CUTOFF_SAMPLES 250.0
 
@@ -79,7 +79,9 @@ struct taskmachine_s
     float aa_prev;
 
 
-    float net_work_j_p_kg;
+    float net_work_j;
+    float max_power_w;
+    float min_power_w;
     float stance_rom_rad;
     float heelstrike_angle_rad;
     float peak_power_timing_percent;

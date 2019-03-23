@@ -37,7 +37,9 @@ static void init_task_machine(){
     tm.tq_prev = 0.0;
     tm.aa_prev = 0.0;
 
-    tm.net_work_j_p_kg = 0.0;
+    tm.net_work_j = 0.0;
+    tm.max_power_w = 0.0;
+    tm.min_power_w = 0.0;
     tm.stance_rom_rad = 0.0;
     tm.heelstrike_angle_rad = 0.0;
 
@@ -94,36 +96,45 @@ static void update_ankle_dynamics(Act_s* actx)
 {
     tm.tq_prev = tm.tq;
     tm.aa_prev = tm.aa;
-    tm.tq = FILTA*tm.tq + FILTB*actx->jointTorque;//placeholder for sv.torqueRaw. NEED TO CHANGE!!!!;
+    tm.tq = FILTA*tm.tq + FILTB*actx->jointTorque;
     tm.tq_dot = FILTA * tm.tq_dot + FILTB* (tm.tq - tm.tq_prev);
-    tm.aa = FILTA*tm.aa + FILTB*actx->jointAngleDegrees;//placeholder for sv.angleRaw. NEED TO CHANGE!!!!;
+    tm.aa = FILTA*tm.aa + FILTB*actx->jointAngleDegrees;
     tm.aa_dot = FILTA*tm.aa_dot + FILTB*(tm.aa - tm.aa_prev)*RAD_PER_DEG_X_SAMPLE_RATE_HZ;
 
-    if (!tm.in_swing)
-    	tm.net_work_j_p_kg = tm.net_work_j_p_kg + tm.tq*tm.aa_dot;
-
+    float power_w = tm.aa_dot*tm.tq;
+    if (!tm.in_swing){
+    	tm.net_work_j = tm.net_work_j + power_w*SAMPLE_PERIOD;
+		if (tm.max_power_w < power_w){
+			tm.max_power_w = power_w;
+		}
+		if (tm.min_power_w > power_w){
+			tm.min_power_w = power_w;
+		}
+	}
     if (tm.gait_event_trigger == GAIT_EVENT_FOOT_ON){
-        tm.net_work_j_p_kg = 0.0;
-        tm.heelstrike_angle_rad = tm.aa * RAD_PER_DEG;
+        tm.net_work_j = 0.0;
+		tm.min_power_w = FLT_MAX;
+		tm.max_power_w = -FLT_MAX;
+        //tm.heelstrike_angle_rad = tm.aa * RAD_PER_DEG;
     }
 
-    if (tm.gait_event_trigger == GAIT_EVENT_FOOT_OFF){
-        tm.net_work_j_p_kg = tm.net_work_j_p_kg*SAMPLE_PERIOD/tm.weight_kg;
-        tm.stance_rom_rad = (get_back_estimator()->max_stance_theta - get_back_estimator()->min_stance_theta)*RAD_PER_DEG;
-
-        if (tm.control_mode < MODE_POSITION){
-        	tm.net_work_error_j_p_kg[tm.control_mode] = tm.net_work_j_p_kg - ideal_net_work_j_per_kg[tm.control_mode];
-        	tm.stance_rom_error_rad[tm.control_mode] = tm.stance_rom_rad - ideal_rom_rad[tm.control_mode];
-        	tm.heelstrike_angle_error_rad[tm.control_mode] = tm.heelstrike_angle_rad - ideal_heelstrike_angle_rad[tm.control_mode];
-        } 
-        else if (tm.control_mode == MODE_ADAPTIVE)
-        {
-        	tm.net_work_error_j_p_kg[get_statistics()->k_est] = tm.net_work_j_p_kg - ideal_net_work_j_per_kg[get_statistics()->k_est];
-        	tm.stance_rom_error_rad[get_statistics()->k_est] = tm.stance_rom_rad - ideal_rom_rad[get_statistics()->k_est];
-        	tm.heelstrike_angle_error_rad[get_statistics()->k_est] = tm.heelstrike_angle_rad - ideal_heelstrike_angle_rad[get_statistics()->k_est];
-        }
-        
-    }
+//    if (tm.gait_event_trigger == GAIT_EVENT_FOOT_OFF){
+//        tm.net_work_j = tm.net_work_j*SAMPLE_PERIOD/tm.weight_kg;
+//        tm.stance_rom_rad = (get_back_estimator()->max_stance_theta - get_back_estimator()->min_stance_theta)*RAD_PER_DEG;
+//
+//        if (tm.control_mode < MODE_POSITION){
+//        	tm.net_work_error_j_p_kg[tm.control_mode] = tm.net_work_j - ideal_net_work_j_per_kg[tm.control_mode];
+//        	tm.stance_rom_error_rad[tm.control_mode] = tm.stance_rom_rad - ideal_rom_rad[tm.control_mode];
+//        	tm.heelstrike_angle_error_rad[tm.control_mode] = tm.heelstrike_angle_rad - ideal_heelstrike_angle_rad[tm.control_mode];
+//        }
+//        else if (tm.control_mode == MODE_ADAPTIVE)
+//        {
+//        	tm.net_work_error_j_p_kg[get_statistics()->k_est] = tm.net_work_j - ideal_net_work_j_per_kg[get_statistics()->k_est];
+//        	tm.stance_rom_error_rad[get_statistics()->k_est] = tm.stance_rom_rad - ideal_rom_rad[get_statistics()->k_est];
+//        	tm.heelstrike_angle_error_rad[get_statistics()->k_est] = tm.heelstrike_angle_rad - ideal_heelstrike_angle_rad[get_statistics()->k_est];
+//        }
+//
+//    }
 }
 
 struct taskmachine_s* get_task_machine(){
