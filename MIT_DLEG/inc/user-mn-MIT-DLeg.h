@@ -75,6 +75,7 @@ enum Gui_Modes {
     GUI_MODE_KINEMATICS = 9,
     GUI_MODE_LEARNING = 10,
     GUI_MODE_FEATURES = 11,
+	GUI_MODE_SAFETY = 12,
 };
 
 #endif	//INC_MIT_DLEG

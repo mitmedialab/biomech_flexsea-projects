@@ -296,6 +296,23 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[8] = (int16_t) (get_curr_features()->rng[2]);
 			rigid1.mn.genVar[9] = (int16_t) (get_curr_features()->fin[3]);
 			break;
+	    case GUI_MODE_SAFETY:
+	    {
+	    	int8_t* safetyConditions = getSafetyConditions();
+	    	int16_t safety0to2 = safetyConditions[0]*100 + safetyConditions[1]*10+safetyConditions[2];
+	    	int16_t safety3to5 = safetyConditions[3]*100 + safetyConditions[4]*10+safetyConditions[5];
+	    	int16_t safety6to8 = safetyConditions[6]*100 + safetyConditions[7]*10+safetyConditions[8];
+	    	int16_t safety9to11 = safetyConditions[9]*100 + safetyConditions[10]*10+safetyConditions[11];
+	    	int16_t safety12to14 = safetyConditions[12]*100 + safetyConditions[13]*10+safetyConditions[14];
+	    	rigid1.mn.genVar[3] = (int16_t) (getMotorMode());
+			rigid1.mn.genVar[4] = safety0to2;
+			rigid1.mn.genVar[5] = safety3to5;
+			rigid1.mn.genVar[6] = safety6to8;
+			rigid1.mn.genVar[7] = safety9to11;
+			rigid1.mn.genVar[8] = safety12to14;
+			rigid1.mn.genVar[9] = (int16_t) (actuatorIsCorrect());
+	    }
+	    	break;
 
 
 
@@ -360,6 +377,7 @@ static void updateUserWrites(struct taskmachine_s* tm){
 	    	tm->do_update_learner = 1;
 	    	tm->control_mode = user_data_1.w[1];
 	    break;
+
 	}
 	
 	

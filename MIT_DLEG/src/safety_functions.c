@@ -429,11 +429,11 @@ void checkSafeties(Act_s *actx) {
 void handleSafetyConditions(Act_s *actx) {
 
 	//TODO figure out if MODE_DISABLED should be blocking/ how to do it
-	if (errorConditions[ERROR_MOTOR_ENCODER] != SENSOR_NOMINAL)
-		motorMode = MODE_DISABLED;
+	if (errorConditions[ERROR_MOTOR_ENCODER] != SENSOR_NOMINAL){}
+		//motorMode = MODE_DISABLED; TODO: return to this. right now this is being thrown when we don't want it
 	else if (errorConditions[ERROR_JOINT_ENCODER] ||
-			errorConditions[ERROR_LDC])
-		motorMode = MODE_PASSIVE;
+			errorConditions[ERROR_LDC]){}
+		//motorMode = MODE_PASSIVE;
 	else if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
 			errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL ||
 			actx->currentOpLimit < CURRENT_LIMIT_INIT)
