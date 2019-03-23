@@ -170,11 +170,11 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_ankle_dynamics(actx);
 		update_gait_events();
 		update_kinematics(&rigid->mn,&tm);
-
+		update_statistics_demux(&tm);
 		
 
 		if (tm.do_update_learner){
-			update_statistics_demux(&tm);
+
 			update_learner_demux();
 		}
 

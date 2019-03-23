@@ -286,13 +286,20 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[9] = (int16_t) (get_kinematics()->pAz*SCALE_FACTOR_1000);
 			break;
 	    case GUI_MODE_LEARNING:
+//	    	rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
+//			rigid1.mn.genVar[4] = (int16_t) (get_predictor()->A[0]*get_predictor()->A[73]*get_predictor()->A[146]*get_predictor()->A[219]*get_predictor()->A[292]*get_predictor()->B[0]);
+//			rigid1.mn.genVar[5] = (int16_t) (get_statistics()->pop_k[0]);
+//			rigid1.mn.genVar[6] = (int16_t) (get_statistics()->pop_k[1]);
+//			rigid1.mn.genVar[7] = (int16_t) (get_statistics()->pop_k[2]);
+//			rigid1.mn.genVar[8] = (int16_t) (get_statistics()->pop_k[3]);
+//			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->pop_k[4]);
 			rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
-			rigid1.mn.genVar[4] = (int16_t) (get_predictor()->A[0]*get_predictor()->A[73]*get_predictor()->A[146]*get_predictor()->A[219]*get_predictor()->A[292]*get_predictor()->B[0]);
-			rigid1.mn.genVar[5] = (int16_t) (get_statistics()->pop_k[0]);
-			rigid1.mn.genVar[6] = (int16_t) (get_statistics()->pop_k[1]);
-			rigid1.mn.genVar[7] = (int16_t) (get_statistics()->pop_k[2]);
-			rigid1.mn.genVar[8] = (int16_t) (get_statistics()->pop_k[3]);
-			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->pop_k[4]);
+			rigid1.mn.genVar[4] = (int16_t) (get_back_estimator()->dorsiflexion_ratio*1000.0);
+			rigid1.mn.genVar[5] = (int16_t) (get_back_estimator()->max_stance_theta*10.0);
+			rigid1.mn.genVar[6] = (int16_t) (get_back_estimator()->min_stance_theta*10.0);
+			rigid1.mn.genVar[7] = (int16_t) (get_back_estimator()->mean_late_stance_pitch*1000.0);
+			rigid1.mn.genVar[8] = (int16_t) (get_back_estimator()->passed_us_z_thresh);
+			rigid1.mn.genVar[9] = (int16_t) (get_back_estimator()->passed_ds_z_thresh);
 			break;
 	    case GUI_MODE_FEATURES:
 			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->latest_foot_static_samples);
