@@ -474,13 +474,15 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	//PID around motor torque
-	float tauC = getCompensatorPIDOutput(actx) * voltageGain;
+//	float tauC = getCompensatorPIDOutput(actx);
+
+	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
+	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes) * voltageGain;
+
+
 	//Angle Limit bumpers
 	tauC = tauC + actuateAngleLimits(actx);
 
-
-	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
-//	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes) * voltageGain;
 
 	// Feedforward term
 	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
@@ -537,10 +539,14 @@ float getCompensatorCustomOutput(float tauMeas, float tauRef)
 	e[k] = tauRef - tauMeas;
 //	rigid1.mn.genVar[4] = (int16_t) ( e[k] * 1000);
 
-	y[k] = 1.948*y[k-1] - 0.9483*y[k-2] + 1380.4*( e[k-1] - 0.9811*e[k-2] ) * ( e[k] - 1.982*e[k-1] + 0.9825*e[k-2] );	// Notch Filter, does not go below zero, but otherwise stable.
+//	y[k] = 1.948*y[k-1] - 0.9483*y[k-2] + 1380.4*( e[k-1] - 0.9811*e[k-2] ) * ( e[k] - 1.982*e[k-1] + 0.9825*e[k-2] );	// Notch Filter, does not go below zero, but otherwise stable.
 //	y[k] = 1.01831*y[k-1] - 0.01831*y[k-2] + 4006.6/1000.0*(e[k] - 1.995*e[k-1] + 0.9957*e[k-2]);		// This one drives downwards (negative), but does have positive and negative directionality
 
-	rigid1.mn.genVar[5] = (int16_t) ( y[k]/31.0 *1000);
+	// designed on 3/25/2019
+	y[k] = y[k-1] - 4.132e-15*y[k-2] + e[k] - 1.999*e[k-1] + e[k-2]*0.9993;
+
+
+	rigid1.mn.genVar[5] = (int16_t) ( y[k] *1000);
 	// todo: consider saturating and tracking the saturated torque value inside of here?
 
 	return ( y[k]/31.0) ;
