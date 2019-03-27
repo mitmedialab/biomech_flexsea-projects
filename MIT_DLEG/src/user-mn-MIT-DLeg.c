@@ -288,7 +288,7 @@ void MITDLegFsm1(void)
 				#elif defined(IS_SWEEP_TEST)
 //					float t = fmodf(fsmTime, SECONDS);
 					float t = ((float)(fsmTime)) / ((float)SECONDS);
-					act1.tauDes = torqueSystemIDFrequencySweep(omega, t, amplitude, dcBias, noiseAmp);
+					act1.tauDes = torqueSystemIDFrequencySweep( omega*(2*M_PI), t, amplitude, dcBias, noiseAmp);
 					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 
 				#else
@@ -437,7 +437,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		omega									= ( (float) user_data_1.w[0] ) /100.0;
 		amplitude								= ( (float) user_data_1.w[1] ) /100.0;
 		dcBias									= ( (float) user_data_1.w[2] ) /100.0;
-		noiseAmp								= ( (float) user_data_1.w[3] ) /1000.0;
+		noiseAmp								= ( (float) user_data_1.w[3] ) /100.0;
 
 	#endif
 
