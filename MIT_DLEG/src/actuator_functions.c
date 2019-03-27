@@ -850,7 +850,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 				mitInitCurrentController();
 				isTransition = 0;
 			}
-			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
+//			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
 			lastMotorControl = motorControl;
 //			rigid1.mn.genVar[8] = (int16_t) ( ImA );
 //			rigid1.mn.genVar[9] = (int16_t) ( VmV );
@@ -884,20 +884,47 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
  * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
  */
 float torqueSystemIDFrequencySweep(float omega, float t, float amplitude, float dcBias, float noiseAmp){
-	static float lastOmega = 0;
-	static float signal = 0.0;
-	// todo want this to transition only as sign is increasing, no quick transitions
-//	// only make a transition at a zero crossing and if the input has changed
-//	if (lastOmega != omega)
-//	{
-//		float testCase = fmodf(lastOmega*t, (float)M_PI*2);
-//		//todo: wait to transition to new signal
-//		if ( testCase <= 0.01 )
-//			lastOmega = omega;
-//		else
-//			omega = lastOmega;
-//	}
-	signal = dcBias + amplitude * sinf(omega * ( t  ) ) + noiseAmp*( ((float)rand()) / ((float)RAND_MAX) );
+	static float prevOmega = 0.0, prevAmp = 0., prevDC = 0., prevNoise = 0., lastSignal = 0.0;
+	static float signal = 0.0, testSignal = 0;;
+	static int8_t holdingOnTransition = 0;
+
+
+	// only make a transition at a zero crossing and if the input has changed
+	// Check for Transition
+	if ( (prevOmega != omega) || (prevAmp != amplitude) || (prevDC != dcBias) || (prevNoise != noiseAmp) )
+	{
+		holdingOnTransition = 1;
+		float testCase = fmodf(t, 2*M_PI/omega); //todo: this should be prevOmega, but I was having trouble getting out of 0 condition.
+
+		//if we're at a transition point, now update all values
+		if ( (testCase <= 0.002 ) && testSignal >= 0 )
+		{
+			holdingOnTransition = 0;
+
+			prevOmega = omega;
+			prevAmp = amplitude;
+			prevDC = dcBias;
+			prevNoise = noiseAmp;
+
+		}
+
+		rigid1.mn.genVar[5] = (int16_t) (testCase * 1000.0);
+		rigid1.mn.genVar[6] = (int16_t) prevOmega*1000;
+	}
+
+	// if waiting for an elegant transition, keep going with the prev setting until ready to change over.
+	if (holdingOnTransition == 1)
+	{
+		signal = prevDC + prevAmp * sinf(prevOmega * ( t  ) ) + prevNoise*( ((float)rand()) / ((float)RAND_MAX) );
+	}
+	else
+	{
+		signal = dcBias + amplitude * sinf(omega * ( t  ) ) + noiseAmp*( ((float)rand()) / ((float)RAND_MAX) );
+	}
+
+	testSignal = signal-lastSignal;
+	lastSignal = signal;	// save to test condition in transition
+
 	return ( signal );
 }
 
