@@ -297,6 +297,30 @@
 
 		return result;
 	}
+
+	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher
+	   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 1.0000000000e-02 0.0000000000e+00 -l
+	   Cutoff = 10Hz, 2nd order, Butterworth filter, Sampling at 1000Hz*/
+
+	#define NZEROS 2
+	#define NPOLES 2
+	#define BUTWRTH_FILT_GAIN   1.058546241e+03
+
+	static float xv[NZEROS+1], yv[NPOLES+1];
+
+	float runButterworthFiltMeasurements(float inputVal)
+	{
+		xv[0] = xv[1];
+		xv[1] = xv[2];
+		xv[2] = inputVal / BUTWRTH_FILT_GAIN;
+		yv[0] = yv[1];
+		yv[1] = yv[2];
+		yv[2] =   (xv[0] + xv[2]) + 2 * xv[1]
+					 + ( -0.9149758348 * yv[0]) + (  1.9111970674 * yv[1]);
+		return yv[2];
+
+	}
+
 #endif
 
 

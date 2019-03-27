@@ -193,10 +193,9 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 			axialForce =  FORCE_DIR * (strainReading - tareOffset) * forcePerTick;
 
 			// Filter the signal
-//			axialForce = 0.8*actx->axialForce + 0.2*axialForce;
-//			axialForce = windowAveraging(axialForce);
-			axialForce = runSoftFirFilt(axialForce);
-//			axialForce = mitFirFilter1kHz(axialForce);
+
+//			axialForce = runSoftFirFilt(axialForce);
+			axialForce = runButterworthFiltMeasurements(axialForce);
 
 			break;
 
@@ -477,7 +476,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 //	float tauC = getCompensatorPIDOutput(actx);
 
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
-	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes) * voltageGain;
+	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes);
 
 
 	//Angle Limit bumpers
@@ -510,6 +509,9 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	actx->desiredCurrent = I; 	// demanded mA
 
+	rigid1.mn.genVar[7] = (int16_t) (I);
+
+	//DEBUG TURN OFF TEMPORARILY
 	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
 	//variables used in cmd-rigid offset 5, for multipacket
@@ -529,27 +531,35 @@ float getCompensatorCustomOutput(float tauMeas, float tauRef)
 	static int8_t k = 2;
 
 	// shift previous values into new locations
-	e[k-2] = e[k-1];
-	e[k-1] = e[k];
-
-	y[k-2] = y[k-1];
-	y[k-1] = y[k];
-
+//	e[k-2] = e[k-1];
+//	e[k-1] = e[k];
+//	y[k-2] = y[k-1];
+//	y[k-1] = y[k];
+//
+	e[0] = e[1];
+	e[1] = e[2];
 	// update current state to new values
-	e[k] = tauRef - tauMeas;
-//	rigid1.mn.genVar[4] = (int16_t) ( e[k] * 1000);
+	e[2] = tauRef - tauMeas;
+
+	y[0] = y[1];
+	y[1] = y[2];
 
 //	y[k] = 1.948*y[k-1] - 0.9483*y[k-2] + 1380.4*( e[k-1] - 0.9811*e[k-2] ) * ( e[k] - 1.982*e[k-1] + 0.9825*e[k-2] );	// Notch Filter, does not go below zero, but otherwise stable.
 //	y[k] = 1.01831*y[k-1] - 0.01831*y[k-2] + 4006.6/1000.0*(e[k] - 1.995*e[k-1] + 0.9957*e[k-2]);		// This one drives downwards (negative), but does have positive and negative directionality
 
 	// designed on 3/25/2019
-	y[k] = y[k-1] - 4.132e-15*y[k-2] + e[k] - 1.999*e[k-1] + e[k-2]*0.9993;
+//	y[k] = y[k-1] - 4.132e-15*y[k-2] + e[k] - 1.999*e[k-1] + e[k-2]*0.9993; // very very slow response
+	// designed on 3/26/2019
+//	y[k] = y[k-1] - 4.132e-15*y[k-2] + 3210*e[k] - 6350*e[k-1] + 3140*e[k-2]; // very noisy
+//	y[k] = 1.712*y[k-1] - 0.7117*y[k-2] + 896.1*e[k] - 1780*e[k-1] + 884.2*e[k-2]; // shuts itself off
+//	y[2] = 1.811*y[1] - 0.8106*y[0] + 112.9*e[2] - 223.2*e[1] + 110.3*e[0]; // shuts itself off
+	y[2] = 1.088e-5*y[1] + 945.1*e[2] - 887.7*e[1]; // not stable, keep trying.
 
-
-	rigid1.mn.genVar[5] = (int16_t) ( y[k] *1000);
+	rigid1.mn.genVar[8] = (int16_t) ( e[k] * 10);
+	rigid1.mn.genVar[5] = (int16_t) ( y[k] * 10);
 	// todo: consider saturating and tracking the saturated torque value inside of here?
 
-	return ( y[k]/31.0) ;
+	return ( y[2] );
 
 }
 
@@ -811,7 +821,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	// motor current signal
-	float I = ( 1.0/(MOT_KT * N * N_ETA) * actx->tauDes );		// [A]
+	float I = ( 1.0/(MOT_KT * N ) * actx->tauDes );		// [A]
 	float V = (I * MOT_R) * voltageGain + ( MOT_KT_TOT * actx->motorVel * velGain) + (actx->motCurrDt * MOT_L * indGain ); // [V] this caused major problems? ==> ;
 
 //	rigid1.mn.genVar[5] = (int16_t) ( (I * MOT_R)* voltageGain * CURRENT_SCALAR_INIT );
@@ -866,13 +876,16 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 
 /*
  * Compute where we are in frequency sweep
- * Param: omega(float) - ____ in RADIANS PER SECOND
- * Param: t(float) - time in SECONDS
+ * Param: 	omega		(float) - ____ in RADIANS PER SECOND
+ * Param: 	t			(float) - time in SECONDS
+ * Param:	amplitude	amplitude of input
+ * Param:	dcBias		DC Bias to preload actuator drivetrain
+ * Param:	noiseAmp	noise this is a noise scaling value to put ontop of signal
  * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
  */
-float torqueSystemIDFrequencySweep(float omega, float t, float amplitude){
+float torqueSystemIDFrequencySweep(float omega, float t, float amplitude, float dcBias, float noiseAmp){
 	static float lastOmega = 0;
-
+	static float signal = 0.0;
 	// todo want this to transition only as sign is increasing, no quick transitions
 //	// only make a transition at a zero crossing and if the input has changed
 //	if (lastOmega != omega)
@@ -884,8 +897,8 @@ float torqueSystemIDFrequencySweep(float omega, float t, float amplitude){
 //		else
 //			omega = lastOmega;
 //	}
-
-	return ( amplitude * sinf(omega * ( t  ) ) );
+	signal = dcBias + amplitude * sinf(omega * ( t  ) ) + noiseAmp*( ((float)rand()) / ((float)RAND_MAX) );
+	return ( signal );
 }
 
 /*

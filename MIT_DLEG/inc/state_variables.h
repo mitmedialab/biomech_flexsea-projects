@@ -15,7 +15,8 @@ extern "C" {
 //1. Select joint type
 //#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
 //#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this if using Knee, ankle is slave
-#define IS_ACTUATOR_TESTING
+//#define IS_ACTUATOR_TESTING
+#define IS_SWEEP_TEST
 
 //2. Select device
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01

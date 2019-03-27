@@ -53,6 +53,7 @@ void initSoftFIRFilt(void);
 float runSoftFirFilt(float inputVal);
 void initCircularSoftFIRFilt(void);
 float runCircularSoftFirFilt(float inputVal);
+float runButterworthFiltMeasurements(float inputVal);
 
 //****************************************************************************
 // Definition(s):

@@ -54,32 +54,40 @@ uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
 #define THIS_ACTPACK		0
 #define SLAVE_ACTPACK		1
 
-
-float freqInput 	= 0.0;
-float freqRad 		= 0.0;
-float inputTheta 	= 0.0;
-float inputK 		= 0.0;
-float inputB 		= 0.0;
-float inputTorq 	= 0.0;
-int8_t currentOrVoltage = 0;
+// Initiate some variables that may be used for testing
+#if defined(IS_ACTUATOR_TESTING)
+	float freqInput 	= 0.0;
+	float freqRad 		= 0.0;
+	float inputTheta 	= 0.0;
+	float inputK 		= 0.0;
+	float inputB 		= 0.0;
+	float inputTorq 	= 0.0;
+	int8_t currentOrVoltage = 0;
+#elif defined(IS_SWEEP_TEST)
+	float omega									= 0.0;
+	float amplitude								= 0.0;
+	float dcBias								= 0.0;
+	float noiseAmp								= 0.0;
+#endif
 
 
 int8_t onEntry = 0;
 Act_s act1, act2;
 
 // EXTERNS
-
-extern GainParams ankleGainsEst;
-extern GainParams ankleGainsMst;
-extern GainParams ankleGainsLst;
-extern GainParams ankleGainsEsw;
-extern GainParams ankleGainsLsw;
-
-extern GainParams kneeGainsEst;
-extern GainParams kneeGainsMst;
-extern GainParams kneeGainsLst;
-extern GainParams kneeGainsEsw;
-extern GainParams kneeGainsLsw;
+#if defined(IS_ANKLE)
+	extern GainParams ankleGainsEst;
+	extern GainParams ankleGainsMst;
+	extern GainParams ankleGainsLst;
+	extern GainParams ankleGainsEsw;
+	extern GainParams ankleGainsLsw;
+#elif defined(IS_KNEE)
+	extern GainParams kneeGainsEst;
+	extern GainParams kneeGainsMst;
+	extern GainParams kneeGainsLst;
+	extern GainParams kneeGainsEsw;
+	extern GainParams kneeGainsLsw;
+#endif
 
 extern uint8_t calibrationFlags, calibrationNew;
 extern int32_t currentOpLimit;
@@ -139,8 +147,8 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
 //	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
 //	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
-	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+//	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
+//	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
@@ -275,11 +283,19 @@ void MITDLegFsm1(void)
 						float tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 						act1.tauDes = tor;
 					}
+					setMotorTorque( &act1, act1.tauDes);
+
+				#elif defined(IS_SWEEP_TEST)
+//					float t = fmodf(fsmTime, SECONDS);
+					float t = ((float)(fsmTime)) / ((float)SECONDS);
+					act1.tauDes = torqueSystemIDFrequencySweep(omega, t, amplitude, dcBias, noiseAmp);
+					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 
 				#else
 					setKneeAnkleFlatGroundFSM(&act1);
-				#endif
 					setMotorTorque( &act1, act1.tauDes);
+
+				#endif
 
 
 
@@ -417,6 +433,12 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		torqueKd								= ( (float) user_data_1.w[5] ) /1000.0;
 		inputTorq								= ( (float) user_data_1.w[6] ) /100.0;
 		errorKi									= ( (float) user_data_1.w[7] ) /1000.0;
+	#elif defined(IS_SWEEP_TEST)
+		omega									= ( (float) user_data_1.w[0] ) /100.0;
+		amplitude								= ( (float) user_data_1.w[1] ) /100.0;
+		dcBias									= ( (float) user_data_1.w[2] ) /100.0;
+		noiseAmp								= ( (float) user_data_1.w[3] ) /1000.0;
+
 	#endif
 
 }
@@ -483,6 +505,12 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	torqueKd								= 0.0;
 	inputTorq								= 0.0;
 	errorKi									=0.0;
+#elif defined(IS_SWEEP_TEST)
+	omega									= 0.0;
+	amplitude								= 0.0;
+	dcBias									= 0.0;
+	noiseAmp								= 0.0;
+
 #endif
 
 
