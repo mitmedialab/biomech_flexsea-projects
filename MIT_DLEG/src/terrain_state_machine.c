@@ -97,13 +97,13 @@ static void set_next_theta_for_minimum_jerk(Act_s* actx){
 		mj.params[4]*t4 + mj.params[5]*t5;
 }
 
-static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b) {
-	actx->tauDes = k * (des_theta - actx->jointAngle) - b * actx->jointVel ;
+static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float scale_factor) {
+	actx->tauDes = scale_factor * (k * (des_theta - actx->jointAngle) - b * actx->jointVel );
 	setMotorTorque(actx, actx->tauDes);
 }
 
-static void set_joint_torque_with_hardstop(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float hs_theta, float hs_k) {
-	actx->tauDes = k * (des_theta - tm->aa*RAD_PER_DEG) - b * tm->aa_dot ;
+static void set_joint_torque_with_hardstop(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float hs_theta, float hs_k, float scale_factor) {
+	actx->tauDes = scale_factor * (k * (des_theta - tm->aa*RAD_PER_DEG) - b * tm->aa_dot );
 	if (tm->aa*RAD_PER_DEG < hs_theta){
 		actx->tauDes = actx->tauDes - hs_k*(tm->aa*RAD_PER_DEG - hs_theta);
 	}
@@ -276,23 +276,24 @@ void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain){
 
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int terrain_mode){
 static int sample_counter = 0;
+static float lst_tics = 0.0;
 static int on_entry = 0;
 static int prev_state_machine_demux_state = STATE_ESW;
 static float stance_entry_theta_rad = 0.0;
 
 if (terrain_mode == MODE_NOMINAL){
-	set_joint_torque(actx, tm, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps);
+	set_joint_torque(actx, tm, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps,1.0);
 	return;
 }else if (terrain_mode == MODE_POSITION){
 	if (mj.enabled){
 		if (mj.update_counter < mj.total_trajectory_updates){
 				set_next_theta_for_minimum_jerk(actx);
-				set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+				set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
 		}else{
 				set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.0);
 		}
 	}else{
-		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
 	}
 	return;
 }
@@ -312,7 +313,7 @@ switch (state_machine_demux_state){
 		// 			set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, PREDICTION_CUTOFF_SAMPLES/1000.0);
 		// 	}
 		// }else{
-			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
 		// }
 
         if (tm->gait_event_trigger == GAIT_EVENT_WINDOW_CLOSE){
@@ -329,7 +330,7 @@ switch (state_machine_demux_state){
 		// 			set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0, 0.001);
 		// 	}
 		// }else{
-			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
+			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
 		// }
 
     	//Transition condition should be, you have a certain velocity of the ankle joint opposing the direction of the torque??
@@ -341,7 +342,7 @@ switch (state_machine_demux_state){
 
     break;
     case STATE_EST:
-        set_joint_torque_with_hardstop(actx, tm, stance_entry_theta_rad, cp.active.est_k_Nm_p_rad, cp.active.est_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad);
+        set_joint_torque_with_hardstop(actx, tm, stance_entry_theta_rad, cp.active.est_k_Nm_p_rad, cp.active.est_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad,1.0);
 
        if (actx->jointAngle < cp.active.hard_stop_theta_rad - cp.active.est_lst_min_theta_rad){
        	state_machine_demux_state = STATE_LST;
@@ -352,6 +353,18 @@ switch (state_machine_demux_state){
 //    	if (on_entry){
 //
 //    	}
+
+
+    	if (on_entry) {
+    		lst_tics = 0;
+    	}
+
+		// This is the scaling factor for ramping into powered pushoff
+		if (lst_tics < DEFAULT_LST_DELAY_TICS){
+			lst_tics++;
+		}
+
+
   //   	if (mj.enabled){
 		// 	if (mj.update_counter < mj.total_trajectory_updates){
 		// 			set_next_theta_for_minimum_jerk(actx);
@@ -360,7 +373,7 @@ switch (state_machine_demux_state){
 		// 			set_minimum_jerk_trajectory_params(actx, cp.active.lst_theta_rad, 0.0, 0.0);
 		// 	}
 		// }else{
-    	set_joint_torque_with_hardstop(actx, tm, cp.active.lst_theta_rad, cp.active.lst_k_Nm_p_rad, cp.active.lst_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad);
+    	set_joint_torque_with_hardstop(actx, tm, cp.active.lst_theta_rad, cp.active.lst_k_Nm_p_rad, cp.active.lst_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad, lst_tics/DEFAULT_LST_DELAY_TICS);
 		// }
 
    	 	if (tm->in_swing){

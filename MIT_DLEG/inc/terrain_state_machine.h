@@ -13,6 +13,7 @@
 //#define DEFAULT_SW_K_NM_P_RAD 1000.0
 #define DEFAULT_SW_K_NM_P_RAD 2.5/RAD_PER_DEG
 #define DEFAULT_SW_B_NM_P_RPS 0.4/RAD_PER_DEG
+#define DEFAULT_LST_DELAY_TICS 70.0
 
 #define DEFAULT_NOMINAL_K_NM_P_RAD 100.0
 #define DEFAULT_NOMINAL_B_NM_P_RPS 20.0
@@ -109,11 +110,13 @@ static struct nominal_control_params_s
 
 static struct active_control_params_s
 {
+	//Terrain independent params
 	float esw_theta_rad;
 	float sw_k_Nm_p_rad;
 	float sw_b_Nm_p_rps;
-	//uint16_t esw_lsw_min_samples;
+	float lst_delay_tics;
 
+	//Terrain dependent params
 	float hard_stop_theta_rad;
 	float hard_stop_k_Nm_p_rad;
 	
