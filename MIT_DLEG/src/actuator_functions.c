@@ -416,6 +416,7 @@ float noLoadCurrent(float desCurr) {
  */
 void setMotorTorque(struct act_s *actx, float tauDes)
 {
+
 	//Angle Limit bumpers
 	actx->tauDes = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
@@ -425,16 +426,18 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	// Error is done at the motor. todo: could be done at the joint, messes with our gains.
 	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
+
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
 	tauErrInt = tauErrInt + tauErr;				// [Nm]
 	tauErrLast = tauErr;
 
+
 	//PID around motor torque
 	float tauC = tauErr*torqueKp + tauErrDot*torqueKd + tauErrInt*torqueKi;	// torq Compensator
 
+
 	// Feedforward term
 	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
-
 
 	float tauCCombined = tauC + tauFF;
 

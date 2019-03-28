@@ -119,6 +119,10 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[3] = (int16_t) (emgData[2]);
 	  rigid1.mn.genVar[4] = (int16_t) (emgData[3]);
 	  rigid1.mn.genVar[5] = (int16_t) (emgData[4]);
+	  rigid1.mn.genVar[6] = (int16_t) (act1.tauDes*100);
+	  rigid1.mn.genVar[7] = (int16_t) (act1.desiredJointAngleDeg);
+	  rigid1.mn.genVar[8] = (int16_t) (act1.motorOnFlag);
+	  rigid1.mn.genVar[9] = (int16_t) (act1.jointAngleDegrees*100);
 
     //begin main FSM
 	switch(fsm1State)
@@ -145,9 +149,9 @@ void MITDLegFsm1(void)
 				#ifndef NO_DEVICE
 					fsm1State = STATE_FIND_POLES;
 				#else
-//					fsm1State = STATE_DEBUG;
+					fsm1State = STATE_DEBUG;
 					///DEBUG TODO CHANGE THIS FOR REAL TESTING
-					fsm1State = STATE_FIND_POLES;
+//					fsm1State = STATE_FIND_POLES;
 				#endif
 				act1.currentOpLimit = CURRENT_LIMIT_INIT;
 				onEntry = 1;
@@ -160,11 +164,12 @@ void MITDLegFsm1(void)
 		case STATE_FIND_POLES:
 
 			///DEBUG TODO CHANGE THIS BACK TO !actuatorIsCorrect(&act1)
-			if (actuatorIsCorrect(&act1)){
+			if (!actuatorIsCorrect(&act1)){
 				setLEDStatus(0,0,1); //flash red; needs reset
 			} else{
 				if (onEntry) {
 					// odroid turns on findpoles. If odroid never initiates pole finding, fsm will hang here.
+					calibrationFlags = 1, calibrationNew = 1;
 					isEnabledUpdateSensors = 0;
 					onEntry = 0;
 				}
@@ -189,13 +194,6 @@ void MITDLegFsm1(void)
 			mitInitCurrentController();		//initialize Current Controller with gains
 //					setControlMode(CTRL_OPEN, 0);		//open control for alternative testing
 
-
-			//Set usewrites to initial values
-			walkParams.initializedStateMachineVariables = 0;
-			if (!walkParams.initializedStateMachineVariables){
-				initializeUserWrites(&act1, &walkParams);
-
-			}
 
 			//absolute torque limit scaling factor TODO: possibly remove
 			act1.safetyTorqueScalar = 1.0;
