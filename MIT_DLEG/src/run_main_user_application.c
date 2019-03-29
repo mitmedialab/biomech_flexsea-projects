@@ -12,5 +12,5 @@
 #include "task_machine.h"
 
 void runMainUserApplication(struct rigid_s* rigid, Act_s *actx){
-//	task_machine_demux(rigid, actx);
+	task_machine_demux(rigid, actx);
 }

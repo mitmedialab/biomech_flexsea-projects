@@ -98,7 +98,7 @@ static void set_next_theta_for_minimum_jerk(Act_s* actx){
 }
 
 static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float scale_factor) {
-	actx->tauDes = scale_factor * (k * (des_theta - actx->jointAngle) - b * actx->jointVel );
+	actx->tauDes = scale_factor * (k * (des_theta - tm->aa*RAD_PER_DEG) - b * tm->aa_dot );
 	setMotorTorque(actx, actx->tauDes);
 }
 
@@ -304,17 +304,17 @@ switch (state_machine_demux_state){
 	case STATE_ESW:
 		if (on_entry)
 			sample_counter = 0;
-		// if (mj.enabled){
-		// 	if (mj.update_counter < mj.total_trajectory_updates){
-		// 			set_next_theta_for_minimum_jerk(actx);
-		// 			set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps);
-		// 	}else if (!mj.trajectory_defined){
-		// 			mj.trajectory_defined = 1;
-		// 			set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, PREDICTION_CUTOFF_SAMPLES/1000.0);
-		// 	}
-		// }else{
+		 if (mj.enabled){
+		 	if (mj.update_counter < mj.total_trajectory_updates){
+		 			set_next_theta_for_minimum_jerk(actx);
+		 			set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
+		 	}else if (!mj.trajectory_defined){
+		 			mj.trajectory_defined = 1;
+		 			set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, PREDICTION_CUTOFF_SAMPLES/1000.0);
+		 	}
+		 }else{
 			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
-		// }
+		 }
 
         if (tm->gait_event_trigger == GAIT_EVENT_WINDOW_CLOSE){
         	state_machine_demux_state = STATE_LSW;
