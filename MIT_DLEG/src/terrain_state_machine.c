@@ -25,6 +25,7 @@ static void init_adaptive_control_params_s()
 	cp.adaptive.lst_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
 
 	cp.adaptive.est_lst_min_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
+	cp.adaptive.lst_engagement_tq_Nm = (float*)calloc(N_CLASSES,sizeof(float));
 
 
 
@@ -125,6 +126,7 @@ static void set_control_params_for_terrain(int terrain){
 	cp.active.lst_theta_rad = cp.adaptive.lst_theta_rad[terrain];
 
 	cp.active.est_lst_min_theta_rad = cp.adaptive.est_lst_min_theta_rad[terrain];
+	cp.active.lst_engagement_tq_Nm = cp.adaptive.lst_engagement_tq_Nm[terrain];
 }
 
 void reset_terrain_state_machine_parameters(){
@@ -181,6 +183,13 @@ void reset_terrain_state_machine_parameters(){
 	cp.adaptive.est_lst_min_theta_rad[K_DRAMP] = DEFAULT_DRAMP_EST_LST_MIN_THETA_RAD;
 	cp.adaptive.est_lst_min_theta_rad[K_USTAIRS] = DEFAULT_USTAIRS_EST_LST_MIN_THETA_RAD;
 	cp.adaptive.est_lst_min_theta_rad[K_DSTAIRS] = DEFAULT_DSTAIRS_EST_LST_MIN_THETA_RAD;
+
+	//TO DO: have different values for the different terrains here.
+	cp.adaptive.lst_engagement_tq_Nm[K_FLAT] = DEFAULT_FLAT_LST_ENGAGEMENT_TQ;
+	cp.adaptive.lst_engagement_tq_Nm[K_URAMP] = DEFAULT_FLAT_LST_ENGAGEMENT_TQ;
+	cp.adaptive.lst_engagement_tq_Nm[K_DRAMP] = DEFAULT_FLAT_LST_ENGAGEMENT_TQ;
+	cp.adaptive.lst_engagement_tq_Nm[K_USTAIRS] = DEFAULT_FLAT_LST_ENGAGEMENT_TQ;
+	cp.adaptive.lst_engagement_tq_Nm[K_DSTAIRS] = DEFAULT_FLAT_LST_ENGAGEMENT_TQ;
 
 	cp.active.esw_theta_rad = DEFAULT_ESW_THETA_RAD;
 	cp.active.sw_k_Nm_p_rad = DEFAULT_SW_K_NM_P_RAD;
@@ -273,6 +282,9 @@ void set_lst_theta_rad(float lst_theta_rad, int terrain){
 void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain){
 	cp.adaptive.est_lst_min_theta_rad[terrain] = est_lst_min_theta_rad;
 }
+void set_lst_engagement_tq_Nm(float lst_engagement_tq_Nm, int terrain){
+	cp.adaptive.lst_engagement_tq_Nm[terrain] = lst_engagement_tq_Nm;
+}
 
 
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int terrain_mode){
@@ -359,9 +371,10 @@ switch (state_machine_demux_state){
     case STATE_EST:
         set_joint_torque_with_hardstop(actx, tm, stance_entry_theta_rad, cp.active.est_k_Nm_p_rad, cp.active.est_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad,1.0);
 
-       if (actx->jointAngle < cp.active.hard_stop_theta_rad - cp.active.est_lst_min_theta_rad){
-       	state_machine_demux_state = STATE_LST;
-       }
+       //if (actx->jointAngle < cp.active.hard_stop_theta_rad - cp.active.est_lst_min_theta_rad){
+       	if (actx->jointTorque > cp.active.lst_engagement_tq_Nm)
+       		state_machine_demux_state = STATE_LST;
+
 
     break;
     case STATE_LST:

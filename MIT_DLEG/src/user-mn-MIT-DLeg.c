@@ -98,8 +98,10 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 	    	user_data_1.w[6] = (int32_t)(get_control_params()->adaptive.lst_k_Nm_p_rad[tm->control_mode]);
 	    	user_data_1.w[7] = (int32_t)(get_control_params()->adaptive.lst_b_Nm_p_rps[tm->control_mode]);
 	    	user_data_1.w[8] = (int32_t)(get_control_params()->adaptive.lst_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
-	    	user_data_1.w[9] = (int32_t)(get_control_params()->adaptive.est_lst_min_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
-		break;
+	    	//user_data_1.w[9] = (int32_t)(get_control_params()->adaptive.est_lst_min_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(get_control_params()->adaptive.lst_engagement_tq_Nm[tm->control_mode]);
+
+	    break;
 		case GUI_MODE_NOM_CONTROL_PARAMS:
 		case GUI_MODE_NOM_CONTROL_METRICS:
 			tm->control_mode = MODE_NOMINAL;
@@ -246,7 +248,8 @@ static void updateGenVars(struct taskmachine_s* tm){
 	    	rigid1.mn.genVar[6] = (int16_t)(get_control_params()->adaptive.lst_k_Nm_p_rad[tm->control_mode]);
 	    	rigid1.mn.genVar[7] = (int16_t)(get_control_params()->adaptive.lst_b_Nm_p_rps[tm->control_mode]);
 	    	rigid1.mn.genVar[8] = (int16_t)(get_control_params()->adaptive.lst_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
-	    	rigid1.mn.genVar[9] = (int16_t)(get_control_params()->adaptive.est_lst_min_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	//rigid1.mn.genVar[9] = (int16_t)(get_control_params()->adaptive.est_lst_min_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	rigid1.mn.genVar[9] = (int16_t)(get_control_params()->adaptive.lst_engagement_tq_Nm[tm->control_mode]);
 
 		break;
 	    case GUI_MODE_NOM_CONTROL_PARAMS: //9
@@ -382,7 +385,8 @@ static void updateUserWrites(struct taskmachine_s* tm){
 			set_lst_k_Nm_p_rad((float) user_data_1.w[6], tm->control_mode);
 			set_lst_b_Nm_p_rps((float) user_data_1.w[7], tm->control_mode);
 			set_lst_theta_rad((float) user_data_1.w[8]/SCALE_FACTOR_10000, tm->control_mode);
-			set_est_lst_min_theta_rad((float) user_data_1.w[9]/SCALE_FACTOR_10000, tm->control_mode);
+			//set_est_lst_min_theta_rad((float) user_data_1.w[9]/SCALE_FACTOR_10000, tm->control_mode);
+			set_lst_engagement_tq_Nm((float) user_data_1.w[9], tm->control_mode);
 		break;
 		case GUI_MODE_NOM_CONTROL_PARAMS:
 		case GUI_MODE_NOM_CONTROL_METRICS:

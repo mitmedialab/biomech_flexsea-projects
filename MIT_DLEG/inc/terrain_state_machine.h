@@ -23,7 +23,7 @@
 #define DEFAULT_ESW_THETA_RAD 0.0
 
 #define DEFAULT_FLAT_HS_THETA_RAD -0.08
-#define DEFAULT_FLAT_HS_K_NM_P_RAD 500.0
+#define DEFAULT_FLAT_HS_K_NM_P_RAD 200.0
 #define DEFAULT_FLAT_LSW_THETA_RAD -0.03
 #define DEFAULT_FLAT_EST_K_NM_P_RAD 86.0
 #define DEFAULT_FLAT_EST_B_NM_P_RPS 17.0
@@ -31,6 +31,7 @@
 #define DEFAULT_FLAT_LST_B_NM_P_RPS 11.5
 #define DEFAULT_FLAT_LST_THETA_RAD 0.26
 #define DEFAULT_FLAT_EST_LST_MIN_THETA_RAD 0.05
+#define DEFAULT_FLAT_LST_ENGAGEMENT_TQ 74.0
 
 #define DEFAULT_URAMP_HS_THETA_RAD -0.19
 #define DEFAULT_URAMP_HS_K_NM_P_RAD 500.0
@@ -97,6 +98,7 @@ void set_lst_k_Nm_p_rad(float lst_k_Nm_p_rad, int terrain);
 void set_lst_b_Nm_p_rps(float lst_b_Nm_p_rps, int terrain);
 void set_lst_theta_rad(float lst_theta_rad, int terrain);
 void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain);
+void set_lst_engagement_tq_Nm(float lst_engagement_tq_Nm, int terrain);
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int current_terrain);
 void init_terrain_state_machine();
 void reset_terrain_state_machine_parameters();
@@ -130,6 +132,7 @@ static struct active_control_params_s
 	float lst_theta_rad;
 
 	float est_lst_min_theta_rad;
+	float lst_engagement_tq_Nm;
 	// uint16_t lst_esw_min_low_torque_samples;
 
 };
@@ -148,6 +151,7 @@ static struct terrain_dependent_control_params_s
 	float* lst_theta_rad;
 
 	float* est_lst_min_theta_rad;
+	float* lst_engagement_tq_Nm;
 
 };
 

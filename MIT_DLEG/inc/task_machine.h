@@ -12,7 +12,7 @@
 #include "terrain_state_machine.h"
 
  //Gait event thresholds
-#define MIN_TQ_FOR_FOOT_ON 3.0
+#define MIN_TQ_FOR_FOOT_ON 5.0
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 50
 #define PREDICTION_CUTOFF_SAMPLES 250.0
 
