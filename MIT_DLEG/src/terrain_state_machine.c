@@ -306,18 +306,23 @@ switch (state_machine_demux_state){
 		if (on_entry){
 			sample_counter = 0;
 			mj.trajectory_defined = 0;
+			lst_tics = 0;
 		}
-		 if (mj.enabled){
-		 	if (mj.update_counter < mj.total_trajectory_updates){
-		 			set_next_theta_for_minimum_jerk(actx);
-		 			set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
-		 	}else if (!mj.trajectory_defined){
-		 			mj.trajectory_defined = 1;
-		 			set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.2);
-		 	}
-		 }else{
-			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
-		 }
+
+			if (lst_tics < DEFAULT_LST_DELAY_TICS){
+				lst_tics++;
+			}
+//		 if (mj.enabled){
+//		 	if (mj.update_counter < mj.total_trajectory_updates){
+//		 			set_next_theta_for_minimum_jerk(actx);
+//		 			set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
+//		 	}else if (!mj.trajectory_defined){
+//		 			mj.trajectory_defined = 1;
+//		 			set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.2);
+//		 	}
+//		 }else{
+			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,lst_tics/DEFAULT_LST_DELAY_TICS);
+//		 }
 
         if (tm->gait_event_trigger == GAIT_EVENT_WINDOW_CLOSE){
         	state_machine_demux_state = STATE_LSW;
@@ -325,6 +330,9 @@ switch (state_machine_demux_state){
         
     break;
     case STATE_LSW:
+    	if (on_entry){
+    		lst_tics = 0;
+    	}
   //   	if (mj.enabled){
 		// 	if (mj.update_counter < mj.total_trajectory_updates){
 		// 			set_next_theta_for_minimum_jerk(actx);
@@ -333,7 +341,11 @@ switch (state_machine_demux_state){
 		// 			set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0, 0.001);
 		// 	}
 		// }else{
-			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
+    	if (lst_tics < DEFAULT_LST_DELAY_TICS){
+			lst_tics++;
+    	}
+
+			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,lst_tics/DEFAULT_LST_DELAY_TICS);
 		// }
 
     	//Transition condition should be, you have a certain velocity of the ankle joint opposing the direction of the torque??
