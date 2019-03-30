@@ -67,7 +67,7 @@ static float set_minimum_jerk_trajectory_params(Act_s* actx, float theta_target,
 	
 
 	mj.params[0] = actx->jointAngle;
-	mj.params[1] = 0.0;
+	mj.params[1] = actx->jointVel;
 	mj.params[2] = 0.0;
 
 	float b3 = mj.theta_target - actx->jointAngle - mj.T[1]*mj.params[1] - 0.5*mj.T[2]*mj.params[2];
@@ -185,6 +185,7 @@ void reset_terrain_state_machine_parameters(){
 	cp.active.esw_theta_rad = DEFAULT_ESW_THETA_RAD;
 	cp.active.sw_k_Nm_p_rad = DEFAULT_SW_K_NM_P_RAD;
 	cp.active.sw_b_Nm_p_rps = DEFAULT_SW_B_NM_P_RPS;
+	cp.active.desired_trajectory_period_s = DEFAULT_DESIRED_TRAJECTORY_PERIOD_S;
 
 	cp.nominal.theta_rad = DEFAULT_NOMINAL_THETA_RAD;
 	cp.nominal.k_Nm_p_rad = DEFAULT_NOMINAL_K_NM_P_RAD;
@@ -302,15 +303,17 @@ set_control_params_for_terrain(terrain_mode);
 switch (state_machine_demux_state){
 	
 	case STATE_ESW:
-		if (on_entry)
+		if (on_entry){
 			sample_counter = 0;
+			mj.trajectory_defined = 0;
+		}
 		 if (mj.enabled){
 		 	if (mj.update_counter < mj.total_trajectory_updates){
 		 			set_next_theta_for_minimum_jerk(actx);
 		 			set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
 		 	}else if (!mj.trajectory_defined){
 		 			mj.trajectory_defined = 1;
-		 			set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, PREDICTION_CUTOFF_SAMPLES/1000.0);
+		 			set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.2);
 		 	}
 		 }else{
 			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);

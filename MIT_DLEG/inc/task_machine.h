@@ -8,6 +8,7 @@
 #include "user-mn-MIT-DLeg.h"
 #include <stdio.h>
 #include <math.h>
+#include <float.h>
 #include "terrain_state_machine.h"
 
  //Gait event thresholds
@@ -70,6 +71,7 @@ struct taskmachine_s
     int low_torque_counter;
 
     float tq;
+    float max_tq;
     float tq_dot;
     float aa;
     float aa_dot;
@@ -96,9 +98,6 @@ struct taskmachine_s
     bool heelstrike_angle_within_bounds;
     bool peak_power_timing_within_bounds;
 
-
-    //subject specific params
-    float weight_kg;
 
     int est_pred_correct; //used as combined variable holding k_est (hundreds), k_pred (tens), and correctness (ones). ex. 441 or 430
 

@@ -18,6 +18,7 @@
 #define DEFAULT_NOMINAL_K_NM_P_RAD 150.0
 #define DEFAULT_NOMINAL_B_NM_P_RPS 30.0
 #define DEFAULT_NOMINAL_THETA_RAD 0.0
+#define DEFAULT_DESIRED_TRAJECTORY_PERIOD_S 0.250
 
 #define DEFAULT_ESW_THETA_RAD 0.0
 
@@ -114,6 +115,7 @@ static struct active_control_params_s
 	float esw_theta_rad;
 	float sw_k_Nm_p_rad;
 	float sw_b_Nm_p_rps;
+	float desired_trajectory_period_s;
 	float lst_delay_tics;
 
 	//Terrain dependent params

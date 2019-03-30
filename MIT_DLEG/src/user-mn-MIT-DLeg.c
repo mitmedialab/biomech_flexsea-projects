@@ -119,6 +119,7 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 		case GUI_MODE_GAIT_EVENTS:
 		case GUI_MODE_KINEMATICS:
 	    case GUI_MODE_LEARNING:
+	    case GUI_MODE_BACK_ESTIMATION:
 	    	user_data_1.w[1] = tm->control_mode;
 	    break;
 	}
@@ -214,6 +215,7 @@ static void initializeUserWrites(struct taskmachine_s* tm){
 		case GUI_MODE_GAIT_EVENTS:
 		case GUI_MODE_KINEMATICS:
 	    case GUI_MODE_LEARNING:
+	    case GUI_MODE_BACK_ESTIMATION:
 	    	user_data_1.w[1] = tm->control_mode;
 	    break;
 	}
@@ -295,23 +297,25 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->pAy*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[9] = (int16_t) (get_kinematics()->pAz*SCALE_FACTOR_1000);
 			break;
-	    case GUI_MODE_LEARNING: //16
-//	    	rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
-//			rigid1.mn.genVar[4] = (int16_t) (get_predictor()->A[0]*get_predictor()->A[73]*get_predictor()->A[146]*get_predictor()->A[219]*get_predictor()->A[292]*get_predictor()->B[0]);
-//			rigid1.mn.genVar[5] = (int16_t) (get_statistics()->pop_k[0]);
-//			rigid1.mn.genVar[6] = (int16_t) (get_statistics()->pop_k[1]);
-//			rigid1.mn.genVar[7] = (int16_t) (get_statistics()->pop_k[2]);
-//			rigid1.mn.genVar[8] = (int16_t) (get_statistics()->pop_k[3]);
-//			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->pop_k[4]);
+	    case GUI_MODE_BACK_ESTIMATION: //16
 			rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
 			rigid1.mn.genVar[4] = (int16_t) (get_back_estimator()->dorsiflexion_ratio*SCALE_FACTOR_1000);
-			rigid1.mn.genVar[5] = (int16_t) (get_back_estimator()->max_stance_theta*10.0);
+			rigid1.mn.genVar[5] = (int16_t) (get_task_machine()->in_swing*1.0);
 			rigid1.mn.genVar[6] = (int16_t) (get_back_estimator()->min_stance_theta*10.0);
 			rigid1.mn.genVar[7] = (int16_t) (get_back_estimator()->mean_late_stance_pitch*SCALE_FACTOR_1000);
 			rigid1.mn.genVar[8] = (int16_t) (get_back_estimator()->passed_us_z_thresh);
 			rigid1.mn.genVar[9] = (int16_t) (get_back_estimator()->passed_ds_z_thresh);
 			break;
-	    case GUI_MODE_FEATURES: //17
+	    case GUI_MODE_LEARNING: //17
+			rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
+			rigid1.mn.genVar[4] = (int16_t) (get_predictor()->A[0]*get_predictor()->A[73]*get_predictor()->A[146]*get_predictor()->A[219]*get_predictor()->A[292]*get_predictor()->B[0]);
+			rigid1.mn.genVar[5] = (int16_t) (get_statistics()->pop_k[0]);
+			rigid1.mn.genVar[6] = (int16_t) (get_statistics()->pop_k[1]);
+			rigid1.mn.genVar[7] = (int16_t) (get_statistics()->pop_k[2]);
+			rigid1.mn.genVar[8] = (int16_t) (get_statistics()->pop_k[3]);
+			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->pop_k[4]);
+	   			break;
+	    case GUI_MODE_FEATURES: //18
 			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->latest_foot_static_samples);
 			rigid1.mn.genVar[4] = (int16_t) (tm->latest_foot_off_samples);
 			rigid1.mn.genVar[5] = (int16_t) (tm->do_learning_for_stride);
@@ -320,7 +324,7 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[8] = (int16_t) (get_curr_features()->rng[2]);
 			rigid1.mn.genVar[9] = (int16_t) (get_curr_features()->fin[3]);
 			break;
-	    case GUI_MODE_SAFETY: //18
+	    case GUI_MODE_SAFETY: //19
 	    {
 	    	int8_t* safetyConditions = getSafetyConditions();
 	    	int16_t safety0to2 = safetyConditions[0]*100 + safetyConditions[1]*10+safetyConditions[2];
@@ -400,6 +404,7 @@ static void updateUserWrites(struct taskmachine_s* tm){
 		case GUI_MODE_ADAPTIVE_CONTROL: //Consider enabling learning here? Needs to be tested first.
 		case GUI_MODE_GAIT_EVENTS:
 		case GUI_MODE_KINEMATICS:
+		case GUI_MODE_BACK_ESTIMATION:
 			tm->do_update_learner = 0;
 			tm->control_mode = user_data_1.w[1];
 	    break;

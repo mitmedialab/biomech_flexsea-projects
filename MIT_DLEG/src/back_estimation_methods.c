@@ -7,15 +7,13 @@
 #define US_Z_MAX_SAMPLES  200
 #define DS_Z_MAX_SAMPLES  400
 #define DS_Z_MIN_SAMPLES  100
-#define UR_MAX_ANKLE_ANGLE_DEG  -10.0
-#define DR_MIN_ANKLE_ANGLE_DEG  1.0
+#define UR_MAX_ANKLE_ANGLE_RAD  -0.15
 #define US_MIN_SIN_SQ_ATTACK_ANGLE_RAD  0.2
-#define MAX_DORSIFLEXION_ANGLE_DEG  -3.0
-#define MIN_DORSIFLEXION_ANGLE_DEG  -10.0
-#define LATE_STANCE_TORQUE_THRESHOLD_NM  10.0
-#define DR_MIN_MEAN_LATE_STANCE_PITCH_RAD  0.15
-#define UR_MIN_DORSIFLEXION_RATIO 0.8
-#define UR_MIN_MEAN_LATE_STANCE_PITCH_RAD 0.0
+#define MAX_DORSIFLEXION_ANGLE_RAD  -0.05
+#define TORQUE_THRESHOLD_NM  10.0
+#define MAX_TORQUE_DIFF_THRESHOLD_NM 20.0
+#define DR_MIN_MEAN_LATE_STANCE_PITCH_RAD 0.08
+#define UR_MIN_DORSIFLEXION_RATIO 0.7
 
 
 static struct back_estimator_s be;
@@ -41,8 +39,7 @@ void back_estimate(struct taskmachine_s* tm, struct statistics_s* stats){
 	       return;
 	}
 
-	if (be.max_stance_theta > DR_MIN_ANKLE_ANGLE_DEG &&
-			be.mean_late_stance_pitch > DR_MIN_MEAN_LATE_STANCE_PITCH_RAD){
+	if (be.mean_late_stance_pitch > DR_MIN_MEAN_LATE_STANCE_PITCH_RAD){
 	    stats->k_est = K_DRAMP;
 	    return;
 	}
@@ -54,8 +51,7 @@ void back_estimate(struct taskmachine_s* tm, struct statistics_s* stats){
 	       return;
 	}
 
-	if (be.min_stance_theta < UR_MAX_ANKLE_ANGLE_DEG &&
-			(be.dorsiflexion_ratio > UR_MIN_DORSIFLEXION_RATIO || be.mean_late_stance_pitch < UR_MIN_MEAN_LATE_STANCE_PITCH_RAD )){
+	if (be.dorsiflexion_ratio > UR_MIN_DORSIFLEXION_RATIO && be.min_stance_theta*RAD_PER_DEG < UR_MAX_ANKLE_ANGLE_RAD ){
 	    stats->k_est = K_URAMP;
 	    return;
 	    }
@@ -67,11 +63,11 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 {
 	if (!tm->in_swing){
 
-		if (tm->aa < MAX_DORSIFLEXION_ANGLE_DEG)
+		if (tm->aa*RAD_PER_DEG < MAX_DORSIFLEXION_ANGLE_RAD)
 			be.dorsiflexion_counter = be.dorsiflexion_counter + 1;
 
-		if (tm->tq > LATE_STANCE_TORQUE_THRESHOLD_NM && tm->aa < MAX_DORSIFLEXION_ANGLE_DEG && tm->aa > MIN_DORSIFLEXION_ANGLE_DEG){
-			be.sum_late_stance_pitch = be.sum_late_stance_pitch + kin->rot3;
+		if (tm->max_tq - tm->tq < MAX_TORQUE_DIFF_THRESHOLD_NM && tm->tq > TORQUE_THRESHOLD_NM){
+			be.sum_late_stance_pitch = be.sum_late_stance_pitch + kin->rot3 + tm->aa*RAD_PER_DEG;
 			be.late_stance_pitch_counter = be.late_stance_pitch_counter + 1;
 		}
 
