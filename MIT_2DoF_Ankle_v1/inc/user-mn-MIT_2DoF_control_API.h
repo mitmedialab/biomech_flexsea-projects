@@ -63,6 +63,9 @@ void ankle_2dof_control_update_impedance(float pfdf, float inev, float kp, float
 uint8_t ankle_2dof_control_demo_position_fsm(void);
 uint8_t ankle_2dof_control_demo_impedance_fsm(void);
 
+uint8_t ankle_2dof_control_demo_position_fsm2(void);
+uint8_t ankle_2dof_control_demo_impedance_fsm2(void);
+
 
 //****************************************************************************
 // Definition(s):

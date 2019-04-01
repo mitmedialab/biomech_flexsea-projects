@@ -179,7 +179,8 @@ void ankle_2dof_control_update_target(float pfdf, float inev)
 	static const int16_t ANKLE_ANGLE_REST = 1000;
 	static const int16_t ANKLE_ANGLE_MAX_PF = 2400;
 
-	static const int16_t ANKLE_ANGLE_INEV_CONTRIB = 290;
+	// static const int16_t ANKLE_ANGLE_INEV_CONTRIB = 270;
+	static const int16_t ANKLE_ANGLE_INEV_CONTRIB = 350;
 
 	static float temp=0;
 
@@ -226,9 +227,9 @@ void ankle_2dof_control_update_position(float pfdf, float inev, float kp, float 
 	my_control = CTRL_OPEN;
 
 	static int32_t temp;
- 	const int16_t  MAX_VOLTAGE = 11500;
-	const int16_t BASE_VOLTAGE1 = 1525;
-	const int16_t BASE_VOLTAGE2 = 1675;
+ 	const int16_t  MAX_VOLTAGE = 13000;
+	const int16_t BASE_VOLTAGE1 = 1500;
+	const int16_t BASE_VOLTAGE2 = 1550;
 
 
 	temp = (int32_t)(-(target_ankle_angle[0][0]- ank_angs_1[0])*kp);
@@ -247,8 +248,8 @@ void ankle_2dof_control_update_position(float pfdf, float inev, float kp, float 
 			my_pwm[0] = (int16_t)temp;
 	}
 
-	temp = (int32_t)(-(target_ankle_angle[1][0]- ank_angs_2[0])*kp*1.1);
-
+	// temp = (int32_t)(-(target_ankle_angle[1][0]- ank_angs_2[0])*kp*1.1);
+ 	temp = (int32_t)(-(target_ankle_angle[1][0]- ank_angs_2[0])*kp*1.05);
 
 	if(temp>MAX_VOLTAGE)
 		my_pwm[1] =MAX_VOLTAGE;
@@ -277,7 +278,8 @@ void ankle_2dof_control_update_impedance(float pfdf, float inev, float kp, float
 
 	const int16_t MAX_CURRENT = 32600;
 	const int16_t BASE_CURRENT1 = 7500;
-	const int16_t BASE_CURRENT2 = 12000;
+	// const int16_t BASE_CURRENT2 = 12000;
+	const int16_t BASE_CURRENT2 = 7500;
 
 	 // static int16_t  MAX_CURRENT = 300000;
 	 my_control = CTRL_CURRENT;
@@ -308,7 +310,8 @@ void ankle_2dof_control_update_impedance(float pfdf, float inev, float kp, float
 	}
 
 
-	temp = (int32_t)(-(target_ankle_angle[1][0]- ank_angs_2[0])*kp*2.5);
+	// temp = (int32_t)(-(target_ankle_angle[1][0]- ank_angs_2[0])*kp*2.5);
+	temp = (int32_t)(-(target_ankle_angle[1][0]- ank_angs_2[0])*kp);
 
 
 	if(temp>=0 && temp < BASE_CURRENT2)
@@ -345,7 +348,7 @@ uint8_t ankle_2dof_control_demo_impedance_fsm(void)
 
 	state_t++;
 
-	static float kp=600;
+	static float kp=1200;
 
 	switch(function_state)
 	{
@@ -427,6 +430,133 @@ uint8_t ankle_2dof_control_demo_position_fsm(void)
 	{
 		function_state++;
 		if(function_state >5)
+			function_state = 0;
+
+		state_t = -1;
+	}
+
+	return 0;
+}
+
+uint8_t ankle_2dof_control_demo_impedance_fsm2(void)
+{
+	static uint32_t state_t = 0;
+	static int8_t function_state = 0;
+
+	state_t++;
+
+	static float kp = 1200;
+
+	// static int8_t pfdf_dir, inev_dir;
+	static float pfdf_motion = 0;
+	static float inev_motion=0;
+
+	switch(function_state)
+	{
+		case 0:
+			pfdf_motion = 0;
+			inev_motion = 0;
+			break;
+
+		case 1:
+			pfdf_motion+=0.001;
+			break;
+
+		case 2:
+		case 3:
+			pfdf_motion-=0.001;
+			break;
+
+		case 4:
+			pfdf_motion+=0.001;
+			break;
+
+		case 5:
+			pfdf_motion = 0;
+			inev_motion = 0;
+			break;
+
+		case 6:
+			inev_motion +=0.001;
+			break;
+		case 7:
+		case 8:
+			inev_motion -=0.001;
+			break;
+		case 9:
+			inev_motion +=0.001;
+			break;
+	}
+
+	ankle_2dof_control_update_impedance(pfdf_motion, inev_motion, kp,0,0);
+
+	if(state_t >1000)
+	{
+		function_state++;
+		if(function_state >10)
+			function_state = 0;
+
+		state_t = -1;
+	}
+
+	return 0;
+}
+uint8_t ankle_2dof_control_demo_position_fsm2(void)
+{
+	static uint32_t state_t = 0;
+	static int8_t function_state = 0;
+
+	state_t++;
+
+	static float kp = 30;
+
+	// static int8_t pfdf_dir, inev_dir;
+	static float pfdf_motion = 0;
+	static float inev_motion=0;
+
+	switch(function_state)
+	{
+		case 0:
+			pfdf_motion = 0;
+			inev_motion = 0;
+			break;
+
+		case 1:
+			pfdf_motion+=0.001;
+			break;
+
+		case 2:
+		case 3:
+			pfdf_motion-=0.001;
+			break;
+
+		case 4:
+			pfdf_motion+=0.001;
+			break;
+
+		case 5:
+			pfdf_motion = 0;
+			inev_motion = 0;
+			break;
+
+		case 6:
+			inev_motion +=0.001;
+			break;
+		case 7:
+		case 8:
+			inev_motion -=0.001;
+			break;
+		case 9:
+			inev_motion +=0.001;
+			break;
+	}
+
+	ankle_2dof_control_update_position(pfdf_motion, inev_motion, kp,0,0);
+
+	if(state_t >1000)
+	{
+		function_state++;
+		if(function_state >10)
 			function_state = 0;
 
 		state_t = -1;

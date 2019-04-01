@@ -226,7 +226,7 @@ void ankle_2dof_fsm_1(void)
 		 	break;
 
 		case 0:
-			main_fsm_state =1;
+			main_fsm_state =50;
 
 			break;
 
@@ -249,7 +249,14 @@ void ankle_2dof_fsm_1(void)
 			ankle_2dof_control_update_position(pfdf_control, inev_control, 30,0,0);
 			break;
 
+		case 98:
+			// state_transition = ankle_2dof_control_demo_position_fsm();
+			state_transition =ankle_2dof_control_demo_impedance_fsm2();
+
+			break;
 		case 99:
+			// state_transition = ankle_2dof_control_demo_position_fsm2();
+
 			state_transition = ankle_2dof_control_demo_position_fsm();
 			// state_transition =ankle_2dof_control_demo_impedance_fsm();
 			break;
