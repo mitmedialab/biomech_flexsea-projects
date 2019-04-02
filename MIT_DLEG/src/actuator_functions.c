@@ -288,6 +288,8 @@ static float getMotorCurrentDt(struct act_s *actx)
 
 	currentDt = 0.8*lastCurrent + 0.2 * currentDt;
 
+	lastCurrent = currentDt;
+
 	return currentDt;
 }
 
