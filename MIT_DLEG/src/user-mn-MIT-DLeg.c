@@ -287,8 +287,8 @@ void MITDLegFsm1(void)
 
 				#elif defined(IS_SWEEP_TEST)
 //					float t = fmodf(fsmTime, SECONDS);
-					float t = ((float)(fsmTime)) / ((float)SECONDS);
-					act1.tauDes = torqueSystemIDFrequencySweep( omega*(2*M_PI), t, amplitude, dcBias, noiseAmp);
+//					float t = ((float)(fsmTime)) / ((float)SECONDS); // no longer in use
+					act1.tauDes = torqueSystemIDFrequencySweep( omega*(2*M_PI), fsmTime, amplitude, dcBias, noiseAmp);
 					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 
 				#else

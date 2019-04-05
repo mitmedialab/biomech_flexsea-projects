@@ -887,11 +887,15 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
  * Param:	noiseAmp	noise this is a noise scaling value to put ontop of signal
  * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
  */
-float torqueSystemIDFrequencySweep(float omega, float t, float amplitude, float dcBias, float noiseAmp){
+float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp){
 	static float prevOmega = 0.0, prevAmp = 0., prevDC = 0., prevNoise = 0., lastSignal = 0.0;
-	static float signal = 0.0, testSignal = 0;;
+	static float signal = 0.0, testSignal = 0;
+	static float localTime = 0.0;
 	static int8_t holdingOnTransition = 0;
 	float testCase = 1000;
+
+	float t = ((float)(signalTimer - localTime)) / ( (float)SECONDS );
+	float testTime = fmodf(signalTimer, localTime);
 
 	// only make a transition at a zero crossing and if the input has changed
 	// Check for Transition
@@ -903,11 +907,12 @@ float torqueSystemIDFrequencySweep(float omega, float t, float amplitude, float 
 		else
 			testCase = fmodf(t, 2*M_PI/prevOmega); //todo: this should be prevOmega, but I was having trouble getting out of 0 condition.
 
+
 		//if we're at a transition point, now update all values
-		if ( (testCase <= 0.1 ) && ( testSignal >= 0 ) )
+		if ( (testCase <= 0.01 ) && ( testSignal >= 0 ) )
 		{
 			holdingOnTransition = 0;
-
+			localTime = signalTimer;
 			prevOmega = omega;
 			prevAmp = amplitude;
 			prevDC = dcBias;
@@ -924,7 +929,10 @@ float torqueSystemIDFrequencySweep(float omega, float t, float amplitude, float 
 	{
 		signal = prevDC + prevAmp * sinf(prevOmega * ( t  ) ) + prevNoise*( ((float)rand()) / ((float)RAND_MAX) );
 	}
-	else
+	else if(holdingOnTransition == 1 && testTime < 0.002 ) // Transition to new one
+	{
+		signal = 0.0;
+	} else // if not a clean transition send nothing
 	{
 		signal = dcBias + amplitude * sinf(omega * ( t  ) ) + noiseAmp*( ((float)rand()) / ((float)RAND_MAX) );
 	}
