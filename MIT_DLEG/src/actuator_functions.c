@@ -902,7 +902,7 @@ float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float ampl
 		if (prevOmega == 0)
 			testCase = 0;
 		else
-			testCase = fmodf(t, 2*M_PI/prevOmega); //todo: this should be prevOmega, but I was having trouble getting out of 0 condition.
+			testCase = fmodf(t, (2*M_PI)/prevOmega); //todo: this should be prevOmega, but I was having trouble getting out of 0 condition.
 
 
 		//if we're at a transition point, now update all values

@@ -64,7 +64,7 @@ uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
 	float inputTorq 	= 0.0;
 	int8_t currentOrVoltage = 0;
 #elif defined(IS_SWEEP_TEST)
-	float omega									= 0.0;
+	float freq									= 0.0;
 	float amplitude								= 0.0;
 	float dcBias								= 0.0;
 	float noiseAmp								= 0.0;
@@ -288,7 +288,7 @@ void MITDLegFsm1(void)
 					setMotorTorque( &act1, act1.tauDes);
 
 				#elif defined(IS_SWEEP_TEST)
-					act1.tauDes = torqueSystemIDFrequencySweep( omega*(2*M_PI), fsmTime, amplitude, dcBias, noiseAmp);
+					act1.tauDes = torqueSystemIDFrequencySweep( 2*freq*(2*M_PI), fsmTime, amplitude, dcBias, noiseAmp);
 					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 
 				#else
@@ -434,7 +434,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		inputTorq								= ( (float) user_data_1.w[6] ) /100.0;
 		errorKi									= ( (float) user_data_1.w[7] ) /1000.0;
 	#elif defined(IS_SWEEP_TEST)
-		omega									= ( (float) user_data_1.w[0] ) /100.0;
+		freq									= ( (float) user_data_1.w[0] ) /100.0;
 		amplitude								= ( (float) user_data_1.w[1] ) /100.0;
 		dcBias									= ( (float) user_data_1.w[2] ) /100.0;
 		noiseAmp								= ( (float) user_data_1.w[3] ) /100.0;
@@ -506,7 +506,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	inputTorq								= 0.0;
 	errorKi									=0.0;
 #elif defined(IS_SWEEP_TEST)
-	omega									= 0.0;
+	freq									= 0.0;
 	amplitude								= 0.0;
 	dcBias									= 0.0;
 	noiseAmp								= 0.0;
