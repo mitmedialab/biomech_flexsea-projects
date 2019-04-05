@@ -57,6 +57,7 @@ float getCompensatorPIDOutput(Act_s *actx);
 float getCompensatorCustomOutput(float tauMeas, float tauRef);									// calculate compensator output value
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp);
+float torqueSystemIDFrequencySweepChirp(float initOmega,  float finalOmega, float T, float amplitude, float dcBias, float noiseAmp, int8_t chirpType);
 float torqueSystemIDPRBS(void);
 bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output); // integral term anti-windup clamp check
 float actuateAngleLimits(Act_s *actx);	// apply virtual spring/damper on angle limits

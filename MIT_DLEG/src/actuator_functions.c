@@ -917,8 +917,6 @@ float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float ampl
 
 		}
 
-		rigid1.mn.genVar[5] = (int16_t) (testCase * 1000.0);
-		rigid1.mn.genVar[6] = (int16_t) prevOmega*1000;
 	}
 
 	// if waiting for an elegant transition, keep going with the prev setting until ready to change over.
@@ -936,6 +934,116 @@ float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float ampl
 
 	testSignal = signal-lastSignal;
 	lastSignal = signal;	// save to test condition in transition
+
+	return ( signal );
+}
+
+/*
+ * Compute where we are in frequency sweep
+ * Param: 	omega		(float) - ____ in RADIANS PER SECOND
+ * Param: 	t			(float) - time in SECONDS
+ * Param:	amplitude	amplitude of signal, this is 0 to peak value, not peak to peak
+ * Param:	dcBias		DC Bias to preload actuator drivetrain
+ * Param:	noiseAmp	noise this is a noise scaling value to put ontop of signal
+ * Param: 	chirpType	0:constant freq, 1:linear ramp, 2:exponential
+ * Param:	k 			chirpyness, rate of change of frequency
+ * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
+ */
+float torqueSystemIDFrequencySweepChirp(float initOmega,  float finalOmega, float T, float amplitude, float dcBias, float noiseAmp, int8_t chirpType){
+	static float prevOmega = 0.0, prevAmp = 0., prevDC = 0., prevNoise = 0., lastSignal = 0.0;
+	static float omega = 0.0, signal = 0.0, testSignal = 0;
+	static float k = 0.0;
+	static int8_t initialize = -1, lastChirpType = 0;
+	static uint32_t signalTimer = 0.0;
+	static uint32_t localTime = 0.0;
+	static int8_t holdingOnTransition = 0;
+	float testCase = 1000;
+
+
+	float t = ((float)(signalTimer - localTime)) / ( (float)SECONDS );
+	float testTime = fmodf(signalTimer, localTime);
+
+	//Adjust frequency automatically
+	switch(chirpType)
+	{
+		case 0:
+		{
+			if (initialize == -1)
+			{
+				k = 0.0;
+				initialize = 0;
+			}
+			omega = initOmega;
+			break;
+		}
+		case 1: // linear chirp
+		{
+			if (initialize == -1)
+			{
+				k = (finalOmega - initOmega)/T;
+				initialize = 0;
+			}
+			omega = initOmega + k*t;
+			break;
+		}
+		case 2: // exponential chirp
+		{
+			if (initialize == -1)
+			{
+				k = powf( (finalOmega/initOmega), 1/T );
+				initialize = 0;
+			}
+			omega = initOmega * powf(k, t);
+			break;
+		}
+		default:
+			break;
+	}
+
+
+	// only make a transition at a zero crossing and if the input has changed
+	// Check for Transition
+	if ( (prevOmega != omega) || (prevAmp != amplitude) || (prevDC != dcBias)
+			|| (prevNoise != noiseAmp) || (lastChirpType != chirpType) )
+	{
+		holdingOnTransition = 1;
+		if (prevOmega == 0)
+			testCase = 0;
+		else
+			testCase = fmodf(t, (2*M_PI)/prevOmega); //todo: this should be prevOmega, but I was having trouble getting out of 0 condition.
+
+
+		//if we're at a transition point, now update all values
+		if ( (testCase <= 0.01 ) && ( testSignal >= 0 ) )
+		{
+			holdingOnTransition = 0;
+			localTime = signalTimer;
+			prevOmega = omega;
+			prevAmp = amplitude;
+			prevDC = dcBias;
+			prevNoise = noiseAmp;
+			lastChirpType = chirpType;
+
+		}
+
+	}
+
+	// if waiting for an elegant transition, keep going with the prev setting until ready to change over.
+	if (holdingOnTransition == 1)
+	{
+		signal = prevDC + prevAmp * sinf(prevOmega * ( t  ) ) + prevNoise*( ((float)rand()) / ((float)RAND_MAX) );
+	}
+	else if(holdingOnTransition == 1 && testTime < 0.002 ) // Transition to new one
+	{
+		signal = 0.0;
+	} else // if not a clean transition send nothing
+	{
+		signal = dcBias + amplitude * sinf(omega * ( t  ) ) + noiseAmp*( ((float)rand()) / ((float)RAND_MAX) );
+	}
+
+	testSignal = signal-lastSignal;
+	lastSignal = signal;	// save to test condition in transition
+	signalTimer++;
 
 	return ( signal );
 }
