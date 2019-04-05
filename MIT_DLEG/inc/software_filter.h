@@ -53,7 +53,13 @@ void initSoftFIRFilt(void);
 float runSoftFirFilt(float inputVal);
 void initCircularSoftFIRFilt(void);
 float runCircularSoftFirFilt(float inputVal);
-float runButterworthFiltMeasurements(float inputVal);
+
+float filterButterworth30Hz(float inputVal);
+float filterButterworth50Hz(float inputVal);
+float filterTorqueButterworth(float inputVal);
+float filterJointAngleButterworth(float inputVal);
+float filterJointVelocityButterworth(float inputVal);
+
 
 //****************************************************************************
 // Definition(s):

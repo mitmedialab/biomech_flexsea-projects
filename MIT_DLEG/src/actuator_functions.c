@@ -106,13 +106,15 @@ static void getJointAngleKinematic(struct act_s *actx)
 	jointAngleRad = JOINT_ANGLE_DIR * ( jointZero + JOINT_ENC_DIR * ( (float) (*(rigid1.ex.joint_ang)) ) )  * RAD_PER_CNT; // (angleUnit)/JOINT_CPR;
 
 	// filter joint angle? TODO: maybe remove this. or use windowAveraging
-	actx->jointAngle = 0.8*actx->jointAngle + 0.2*jointAngleRad;
+//	actx->jointAngle = 0.8*actx->jointAngle + 0.2*jointAngleRad;
+	actx->jointAngle = filterJointAngleButterworth(jointAngleRad);		// Lowpass butterworth, check on performance
 
 	//VELOCITY
-	actx->jointVel = 0.8*actx->jointVel + 0.2*( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
+//	actx->jointVel = 0.5*actx->jointVel + 0.5*( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
+	actx->jointVel = filterJointVelocityButterworth( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
 
 	//ACCEL  -- todo: check to see if this works
-	actx->jointAcc = 0.8 * actx->jointAcc + 0.2*( (actx->jointVel - lastJointVel ) * SECONDS);
+	actx->jointAcc = 0.5 * actx->jointAcc + 0.5*( (actx->jointVel - lastJointVel ) * SECONDS);
 
 	// SAFETY CHECKS
 	//if we start over soft limits after findPoles(), only turn on motor after getting within limits
@@ -163,7 +165,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	float numSamples = 1000.;
 	float timerDelay = 100.;
 
-	strainReading = (float) rigid1.ex.strain;
+	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing.
@@ -195,7 +197,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 			// Filter the signal
 
 //			axialForce = runSoftFirFilt(axialForce);
-			axialForce = runButterworthFiltMeasurements(axialForce);
+//			axialForce = filterTorqueButterworth(axialForce); // moved filter to initial strain
 
 			break;
 
@@ -889,17 +891,20 @@ float torqueSystemIDFrequencySweep(float omega, float t, float amplitude, float 
 	static float prevOmega = 0.0, prevAmp = 0., prevDC = 0., prevNoise = 0., lastSignal = 0.0;
 	static float signal = 0.0, testSignal = 0;;
 	static int8_t holdingOnTransition = 0;
-
+	float testCase = 1000;
 
 	// only make a transition at a zero crossing and if the input has changed
 	// Check for Transition
 	if ( (prevOmega != omega) || (prevAmp != amplitude) || (prevDC != dcBias) || (prevNoise != noiseAmp) )
 	{
 		holdingOnTransition = 1;
-		float testCase = fmodf(t, 2*M_PI/omega); //todo: this should be prevOmega, but I was having trouble getting out of 0 condition.
+		if (prevOmega == 0)
+			testCase = 0;
+		else
+			testCase = fmodf(t, 2*M_PI/prevOmega); //todo: this should be prevOmega, but I was having trouble getting out of 0 condition.
 
 		//if we're at a transition point, now update all values
-		if ( (testCase <= 0.002 ) && testSignal >= 0 )
+		if ( (testCase <= 0.1 ) && ( testSignal >= 0 ) )
 		{
 			holdingOnTransition = 0;
 
@@ -984,6 +989,7 @@ float torqueSystemIDPRBS(void)
 // Private Function(s)
 //****************************************************************************
 
+//todo: in process to determine forces without loadcell
 void setMotorNeutralPosition(struct act_s *actx)
 {
 	static int8_t tareState= -1;

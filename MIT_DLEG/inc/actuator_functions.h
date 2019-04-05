@@ -32,6 +32,7 @@
 //#include "walking_state_machine.h"
 #include "walking_knee_ankle_state_machine.h"
 #include "state_variables.h"
+#include "safety_functions.h"
 //DEBUG
 #include "software_filter.h"
 

@@ -190,6 +190,13 @@
 //	#define SOFT_FIR_LPF3
 #define SOFT_FIR_LPF4
 
+//#define SOFT_FILTER_DEFAULT_IIR_30HZ
+//#define SOFT_FILTER_DEFAULT_IIR_50HZ
+//#define SOFT_FILTER_TORQ_IIR_10HZ
+#define SOFT_FILTER_TORQ_IIR_20HZ			// torque signal
+#define SOFT_FILTER_JOINTANGLE_IIR_20HZ		// joint angle
+#define SOFT_FILTER_JOINTVEL_IIR_20HZ
+
 
 	#ifdef SOFT_FIR_LPF1 // Passband 200Hz
 	#define FIR_SAMPLE_SIZE 27
@@ -298,9 +305,64 @@
 		return result;
 	}
 
-	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher
+#ifdef SOFT_FILTER_DEFAULT_IIR_30HZ
+	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
+   	   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 3.0000000000e-02 0.0000000000e+00 -l
+   	   Cutoff = 30Hz, 2nd order, Butterworth filter, Sampling at 1000Hz
+    */
+
+	#define NZEROS 2
+	#define NPOLES 2
+	#define BUTWRTH_FILT_GAIN   1.278738361e+02
+
+	static float xv30[NZEROS+1], yv30[NPOLES+1];
+
+	float filterButterworth30Hz(float inputVal)
+	{
+		xv30[0] = xv30[1];
+		xv30[1] = xv30[2];
+		xv30[2] = inputVal / BUTWRTH_FILT_GAIN;
+		yv30[0] = yv30[1];
+		yv30[1] = yv30[2];
+		yv30[2] = (xv30[0] + xv30[2]) + 2 * xv30[1]
+					+ ( -0.7660066009 * yv[0]) + (  1.7347257688 * yv[1]);
+		return yv30[2];
+
+	}
+#endif //end 30Hz
+
+#ifdef SOFT_FILTER_DEFAULT_IIR_50HZ
+	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
+   	   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 5.0000000000e-02 0.0000000000e+00 -l
+   	   Cutoff = 50Hz, 2nd order, Butterworth filter, Sampling at 1000Hz
+   	*/
+
+	#define NZEROS 2
+	#define NPOLES 2
+	#define BUTWRTH_FILT_GAIN   4.979245121e+01
+
+	static float xv50[NZEROS+1], yv50[NPOLES+1];
+
+	float filterButterworth50Hz(float inputVal)
+	{
+		xv50[0] = xv50[1];
+		xv50[1] = xv50[2];
+		xv50[2] = inputVal / BUTWRTH_FILT_GAIN;
+		yv50[0] = yv50[1];
+		yv50[1] = yv50[2];
+		yv50[2] = (xv50[0] + xv50[2]) + 2 * xv50[1]
+					+ ( -0.6413515381 * yv[0]) + (  1.5610180758 * yv[1]);
+		return yv50[2];
+
+	}
+#endif //end 50Hz
+
+
+#ifdef SOFT_FILTER_TORQ_IIR_10HZ
+	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/mkfilter/
 	   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 1.0000000000e-02 0.0000000000e+00 -l
-	   Cutoff = 10Hz, 2nd order, Butterworth filter, Sampling at 1000Hz*/
+	   Cutoff = 10Hz, 2nd order, Butterworth filter, Sampling at 1000Hz
+	*/
 
 	#define NZEROS 2
 	#define NPOLES 2
@@ -308,7 +370,7 @@
 
 	static float xv[NZEROS+1], yv[NPOLES+1];
 
-	float runButterworthFiltMeasurements(float inputVal)
+	float filterTorqueButterworth(float inputVal)
 	{
 		xv[0] = xv[1];
 		xv[1] = xv[2];
@@ -320,6 +382,83 @@
 		return yv[2];
 
 	}
+#endif //end 10Hz
+
+#ifdef SOFT_FILTER_TORQ_IIR_20HZ
+	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
+	   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 2.0000000000e-02 0.0000000000e+00 -l
+	   Cutoff = 20Hz, 2nd order, Butterworth filter, Sampling at 1000Hz
+	*/
+
+
+	#define NTZEROS 2
+	#define NTPOLES 2
+	#define BUTWRTH_FILT_GAIN_TORQ   2.761148367e+02
+
+	static float xvT[NTZEROS+1], yvT[NTPOLES+1];
+
+	float filterTorqueButterworth(float inputVal)
+	{
+		xvT[0] = xvT[1];
+		xvT[1] = xvT[2];
+		xvT[2] = inputVal / BUTWRTH_FILT_GAIN_TORQ;
+		yvT[0] = yvT[1];
+		yvT[1] = yvT[2];
+		yvT[2] = (xvT[0] + xvT[2]) + 2 * xvT[1]
+				 + ( -0.8371816513 * yvT[0]) + (  1.8226949252 * yvT[1]);
+		return yvT[2];
+
+	}
+#endif //end 20Hz
+
+#ifdef SOFT_FILTER_JOINTANGLE_IIR_20HZ
+	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
+	   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 2.0000000000e-02 0.0000000000e+00 -l */
+
+	#define NJAZEROS 2
+	#define NJAPOLES 2
+	#define BUTWRTH_FILT_GAIN_ANG   2.761148367e+02
+
+	static float xvJA[NJAZEROS+1], yvJA[NJAPOLES+1];
+
+	float filterJointAngleButterworth(float inputVal)
+	{
+		xvJA[0] = xvJA[1];
+		xvJA[1] = xvJA[2];
+		xvJA[2] = inputVal / BUTWRTH_FILT_GAIN_ANG;
+		yvJA[0] = yvJA[1];
+		yvJA[1] = yvJA[2];
+		yvJA[2] = (xvJA[0] + xvJA[2]) + 2 * xvJA[1]
+				 + ( -0.8371816513 * yvJA[0]) + (  1.8226949252 * yvJA[1]);
+		return yvJA[2];
+
+	}
+#endif //end 20Hz
+
+#ifdef SOFT_FILTER_JOINTVEL_IIR_20HZ
+	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
+	   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 2.0000000000e-02 0.0000000000e+00 -l */
+
+	#define NJVZEROS 2
+	#define NJVPOLES 2
+	#define BUTWRTH_FILT_GAIN_VEL   2.761148367e+02
+
+	static float xvJV[NJVZEROS+1], yvJV[NJVPOLES+1];
+
+	float filterJointVelocityButterworth(float inputVal)
+	{
+		xvJV[0] = xvJV[1];
+		xvJV[1] = xvJV[2];
+		xvJV[2] = inputVal / BUTWRTH_FILT_GAIN_VEL;
+		yvJV[0] = yvJV[1];
+		yvJV[1] = yvJV[2];
+		yvJV[2] = (xvJV[0] + xvJV[2]) + 2 * xvJV[1]
+				 + ( -0.8371816513 * yvJV[0]) + (  1.8226949252 * yvJV[1]);
+		return yvJV[2];
+
+	}
+#endif //end 20Hz
+
 
 #endif
 

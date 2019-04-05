@@ -331,8 +331,8 @@ void MITDLegFsm1(void)
  */
 void MITDLegFsm2(void)
 {
-	//Verify we are Master and communicating to Slave
-	#if (ACTIVE_PROJECT == PROJECT_MIT_DLEG) && (ACTIVE_SUBPROJECT == SUBPROJECT_A)
+	//Verify we are Master and communicating to Slave and defined as Knee
+	#if (ACTIVE_PROJECT == PROJECT_MIT_DLEG) && (ACTIVE_SUBPROJECT == SUBPROJECT_A) && defined(IS_KNEE)
 
 	//Modified version of ActPack
 	static uint32_t Fsm2Timer = 0;
