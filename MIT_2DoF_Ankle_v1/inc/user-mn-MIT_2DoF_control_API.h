@@ -66,6 +66,7 @@ uint8_t ankle_2dof_control_demo_impedance_fsm(void);
 uint8_t ankle_2dof_control_demo_position_fsm2(void);
 uint8_t ankle_2dof_control_demo_impedance_fsm2(void);
 
+uint8_t ankle_2dof_control_disable(void);
 
 //****************************************************************************
 // Definition(s):

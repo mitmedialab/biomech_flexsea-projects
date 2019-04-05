@@ -246,25 +246,36 @@ void ankle_2dof_fsm_1(void)
 			pfdf_control = (float)user_data_1.w[8]*0.001;
 			inev_control = (float)user_data_1.w[9]*0.001;
 
-			ankle_2dof_control_update_position(pfdf_control, inev_control, 30,0,0);
+			if(user_data_1.w[7] ==0)
+			{
+				ankle_2dof_control_update_position(pfdf_control, inev_control, 30,0,0);
+			}
+			else
+			{
+				ankle_2dof_control_update_impedance(pfdf_control, inev_control, 1200,0,0);
+			}
+			break;
+
+		case 96:
+			// state_transition = ankle_2dof_control_demo_position_fsm();
+			state_transition =ankle_2dof_control_demo_impedance_fsm();
+
+			break;
+
+		case 97:
+			state_transition = ankle_2dof_control_demo_impedance_fsm2();
 			break;
 
 		case 98:
-			// state_transition = ankle_2dof_control_demo_position_fsm();
-			state_transition =ankle_2dof_control_demo_impedance_fsm2();
-
-			break;
-		case 99:
-			// state_transition = ankle_2dof_control_demo_position_fsm2();
-
 			state_transition = ankle_2dof_control_demo_position_fsm();
-			// state_transition =ankle_2dof_control_demo_impedance_fsm();
 			break;
 
-		case 100:
-			my_control = CTRL_OPEN;
-			my_pwm[0] = 0;
-			my_pwm[1] = 0;
+		case 99:
+			state_transition = ankle_2dof_control_demo_position_fsm2();
+			break;
+
+		default:
+			state_transition = ankle_2dof_control_disable();
 			break;
 	}
 
@@ -274,6 +285,15 @@ void ankle_2dof_fsm_1(void)
 		state_transition = 0;
 		state_t = -1;
 	}
+
+	else if(user_data_1.w[6] != 0)
+	{
+		main_fsm_state = user_data_1.w[6];
+		user_data_1.w[6] = 0;
+		state_t = -1;
+	}
+
+
 
 	#endif	//ACTIVE_PROJECT == PROJECT_ANKLE_2DOF
 }

@@ -20,7 +20,7 @@
 #include "flexsea_system.h"
 
 #include "user-mn-MIT_2DoF_control_API.h"
-#include "user-mn-MIT_2DoF_STM_vjointEMG.h"
+// #include "user-mn-MIT_2DoF_STM_vjointEMG.h"
 
 //****************************************************************************
 // Variable(s)
@@ -562,6 +562,15 @@ uint8_t ankle_2dof_control_demo_position_fsm2(void)
 		state_t = -1;
 	}
 
+	return 0;
+}
+
+
+uint8_t ankle_2dof_control_disable(void)
+{
+	my_control = CTRL_OPEN;
+	my_pwm[0] = 0;
+	my_pwm[1] = 0;
 	return 0;
 }
 
