@@ -98,11 +98,13 @@ static void update_ankle_dynamics(Act_s* actx)
     tm.max_tq = MAX(tm.max_tq, tm.tq);
     tm.tq_dot = FILTA * tm.tq_dot + FILTB* (tm.tq - tm.tq_prev);
     tm.aa = FILTA*tm.aa + FILTB*actx->jointAngleDegrees;
-    tm.aa_dot = FILTA*tm.aa_dot + FILTB*(tm.aa - tm.aa_prev)*RAD_PER_DEG_X_SAMPLE_RATE_HZ;
 
-    float power_w = tm.aa_dot*tm.tq;
+    float aa_diff = (tm.aa - tm.aa_prev)*RAD_PER_DEG;
+    tm.aa_dot = FILTA*tm.aa_dot + FILTB*(aa_diff)*SAMPLE_RATE_HZ;
+
+    float power_w = aa_diff*tm.tq;
     if (!tm.in_swing){
-    	tm.net_work_j = tm.net_work_j + power_w*SAMPLE_PERIOD;
+    	tm.net_work_j = tm.net_work_j + power_w;
 		if (tm.max_power_w < power_w){
 			tm.max_power_w = power_w;
 		}

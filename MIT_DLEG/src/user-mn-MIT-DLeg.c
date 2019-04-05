@@ -144,7 +144,8 @@ static void initializeUserWrites(struct taskmachine_s* tm){
 	    	user_data_1.w[6] = (int32_t)(DEFAULT_FLAT_LST_K_NM_P_RAD);
 	    	user_data_1.w[7] = (int32_t)(DEFAULT_FLAT_LST_B_NM_P_RPS);
 	    	user_data_1.w[8] = (int32_t)(DEFAULT_FLAT_LST_THETA_RAD*SCALE_FACTOR_10000);
-	    	user_data_1.w[9] = (int32_t)(DEFAULT_FLAT_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_FLAT_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_FLAT_LST_ENGAGEMENT_TQ_NM);
 	    	break;
 	    case GUI_MODE_UR_CONTROL_PARAMS:
 		case GUI_MODE_UR_CONTROL_METRICS:
@@ -157,7 +158,8 @@ static void initializeUserWrites(struct taskmachine_s* tm){
 	    	user_data_1.w[6] = (int32_t)(DEFAULT_URAMP_LST_K_NM_P_RAD);
 	    	user_data_1.w[7] = (int32_t)(DEFAULT_URAMP_LST_B_NM_P_RPS);
 	    	user_data_1.w[8] = (int32_t)(DEFAULT_URAMP_LST_THETA_RAD*SCALE_FACTOR_10000);
-	    	user_data_1.w[9] = (int32_t)(DEFAULT_URAMP_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_URAMP_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_URAMP_LST_ENGAGEMENT_TQ_NM);
 	    	break;
 	    case GUI_MODE_DR_CONTROL_PARAMS:
 		case GUI_MODE_DR_CONTROL_METRICS:
@@ -170,7 +172,8 @@ static void initializeUserWrites(struct taskmachine_s* tm){
 	    	user_data_1.w[6] = (int32_t)(DEFAULT_DRAMP_LST_K_NM_P_RAD);
 	    	user_data_1.w[7] = (int32_t)(DEFAULT_DRAMP_LST_B_NM_P_RPS);
 	    	user_data_1.w[8] = (int32_t)(DEFAULT_DRAMP_LST_THETA_RAD*SCALE_FACTOR_10000);
-	    	user_data_1.w[9] = (int32_t)(DEFAULT_DRAMP_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_DRAMP_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_DRAMP_LST_ENGAGEMENT_TQ_NM);
 	    	break;
 	    case GUI_MODE_US_CONTROL_PARAMS:
 		case GUI_MODE_US_CONTROL_METRICS:
@@ -183,7 +186,8 @@ static void initializeUserWrites(struct taskmachine_s* tm){
 	    	user_data_1.w[6] = (int32_t)(DEFAULT_USTAIRS_LST_K_NM_P_RAD);
 	    	user_data_1.w[7] = (int32_t)(DEFAULT_USTAIRS_LST_B_NM_P_RPS);
 	    	user_data_1.w[8] = (int32_t)(DEFAULT_USTAIRS_LST_THETA_RAD*SCALE_FACTOR_10000);
-	    	user_data_1.w[9] = (int32_t)(DEFAULT_USTAIRS_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_USTAIRS_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_USTAIRS_LST_ENGAGEMENT_TQ_NM);
 	    	break;
 	    case GUI_MODE_DS_CONTROL_PARAMS:
 		case GUI_MODE_DS_CONTROL_METRICS:
@@ -196,7 +200,8 @@ static void initializeUserWrites(struct taskmachine_s* tm){
 	    	user_data_1.w[6] = (int32_t)(DEFAULT_DSTAIRS_LST_K_NM_P_RAD);
 	    	user_data_1.w[7] = (int32_t)(DEFAULT_DSTAIRS_LST_B_NM_P_RPS);
 	    	user_data_1.w[8] = (int32_t)(DEFAULT_DSTAIRS_LST_THETA_RAD*SCALE_FACTOR_10000);
-	    	user_data_1.w[9] = (int32_t)(DEFAULT_DSTAIRS_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_DSTAIRS_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_DSTAIRS_LST_ENGAGEMENT_TQ_NM);
 		break;
 
 		case GUI_MODE_NOM_CONTROL_PARAMS:
