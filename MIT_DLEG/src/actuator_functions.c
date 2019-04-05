@@ -34,7 +34,7 @@ int8_t isEnabledUpdateSensors = 0;
 int8_t fsm1State = STATE_POWER_ON;
 float currentScalar = CURRENT_SCALAR_INIT;
 
-int8_t zeroIt = 0;	//Used to allow re-zeroing of the load cell, ie for testing purposes
+int8_t zeroLoadCell = 0;	//Used to allow re-zeroing of the load cell, ie for testing purposes
 float voltageGain = 1.0;	//tested
 float velGain = 1.1;	// tested
 float indGain = 1.73;	// tested
@@ -162,7 +162,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	float strainReading = 0;
 	static float tareOffset = 0;
 	float axialForce = 0;
-	float numSamples = 1000.;
+	float numSamples = 1400.;
 	float timerDelay = 100.;
 
 	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
@@ -173,6 +173,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 		timer = 0;
 		tareOffset = 0;
 		tare=0;
+		zeroLoadCell = 0;
 
 	}
 
@@ -182,10 +183,12 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 			//Tare the balance using average of numSamples readings
 			timer++;
 
-			if(timer >= timerDelay && timer < numSamples + timerDelay) {
+			if(timer < numSamples) {
 				tareOffset += (strainReading)/numSamples;
-			} else if (timer >= numSamples + timerDelay) {
+			} else if (timer >= numSamples ) {
 				tareState = 0;
+				zeroLoadCell = 0;
+				tare = 0;
 			}
 
 			break;
@@ -818,7 +821,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 		isTransition = 1;
 	}
 
-//Angle Limit bumpers
+	//Angle Limit bumpers
 	actx->tauDes = tauDes;// + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
@@ -828,14 +831,8 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 	float I = ( 1.0/(MOT_KT * N ) * actx->tauDes );		// [A]
 	float V = (I * MOT_R) * voltageGain + ( MOT_KT_TOT * actx->motorVel * velGain) + (actx->motCurrDt * MOT_L * indGain ); // [V] this caused major problems? ==> ;
 
-//	rigid1.mn.genVar[5] = (int16_t) ( (I * MOT_R)* voltageGain * CURRENT_SCALAR_INIT );
-//	rigid1.mn.genVar[6] = (int16_t) ( ( MOT_KT_TOT * actx->motorVel ) * velGain * CURRENT_SCALAR_INIT );
-//	rigid1.mn.genVar[7] = (int16_t) ( actx->motCurrDt * MOT_L * indGain * CURRENT_SCALAR_INIT );
-
-
 	int32_t ImA = (int32_t) ( I * CURRENT_SCALAR_INIT );
 	int32_t VmV = (int32_t) ( V * CURRENT_SCALAR_INIT );
-//	I = I + noLoadCurrent(I);	// Include current required to get moving
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 //	if (I > actx->currentOpLimit)
@@ -854,11 +851,11 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 				mitInitCurrentController();
 				isTransition = 0;
 			}
-//			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
+			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
 			lastMotorControl = motorControl;
 //			rigid1.mn.genVar[8] = (int16_t) ( ImA );
 //			rigid1.mn.genVar[9] = (int16_t) ( VmV );
-			actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
+			actx->desiredCurrent = I;	// demanded mA
 
 			break;
 		case 1:	// voltage control
@@ -882,7 +879,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
  * Compute where we are in frequency sweep
  * Param: 	omega		(float) - ____ in RADIANS PER SECOND
  * Param: 	t			(float) - time in SECONDS
- * Param:	amplitude	amplitude of input
+ * Param:	amplitude	amplitude of signal, this is 0 to peak value, not peak to peak
  * Param:	dcBias		DC Bias to preload actuator drivetrain
  * Param:	noiseAmp	noise this is a noise scaling value to put ontop of signal
  * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
@@ -1047,7 +1044,7 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, 0);
 
-	actx->axialForce = getAxialForce(actx, zeroIt); //filtering happening inside function
+	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
 	actx->jointTorque = getJointTorque(actx);
 
 	updateJointTorqueRate(actx);

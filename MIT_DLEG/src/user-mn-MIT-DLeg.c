@@ -91,7 +91,7 @@ Act_s act1, act2;
 
 extern uint8_t calibrationFlags, calibrationNew;
 extern int32_t currentOpLimit;
-extern int8_t zeroIt; 		// used for zeroing the load cell.
+extern int8_t zeroLoadCell; 		// used for zeroing the load cell.
 extern float voltageGain;
 extern float velGain;
 extern float indGain;
@@ -229,8 +229,10 @@ void MITDLegFsm1(void)
 		case STATE_INITIALIZE_SENSORS:
 
 			setMotorNeutralPosition(&act1);	// initialize to define motor initial position
+			//todo check this is okay
+			zeroLoadCell = 1;	// forces getAxialForce() to zero the load cell again. this is kinda sketchy using a global variable.
 
-			if (fsmTime > 200)
+			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
 			{
 				fsm1State = STATE_INIT_USER_WRITES;
 				fsmTime = 0;
@@ -286,8 +288,6 @@ void MITDLegFsm1(void)
 					setMotorTorque( &act1, act1.tauDes);
 
 				#elif defined(IS_SWEEP_TEST)
-//					float t = fmodf(fsmTime, SECONDS);
-//					float t = ((float)(fsmTime)) / ((float)SECONDS); // no longer in use
 					act1.tauDes = torqueSystemIDFrequencySweep( omega*(2*M_PI), fsmTime, amplitude, dcBias, noiseAmp);
 					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 
