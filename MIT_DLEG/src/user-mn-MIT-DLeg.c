@@ -63,13 +63,14 @@ uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
 	float inputB 		= 0.0;
 	float inputTorq 	= 0.0;
 	int8_t currentOrVoltage = 0;
-#elif defined(IS_SWEEP_TEST)
+#elif defined(IS_SWEEP_TEST) || defined(IS_SWEEP_CHIRP_TEST)
 	float freq									= 0.0;
 	float amplitude								= 0.0;
 	float dcBias								= 0.0;
 	float noiseAmp								= 0.0;
 	float freqFinal								= 0.0;
-	float chirpType								= 0.0;
+	int16_t chirpType							= 0;
+	int16_t begin 								= 0;
 	float freqSweepTime							= 0.0;
 #endif
 
@@ -290,9 +291,13 @@ void MITDLegFsm1(void)
 					}
 					setMotorTorque( &act1, act1.tauDes);
 
-				#elif defined(IS_SWEEP_TEST)
-//					act1.tauDes = torqueSystemIDFrequencySweep( 2*freq*(2*M_PI), fsmTime, amplitude, dcBias, noiseAmp);
-					act1.tauDes = torqueSystemIDFrequencySweepChirp(2*freq*(2*M_PI),  2*freqFinal*(2*M_PI), freqSweepTime, amplitude, dcBias, noiseAmp, chirpType);
+//				#elif defined(IS_SWEEP_TEST)
+//					float omega = freq*(2*M_PI);
+//					act1.tauDes = torqueSystemIDFrequencySweep( 2*omega, fsmTime, amplitude, dcBias, noiseAmp);
+//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+				#elif defined(IS_SWEEP_CHIRP_TEST)
+
+					act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
 					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 
 				#else
@@ -438,15 +443,23 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		inputTorq								= ( (float) user_data_1.w[6] ) /100.0;
 		errorKi									= ( (float) user_data_1.w[7] ) /1000.0;
 	#elif defined(IS_SWEEP_TEST)
-		freq									= ( (float) user_data_1.w[0] ) /100.0;
-		amplitude								= ( (float) user_data_1.w[1] ) /100.0;
-		dcBias									= ( (float) user_data_1.w[2] ) /100.0;
-		noiseAmp								= ( (float) user_data_1.w[3] ) /100.0;
-		freqFinal								= ( (float) user_data_1.w[4] ) /100.0;
-		chirpType								= ( (float) user_data_1.w[5] ) /100.0;
-		freqSweepTime							= ( (float) user_data_1.w[6] ) /100.0;
-	#endif
+		begin									= ( (int8_t) user_data_1.w[0] ) ;
+		freq									= ( (float) user_data_1.w[1] ) /100.0;
+		amplitude								= ( (float) user_data_1.w[2] ) /100.0;
+		dcBias									= ( (float) user_data_1.w[3] ) /100.0;
+		noiseAmp								= ( (float) user_data_1.w[4] ) /100.0;
 
+	#elif defined(IS_SWEEP_CHIRP_TEST)
+		begin									= ( (int16_t) user_data_1.w[0] ) ;
+		freq									= ( (float) user_data_1.w[1] ) /100.0;
+		freqFinal								= ( (float) user_data_1.w[2] ) /100.0;
+		freqSweepTime							= ( (float) user_data_1.w[3] ) ; //milli seconds
+		chirpType								= ( (int16_t) user_data_1.w[4] ) ; // 0:def, 1:lin, 2:exp
+		amplitude								= ( (float) user_data_1.w[5] ) /100.0;
+		dcBias									= ( (float) user_data_1.w[6] ) /100.0;
+		noiseAmp								= ( (float) user_data_1.w[7] ) /100.0;
+	#endif
+// d65406cc3d48d53459bd175b3ffd5aa7e7b1a893 was on this head in flexsea-system
 }
 
 /*

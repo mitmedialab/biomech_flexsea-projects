@@ -16,7 +16,8 @@ extern "C" {
 //#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
 //#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this if using Knee, ankle is slave
 //#define IS_ACTUATOR_TESTING
-#define IS_SWEEP_TEST
+//#define IS_SWEEP_TEST
+#define IS_SWEEP_CHIRP_TEST
 
 //2. Select device
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
@@ -27,7 +28,7 @@ extern "C" {
 //#define DEVICE_M15			// Standalone motor for testbench
 //#define DEVICE_M16			// Standalone motor for testbench
 //#define NO_DEVICE				// use if not connected to an actuator or any hardware
-//#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
+#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
 
 //****************************************************************************
 // Structure(s):
