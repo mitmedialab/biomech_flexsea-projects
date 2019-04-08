@@ -94,10 +94,12 @@ static void update_ankle_dynamics(Act_s* actx)
 {
     tm.tq_prev = tm.tq;
     tm.aa_prev = tm.aa;
-    tm.tq = FILTA*tm.tq + FILTB*actx->jointTorque;
+    tm.tq = FILTA*tm.tq + FILTB*tm.tq_raw;
+//    tm.tq = FILTA*tm.tq + FILTB*actx->jointTorque;
     tm.max_tq = MAX(tm.max_tq, tm.tq);
     tm.tq_dot = FILTA * tm.tq_dot + FILTB* (tm.tq - tm.tq_prev);
-    tm.aa = FILTA*tm.aa + FILTB*actx->jointAngleDegrees;
+    tm.aa = FILTA*tm.aa + FILTB*tm.aa_raw;
+  //  tm.aa = FILTA*tm.aa + FILTB*actx->jointAngleDegrees;
 
     float aa_diff = (tm.aa - tm.aa_prev)*RAD_PER_DEG;
     tm.aa_dot = FILTA*tm.aa_dot + FILTB*(aa_diff)*SAMPLE_RATE_HZ;
@@ -125,6 +127,15 @@ struct taskmachine_s* get_task_machine(){
   return &tm;
 }
 
+static void simulate_ankle_torque(){
+	static int stride_iterator = 0;
+  tm.tq_raw = example_stride_tq[stride_iterator];
+  tm.aa_raw = example_stride_aa[stride_iterator];
+  stride_iterator++;
+  if (stride_iterator == 1431)
+    stride_iterator = 0;
+}
+
 void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 
   
@@ -149,30 +160,37 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
         break;
     case RUN_TASK_MACHINE:
 
-		//simulate_ankle_torque();
-
+		simulate_ankle_torque();
 		update_ankle_dynamics(actx);
 		update_gait_events();
-		update_kinematics(&rigid->mn,&tm);
-		update_statistics_demux(&tm);
 		
 
-		if (tm.do_update_learner){
 
-			update_learner_demux();
-		}
 
-		predict_task_demux(&tm, get_kinematics());
 
-		update_back_estimation_features(&tm, get_kinematics());
-		update_prediction_features(&tm, get_kinematics());
 
-		if (tm.control_mode == MODE_ADAPTIVE){
-			terrain_state_machine_demux(&tm, rigid, actx, get_predictor()->k_pred);
-		}else{
-			terrain_state_machine_demux(&tm, rigid, actx, tm.control_mode);
-		}
-    	tm.elapsed_samples = tm.elapsed_samples + 1.0;
+
+
+//		update_kinematics(&rigid->mn,&tm);
+//		update_statistics_demux(&tm);
+//
+//
+//		if (tm.do_update_learner){
+//
+//			update_learner_demux();
+//		}
+//
+//		predict_task_demux(&tm, get_kinematics());
+//
+//		update_back_estimation_features(&tm, get_kinematics());
+//		update_prediction_features(&tm, get_kinematics());
+//
+//		if (tm.control_mode == MODE_ADAPTIVE){
+//			terrain_state_machine_demux(&tm, rigid, actx, get_predictor()->k_pred);
+//		}else{
+//			terrain_state_machine_demux(&tm, rigid, actx, tm.control_mode);
+//		}
+//    	tm.elapsed_samples = tm.elapsed_samples + 1.0;
     	break;
   }
 

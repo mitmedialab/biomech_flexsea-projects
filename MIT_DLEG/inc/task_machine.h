@@ -101,6 +101,8 @@ struct taskmachine_s
 
     int est_pred_correct; //used as combined variable holding k_est (hundreds), k_pred (tens), and correctness (ones). ex. 441 or 430
 
+    float tq_raw;
+    float aa_raw;
 };
 
 
