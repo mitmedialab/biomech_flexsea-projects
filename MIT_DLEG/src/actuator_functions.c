@@ -485,6 +485,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
 	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes);
 
+	rigid1.mn.genVar[7] = (int16_t) (tauC * 100.0);
 
 	//Angle Limit bumpers
 	tauC = tauC + actuateAngleLimits(actx);
@@ -518,9 +519,10 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 //	rigid1.mn.genVar[7] = (int16_t) (I);
 
-	//DEBUG TURN OFF TEMPORARILY
+	// Turn off motor power if using a non powered mode.
+#if !defined(NO_POWER)
 	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-
+#endif
 	//variables used in cmd-rigid offset 5, for multipacket
 	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
 	rigid1.mn.userVar[6] = actx->tauDes*1000;
@@ -542,14 +544,14 @@ float getCompensatorCustomOutput(float tauMeas, float tauRef)
 //	e[k-1] = e[k];
 //	y[k-2] = y[k-1];
 //	y[k-1] = y[k];
-//
-	e[0] = e[1];
-	e[1] = e[2];
+
+	e[0] = e[1];	//	e[k-2] = e[k-1];
+	e[1] = e[2];	//	e[k-1] = e[k];
 	// update current state to new values
 	e[2] = tauRef - tauMeas;
 
-	y[0] = y[1];
-	y[1] = y[2];
+	y[0] = y[1];	//	y[k-2] = y[k-1];
+	y[1] = y[2];	//	y[k-1] = y[k];
 
 //	y[k] = 1.948*y[k-1] - 0.9483*y[k-2] + 1380.4*( e[k-1] - 0.9811*e[k-2] ) * ( e[k] - 1.982*e[k-1] + 0.9825*e[k-2] );	// Notch Filter, does not go below zero, but otherwise stable.
 //	y[k] = 1.01831*y[k-1] - 0.01831*y[k-2] + 4006.6/1000.0*(e[k] - 1.995*e[k-1] + 0.9957*e[k-2]);		// This one drives downwards (negative), but does have positive and negative directionality
@@ -560,7 +562,8 @@ float getCompensatorCustomOutput(float tauMeas, float tauRef)
 //	y[k] = y[k-1] - 4.132e-15*y[k-2] + 3210*e[k] - 6350*e[k-1] + 3140*e[k-2]; // very noisy
 //	y[k] = 1.712*y[k-1] - 0.7117*y[k-2] + 896.1*e[k] - 1780*e[k-1] + 884.2*e[k-2]; // shuts itself off
 //	y[2] = 1.811*y[1] - 0.8106*y[0] + 112.9*e[2] - 223.2*e[1] + 110.3*e[0]; // shuts itself off
-	y[2] = 1.088e-5*y[1] + 945.1*e[2] - 887.7*e[1]; // not stable, keep trying.
+//	y[2] = 1.088e-5*y[1] + 945.1*e[2] - 887.7*e[1]; // not stable, keep trying.
+	y[2] = 1.432921006780524*y[k-1] - 0.432921006780524*y[k-2] + 1.560904973168400e+02*e[k] -3.086064879570783e+02*e[k-1] + 1.525349804975425e+02*e[k-2];
 
 	rigid1.mn.genVar[8] = (int16_t) ( e[k] * 10);
 	rigid1.mn.genVar[5] = (int16_t) ( y[k] * 10);
@@ -853,11 +856,10 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 			}
 			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
 			lastMotorControl = motorControl;
-//			rigid1.mn.genVar[8] = (int16_t) ( ImA );
-//			rigid1.mn.genVar[9] = (int16_t) ( VmV );
 			actx->desiredCurrent = I;	// demanded mA
 
 			break;
+
 		case 1:	// voltage control
 			if(isTransition)
 			{
@@ -866,9 +868,8 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 			}
 			setMotorVoltage( VmV, DEVICE_CHANNEL); // consider open volt control
 			lastMotorControl = motorControl;
-//			rigid1.mn.genVar[8] = (int16_t) ( ImA );
-//			rigid1.mn.genVar[9] = (int16_t) ( VmV );
 			break;
+
 		default:
 			break;
 	}

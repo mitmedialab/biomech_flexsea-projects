@@ -156,7 +156,7 @@ void MITDLegFsm1(void)
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
-	  rigid1.mn.genVar[9] = (int16_t) (fsm1State);
+	  rigid1.mn.genVar[9] = (int16_t) (act1.axialForce );
 #endif
     //begin main FSM
 	switch(fsm1State)
