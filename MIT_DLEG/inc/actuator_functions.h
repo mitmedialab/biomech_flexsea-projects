@@ -54,7 +54,10 @@ float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet
 void  setMotorTorque(struct act_s *actx, float tor_d);
 void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des, int8_t motorControl);
 float getCompensatorPIDOutput(Act_s *actx);
-float getCompensatorCustomOutput(float tauMeas, float tauRef);									// calculate compensator output value
+
+float getCompensatorCustomOutput(Act_s *actx, float tauMeas, float tauRef);									// calculate compensator output value
+float getCompensatorCustomOutput2(Act_s *actx, float tauMeas, float tauRef);									// calculate compensator output value
+
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp);
 //float torqueSystemIDFrequencySweepChirp(float initOmega,  float finalOmega, float T, float amplitude, float dcBias, float noiseAmp, int8_t chirpType, int8_t begin);

@@ -165,6 +165,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	float numSamples = 1400.;
 	float timerDelay = 100.;
 
+	rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.strain);
 	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
 
 	if (tare)
@@ -474,21 +475,17 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	}
 
 //	//Angle Limit bumpers
-//	actx->tauDes = tauDes + actuateAngleLimits(actx);
+	actx->tauDes = tauDes; // + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
-
-	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	//PID around motor torque
 //	float tauC = getCompensatorPIDOutput(actx);
 
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
-	float tauC = getCompensatorCustomOutput(actx->tauMeas, actx->tauDes);
-
-	rigid1.mn.genVar[7] = (int16_t) (tauC * 100.0);
+	float tauC = getCompensatorCustomOutput(actx, actx->tauMeas, actx->tauDes);
 
 	//Angle Limit bumpers
-	tauC = tauC + actuateAngleLimits(actx);
+//	tauC = tauC; //+ actuateAngleLimits(actx);
 
 
 	// Feedforward term
@@ -496,9 +493,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	float tauCCombined = tauC + tauFF;
 
-//	rigid1.mn.genVar[6] = (int16_t) (tauCCombined*100.0);
-
 	// motor current signal
+	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 	float Icalc = ( 1.0/(MOT_KT * N ) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
@@ -517,7 +513,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	actx->desiredCurrent = I; 	// demanded mA
 
-//	rigid1.mn.genVar[7] = (int16_t) (I);
+
+	rigid1.mn.genVar[9] = (int16_t) (I);
 
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
@@ -533,45 +530,147 @@ void setMotorTorque(struct act_s *actx, float tauDes)
  * Input is system state
  * return:	torque command value to the motor driver
  */
-float getCompensatorCustomOutput(float tauMeas, float tauRef)
+float getCompensatorCustomOutput(Act_s *actx, float tauMeas, float tauRef)
 {
 	static float y[3] = {0, 0, 0};
-	static float e[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
 	static int8_t k = 2;
+	static int8_t tauErrIntWindup = 0;
+	static float tauC = 0.0, tauCOutput = 0.0;
 
 	// shift previous values into new locations
-//	e[k-2] = e[k-1];
-//	e[k-1] = e[k];
-//	y[k-2] = y[k-1];
-//	y[k-1] = y[k];
-
-	e[0] = e[1];	//	e[k-2] = e[k-1];
-	e[1] = e[2];	//	e[k-1] = e[k];
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
 	// update current state to new values
-	e[2] = tauRef - tauMeas;
 
-	y[0] = y[1];	//	y[k-2] = y[k-1];
-	y[1] = y[2];	//	y[k-1] = y[k];
 
-//	y[k] = 1.948*y[k-1] - 0.9483*y[k-2] + 1380.4*( e[k-1] - 0.9811*e[k-2] ) * ( e[k] - 1.982*e[k-1] + 0.9825*e[k-2] );	// Notch Filter, does not go below zero, but otherwise stable.
-//	y[k] = 1.01831*y[k-1] - 0.01831*y[k-2] + 4006.6/1000.0*(e[k] - 1.995*e[k-1] + 0.9957*e[k-2]);		// This one drives downwards (negative), but does have positive and negative directionality
+	// If there is no Integral Windup problem continue integrating error
+	if (~tauErrIntWindup)
+	{
+		u[k] = tauRef - tauMeas;			// [Nm]
+	} else
+	{
+		u[k] = 0.0;	// this is reasonably stable.
+	}
 
-	// designed on 3/25/2019
-//	y[k] = y[k-1] - 4.132e-15*y[k-2] + e[k] - 1.999*e[k-1] + e[k-2]*0.9993; // very very slow response
-	// designed on 3/26/2019
-//	y[k] = y[k-1] - 4.132e-15*y[k-2] + 3210*e[k] - 6350*e[k-1] + 3140*e[k-2]; // very noisy
-//	y[k] = 1.712*y[k-1] - 0.7117*y[k-2] + 896.1*e[k] - 1780*e[k-1] + 884.2*e[k-2]; // shuts itself off
-//	y[2] = 1.811*y[1] - 0.8106*y[0] + 112.9*e[2] - 223.2*e[1] + 110.3*e[0]; // shuts itself off
-//	y[2] = 1.088e-5*y[1] + 945.1*e[2] - 887.7*e[1]; // not stable, keep trying.
-	y[2] = 1.432921006780524*y[k-1] - 0.432921006780524*y[k-2] + 1.560904973168400e+02*e[k] -3.086064879570783e+02*e[k-1] + 1.525349804975425e+02*e[k-2];
+//	u[k] = tauRef - tauMeas;
 
-	rigid1.mn.genVar[8] = (int16_t) ( e[k] * 10);
-	rigid1.mn.genVar[5] = (int16_t) ( y[k] * 10);
-	// todo: consider saturating and tracking the saturated torque value inside of here?
+	// use this for anti-hunting, find reasonable values
+//	if (fabs(u[k] < 0.300) )
+//	{
+//		u[k] = 0;
+//	}
 
-	return ( y[2] );
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+//	y[2] = 1.432921006780524*y[k-1] - 0.432921006780524*y[k-2] + 1.560904973168400e+02*u[k] -3.086064879570783e+02*u[k-1] + 1.525349804975425e+02*u[k-2];	// 100r/s way too chunky
+//	y[2] = 1.517782504695552*y[k-1] - 0.517782504695552*y[k-2] + 16.287517713266595*u[k] -32.202047693057246*u[k-1] + 15.916511507446286*u[k-2]; // 25r/s
+//	y[2] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 29.559248967791255*u[k] -58.441481750942710*u[k-1] + 28.885829813641216*u[k-2];  // 36r/s
+//	y[2] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 29.559248967791255*u[k] -58.441481750942710*u[k-1] + 28.885829813641216*u[k-2]; // 72 r/s decent, slug
+//	  A(z) = 1 - 1.518 z^-1 + 0.5178 z^-2
+//	  B(z) = 86.27 - 170.6 z^-1 + 84.3 z^-2
+//	y[2] = 1.003612290385856*y[k-1] - 0.003612290385856*y[k-2] + 2.036915869672753e+02*u[k] -4.045028279479388e+02*u[k-1] + 2.008214235232099e+02*u[k-2]; // chunky business
+	y[2] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 86.268736903430250*u[k] -1.705616004964224e+02*u[k-1] + 84.303361534847570*u[k-2]; // 76r/s, mostly stable
+//	y[2] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 5.059220025973309e+02*u[k] -1.007907308159212e+03*u[k-1] + 5.019929635343050e+02*u[k-2]; // 76r/s
+
+	rigid1.mn.genVar[7] = (int16_t) ( u[k] * 100.0);
+	rigid1.mn.genVar[8] = (int16_t) ( y[k] * 100.);
+
+
+	//Saturation limit on Torque
+	 tauC = y[k];
+	tauCOutput = tauC;
+
+	if (tauC > ABS_TORQUE_LIMIT_INIT) {
+		tauCOutput = ABS_TORQUE_LIMIT_INIT;
+	} else if (tauC < -ABS_TORQUE_LIMIT_INIT) {
+		tauCOutput = -ABS_TORQUE_LIMIT_INIT;
+	}
+
+	// Clamp and turn off integral term if it's causing a torque saturation
+//	if ( integralAntiWindup(tauErr, tauCCombined, tauCOutput) ){
+//		tauErrInt = 0;
+//	}
+	tauErrIntWindup = integralAntiWindup(u[k], tauC, tauCOutput);
+
+
+
+	return ( y[k] );
 
 }
+
+/*
+ * Control compensator based on system Identification and simulation
+ * Input is system state
+ * return:	torque command value to the motor driver
+ */
+//float getCompensatorCustomOutput2(Act_s *actx, float tauMeas, float tauRef)
+//{
+//	static float y[3] = {0, 0, 0};
+//	static float e[3] = {0, 0, 0};
+//	static int8_t k = 2;
+//
+//	static float tauErrLast = 0.0, tauErrInt = 0.0;
+//	static int8_t tauErrIntWindup = 0;
+//	static float tauCCombined = 0.0, tauCOutput = 0.0;
+//
+//	// shift previous values into new locations
+//	// todo: consider saturating and tracking the saturated torque value inside of here?
+//	// If there is no Integral Windup problem continue integrating error
+//	if (~tauErrIntWindup)
+//	{
+//		e[0] = e[1];	//	e[k-2] = e[k-1];
+//		e[1] = e[2];	//	e[k-1] = e[k];
+//		// update current state to new values
+//		e[2] = tauRef - tauMeas;
+//	} else
+//	{
+//		e[0] = 0.0;
+//		e[1] = 0.0;
+//		e[2] = 0.0;
+//	}
+//
+//	//anti hunting for Integral term, if we're not moving, don't worry about it.
+//	if (fabs(actx->jointVel) < 0.1 )
+//	{
+//		e[2] = 0.0;
+//	}
+//
+//
+//
+//	y[0] = y[1];	//	y[k-2] = y[k-1];
+//	y[1] = y[2];	//	y[k-1] = y[k];
+//
+//	y[2] = 1.432921006780524*y[k-1] - 0.432921006780524*y[k-2] + 1.560904973168400e+02*e[k] -3.086064879570783e+02*e[k-1] + 1.525349804975425e+02*e[k-2];
+//
+//
+//	rigid1.mn.genVar[8] = (int16_t) ( e[k] * 100.);
+//
+//
+//
+//	//Saturation limit on Torque
+//	tauCOutput = tauC;
+//
+//	if (tauC > ABS_TORQUE_LIMIT_INIT) {
+//		tauCOutput = ABS_TORQUE_LIMIT_INIT;
+//	} else if (tauC < -ABS_TORQUE_LIMIT_INIT) {
+//		tauCOutput = -ABS_TORQUE_LIMIT_INIT;
+//	}
+//
+//	// Clamp and turn off integral term if it's causing a torque saturation
+////	if ( integralAntiWindup(tauErr, tauCCombined, tauCOutput) ){
+////		tauErrInt = 0;
+////	}
+//	tauErrIntWindup = integralAntiWindup(tauErr, tauC, tauCOutput);
+//
+//
+//
+//
+//	return ( y[2] );
+//
+//}
+
 
 /*
  * Control PID Controller
@@ -617,17 +716,12 @@ float getCompensatorPIDOutput(Act_s *actx)
 
 	float tauC = tauErr*torqueKp + tauErrDot*torqueKd + tauErrInt*torqueKi;	// torq Compensator
 
-	// Feedforward term
-	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
-
-	tauCCombined = tauC + tauFF;
-
 	//Saturation limit on Torque
-	tauCOutput = tauCCombined;
+	tauCOutput = tauC;
 
-	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
+	if (tauC > ABS_TORQUE_LIMIT_INIT) {
 		tauCOutput = ABS_TORQUE_LIMIT_INIT;
-	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
+	} else if (tauC < -ABS_TORQUE_LIMIT_INIT) {
 		tauCOutput = -ABS_TORQUE_LIMIT_INIT;
 	}
 
@@ -635,7 +729,7 @@ float getCompensatorPIDOutput(Act_s *actx)
 //	if ( integralAntiWindup(tauErr, tauCCombined, tauCOutput) ){
 //		tauErrInt = 0;
 //	}
-	tauErrIntWindup = integralAntiWindup(tauErr, tauCCombined, tauCOutput);
+	tauErrIntWindup = integralAntiWindup(tauErr, tauC, tauCOutput);
 
 
 	return tauCOutput;
@@ -669,6 +763,7 @@ float biomCalcImpedance(Act_s *actx,float k1, float b, float thetaSet)
 float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet)
 {
 	return k1 * (thetaSet - actx->jointAngleDegrees ) - b*actx->jointVelDegrees;
+
 }
 
 //Used for testing purposes. See state_machine

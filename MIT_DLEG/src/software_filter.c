@@ -411,6 +411,7 @@
 	}
 #endif //end 20Hz
 
+
 #ifdef SOFT_FILTER_JOINTANGLE_IIR_20HZ
 	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
 	   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 2.0000000000e-02 0.0000000000e+00 -l */

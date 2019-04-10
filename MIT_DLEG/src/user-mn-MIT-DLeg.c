@@ -145,10 +145,10 @@ void MITDLegFsm1(void)
     //Increment fsm_time (1 tick = 1ms nominally)
     fsmTime++;
 	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
-	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
+	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*1000.);		// Nm
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*1000.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
 //	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
 //	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
 //	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
@@ -156,7 +156,7 @@ void MITDLegFsm1(void)
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
-	  rigid1.mn.genVar[9] = (int16_t) (act1.axialForce );
+//	  rigid1.mn.genVar[9] = (int16_t) (act1.axialForce );
 #endif
     //begin main FSM
 	switch(fsm1State)
@@ -298,7 +298,8 @@ void MITDLegFsm1(void)
 				#elif defined(IS_SWEEP_CHIRP_TEST)
 
 					act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
-					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+					setMotorTorque( &act1, act1.tauDes);
 
 				#else
 					setKneeAnkleFlatGroundFSM(&act1);
