@@ -520,10 +520,12 @@ void handleSafetyConditions(Act_s *actx) {
 			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
 			{
 				mitInitCurrentController();
+
 			}
 			break;
 	}
 	lastMotorMode = motorMode;
+	rigid1.mn.genVar[5] = motorMode;
 #endif // NO_DEVICE || NO_ACTUATOR
 }
 

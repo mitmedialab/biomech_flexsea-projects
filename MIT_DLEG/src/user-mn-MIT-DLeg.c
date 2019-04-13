@@ -144,20 +144,10 @@ void MITDLegFsm1(void)
 
     //Increment fsm_time (1 tick = 1ms nominally)
     fsmTime++;
-	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
-	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*1000.);		// Nm
-	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
-	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*1000.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
-//	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(*rigid1.ex.enc_ang); 		//cpr, 16384 cpr, //(act2.jointAngle*100.);
-//	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
-//	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-//	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
-#ifdef IS_KNEE
-	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
-#else
-//	  rigid1.mn.genVar[9] = (int16_t) (act1.axialForce );
-#endif
+
+    // Send genVars values to the GUI
+    updateGenVarOutputs(&act1);
+
     //begin main FSM
 	switch(fsm1State)
 	{
@@ -166,12 +156,10 @@ void MITDLegFsm1(void)
 			//Same power-on delay as FSM2:
 			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 				//sensor update happens in mainFSM2(void) in main_fsm.c
-
 				isEnabledUpdateSensors = 1;
 				onEntry = 1;
 				fsmTime = 0;
 				fsm1State = STATE_INITIALIZE_SETTINGS;
-
 			}
 
 			break;
@@ -199,8 +187,6 @@ void MITDLegFsm1(void)
 				#else
 					enableMITfsm2 = 0;	// If it's slave, then don't bother turning on comms?
 				#endif
-
-
 			}
 
 			break;
@@ -223,8 +209,6 @@ void MITDLegFsm1(void)
 					fsmTime = 0;
 					isEnabledUpdateSensors = 1;
 					onEntry = 1;
-
-
 				}
 			}
 
@@ -298,8 +282,8 @@ void MITDLegFsm1(void)
 				#elif defined(IS_SWEEP_CHIRP_TEST)
 
 					act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
-//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
-					setMotorTorque( &act1, act1.tauDes);
+					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+//					setMotorTorque( &act1, act1.tauDes);
 
 				#else
 					setKneeAnkleFlatGroundFSM(&act1);
@@ -308,16 +292,6 @@ void MITDLegFsm1(void)
 				#endif
 
 
-
-// DEBUG todo: this is how to talk to slave or this actuator, setMotorVoltage(value)
-//			setControlMode(CTRL_OPEN, THIS_ACTPACK);
-//			setControlMode(CTRL_OPEN, SLAVE_ACTPACK);
-//			setMotorVoltage(0, THIS_ACTPACK);
-//			setMotorVoltage(0, SLAVE_ACTPACK);
-//			fsm1State = 1;
-//			deltaT = 0;
-
-//				}
 
 				break;
 			}
@@ -382,6 +356,29 @@ void MITDLegFsm2(void)
 //****************************************************************************
 // Private Function(s)
 //****************************************************************************
+
+/*
+ * genVars are output to the GUI. These can be used to send out values, they are global variables but it's good to keep track
+ * of them all in one place, hence his function. It's also annoying to flip up and down the code, so now they're located near
+ * the userwrites as well (input from the GUI)
+ */
+void updateGenVarOutputs(Act_s *actx)
+{
+	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
+	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*1000.);		// Nm
+	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
+	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
+	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*1000.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
+//	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.strain);
+//	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
+//	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
+//	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+#ifdef IS_KNEE
+	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
+#else
+//	  rigid1.mn.genVar[9] = (int16_t) (act1.axialForce );
+#endif
+}
 
 /*UserWrites are inputs from Plan. They are initailized to teh values shown below.
  * Their values are then used by udpateUserWrites to set function values.

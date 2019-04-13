@@ -72,10 +72,10 @@ void MITDLegFsm2(void);
 //Main FSMs
 
 
-//User writes
+//User writes/reads
 void updateUserWrites(Act_s *actx, WalkParams *wParams);
 void initializeUserWrites(Act_s *actx, WalkParams *wParams);
-
+void updateGenVarOutputs(Act_s *actx);
 
 //****************************************************************************
 // Definition(s):

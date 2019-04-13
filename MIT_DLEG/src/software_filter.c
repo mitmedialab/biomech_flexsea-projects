@@ -190,10 +190,12 @@
 //	#define SOFT_FIR_LPF3
 #define SOFT_FIR_LPF4
 
+
 //#define SOFT_FILTER_DEFAULT_IIR_30HZ
 //#define SOFT_FILTER_DEFAULT_IIR_50HZ
 //#define SOFT_FILTER_TORQ_IIR_10HZ
-#define SOFT_FILTER_TORQ_IIR_20HZ			// torque signal
+#define SOFT_FILTER_TORQ_IIR_15HZ
+//#define SOFT_FILTER_TORQ_IIR_20HZ			// torque signal
 #define SOFT_FILTER_JOINTANGLE_IIR_20HZ		// joint angle
 #define SOFT_FILTER_JOINTVEL_IIR_20HZ
 
@@ -230,6 +232,7 @@
 			0.00638568446274278,	0.00845584707235466,	0.0142525476918065,	0.0234801800773368,	0.0354080822148568,	0.0489427470450588,	0.0627487174980378,	0.0754035452889812,	0.0855673242094410,	0.0921450324563356,	0.0944205839660966,	0.0921450324563356,	0.0855673242094410,	0.0754035452889812,	0.0627487174980378,	0.0489427470450588,	0.0354080822148568,	0.0234801800773368,	0.0142525476918065,	0.00845584707235466,	0.00638568446274278
 	};
 #endif
+
 
 
 	static float softFirFiltBuffer[FIR_SAMPLE_SIZE];
@@ -383,6 +386,34 @@
 
 	}
 #endif //end 10Hz
+
+#ifdef SOFT_FILTER_TORQ_IIR_15HZ
+	/*  lpFilt = designfilt('lowpassiir','FilterOrder',2, ...
+         'PassbandFrequency',15,'PassbandRipple',0.1, ...
+         'SampleRate',1000);
+        [b,a] = tf(lpFilt)
+ 	 	[z p k ] = zpk(lpFilt)
+		fvtool(lpFilt)
+		M = idpoly(a,b,'NoiseVariance',0)
+	   Cutoff = 15Hz, 2nd order, 0.1 ripple, Butterworth filter, Sampling at 1000Hz
+	*/
+
+	#define NTZEROS 2
+	#define NTPOLES 2
+
+	static float xvT[NTZEROS+1], yvT[NTPOLES+1];
+
+	float filterTorqueButterworth(float inputVal)
+	{
+		xvT[0] = xvT[1];
+		xvT[1] = xvT[2];
+		xvT[2] = inputVal;
+		yvT[0] = yvT[1];
+		yvT[1] = yvT[2];
+		yvT[2] = 1.77374445515908*yvT[1] - 0.800084509789504*yvT[0] + 0.00650963562958534*xvT[2] + 0.0130192712591707*xvT[1] + 0.00650963562958534*xvT[0];
+		return yvT[2];
+	}
+#endif //end 20Hz
 
 #ifdef SOFT_FILTER_TORQ_IIR_20HZ
 	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript

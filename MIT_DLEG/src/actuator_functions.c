@@ -107,8 +107,8 @@ static void getJointAngleKinematic(struct act_s *actx)
 
 	// filter joint angle? TODO: maybe remove this. or use windowAveraging
 //	actx->jointAngle = 0.8*actx->jointAngle + 0.2*jointAngleRad;
-	actx->jointAngle = filterJointAngleButterworth(jointAngleRad);		// Lowpass butterworth, check on performance
-
+//	actx->jointAngle = filterJointAngleButterworth(jointAngleRad);		// Lowpass butterworth, check on performance
+	actx->jointAngle = jointAngleRad;
 	//VELOCITY
 //	actx->jointVel = 0.5*actx->jointVel + 0.5*( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
 	actx->jointVel = filterJointVelocityButterworth( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
@@ -119,9 +119,12 @@ static void getJointAngleKinematic(struct act_s *actx)
 	// SAFETY CHECKS
 	//if we start over soft limits after findPoles(), only turn on motor after getting within limits
 	//TODO: I think we can remove this, verify we are handling this with safety functions
-	if (startedOverLimit && jointAngleRad < jointMaxSoft && jointAngleRad > jointMinSoft) {
-		startedOverLimit = 0;
-	}
+//	if (startedOverLimit && jointAngleRad < jointMaxSoft && jointAngleRad > jointMinSoft) {
+//		startedOverLimit = 0;
+//	}
+
+	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
+	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
 
 	// Save values for next time through.
 	actx->lastJointAngle = actx->jointAngle;
@@ -165,8 +168,10 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	float numSamples = 1400.;
 	float timerDelay = 100.;
 
-	rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.strain);
+
+	// Filter the signal
 	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
+//	strainReading = runSoftFirFilt( (float) rigid1.ex.strain );
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing.
@@ -198,13 +203,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 			axialForce =  FORCE_DIR * (strainReading - tareOffset) * forcePerTick;
 
-			// Filter the signal
-
-//			axialForce = runSoftFirFilt(axialForce);
-//			axialForce = filterTorqueButterworth(axialForce); // moved filter to initial strain
-
 			break;
-
 
 		default:
 			//problem occurred
@@ -479,10 +478,10 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->tauMeas = actx->jointTorque;
 
 	//PID around motor torque
-//	float tauC = getCompensatorPIDOutput(actx);
+	float tauC = getCompensatorPIDOutput(actx);
 
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
-	float tauC = getCompensatorCustomOutput(actx, actx->tauMeas, actx->tauDes);
+//	float tauC = getCompensatorCustomOutput(actx, actx->tauMeas, actx->tauDes);
 
 	//Angle Limit bumpers
 //	tauC = tauC; //+ actuateAngleLimits(actx);
@@ -536,7 +535,6 @@ float getCompensatorCustomOutput(Act_s *actx, float tauMeas, float tauRef)
 	static float u[3] = {0, 0, 0};
 	static int8_t k = 2;
 	static int8_t tauErrIntWindup = 0;
-	static float tauC = 0.0, tauCOutput = 0.0;
 
 	// shift previous values into new locations
 	u[k-2] = u[k-1];
@@ -556,31 +554,30 @@ float getCompensatorCustomOutput(Act_s *actx, float tauMeas, float tauRef)
 //	u[k] = tauRef - tauMeas;
 
 	// use this for anti-hunting, find reasonable values
-//	if (fabs(u[k] < 0.300) )
-//	{
-//		u[k] = 0;
-//	}
+	if (fabs(u[k]) < 0.3 )
+	{
+		u[k] = 0;
+	}
 
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
-//	y[2] = 1.432921006780524*y[k-1] - 0.432921006780524*y[k-2] + 1.560904973168400e+02*u[k] -3.086064879570783e+02*u[k-1] + 1.525349804975425e+02*u[k-2];	// 100r/s way too chunky
-//	y[2] = 1.517782504695552*y[k-1] - 0.517782504695552*y[k-2] + 16.287517713266595*u[k] -32.202047693057246*u[k-1] + 15.916511507446286*u[k-2]; // 25r/s
-//	y[2] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 29.559248967791255*u[k] -58.441481750942710*u[k-1] + 28.885829813641216*u[k-2];  // 36r/s
-//	y[2] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 29.559248967791255*u[k] -58.441481750942710*u[k-1] + 28.885829813641216*u[k-2]; // 72 r/s decent, slug
+//	y[k] = 1.432921006780524*y[k-1] - 0.432921006780524*y[k-2] + 1.560904973168400e+02*u[k] -3.086064879570783e+02*u[k-1] + 1.525349804975425e+02*u[k-2];	// 100r/s way too chunky
+//	y[k] = 1.517782504695552*y[k-1] - 0.517782504695552*y[k-2] + 16.287517713266595*u[k] -32.202047693057246*u[k-1] + 15.916511507446286*u[k-2]; // 25r/s
+//	y[k] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 29.559248967791255*u[k] -58.441481750942710*u[k-1] + 28.885829813641216*u[k-2];  // 36r/s
+//	y[k] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 29.559248967791255*u[k] -58.441481750942710*u[k-1] + 28.885829813641216*u[k-2]; // 72 r/s decent, slug
 //	  A(z) = 1 - 1.518 z^-1 + 0.5178 z^-2
 //	  B(z) = 86.27 - 170.6 z^-1 + 84.3 z^-2
-//	y[2] = 1.003612290385856*y[k-1] - 0.003612290385856*y[k-2] + 2.036915869672753e+02*u[k] -4.045028279479388e+02*u[k-1] + 2.008214235232099e+02*u[k-2]; // chunky business
-	y[2] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 86.268736903430250*u[k] -1.705616004964224e+02*u[k-1] + 84.303361534847570*u[k-2]; // 76r/s, mostly stable
-//	y[2] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 5.059220025973309e+02*u[k] -1.007907308159212e+03*u[k-1] + 5.019929635343050e+02*u[k-2]; // 76r/s
+//	y[k] = 1.003612290385856*y[k-1] - 0.003612290385856*y[k-2] + 2.036915869672753e+02*u[k] -4.045028279479388e+02*u[k-1] + 2.008214235232099e+02*u[k-2]; // chunky business
+	y[k] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 86.268736903430250*u[k] -1.705616004964224e+02*u[k-1] + 84.303361534847570*u[k-2]; // 76r/s, mostly stable
 
 	rigid1.mn.genVar[7] = (int16_t) ( u[k] * 100.0);
 	rigid1.mn.genVar[8] = (int16_t) ( y[k] * 100.);
 
 
 	//Saturation limit on Torque
-	 tauC = y[k];
-	tauCOutput = tauC;
+	float tauC = y[k];
+	float tauCOutput = tauC;
 
 	if (tauC > ABS_TORQUE_LIMIT_INIT) {
 		tauCOutput = ABS_TORQUE_LIMIT_INIT;
@@ -594,10 +591,7 @@ float getCompensatorCustomOutput(Act_s *actx, float tauMeas, float tauRef)
 //	}
 	tauErrIntWindup = integralAntiWindup(u[k], tauC, tauCOutput);
 
-
-
 	return ( y[k] );
-
 }
 
 /*
@@ -690,7 +684,8 @@ float getCompensatorPIDOutput(Act_s *actx)
 	tauErrLast = tauErr;
 
 	// If there is no Integral Windup problem continue integrating error
-	if (~tauErrIntWindup)
+	// Don't let integral wind-up without a controller.
+	if (~tauErrIntWindup && (torqueKi != 0) )
 	{
 		tauErrInt = tauErrInt + tauErr;				// [Nm]
 	} else
@@ -705,14 +700,17 @@ float getCompensatorPIDOutput(Act_s *actx)
 		tauErrInt = 0.0;	// this is reasonably stable.
 	}
 
-	//anti hunting for Integral term, if we're not moving, don't worry about it.
-	if (fabs(actx->jointVel) < 0.1 )//&& fabs(actx->jointTorque) < 2.0)
-	{
-		tauErrInt = 0.0;
-	}
 
 
-	rigid1.mn.genVar[5] = (int16_t) (tauErrInt * 10.0);
+
+//	//anti hunting for Integral term, if we're not moving, don't worry about it.
+//	if (fabs(actx->jointVel) < 0.1 )//&& fabs(actx->jointTorque) < 2.0)
+//	{
+//		tauErrInt = 0.0;
+//	}
+
+
+//	rigid1.mn.genVar[5] = (int16_t) (tauErrInt * 10.0);
 
 	float tauC = tauErr*torqueKp + tauErrDot*torqueKd + tauErrInt*torqueKi;	// torq Compensator
 
@@ -787,7 +785,7 @@ float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet
  */
 void mitInitCurrentController(void) {
 
-	act1.currentOpLimit = CURRENT_ENTRY_INIT;
+	act1.currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
 	setControlMode(CTRL_CURRENT, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
 	setControlGains(ACTRL_I_KP_INIT, ACTRL_I_KI_INIT, ACTRL_I_KD_INIT, 0, DEVICE_CHANNEL);
@@ -795,7 +793,7 @@ void mitInitCurrentController(void) {
 
 void mitInitOpenController(void) {
 
-	act1.currentOpLimit = CURRENT_ENTRY_INIT;
+	act1.currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
 
 	setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;
@@ -1223,9 +1221,6 @@ void setMotorNeutralPosition(struct act_s *actx)
 void updateSensorValues(struct act_s *actx)
 {
 	getJointAngleKinematic(actx);
-
-	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
-	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, 0);
 
