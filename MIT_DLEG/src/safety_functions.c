@@ -204,7 +204,6 @@ static void checkTemperatureBounds(Act_s *actx) {
 static void checkJointAngleBounds(Act_s *actx) {
 	if (errorConditions[ERROR_JOINT_ENCODER]) {
 		errorConditions[WARNING_JOINTANGLE_SOFT] = SENSOR_INVALID;
-		errorConditions[WARNING_JOINTANGLE_SOFT] = SENSOR_INVALID;
 	} else {
 		//soft angle check
 		if (actx->jointAngleDegrees <= JOINT_MIN_SOFT_DEGREES) {

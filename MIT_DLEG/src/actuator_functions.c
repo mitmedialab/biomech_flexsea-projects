@@ -390,50 +390,26 @@ float actuateAngleLimits(Act_s *actx){
 	static float bumperTorq=0.0;
 	float tauK = 0; float tauB = 0;
 
+
+
 	// apply unidirectional spring
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
 		float thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
-		tauK = JOINT_SOFT_K * (thetaDelta)*(thetaDelta);
-		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees); //
-
-		bumperTorq = tauK + tauB;
-
-//		// apply unidirectional damper REMOVED, this slows it down more.
-//		if ( actx->jointVelDegrees < 0.0) { //<
-//
-//			tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
-//		} else
-//		{
-//			tauB = 0.0;
-//		}
+		tauK = JOINT_SOFT_K * (thetaDelta);
 
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
 		float thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
-		tauK = -JOINT_SOFT_K * (thetaDelta)*(thetaDelta);
+		tauK = JOINT_SOFT_K * (thetaDelta);
 
-		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
-
-		bumperTorq = tauK + tauB;
-
-
-		//		// apply unidirectional damper
-//		if ( actx->jointVelDegrees > 0.0) {
-//
-//			tauB = -JOINT_SOFT_B * actx->jointVelDegrees;
-//
-//		} else
-//		{
-//			tauB = 0.0;
-//		}
 	} else
 	{
 		tauK = 0.0;
 		tauB = 0.0;
-		bumperTorq = tauK + tauB;
+
 	}
 
-
+	bumperTorq = tauK + tauB;
 	return bumperTorq;
 }
 
@@ -474,7 +450,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	}
 
 //	//Angle Limit bumpers
-	actx->tauDes = tauDes; // + actuateAngleLimits(actx);
+	actx->tauDes = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
 	//PID around motor torque
@@ -483,8 +459,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
 //	float tauC = getCompensatorCustomOutput(actx, actx->tauMeas, actx->tauDes);
 
-	//Angle Limit bumpers
-//	tauC = tauC; //+ actuateAngleLimits(actx);
+//	//Angle Limit bumpers
+//	tauC = tauC + actuateAngleLimits(actx);
 
 
 	// Feedforward term
@@ -681,6 +657,7 @@ float getCompensatorPIDOutput(Act_s *actx)
 	// Error is torque at the joint
 	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
+	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot);	// apply filter to Derivative
 	tauErrLast = tauErr;
 
 	// If there is no Integral Windup problem continue integrating error
@@ -704,7 +681,7 @@ float getCompensatorPIDOutput(Act_s *actx)
 
 
 //	//anti hunting for Integral term, if we're not moving, don't worry about it.
-//	if (fabs(actx->jointVel) < 0.1 )//&& fabs(actx->jointTorque) < 2.0)
+//	if (fabs(actx->jointVel) < 0.075 )//&& fabs(actx->jointTorque) < 2.0)
 //	{
 //		tauErrInt = 0.0;
 //	}

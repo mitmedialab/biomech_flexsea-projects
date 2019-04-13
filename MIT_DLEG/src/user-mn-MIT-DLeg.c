@@ -435,9 +435,9 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		inputTheta								= ( (float) user_data_1.w[0] ) /100.0;
 		inputK									= ( (float) user_data_1.w[1] ) /100.0;
 		inputB									= ( (float) user_data_1.w[2] ) /100.0;
-		torqueKp								= ( (float) user_data_1.w[3] ) /1000.0;
-		torqueKi								= ( (float) user_data_1.w[4] ) /1000.0;
-		torqueKd								= ( (float) user_data_1.w[5] ) /1000.0;
+//		torqueKp								= ( (float) user_data_1.w[3] ) /1000.0;
+//		torqueKi								= ( (float) user_data_1.w[4] ) /1000.0;
+//		torqueKd								= ( (float) user_data_1.w[5] ) /1000.0;
 		inputTorq								= ( (float) user_data_1.w[6] ) /100.0;
 		errorKi									= ( (float) user_data_1.w[7] ) /1000.0;
 	#elif defined(IS_SWEEP_TEST)
@@ -517,11 +517,11 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	inputTheta								= 0.0;
 	inputK									= 0.0;
 	inputB									= 0.0;
-	torqueKp								= 0.0;
-	torqueKi								= 0.0;
-	torqueKd								= 0.0;
+//	torqueKp								= TORQ_KP_INIT;
+//	torqueKi								= TORQ_KI_INIT;
+//	torqueKd								= TORQ_KD_INIT;
 	inputTorq								= 0.0;
-	errorKi									=0.0;
+	errorKi									= 0.0;
 #elif defined(IS_SWEEP_TEST)
 	freq									= 0.0;
 	amplitude								= 0.0;

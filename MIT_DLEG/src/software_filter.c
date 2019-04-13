@@ -196,6 +196,7 @@
 //#define SOFT_FILTER_TORQ_IIR_10HZ
 #define SOFT_FILTER_TORQ_IIR_15HZ
 //#define SOFT_FILTER_TORQ_IIR_20HZ			// torque signal
+#define SOFT_FILTER_DERIVATIVE_IIR_15HZ		// PID, D filter
 #define SOFT_FILTER_JOINTANGLE_IIR_20HZ		// joint angle
 #define SOFT_FILTER_JOINTVEL_IIR_20HZ
 
@@ -490,6 +491,32 @@
 
 	}
 #endif //end 20Hz
+
+#ifdef SOFT_FILTER_DERIVATIVE_IIR_15HZ
+	/*  lpFilt = designfilt('lowpassiir','FilterOrder',2, ...
+         'PassbandFrequency',15,'PassbandRipple',0.1, ...
+         'SampleRate',1000);
+        [b,a] = tf(lpFilt)
+ 	 	[z p k ] = zpk(lpFilt)
+		fvtool(lpFilt)
+		M = idpoly(a,b,'NoiseVariance',0)
+	   Cutoff = 15Hz, 2nd order, 0.1 ripple, Butterworth filter, Sampling at 1000Hz
+	*/
+
+	#define NTDZEROS 1
+	#define NTDPOLES 1
+
+	static float xvTD[NTDZEROS+1], yvTD[NTDPOLES+1];
+
+	float filterTorqueDerivativeButterworth(float inputVal)
+	{
+		xvTD[0] = xvTD[1];
+		xvTD[1] = inputVal;
+		yvTD[0] = yvTD[1];
+		yvTD[1] = 0.527890814211024*yvTD[0] + 0.236054592894488*xvTD[1] + 0.236054592894488*xvTD[0];
+		return yvTD[1];
+	}
+#endif //end 15Hz
 
 
 #endif

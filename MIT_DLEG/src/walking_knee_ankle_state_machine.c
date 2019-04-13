@@ -18,19 +18,20 @@ WalkingStateMachine kneeAnkleStateMachine;
 WalkParams ankleWalkParams, kneeWalkParams;
 CubicSpline cubicSpline;
 
+//NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-GainParams ankleGainsEst = {1.5, 0.0, 0.3, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsMst = {1.5, 0.0, 0.3, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsLst = {4.0, 0.0, 0.2, 15};
-GainParams ankleGainsEsw = {1.5, 0.0, 0.2, -8.0};
-GainParams ankleGainsLsw = {1.5, 0.0,  0.2, -5.0};
+GainParams ankleGainsEst = {1.5, 0.0, 0.03, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsMst = {1.5, 0.0, 0.03, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsLst = {4.0, 0.0, 0.02, 15};
+GainParams ankleGainsEsw = {1.5, 0.0, 0.02, -8.0};
+GainParams ankleGainsLsw = {1.5, 0.0,  0.02, -5.0};
 
 //Knee, Positive Knee Flexion
-GainParams kneeGainsEst = {2.5, 0.0, 0.2, 10.0};
-GainParams kneeGainsMst = {3.5, 0.0, 0.2, 10.0};
-GainParams kneeGainsLst = {2.5, 0.0, 0.2, 15.0};
-GainParams kneeGainsEsw = {1.5, 0.0, 0.2, 50.0};
-GainParams kneeGainsLsw = {1.5, 0.0, 0.2, 50.0};
+GainParams kneeGainsEst = {2.5, 0.0, 0.02, 10.0};
+GainParams kneeGainsMst = {3.5, 0.0, 0.02, 10.0};
+GainParams kneeGainsLst = {2.5, 0.0, 0.02, 15.0};
+GainParams kneeGainsEsw = {1.5, 0.0, 0.02, 50.0};
+GainParams kneeGainsLsw = {1.5, 0.0, 0.02, 50.0};
 
 
 
