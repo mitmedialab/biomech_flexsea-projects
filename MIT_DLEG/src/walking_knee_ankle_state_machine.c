@@ -21,11 +21,11 @@ CubicSpline cubicSpline;
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-GainParams ankleGainsEst = {1.5, 0.0, 0.03, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsMst = {1.5, 0.0, 0.03, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsLst = {4.0, 0.0, 0.02, 15};
-GainParams ankleGainsEsw = {1.5, 0.0, 0.02, -8.0};
-GainParams ankleGainsLsw = {1.5, 0.0,  0.02, -5.0};
+GainParams ankleGainsEst = {1.5, 0.0, 0.1, -15.0};	// may want to increase this damping, at least.
+GainParams ankleGainsMst = {5.5, 0.0, 0.10, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsLst = {4.0, 0.0, 0.03, 14.0};
+GainParams ankleGainsEsw = {1.5, 0.0, 0.1, -15.0};
+GainParams ankleGainsLsw = {1.5, 0.0,  0.1, -5.0};
 GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
 //Knee, Positive Knee Flexion
@@ -235,7 +235,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 			#ifdef IS_ANKLE
 
-				actx->tauDes = getImpedanceTorque(actx, ankleGainsLsw.k1, ankleGainsLsw.b, ankleGainsLsw.thetaDes);
+				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
 
 				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 				if(timeInState > LSW_TO_EST_DELAY) {
