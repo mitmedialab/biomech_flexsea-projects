@@ -21,12 +21,14 @@ CubicSpline cubicSpline;
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-GainParams ankleGainsEst = {1.5, 0.0, 0.1, -15.0};	// may want to increase this damping, at least.
+GainParams ankleGainsEst = {1.5, 0.0, 0.2, -10.0};	// may want to increase this damping, at least.
 GainParams ankleGainsMst = {5.5, 0.0, 0.10, 0.0};	// may want to increase this damping, at least.
 GainParams ankleGainsLst = {4.0, 0.0, 0.03, 14.0};
-GainParams ankleGainsEsw = {1.5, 0.0, 0.1, -15.0};
-GainParams ankleGainsLsw = {1.5, 0.0,  0.1, -5.0};
+GainParams ankleGainsEsw = {1.5, 0.0, 0.3, -10.0};
+GainParams ankleGainsLsw = {1.5, 0.0,  0.1, -10.0};
 GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
+
+float splineTime = 100.0;
 
 //Knee, Positive Knee Flexion
 GainParams kneeGainsEst = {2.5, 0.0, 0.02, 10.0};
@@ -193,17 +195,18 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				ankleWalkParams.virtualHardstopTq = 0.0;
 
 				// initialize cubic spline params once
-				initializeCubicSplineParams(&cubicSpline, actx, ankleGainsEsw, 100.0); // last parameter is res_factor (delta X - time)
+//				initializeCubicSplineParams(&cubicSpline, actx, ankleGainsEsw, splineTime); // last parameter is res_factor (delta X - time)
 			}
 
 			#ifdef IS_ANKLE
-				// Cubic Spline
-				calcCubicSpline(&cubicSpline);
-				ankleGainsEsw.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
+				// Cubic Spline NOT WORKING; UNTESTED
+//				calcCubicSpline(&cubicSpline);
+//				ankleGainsEsw.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
 				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
 
 				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes || timeInState >= ESW_TO_LSW_DELAY)
+//				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes)
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
 				}
@@ -243,7 +246,8 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 					// Late Swing -> Early Stance (hard toe strike) - Running
 					if ( actx->jointTorque > HARD_TOESTRIKE_TORQUE_THRESH || actx->jointVelDegrees > HARD_TOESTRIKE_VEL_THRESH_DEG)
 					{
-						kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
+//						kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
+						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParams.transitionId = 0;
 					}
 					// Late Swing -> Early Stance (hard heal strike)

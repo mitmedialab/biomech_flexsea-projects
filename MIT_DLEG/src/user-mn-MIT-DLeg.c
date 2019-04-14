@@ -105,6 +105,8 @@ extern float torqueKi;
 extern float torqueKd;
 extern float errorKi;
 
+extern int16_t splineTime;
+
 //****************************************************************************
 // Macro(s)
 //****************************************************************************
@@ -396,7 +398,7 @@ void updateGenVarOutputs(Act_s *actx)
 void updateUserWrites(Act_s *actx, WalkParams *wParams){
   
 	#ifdef IS_ANKLE
-
+		ankleGainsEsw.thetaDes					= ( (float) user_data_1.w[0] ) /100.0;	// [milliseconds]
 		wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
 		wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
 		wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
@@ -405,7 +407,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		ankleGainsLst.thetaDes 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
 		ankleGainsMst.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
 		ankleGainsEsw.k1			 			= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
-		ankleGainsEsw.b	 				= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
+		ankleGainsEsw.b	 						= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
 	#elif defined(IS_KNEE)
 
 		kneeGainsEst.k1			 				= ( (float) user_data_1.w[0] ) / 100.0;	// [Nm/deg]
@@ -483,7 +485,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 //	ankleGainsEst.thetaDes			 		= -15.0;	//user_data_1.w[9] = 32  [Nm/s]
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////
-	user_data_1.w[0] =  (int8_t) 0 ;
+	user_data_1.w[0] =  (int32_t) ( ankleGainsEsw.thetaDes * 100);
 	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
 	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
 	user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque*100 ); 			// Late stance power, torque threshhold
@@ -492,7 +494,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	user_data_1.w[6] =  (int32_t) ( ankleGainsLst.thetaDes * 100 ); // 14 x 100
 	user_data_1.w[7] =  (int32_t) ( ankleGainsMst.b * 100 ); 		// 0.1 x 100
 	user_data_1.w[8] =  (int32_t) ( ankleGainsEsw.k1 * 100 ); 			// 0.1 x 100
-	user_data_1.w[9] =  (int32_t) ( ankleGainsEst.thetaDes * 100 ); 			// 0.1 x 100
+	user_data_1.w[9] =  (int32_t) ( ankleGainsEsw.b * 100 ); 			// 0.1 x 100
 
 	///////////////////////////////////////////////////
 
