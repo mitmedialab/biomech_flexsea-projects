@@ -44,12 +44,12 @@ extern "C" {
 //****************************************************************************
 // Shared Variable(s):
 //****************************************************************************
-extern GainParams eswGains;
-extern GainParams lswGains;
-extern GainParams estGains;
-extern GainParams lstPowerGains;
-extern WalkParams walkParams;
-extern WalkingStateMachine stateMachine;
+//extern GainParams eswGains;
+//extern GainParams lswGains;
+//extern GainParams estGains;
+//extern GainParams lstPowerGains;
+extern WalkParams ankleWalkParams;
+extern WalkingStateMachine ankleStateMachine;
 extern Act_s act1, act2;
 
 //****************************************************************************

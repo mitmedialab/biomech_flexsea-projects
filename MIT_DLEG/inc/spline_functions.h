@@ -11,8 +11,8 @@
 #define BIOMECH_FLEXSEA_PROJECTS_MIT_DLEG_INC_SPLINE_FUNCTIONS_H_
 
 
-//#include "walking_state_machine.h"
-#include "walking_knee_ankle_state_machine.h"
+#include "walking_state_machine.h"
+//#include "walking_knee_ankle_state_machine.h"
 #include "state_variables.h"
 #include "user-mn-MIT-EMG.h"
 #include "flexsea_user_structs.h"

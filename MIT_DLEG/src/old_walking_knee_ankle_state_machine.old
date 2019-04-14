@@ -6,7 +6,7 @@ extern "C" {
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-#include "walking_knee_ankle_state_machine.h"
+#include <old_walking_knee_ankle_state_machine.old>
 #include <user-mn-MIT-DLeg.h>
 //#include "user-mn-MIT-EMG.h"
 #include "spline_functions.h"

@@ -51,8 +51,10 @@ extern "C" {
 
 #ifdef INCLUDE_UPROJ_MIT_DLEG
 #include "state_variables.h"
-#include "walking_knee_ankle_state_machine.h"
-extern WalkingStateMachine kneeAnkleStateMachine;
+//#include "walking_knee_ankle_state_machine.h"
+//extern WalkingStateMachine kneeAnkleStateMachine;
+#include "walking_state_machine.h"
+extern WalkingStateMachine ankleStateMachine;
 extern Act_s act1, act2;
 #endif
 
@@ -302,7 +304,7 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 		{
 			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
 //			shBuf[index++] = (int8_t) (kneeAnkleSM.currentState);	// send current state
-			shBuf[index++] = (int8_t) (kneeAnkleStateMachine.currentState);	// send current state
+//			shBuf[index++] = (int8_t) (kneeAnkleStateMachine.currentState);	// send current state
 			//(5 bytes)
 		}
 
@@ -563,8 +565,8 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 			{
 //				kneeAnkleSM->timeStampFromSlave = REBUILD_UINT32(msgBuf, &index);
 //				kneeAnkleSM->slaveCurrentState = msgBuf[index++];	// receive state of slave device
-				kneeAnkleStateMachine.timeStampFromSlave = REBUILD_UINT32(msgBuf, &index);
-				kneeAnkleStateMachine.slaveCurrentState = msgBuf[index++];	// receive state of slave device
+//				kneeAnkleStateMachine.timeStampFromSlave = REBUILD_UINT32(msgBuf, &index);
+//				kneeAnkleStateMachine.slaveCurrentState = msgBuf[index++];	// receive state of slave device
 				//(5 bytes)
 			}
 			else

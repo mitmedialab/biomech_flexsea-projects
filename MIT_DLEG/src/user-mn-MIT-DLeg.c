@@ -38,8 +38,8 @@
 #include "user-mn-MIT-DLeg.h"
 #include "actuator_functions.h"
 #include "safety_functions.h"
-//#include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
-#include "walking_knee_ankle_state_machine.h"
+#include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
+//#include "walking_knee_ankle_state_machine.h"
 #include "run_main_user_application.h"	// This is where user application functions live
 #include "ui.h"
 
@@ -243,7 +243,7 @@ void MITDLegFsm1(void)
 			if (!ankleWalkParams.initializedStateMachineVariables){
 				initializeUserWrites(&act1, &ankleWalkParams);
 				ankleWalkParams.initializedStateMachineVariables = 1;
-				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
+				ankleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
 			}
 
 			fsm1State = STATE_MAIN;
@@ -286,7 +286,10 @@ void MITDLegFsm1(void)
 //					setMotorTorque( &act1, act1.tauDes);
 
 				#else
-					setKneeAnkleFlatGroundFSM(&act1);
+
+//					setKneeAnkleFlatGroundFSM(&act1);
+					runFlatGroundFSM(&act1);
+
 					setMotorTorque( &act1, act1.tauDes);
 
 				#endif
@@ -395,7 +398,7 @@ void updateGenVarOutputs(Act_s *actx)
 void updateUserWrites(Act_s *actx, WalkParams *wParams){
   
 	#ifdef IS_ANKLE
-		kneeAnkleStateMachine.currentState = (int8_t) user_data_1.w[0] ;
+		ankleStateMachine.currentState = (int8_t) user_data_1.w[0] ;
 
 		wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
 		wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
