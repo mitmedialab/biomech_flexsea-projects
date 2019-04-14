@@ -524,7 +524,7 @@ void handleSafetyConditions(Act_s *actx) {
 			break;
 	}
 	lastMotorMode = motorMode;
-	rigid1.mn.genVar[5] = motorMode;
+
 #endif // NO_DEVICE || NO_ACTUATOR
 }
 

@@ -489,7 +489,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->desiredCurrent = I; 	// demanded mA
 
 
-	rigid1.mn.genVar[9] = (int16_t) (I);
+//	rigid1.mn.genVar[9] = (int16_t) (I);
 
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)

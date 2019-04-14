@@ -369,11 +369,12 @@ void updateGenVarOutputs(Act_s *actx)
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
 	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*1000.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
-//	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.strain);
-//	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
-//	  rigid1.mn.genVar[7] = (int16_t) kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-//	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
-#ifdef IS_KNEE
+	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.strain);
+	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
+//	  rigid1.mn.genVar[7] = (int16_t) (fsm1State); //kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
+	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+	  rigid1.mn.genVar[9] = (int16_t) (ankleWalkParams.lspEngagementTorque)*100;
+	  #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
 //	  rigid1.mn.genVar[9] = (int16_t) (act1.axialForce );
@@ -395,7 +396,6 @@ void updateGenVarOutputs(Act_s *actx)
 void updateUserWrites(Act_s *actx, WalkParams *wParams){
   
 	#ifdef IS_ANKLE
-		kneeAnkleStateMachine.currentState = (int8_t) user_data_1.w[0] ;
 
 		wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
 		wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]

@@ -10,6 +10,7 @@ extern "C" {
 #include <user-mn-MIT-DLeg.h>
 //#include "user-mn-MIT-EMG.h"
 #include "spline_functions.h"
+#include "free_ankle_EMG.h"
 
 //****************************************************************************
 // Definition(s):
@@ -25,6 +26,7 @@ GainParams ankleGainsMst = {1.5, 0.0, 0.03, 0.0};	// may want to increase this d
 GainParams ankleGainsLst = {4.0, 0.0, 0.02, 15};
 GainParams ankleGainsEsw = {1.5, 0.0, 0.02, -8.0};
 GainParams ankleGainsLsw = {1.5, 0.0,  0.02, -5.0};
+GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
 //Knee, Positive Knee Flexion
 GainParams kneeGainsEst = {2.5, 0.0, 0.02, 10.0};
@@ -53,9 +55,6 @@ GainParams kneeGainsLsw = {1.5, 0.0, 0.02, 50.0};
 */ //void setKneeAnkleFlatGroundFSM(Act_s *actx);
 //void setKneeAnkleFlatGroundFSM(Act_s *actx, Act_s *actx) {
 void setKneeAnkleFlatGroundFSM(Act_s *actx) {
-	// knee references to actx, only controlling one actuator,
-	// but keeping this in case I want to control separate actuators later?
-//	actx = &actx;
 
     static int8_t isTransitioning = 0;
     static uint32_t timeInState = 0;
@@ -81,14 +80,17 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
         isTransitioning = 1;
     }
 
+
     switch (kneeAnkleStateMachine.currentState) {
 
         case STATE_IDLE:
-            //error handling here (should never be in STATE_IDLE by the time you get here)
+        {
+        	//error handling here (should never be in STATE_IDLE by the time you get here)
             break;
-
+        }
         case STATE_INIT:
-			#ifdef IS_ANKLE
+        {
+        	#ifdef IS_ANKLE
         		actx->tauDes = 0.0;	// Initialize to no commanded torque
 			#elif defined(IS_KNEE)
         		actx->tauDes = 0.0;
@@ -97,40 +99,55 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
         	kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;	// enter into early stance, this has stability.
 
             break;
-
+        }
         case STATE_EARLY_STANCE:
-
+        {
 			if (isTransitioning && !passedStanceThresh) {
 				ankleWalkParams.scaleFactor = 1.0;
 //					ankleGainsEst.k1 = ankleWalkParams.earlyStanceK0;
 //				ankleGainsEst.thetaDes = actx->jointAngleDegrees;	// used by updateImpedanceParams, if in use, could be turned off.
 	//			updateImpedanceParams(actx, &ankleWalkParams);	//Todo: Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
 				passedStanceThresh = 0;
+
+				#ifdef USE_EMG
+				resetVirtualJoint(actx->jointAngleDegrees,0,0);
+				#endif //USE_EMG
 			}
 
 			#ifdef IS_ANKLE
 				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
-				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes);
+
+
+				#ifdef USE_EMG
+				updateVirtualJoint(&ankleGainsEMG);
+  	  	  	  	#endif //USE_EMG
+
+
+				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes) + getImpedanceTorque(actx, ankleGainsEMG.k1, ankleGainsEMG.b, ankleGainsEMG.thetaDes);
+
 				if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParams.virtualHardstopEngagementAngle) {
 					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
 					passedStanceThresh = 1;
+
 				}
 			#elif defined(IS_KNEE)
 				actx->tauDes = getImpedanceTorque(actx, kneeGainsEst.k1, kneeGainsEst.b, kneeGainsEst.thetaDes);
 			#endif
 
 			break;
-
+        }
         case STATE_MID_STANCE:
-
+        {
 			if (isTransitioning) {
 
 			}
+
 			#ifdef IS_ANKLE
         		updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);	// Bring in
         		actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
 
     			// Stance transition vectors, only go into next state. This is a stable place to be.
+
     			if (actx->jointTorque > ankleWalkParams.lspEngagementTorque) {
     				kneeAnkleStateMachine.currentState = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
     			}
@@ -140,9 +157,9 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			#endif
 
         	break;
-
-        case STATE_LATE_STANCE_POWER: //6
-
+        }
+        case STATE_LATE_STANCE_POWER: //2
+        {
 			if (isTransitioning) {
 				ankleWalkParams.samplesInLSP = 0.0;
 				ankleWalkParams.lspEntryTq = actx->jointTorque;
@@ -168,9 +185,9 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			#endif
 
             break;
-
+        }
         case STATE_EARLY_SWING:
-
+        {
 			//Put anything you want to run ONCE during state entry.
 			if (isTransitioning) {
 				ankleWalkParams.virtualHardstopTq = 0.0;
@@ -209,9 +226,9 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			//Transition occurs when toe swings up or time elapsed
 
 			break; // case STATE_EARLY_SWING
-
+        }
 		case STATE_LATE_SWING:
-
+		{
 			if (isTransitioning) {
 				ankleWalkParams.transitionId = 0;
 			}
@@ -262,15 +279,15 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			#endif
 
 			break;
-        
+		}
         default:
-
+        {
             //turn off control.
             actx->tauDes = 0;
             kneeAnkleStateMachine.currentState = STATE_INIT;
 
             break;
-	
+        }
     }
 
     //update last state in preparation for next loop
