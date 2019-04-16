@@ -143,6 +143,7 @@ void MITDLegFsm1(void)
 	#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 
     static uint32_t fsmTime = 0;
+    static uint32_t controlTime = 0;
 
     //Increment fsm_time (1 tick = 1ms nominally)
     fsmTime++;
@@ -258,6 +259,7 @@ void MITDLegFsm1(void)
 			{
 				updateUserWrites(&act1, &ankleWalkParams);
 
+
 				//DEBUG removed this because joint encoder can't update in locked state.
 //				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 
@@ -265,16 +267,22 @@ void MITDLegFsm1(void)
 					 *  Below here is where user code goes
 					 ****************************************/
 				#if defined(IS_ACTUATOR_TESTING)
-					if (fabs(inputTorq) > 0)
+
+					// Try running impedance update slower than torque controller.
+					if ( fmod(controlTime,2) == 0 )
 					{
-						float tor = inputTorq;
-						act1.tauDes = tor;
+						if (fabs(inputTorq) > 0)
+						{
+							float tor = inputTorq;
+							act1.tauDes = tor;
+						}
+						else
+						{
+							float tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
+							act1.tauDes = tor;
+						}
 					}
-					else
-					{
-						float tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
-						act1.tauDes = tor;
-					}
+
 					setMotorTorque( &act1, act1.tauDes);
 
 				#elif defined(IS_SWEEP_TEST)
@@ -284,8 +292,8 @@ void MITDLegFsm1(void)
 				#elif defined(IS_SWEEP_CHIRP_TEST)
 
 					act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
-					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
-//					setMotorTorque( &act1, act1.tauDes);
+//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+					setMotorTorque( &act1, act1.tauDes);
 
 				#else
 					setKneeAnkleFlatGroundFSM(&act1);
@@ -294,6 +302,7 @@ void MITDLegFsm1(void)
 				#endif
 
 
+				controlTime++;
 
 				break;
 			}
@@ -367,19 +376,18 @@ void MITDLegFsm2(void)
 void updateGenVarOutputs(Act_s *actx)
 {
 	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
-	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*1000.);		// Nm
-	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*1000.);			// radians/s
+	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
+	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*100.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*1000.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
 	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.strain);
 	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
 //	  rigid1.mn.genVar[7] = (int16_t) (fsm1State); //kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
 	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
-	  rigid1.mn.genVar[9] = (int16_t) (ankleWalkParams.lspEngagementTorque)*100;
-	  #ifdef IS_KNEE
+#ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
-//	  rigid1.mn.genVar[9] = (int16_t) (act1.axialForce );
+	  rigid1.mn.genVar[9] = (int16_t) (act1.axialForce *10);
 #endif
 }
 
@@ -437,9 +445,9 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		inputTheta								= ( (float) user_data_1.w[0] ) /100.0;
 		inputK									= ( (float) user_data_1.w[1] ) /100.0;
 		inputB									= ( (float) user_data_1.w[2] ) /100.0;
-//		torqueKp								= ( (float) user_data_1.w[3] ) /1000.0;
-//		torqueKi								= ( (float) user_data_1.w[4] ) /1000.0;
-//		torqueKd								= ( (float) user_data_1.w[5] ) /1000.0;
+		torqueKp								= ( (float) user_data_1.w[3] ) /1000.0;
+		torqueKi								= ( (float) user_data_1.w[4] ) /1000.0;
+		torqueKd								= ( (float) user_data_1.w[5] ) /1000.0;
 		inputTorq								= ( (float) user_data_1.w[6] ) /100.0;
 		errorKi									= ( (float) user_data_1.w[7] ) /1000.0;
 	#elif defined(IS_SWEEP_TEST)

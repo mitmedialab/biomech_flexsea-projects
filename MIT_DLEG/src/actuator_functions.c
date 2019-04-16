@@ -396,17 +396,15 @@ float actuateAngleLimits(Act_s *actx){
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
 		float thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
 		tauK = JOINT_SOFT_K * (thetaDelta);
-
-
+		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
 		float thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
 		tauK = JOINT_SOFT_K * (thetaDelta);
-
+		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
 	} else
 	{
 		tauK = 0.0;
 		tauB = 0.0;
-
 	}
 
 	bumperTorq = tauK + tauB;
@@ -450,11 +448,14 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	}
 
 //	//Angle Limit bumpers
-	actx->tauDes = tauDes + actuateAngleLimits(actx);
+	actx->tauDes = tauDes;
+	float refTorque = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
 	//PID around motor torque
-	float tauC = getCompensatorPIDOutput(actx);
+	float tauC = getCompensatorPIDOutput(refTorque, actx);
+
+	rigid1.mn.genVar[7] = ( (int16_t) (tauC * 100.0) );
 
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
 //	float tauC = getCompensatorCustomOutput(actx, actx->tauMeas, actx->tauDes);
@@ -487,9 +488,6 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	}
 
 	actx->desiredCurrent = I; 	// demanded mA
-
-
-//	rigid1.mn.genVar[9] = (int16_t) (I);
 
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
@@ -547,8 +545,8 @@ float getCompensatorCustomOutput(Act_s *actx, float tauMeas, float tauRef)
 //	y[k] = 1.003612290385856*y[k-1] - 0.003612290385856*y[k-2] + 2.036915869672753e+02*u[k] -4.045028279479388e+02*u[k-1] + 2.008214235232099e+02*u[k-2]; // chunky business
 	y[k] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 86.268736903430250*u[k] -1.705616004964224e+02*u[k-1] + 84.303361534847570*u[k-2]; // 76r/s, mostly stable
 
-	rigid1.mn.genVar[7] = (int16_t) ( u[k] * 100.0);
-	rigid1.mn.genVar[8] = (int16_t) ( y[k] * 100.);
+//	rigid1.mn.genVar[7] = (int16_t) ( u[k] * 100.0);
+//	rigid1.mn.genVar[8] = (int16_t) ( y[k] * 100.);
 
 
 	//Saturation limit on Torque
@@ -647,7 +645,7 @@ float getCompensatorCustomOutput(Act_s *actx, float tauMeas, float tauRef)
  * input:	Act_s structure
  * return:	desired torque signal to motor
  */
-float getCompensatorPIDOutput(Act_s *actx)
+float getCompensatorPIDOutput(float refTorque, Act_s *actx)
 {
 
 	static float tauErrLast = 0.0, tauErrInt = 0.0;
@@ -655,7 +653,8 @@ float getCompensatorPIDOutput(Act_s *actx)
 	static float tauCCombined = 0.0, tauCOutput = 0.0;
 
 	// Error is torque at the joint
-	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
+//	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
+	float tauErr = refTorque - actx->tauMeas;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
 	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot);	// apply filter to Derivative
 	tauErrLast = tauErr;
@@ -677,17 +676,11 @@ float getCompensatorPIDOutput(Act_s *actx)
 		tauErrInt = 0.0;	// this is reasonably stable.
 	}
 
-
-
-
 //	//anti hunting for Integral term, if we're not moving, don't worry about it.
 //	if (fabs(actx->jointVel) < 0.075 )//&& fabs(actx->jointTorque) < 2.0)
 //	{
 //		tauErrInt = 0.0;
 //	}
-
-
-//	rigid1.mn.genVar[5] = (int16_t) (tauErrInt * 10.0);
 
 	float tauC = tauErr*torqueKp + tauErrDot*torqueKd + tauErrInt*torqueKi;	// torq Compensator
 
@@ -707,7 +700,7 @@ float getCompensatorPIDOutput(Act_s *actx)
 	tauErrIntWindup = integralAntiWindup(tauErr, tauC, tauCOutput);
 
 
-	return tauCOutput;
+	return tauC; // try not saturating until current, tauCOutput;
 }
 
 
