@@ -269,8 +269,8 @@ void MITDLegFsm1(void)
 				#if defined(IS_ACTUATOR_TESTING)
 
 					// Try running impedance update slower than torque controller.
-					if ( fmod(controlTime,2) == 0 )
-					{
+//					if ( fmod(controlTime,2) == 0 )
+//					{
 						if (fabs(inputTorq) > 0)
 						{
 							float tor = inputTorq;
@@ -281,7 +281,7 @@ void MITDLegFsm1(void)
 							float tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 							act1.tauDes = tor;
 						}
-					}
+//					}
 
 					setMotorTorque( &act1, act1.tauDes);
 
@@ -291,7 +291,11 @@ void MITDLegFsm1(void)
 					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 				#elif defined(IS_SWEEP_CHIRP_TEST)
 
-					act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
+					if ( fmod(controlTime,2) == 0 )
+					{
+						act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
+					}
+
 //					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 					setMotorTorque( &act1, act1.tauDes);
 
@@ -383,7 +387,7 @@ void updateGenVarOutputs(Act_s *actx)
 	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.strain);
 	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
 //	  rigid1.mn.genVar[7] = (int16_t) (fsm1State); //kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+//	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
