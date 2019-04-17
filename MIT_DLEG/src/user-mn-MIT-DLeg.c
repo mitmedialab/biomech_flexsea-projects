@@ -144,6 +144,7 @@ void MITDLegFsm1(void)
 
     static uint32_t fsmTime = 0;
     static uint32_t controlTime = 0;
+    static float tor = 0.0;
 
     //Increment fsm_time (1 tick = 1ms nominally)
     fsmTime++;
@@ -268,6 +269,7 @@ void MITDLegFsm1(void)
 					 ****************************************/
 				#if defined(IS_ACTUATOR_TESTING)
 
+//					tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 					// Try running impedance update slower than torque controller.
 //					if ( fmod(controlTime,2) == 0 )
 //					{
@@ -283,6 +285,7 @@ void MITDLegFsm1(void)
 						}
 //					}
 
+
 					setMotorTorque( &act1, act1.tauDes);
 
 				#elif defined(IS_SWEEP_TEST)
@@ -291,10 +294,10 @@ void MITDLegFsm1(void)
 					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 				#elif defined(IS_SWEEP_CHIRP_TEST)
 
-					if ( fmod(controlTime,2) == 0 )
-					{
+//					if ( fmod(controlTime,2) == 0 )
+//					{
 						act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
-					}
+//					}
 
 //					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 					setMotorTorque( &act1, act1.tauDes);
@@ -471,7 +474,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		dcBias									= ( (float) user_data_1.w[6] ) /100.0;
 		noiseAmp								= ( (float) user_data_1.w[7] ) /100.0;
 	#endif
-// d65406cc3d48d53459bd175b3ffd5aa7e7b1a893 was on this head in flexsea-system
+
 }
 
 /*

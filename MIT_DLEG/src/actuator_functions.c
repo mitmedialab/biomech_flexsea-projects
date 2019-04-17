@@ -396,11 +396,11 @@ float actuateAngleLimits(Act_s *actx){
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
 		float thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
 		tauK = JOINT_SOFT_K * (thetaDelta);
-		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
 		float thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
 		tauK = JOINT_SOFT_K * (thetaDelta);
-		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
 	} else
 	{
 		tauK = 0.0;
@@ -452,20 +452,23 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	float refTorque = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
+	// Feed Forward term
+	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
+
+	// LPF Reference term to compensate for FF delay
+	refTorque = getReferenceLPF(refTorque);
+
+	// Compensator
 	//PID around motor torque
 	float tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
 //	float tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
 
-	rigid1.mn.genVar[7] = ( (int16_t) (tauC * 100.0) );
-
-
-	// Feedforward term
-	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
-
-	rigid1.mn.genVar[8] = ( (int16_t) (tauFF * 100.0) );
 
 	float tauCCombined = tauC + tauFF;
+
+	rigid1.mn.genVar[7] = ( (int16_t) (tauC * 100.0) );
+	rigid1.mn.genVar[8] = ( (int16_t) (tauFF * 100.0) );
 
 	// motor current signal
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
@@ -599,11 +602,7 @@ float getFeedForwardTerm(float refTorque)
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
-//	y[k] = 1.74745631627074*y[k-1] - 0.778800783071405*y[k-2]
-//			+ 112.086241233261*u[k] -223.87190710424*u[k-1] + 111.806375607972*u[k-2];
 
-//	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
-//				+ 105.539880442839*u[k] -210.796740530545*u[k-1] + 105.276360279186*u[k-2];
 
 	// fc=30hz
 //	y[k] = 1.75893011414808*y[k-1] - 0.778800783071405*y[k-2]
@@ -612,6 +611,32 @@ float getFeedForwardTerm(float refTorque)
 	//fc = 10hz
 	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
 				+ 13.2619229729635*u[k] -26.4882821937814*u[k-1] + 13.2288095745257*u[k-2];
+	return ( y[k] );
+}
+
+/*
+ * LPF on reference due to Feedforward Term
+ * Input is reference
+ * return:	torque command value to the motor driver
+ */
+float getReferenceLPF(float refTorque)
+{
+	static float y[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = refTorque;			// [Nm]
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+	//fc = 10hz
+	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
+			+ 0.0018543217247955*u[k-1] + 0.0018543217247955*u[k-2];
 	return ( y[k] );
 }
 
