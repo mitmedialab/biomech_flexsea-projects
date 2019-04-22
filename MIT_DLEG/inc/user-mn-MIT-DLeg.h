@@ -16,15 +16,12 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************
-	[Lead developer] Jean-Francois Duval, jfduval at dephy dot com.
+	[Lead developers] Luke Mooney, lmooney at dephy dot com.
 	[Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
 	Biomechatronics research group <http://biomech.media.mit.edu/>
 	[Contributors] Matthew Carney, mcarney at mit dot edu, Tony Shu, tonyshu at mit dot edu
 *****************************************************************************
 	[This file] MIT DARPA Leg Main FSM
-*****************************************************************************
-	[Change log] (Convention: YYYY-MM-DD | author | comment)
-	* 2018-02-24 | jfduval | New release
 ****************************************************************************/
 
 #if defined INCLUDE_UPROJ_MIT_DLEG || defined BOARD_TYPE_FLEXSEA_PLAN
@@ -37,21 +34,21 @@
 // Include(s)
 //****************************************************************************
 #include "global-config.h"
-#include "main.h"
+
 //#include "user-mn-MIT-EMG.h"
 #include "actuator_functions.h"
-//#include "walking_state_machine.h"
-#include "walking_knee_ankle_state_machine.h"
+#include "walking_state_machine.h"
 #include "state_variables.h"
-#include "cmd-ActPack.h"
+#include "run_main_user_application.h"
+
+
 
 
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
-extern struct act_s act1, act2;	//define actuator structure shared
+extern struct act_s act1;	//define actuator structure shared
 extern int8_t isEnabledUpdateSensors;
-
 
 //****************************************************************************
 // Structure(s)
@@ -64,26 +61,29 @@ void initMITDLeg(void);
 void MITDLegFsm1(void);
 void MITDLegFsm2(void);
 
-//****************************************************************************
-// Private Function Prototype(s):
-//****************************************************************************
 
-
-//Main FSMs
-
-
-//User writes
-void updateUserWrites(Act_s *actx, WalkParams *wParams);
-void initializeUserWrites(Act_s *actx, WalkParams *wParams);
-
-
-//****************************************************************************
-// Definition(s):
-//****************************************************************************
-
-
-
-
+enum Gui_Modes {
+    GUI_MODE_FL_CONTROL_PARAMS = 0,
+    GUI_MODE_UR_CONTROL_PARAMS = 1,
+    GUI_MODE_DR_CONTROL_PARAMS = 2,
+    GUI_MODE_US_CONTROL_PARAMS = 3,
+    GUI_MODE_DS_CONTROL_PARAMS = 4,
+    GUI_MODE_NOM_CONTROL_PARAMS = 5,
+    GUI_MODE_SW_CONTROL = 6,
+    GUI_MODE_ADAPTIVE_CONTROL = 7,
+    GUI_MODE_GAIT_EVENTS = 8,
+    GUI_MODE_KINEMATICS = 9,
+	GUI_MODE_FL_CONTROL_METRICS = 10,
+	GUI_MODE_UR_CONTROL_METRICS = 11,
+	GUI_MODE_DR_CONTROL_METRICS = 12,
+	GUI_MODE_US_CONTROL_METRICS = 13,
+	GUI_MODE_DS_CONTROL_METRICS = 14,
+	GUI_MODE_NOM_CONTROL_METRICS = 15,
+    GUI_MODE_BACK_ESTIMATION = 16,
+	GUI_MODE_LEARNING = 17,
+    GUI_MODE_FEATURES = 18,
+	GUI_MODE_SAFETY = 19,
+};
 
 #endif	//INC_MIT_DLEG
 

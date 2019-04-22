@@ -469,7 +469,7 @@ void MITDLegFsm1(void)
 	{
 		//this state is always reached
 		case STATE_POWER_ON:
-			stateMachine.currentState = STATE_IDLE;
+			//stateMachine.currentState = STATE_IDLE;
 			//Same power-on delay as FSM2:
 			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 				//sensor update happens in mainFSM2(void) in main_fsm.c
