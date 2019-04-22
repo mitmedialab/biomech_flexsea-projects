@@ -288,12 +288,11 @@ static float getJointTorque(struct act_s *actx)
 static float getMotorCurrentDt(struct act_s *actx)
 {
 	static float lastCurrent = 0.0;
+	static float currentDt = 0.0;
 
-	float currentDt = (actx->motCurr - lastCurrent);	// units [A/sec]
+	currentDt = 0.8*currentDt + 0.2 * (actx->motCurr - lastCurrent)*SECONDS; // units [A/sec]
 
-	currentDt = 0.8*lastCurrent + 0.2 * currentDt;
-
-	lastCurrent = currentDt;
+	lastCurrent = actx->motCurr;
 
 	return currentDt;
 }
@@ -641,76 +640,7 @@ float getReferenceLPF(float refTorque)
 }
 
 
-/*
- * Control compensator based on system Identification and simulation
- * Input is system state
- * return:	torque command value to the motor driver
- */
-//float getCompensatorCustomOutput2(Act_s *actx, float tauMeas, float tauRef)
-//{
-//	static float y[3] = {0, 0, 0};
-//	static float e[3] = {0, 0, 0};
-//	static int8_t k = 2;
-//
-//	static float tauErrLast = 0.0, tauErrInt = 0.0;
-//	static int8_t tauErrIntWindup = 0;
-//	static float tauCCombined = 0.0, tauCOutput = 0.0;
-//
-//	// shift previous values into new locations
-//	// todo: consider saturating and tracking the saturated torque value inside of here?
-//	// If there is no Integral Windup problem continue integrating error
-//	if (~tauErrIntWindup)
-//	{
-//		e[0] = e[1];	//	e[k-2] = e[k-1];
-//		e[1] = e[2];	//	e[k-1] = e[k];
-//		// update current state to new values
-//		e[2] = tauRef - tauMeas;
-//	} else
-//	{
-//		e[0] = 0.0;
-//		e[1] = 0.0;
-//		e[2] = 0.0;
-//	}
-//
-//	//anti hunting for Integral term, if we're not moving, don't worry about it.
-//	if (fabs(actx->jointVel) < 0.1 )
-//	{
-//		e[2] = 0.0;
-//	}
-//
-//
-//
-//	y[0] = y[1];	//	y[k-2] = y[k-1];
-//	y[1] = y[2];	//	y[k-1] = y[k];
-//
-//	y[2] = 1.432921006780524*y[k-1] - 0.432921006780524*y[k-2] + 1.560904973168400e+02*e[k] -3.086064879570783e+02*e[k-1] + 1.525349804975425e+02*e[k-2];
-//
-//
-//	rigid1.mn.genVar[8] = (int16_t) ( e[k] * 100.);
-//
-//
-//
-//	//Saturation limit on Torque
-//	tauCOutput = tauC;
-//
-//	if (tauC > ABS_TORQUE_LIMIT_INIT) {
-//		tauCOutput = ABS_TORQUE_LIMIT_INIT;
-//	} else if (tauC < -ABS_TORQUE_LIMIT_INIT) {
-//		tauCOutput = -ABS_TORQUE_LIMIT_INIT;
-//	}
-//
-//	// Clamp and turn off integral term if it's causing a torque saturation
-////	if ( integralAntiWindup(tauErr, tauCCombined, tauCOutput) ){
-////		tauErrInt = 0;
-////	}
-//	tauErrIntWindup = integralAntiWindup(tauErr, tauC, tauCOutput);
-//
-//
-//
-//
-//	return ( y[2] );
-//
-//}
+
 
 
 /*
@@ -1077,6 +1007,8 @@ float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float ampl
 
 /*
  * Compute where we are in frequency sweep
+ * NOTE: dcBias is manually set, then allow some waiting period before and after for test.
+ * 			Need to manually stop the test else it will run again.
  * Param: 	omega		(float) - ____ in RADIANS PER SECOND
  * Param: 	t			(float) - time in SECONDS
  * Param:	amplitude	amplitude of signal, this is 0 to peak value, not peak to peak
@@ -1088,9 +1020,10 @@ float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float ampl
  */
 float torqueSystemIDFrequencySweepChirp(float initFreq,  float finalFreq, float testLength, float amplitude, float dcBias, float noiseAmp, int16_t chirpType, int16_t running){
 	static float omega = 0.0, signal = 0.0, initOmega, finalOmega;
-	static float k = 0.0;
-	static int8_t initialize = -1, lastRunning = 0;
-	static uint32_t signalTimer = 0.0;
+	static float k = 0.0, biasHold = 0.0;
+	static int8_t initialize = -1, lastRunning = 0, done = 0;
+	static uint32_t signalTimer = 0, startupTimer=0;
+	static uint16_t waitingPeriod = 500;
 
 	float t = 0.0;
 
@@ -1099,25 +1032,41 @@ float torqueSystemIDFrequencySweepChirp(float initFreq,  float finalFreq, float 
 
 	if (lastRunning != running)
 	{
-		initialize = -1;
+		initialize = -2;
 		signalTimer = 0;
+		biasHold = dcBias;
 	}
 
-	if (running && ( chirpType == 0) ) 	// just keep running if manual mode
-	{
-		t = ((float)(signalTimer)) / ( (float)SECONDS );
-	}
-	else if (running && ( signalTimer <= testLength))
-	{
-		t = ((float)(signalTimer)) / ( (float)SECONDS );
-	}
-	else
-	{
-		t = 0.0;
-		dcBias = 0;
-		noiseAmp = 0;
-	}
 
+	// Waiting Period to get started.
+	if ( initialize < -1 && signalTimer < waitingPeriod)
+	{
+		t = 0;
+	}
+	else if(initialize < -1)	// waiting period is up, move to next step
+	{
+		signalTimer = 0;
+		initialize 	= -1;
+		t = 0;
+		done = 0;
+	} else
+	{
+		if (running && ( chirpType == 0) ) 	// just keep running if manual mode
+		{
+			t = ((float)(signalTimer)) / ( (float)SECONDS );
+		}
+		else if (running && ( signalTimer <= testLength))	// stop after set testLength time
+		{
+			t = ((float)(signalTimer)) / ( (float)SECONDS );
+		}
+		else 	// turn off everything.
+		{
+			t = 0.0;
+			noiseAmp = 0;
+			running = 0;
+			done = 1;
+		}
+	}
 
 	//Adjust frequency sweep type
 	switch(chirpType)
@@ -1155,6 +1104,7 @@ float torqueSystemIDFrequencySweepChirp(float initFreq,  float finalFreq, float 
 		default:
 			break;
 	}
+
 
 	signal = dcBias + amplitude * sinf(omega * t) + noiseAmp*( ((float)rand()) / ((float)RAND_MAX) );
 

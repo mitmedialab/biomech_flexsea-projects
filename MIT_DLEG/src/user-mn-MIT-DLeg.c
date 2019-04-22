@@ -174,7 +174,7 @@ void MITDLegFsm1(void)
 
 				#if defined(NO_DEVICE)
 					fsm1State = STATE_DEBUG;				// Skip over All states and sit in debug mode
-				#elif defined(NO_ACTUATOR)
+				#elif defined(NO_ACTUATOR) || defined(NO_POWER)
 					fsm1State = STATE_INITIALIZE_SENSORS;		// Still run controls, but skip Find Poles
 					calibrationFlags = 0, calibrationNew = 0;
 					isEnabledUpdateSensors = 1;
@@ -271,19 +271,19 @@ void MITDLegFsm1(void)
 
 //					tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 					// Try running impedance update slower than torque controller.
-//					if ( fmod(controlTime,2) == 0 )
-//					{
+					if ( fmod(controlTime,4) == 0 )
+					{
 						if (fabs(inputTorq) > 0)
 						{
-							float tor = inputTorq;
+							tor = inputTorq;
 							act1.tauDes = tor;
 						}
 						else
 						{
-							float tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
+							tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 							act1.tauDes = tor;
 						}
-//					}
+					}
 
 
 					setMotorTorque( &act1, act1.tauDes);
@@ -294,7 +294,7 @@ void MITDLegFsm1(void)
 					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 				#elif defined(IS_SWEEP_CHIRP_TEST)
 
-//					if ( fmod(controlTime,2) == 0 )
+//					if ( fmod(controlTime,4) == 0 )
 //					{
 						act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
 //					}
