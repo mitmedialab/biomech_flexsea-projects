@@ -224,36 +224,102 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
 	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0;
+	static float motorTheta0 = 0.0;
 	static float deltaLengthMotorMeas = 0, deltaMotorCalc=0;
 	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
 
 	CAng = M_PI - theta - (MA_TF); 	// angle
     c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
-    c = sqrtf(c2);  // length of actuator from pivot to output
+
+    c = sqrtf(c2);  // [m] Expected length of actuator from motor pivot to rotary output arm pivot.
 
     A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
 
-    projLength = (MA_B * sinf(A))/1000.;
+    projLength = (MA_B * sinf(A))/1000.;	// project length, r (in docs) of moment arm.
 
     if (tareState == 1)
     {
     	c0 = c;	// save initial length of actuator	//NOTE: THIS SEEMS TO OUTPUT A FUNNY VALUE
-    	actx->motorPosNeutral = *rigid1.ex.enc_ang;
+    	motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor.
     	tareState = 0;
     }
 
-    // Keep track of spring deflection, expected and actual
-//    rigid1.mn.genVar[8] = (int16_t) (c0 * 10);
-    actx->screwLengthDelta = (c-c0); // This is deflection of spring [m]
-    actx->motorPosDelta = (actx->motorPosRaw - actx->motorPosNeutral);
+    // Force is related to difference in screw position.
+    // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
+    actx->screwLengthDelta = MOTOR_METER_PER_TICK*(actx->motorPosRaw + motorTheta0) - (c-c0);	// [m]
 
-
-    deltaLengthMotorMeas = screwTravelPerMotorCnt * ( (float) actx->motorPosDelta ); // correct
-    actx->linkageLengthNonLinearity = deltaLengthMotorMeas - actx->screwLengthDelta;	// Difference for now, todo: use to calc force. NOT WORKING YET
+//    // Keep track of spring deflection, expected and actual
+//    float expectedMotorPosition = (c-c0)MOTOR_METER_PER_TICK - motorTheta0; // [m * rev/m * cnt/rev]
+//
+//    actx->screwLengthDelta = (c-c0); // This is deflection of spring [m]
+//    actx->motorPosDelta = (actx->motorPosRaw - actx->motorPosNeutral);
+//
+//    deltaLengthMotorMeas = screwTravelPerMotorCnt * ( (float) actx->motorPosDelta ); // correct
+//    actx->linkageLengthNonLinearity = deltaLengthMotorMeas - actx->screwLengthDelta;	// Difference for now, todo: use to calc force. NOT WORKING YET
 
     return projLength;
 
 }
+
+/*
+ * Spring transfer function to map model of spring to calculate actual force in spring
+ */
+float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
+{
+	static float y[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = actx->screwLengthDelta;
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+	//TF1
+	y[k] = 0.949181874413365*y[k-1] + 20067.5497161262*u[k-1]; // TF1 simple estimate 95.06% fit
+
+	//TF6
+//	y[k] = 1.92284862023119*y[k-1] - 0.922871371518358*y[k-2]
+//			+ -161763.585837411*u[k] + 352228.322442098*u[k-1] + -190463.303430783*u[k-2]; // TF6 97.22%fit
+
+	return ( y[k] );
+}
+
+
+///* NOTE: NOT WORKING DO NOT USE
+// * Spring state-space representation to map model of spring to calculate actual force in spring
+// */
+//float getAxialForceEncoderStateSpace(struct act_s *actx, int8_t tare)
+//{
+//	static float A[4][4] = {
+//			{0, 1, 0, 0},
+//			{0, 0, 1, 0},
+//			{0, 0, 0, 1},
+//			{-0.478579503734352, 1.76911411734673, -2.99408247469697, 2.69009890016747}
+//	};
+//	static float B[4][1] = {
+//			{-36914.8339844512},
+//			{12871.1972092885},
+//			{40343.7524161401},
+//			{39033.9428387263}
+//	};
+//	static float C[1][4] = {1, 0, 0, 0 };
+//	static float D = 0;
+//	static float n = 4;
+//	static float x[4] = {0, 0, 0, 0};
+//	static float y[4] = {0, 0, 0, 0};
+//	static float u[4] = {0, 0, 0, 0};
+//
+//	x[n] = A*x[n-1] + B*u[n-1];
+//	y[n-1] = C*x[n-1] + D*u[n-1];
+//
+//
+//	return ( y[n] );
+//}
 
 
 /*
@@ -1218,6 +1284,10 @@ void updateSensorValues(struct act_s *actx)
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, 0);
 
 	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
+
+	//DEBUG todo: testing this function
+	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
+
 	actx->jointTorque = getJointTorque(actx);
 
 	updateJointTorqueRate(actx);

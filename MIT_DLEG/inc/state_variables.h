@@ -90,6 +90,7 @@ typedef struct act_s
     float jointAcc;
     float linkageMomentArm;
     float axialForce;
+    float axialForceTF;
     float jointTorque;
     float tauMeas;          // torque contribution from series spring
     float tauDes;           // FSM des torque - tauMeas
