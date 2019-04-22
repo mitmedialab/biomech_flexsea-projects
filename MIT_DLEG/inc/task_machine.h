@@ -10,6 +10,7 @@
 #include <math.h>
 #include <float.h>
 #include "terrain_state_machine.h"
+#include "state_variables.h"
 
  //Gait event thresholds
 #define MIN_TQ_FOR_FOOT_ON 5.0

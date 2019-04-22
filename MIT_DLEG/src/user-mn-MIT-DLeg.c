@@ -48,14 +48,19 @@
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
+uint8_t mitDlegInfo[2] = {PORT_RS485_1, PORT_RS485_1};
+uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
+#define THIS_ACTPACK		0
+#define SLAVE_ACTPACK		1
 
 
 float freqInput = 0.0;
 float freqRad = 0.0;
 float torqInput = 0.0;
+int8_t currentOrVoltage = 0;
 
 int8_t onEntry = 0;
-Act_s act1;
+Act_s act1, act2;
 
 // EXTERNS
 extern uint8_t calibrationFlags, calibrationNew;
@@ -463,7 +468,7 @@ void MITDLegFsm1(void)
     fsmTime++;
 
     updateGenVars(get_task_machine());
-
+    updateUserWrites(get_task_machine());
     //begin main FSM
     	switch(fsm1State)
     	{
@@ -541,7 +546,7 @@ void MITDLegFsm1(void)
     			//Set userwrites to initial values
     			ankleWalkParams.initializedStateMachineVariables = 0;
     			if (!ankleWalkParams.initializedStateMachineVariables){
-    				initializeUserWrites(&act1, &ankleWalkParams);
+    				initializeUserWrites(get_task_machine());
     				ankleWalkParams.initializedStateMachineVariables = 1;
     				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
     			}
@@ -554,7 +559,7 @@ void MITDLegFsm1(void)
 
     		case STATE_MAIN:
     			{
-    				updateUserWrites(&act1, &ankleWalkParams);
+
 
     				//DEBUG removed this because joint encoder can't update in locked state.
     //				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
@@ -568,7 +573,7 @@ void MITDLegFsm1(void)
 
     					setMotorTorque( &act1, act1.tauDes);
 
-    //					runMainUserApplication(&act1);
+    					runMainUserApplication(&rigid1, &act1);
 
 
 
@@ -578,6 +583,8 @@ void MITDLegFsm1(void)
     				break;
     			}
     		case STATE_DEBUG:
+
+    			runMainUserApplication(&rigid1,&act1);
 
     			break;
 

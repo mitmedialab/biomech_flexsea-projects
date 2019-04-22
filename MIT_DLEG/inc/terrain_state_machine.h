@@ -7,6 +7,7 @@
 #include <math.h>
 #include "flexsea_user_structs.h"
 #include "task_machine.h"
+#include <limits.h>
 #include "actuator_functions.h"
 
 
