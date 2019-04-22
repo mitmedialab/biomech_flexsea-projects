@@ -465,119 +465,128 @@ void MITDLegFsm1(void)
     updateGenVars(get_task_machine());
 
     //begin main FSM
-	switch(fsm1State)
-	{
-		//this state is always reached
-		case STATE_POWER_ON:
-			//stateMachine.currentState = STATE_IDLE;
-			//Same power-on delay as FSM2:
-			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
-				//sensor update happens in mainFSM2(void) in main_fsm.c
+    	switch(fsm1State)
+    	{
+    		//this state is always reached
+    		case STATE_POWER_ON:
+    			//Same power-on delay as FSM2:
+    			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
+    				//sensor update happens in mainFSM2(void) in main_fsm.c
 
-				isEnabledUpdateSensors = 1;
-				onEntry = 1;
-				fsmTime = 0;
-				fsm1State = STATE_INITIALIZE_SENSORS;
-			}
+    				isEnabledUpdateSensors = 1;
+    				onEntry = 1;
+    				fsmTime = 0;
+    				fsm1State = STATE_INITIALIZE_SENSORS;
 
-			break;
+    			}
 
-		case STATE_INITIALIZE_SENSORS:
+    			break;
 
-			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
+    		case STATE_INITIALIZE_SENSORS:
 
-				#ifndef NO_DEVICE
-					fsm1State = STATE_FIND_POLES;
-				#else
-					fsm1State = STATE_DEBUG;
-				#endif
-				act1.currentOpLimit = CURRENT_LIMIT_INIT;
-				onEntry = 1;
-			}
+    			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
+
+    				#if defined(NO_DEVICE)
+    					fsm1State = STATE_DEBUG;				// Skip over All states and sit in debug mode
+    				#elif defined(NO_ACTUATOR)
+    					fsm1State = STATE_INIT_USER_WRITES;		// Still run controls, but skip Find Poles
+    				#else
+    					fsm1State = STATE_FIND_POLES;
+    				#endif
+    				act1.currentOpLimit = CURRENT_LIMIT_INIT;
+    				onEntry = 1;
+
+    				// If Master, enable Comm's, if Slave Do not need to turn it on.
+    				#if (ACTIVE_SUBPROJECT == SUBPROJECT_A)
+    					enableMITfsm2 = 1;	// Turn on communication to to SLAVE
+    				#else
+    					enableMITfsm2 = 0;	// If it's slave, then don't bother turning on comms?
+    				#endif
+    			}
+
+    			break;
+
+    		case STATE_FIND_POLES:
+
+    			if (!actuatorIsCorrect(&act1)){
+    				setLEDStatus(0,0,1); //flash red; needs reset
+    			} else{
+    				if (onEntry) {
+    					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
+    					calibrationFlags = 1, calibrationNew = 1;
+    					isEnabledUpdateSensors = 0;
+    					onEntry = 0;
+    				}
+
+    				// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
+    				if (FINDPOLES_DONE){
+    					fsm1State = STATE_INIT_USER_WRITES;
+    					fsmTime = 0;
+    					isEnabledUpdateSensors = 1;
+    					onEntry = 1;
+    				}
+    			}
+
+    			break;
+
+    		case STATE_INIT_USER_WRITES:
+
+    			/*reserve for additional initialization*/
+
+    			//Initialize Filters for Torque Sensing
+    			initSoftFIRFilt();	// Initialize software filter
+
+    			mitInitCurrentController();		//initialize Current Controller with gains
+
+    			//Set userwrites to initial values
+    			ankleWalkParams.initializedStateMachineVariables = 0;
+    			if (!ankleWalkParams.initializedStateMachineVariables){
+    				initializeUserWrites(&act1, &ankleWalkParams);
+    				ankleWalkParams.initializedStateMachineVariables = 1;
+    				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
+    			}
+
+    			fsm1State = STATE_MAIN;
+    			fsmTime = 0;
+    			onEntry = 1;
+
+    			break;
+
+    		case STATE_MAIN:
+    			{
+    				updateUserWrites(&act1, &ankleWalkParams);
+
+    				//DEBUG removed this because joint encoder can't update in locked state.
+    //				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
+
+    					/****************************************
+    					 *  Below here is where user code goes
+    					 ****************************************/
+
+    					float tor = getImpedanceTorque(&act1, 1.0, .1, 0);
+    					act1.tauDes = tor;
+
+    					setMotorTorque( &act1, act1.tauDes);
+
+    //					runMainUserApplication(&act1);
 
 
-			break;
 
 
-		case STATE_FIND_POLES:
+    //				}
 
-//			stateMachine.current_state = STATE_INIT;
-			if (!actuatorIsCorrect(&act1)){
-				setLEDStatus(0,0,1); //flash red; needs reset
-			} else{
-				if (onEntry) {
-					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
-					calibrationFlags = 1, calibrationNew = 1;
-					isEnabledUpdateSensors = 0;
-					onEntry = 0;
+    				break;
+    			}
+    		case STATE_DEBUG:
 
-				}
+    			break;
 
-				// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
-				if (FINDPOLES_DONE){
-					fsm1State = STATE_INIT_USER_WRITES;
-					fsmTime = 0;
-					isEnabledUpdateSensors = 1;
+            	default:
+    			//Handle exceptions here
+    			break;
+    	}
 
-				}
-			}
-
-
-
-			break;
-
-		case STATE_INIT_USER_WRITES:
-
-			/*reserve for additional initialization*/
-
-			mitInitCurrentController();		//initialize Current Controller with gains
-//					setControlMode(CTRL_OPEN, 0);		//open control for alternative testing
-
-
-			//Set usewrites to initial values
-			walkParams.initializedStateMachineVariables = 0;
-
-			initializeUserWrites(get_task_machine());
-
-			//absolute torque limit scaling factor TODO: possibly remove
-			act1.safetyTorqueScalar = 1.0;
-
-			fsm1State = STATE_MAIN;
-			fsmTime = 0;
-			onEntry = 1;
-
-			break;
-
-
-		case STATE_MAIN:
-			{
-				updateUserWrites(get_task_machine());
-				//TODO consider changing logic so onEntry is only true for one cycle.
-				if (onEntry && fsmTime > DELAY_TICKS_AFTER_FIND_POLES) {
-					act1.currentOpLimit = CURRENT_LIMIT_INIT;
-					onEntry = 0;
-				}
-
-				// Inside here is where user code goes
-				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
-
-					runMainUserApplication( &rigid1, &act1);
-
-				}
-
-				break;
-			}
-		case STATE_DEBUG:
-			updateUserWrites(get_task_machine());
-			runMainUserApplication(&rigid1, &act1);
-			break;
-
-        	default:
-			//Handle exceptions here
-			break;
-	}
-
-	#endif	//ACTIVE_PROJECT == PROJECT_ANKLE_2DOF
+    	#endif	//ACTIVE_PROJECT == PROJECT_ANKLE_2DOF
 
 }
 
