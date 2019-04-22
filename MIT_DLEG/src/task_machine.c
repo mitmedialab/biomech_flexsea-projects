@@ -50,8 +50,6 @@ static void init_task_machine(){
 
 }
 
-
-
 //Copied over from pil simulation
 static void update_gait_events(){
 
@@ -163,7 +161,10 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		simulate_ankle_torque();
 		update_ankle_dynamics(actx);
 		update_gait_events();
-		
+
+		//added call to genetic algorithm
+		run_genetic_calculation();
+
 
 
 

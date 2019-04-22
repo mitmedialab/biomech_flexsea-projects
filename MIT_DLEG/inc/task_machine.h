@@ -10,7 +10,7 @@
 #include <math.h>
 #include <float.h>
 #include "terrain_state_machine.h"
-
+#include "genetic_alg.h"
  //Gait event thresholds
 #define MIN_TQ_FOR_FOOT_ON 5.0
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 50
