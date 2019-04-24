@@ -111,6 +111,9 @@ void MITDLegFsm1(void)
 
     static uint32_t fsmTime = 0;
 
+    //WARN
+    //user_data_1.w user writes are currently being used to scale EMG output to ODROID!!!
+
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
 	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
@@ -119,9 +122,9 @@ void MITDLegFsm1(void)
 	  rigid1.mn.genVar[3] = (int16_t) (emgData[2]);
 	  rigid1.mn.genVar[4] = (int16_t) (emgData[3]);
 	  rigid1.mn.genVar[5] = (int16_t) (emgData[4]);
-	  rigid1.mn.genVar[6] = (int16_t) (act1.tauDes*100);
-	  rigid1.mn.genVar[7] = (int16_t) (act1.desiredJointAngleDeg);
-	  rigid1.mn.genVar[8] = (int16_t) (act1.motorOnFlag);
+	  rigid1.mn.genVar[6] = (int16_t) (emgData[5]);
+	  rigid1.mn.genVar[7] = (int16_t) (*rigid1.ex.joint_ang);
+	  rigid1.mn.genVar[8] = (int16_t) (act1.tauDes*100);
 	  rigid1.mn.genVar[9] = (int16_t) (act1.jointAngleDegrees*100);
 
     //begin main FSM
@@ -169,7 +172,7 @@ void MITDLegFsm1(void)
 			} else{
 				if (onEntry) {
 					// odroid turns on findpoles. If odroid never initiates pole finding, fsm will hang here.
-					calibrationFlags = 1, calibrationNew = 1;
+//					calibrationFlags = 1, calibrationNew = 1;
 					isEnabledUpdateSensors = 0;
 					onEntry = 0;
 				}
