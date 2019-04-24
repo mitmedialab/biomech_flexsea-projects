@@ -290,8 +290,10 @@ void MITDLegFsm1(void)
 
 				#elif defined(IS_SWEEP_TEST)
 					float omega = 2*freq * 2 * M_PI;
-					act1.tauDes = torqueSystemIDFrequencySweep( omega, fsmTime, amplitude, dcBias, noiseAmp);
-					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+					float thetaLocal = torqueSystemIDFrequencySweep( omega, fsmTime, amplitude, dcBias, noiseAmp, begin);
+//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+					act1.tauDes = getImpedanceTorque(&act1, 2.0, 0.005, thetaLocal);
+					setMotorTorque( &act1, act1.tauDes);
 				#elif defined(IS_SWEEP_CHIRP_TEST)
 
 //					if ( fmod(controlTime,4) == 0 )

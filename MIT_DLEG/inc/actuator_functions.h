@@ -61,7 +61,7 @@ float getCompensatorCustomOutput(float refTorque, float sensedTorque);									/
 float getCompensatorCustomOutput2(Act_s *actx, float tauMeas, float tauRef);									// calculate compensator output value
 
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
-float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp);
+float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp, int16_t begin);
 //float torqueSystemIDFrequencySweepChirp(float initOmega,  float finalOmega, float T, float amplitude, float dcBias, float noiseAmp, int8_t chirpType, int8_t begin);
 float torqueSystemIDFrequencySweepChirp(float initOmega,  float finalOmega, float testLength, float amplitude, float dcBias, float noiseAmp, int16_t chirpType, int16_t running);
 float torqueSystemIDPRBS(void);

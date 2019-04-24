@@ -800,7 +800,6 @@ float biomCalcImpedance(Act_s *actx,float k1, float b, float thetaSet)
 float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet)
 {
 	return k1 * (thetaSet - actx->jointAngleDegrees ) - b*actx->jointVelDegrees;
-
 }
 
 //Used for testing purposes. See state_machine
@@ -1017,15 +1016,18 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
  * Param:	noiseAmp	noise this is a noise scaling value to put ontop of signal
  * Return: torqueSetPoint(float) - torque adjusted by frequency of operation
  */
-float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp){
+float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp,int16_t begin){
 	static float prevOmega = 0.0, prevAmp = 0., prevDC = 0., prevNoise = 0., lastSignal = 0.0;
 	static float signal = 0.0, testSignal = 0;
 	static float localTime = 0.0;
 	static int8_t holdingOnTransition = 0;
 	float testCase = 1000;
 
-	float t = ((float)(signalTimer - localTime)) / ( (float)SECONDS );
+	if (begin)
+	{
+		float t = ((float)(signalTimer - localTime)) / ( (float)SECONDS );
 	float testTime = fmodf(signalTimer, localTime);
+
 
 	// only make a transition at a zero crossing and if the input has changed
 	// Check for Transition
@@ -1068,7 +1070,11 @@ float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float ampl
 	testSignal = signal-lastSignal;
 	lastSignal = signal;	// save to test condition in transition
 
+
 	return ( signal );
+	}
+	else
+		return 0;
 }
 
 /*
