@@ -217,36 +217,40 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 
 /**
- * Linear Actuator Actual Moment Arm
+ * Linear Actuator Actual Moment Arm, internal units are [mm, rad], outputs [m]
  * Param: theta(float) - the angle of the joint in RADIANS
+ *
  * Return: projLength(float) - moment arm projected length in METERS
  */
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
 	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0;
 	static float motorTheta0 = 0.0;
-	static float deltaLengthMotorMeas = 0, deltaMotorCalc=0;
-	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
+//	static float deltaLengthMotorMeas = 0, deltaMotorCalc=0;
+//	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
 
 	CAng = M_PI - theta - (MA_TF); 	// angle
     c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
 
-    c = sqrtf(c2);  // [m] Expected length of actuator from motor pivot to rotary output arm pivot.
+    c =  sqrtf(c2) ;  // [m] Expected length of actuator from motor pivot to rotary output arm pivot.
 
     A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
 
-    projLength = (MA_B * sinf(A))/1000.;	// project length, r (in docs) of moment arm.
+    projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm.
 
     if (tareState == 1)
     {
     	c0 = c;	// save initial length of actuator	//NOTE: THIS SEEMS TO OUTPUT A FUNNY VALUE
-    	motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor.
+    	motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Neutral Position.
     	tareState = 0;
+    	zeroLoadCell = 0;
     }
 
+    rigid1.mn.genVar[9] = c-c0;
+    rigid1.mn.genVar[8] = -MOTOR_MM_PER_TICK*(actx->motorPosRaw - motorTheta0);
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = MOTOR_METER_PER_TICK*(actx->motorPosRaw + motorTheta0) - (c-c0);	// [m]
+    actx->screwLengthDelta = MOTOR_DIRECTION * MOTOR_MM_PER_TICK*(actx->motorPosRaw - motorTheta0) - (c-c0);	// [mm]
 
 //    // Keep track of spring deflection, expected and actual
 //    float expectedMotorPosition = (c-c0)MOTOR_METER_PER_TICK - motorTheta0; // [m * rev/m * cnt/rev]
@@ -257,7 +261,7 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 //    deltaLengthMotorMeas = screwTravelPerMotorCnt * ( (float) actx->motorPosDelta ); // correct
 //    actx->linkageLengthNonLinearity = deltaLengthMotorMeas - actx->screwLengthDelta;	// Difference for now, todo: use to calc force. NOT WORKING YET
 
-    return projLength;
+    return projLength/1000.; // [m] output is in meters
 
 }
 
@@ -280,11 +284,11 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 	y[k-1] = y[k];
 
 	//TF1
-	y[k] = 0.949181874413365*y[k-1] + 20067.5497161262*u[k-1]; // TF1 simple estimate 95.06% fit
+//	y[k] = 0.949200866873389*y[k-1] + 20025.5997143947*u[k-1]; // TF1 simple estimate 95.06% fit
 
 	//TF6
-//	y[k] = 1.92284862023119*y[k-1] - 0.922871371518358*y[k-2]
-//			+ -161763.585837411*u[k] + 352228.322442098*u[k-1] + -190463.303430783*u[k-2]; // TF6 97.22%fit
+	y[k] = 1.92284862023119*y[k-1] - 0.922871371518358*y[k-2]
+			+ -161763.585837411*u[k] + 352228.322442098*u[k-1] + -190463.303430783*u[k-2]; // TF6 97.22%fit
 
 	return ( y[k] );
 }
@@ -532,8 +536,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	float tauCCombined = tauC + tauFF;
 
-	rigid1.mn.genVar[7] = ( (int16_t) (tauC * 100.0) );
-	rigid1.mn.genVar[8] = ( (int16_t) (tauFF * 100.0) );
+//	rigid1.mn.genVar[7] = ( (int16_t) (tauC * 100.0) );
+//	rigid1.mn.genVar[8] = ( (int16_t) (tauFF * 100.0) );
 
 	// motor current signal
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
@@ -1287,7 +1291,7 @@ void updateSensorValues(struct act_s *actx)
 {
 	getJointAngleKinematic(actx);
 
-	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, 0);
+	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
 	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
 
