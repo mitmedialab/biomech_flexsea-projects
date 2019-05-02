@@ -165,13 +165,11 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	float strainReading = 0;
 	static float tareOffset = 0;
 	float axialForce = 0;
-	float numSamples = 1400.;
-	float timerDelay = 100.;
-
+	float numSamples = 1000.;
 
 	// Filter the signal
-	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
-//	strainReading = runSoftFirFilt( (float) rigid1.ex.strain );
+	strainReading = ( (float) rigid1.ex.strain );
+//	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing.
@@ -179,7 +177,6 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 		timer = 0;
 		tareOffset = 0;
 		tare=0;
-		zeroLoadCell = 0;
 
 	}
 
@@ -190,10 +187,10 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 			timer++;
 
 			if(timer < numSamples) {
-				tareOffset += (strainReading)/numSamples;
+				tareOffset += (strainReading)/(numSamples);
 			} else if (timer >= numSamples ) {
 				tareState = 0;
-				zeroLoadCell = 0;
+				zeroLoadCell = 0;	// turn off global variable for zeroing
 				tare = 0;
 			}
 
@@ -274,6 +271,10 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 	static float u[3] = {0, 0, 0};
 	static int8_t k = 2;
 
+	static int8_t tareState = -1;
+	static uint32_t timer = 0;
+	float numSamples = 5000.;
+
 	// shift previous values into new locations
 	u[k-2] = u[k-1];
 	u[k-1] = u[k];
@@ -285,12 +286,45 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 
 	//TF1
 //	y[k] = 0.949200866873389*y[k-1] + 20025.5997143947*u[k-1]; // TF1 simple estimate 95.06% fit
+//	y[k] = 0.917703269653775*y[k-1] + -27307.8288879291*u[k-1];
+
+	//TF3
+	y[k] = 0.983824144892093*y[k-1]
+			+ -639993.632211884/1000*u[k] + 634646.499333143/1000*u[k-1];
 
 	//TF6
-	y[k] = 1.92284862023119*y[k-1] - 0.922871371518358*y[k-2]
-			+ -161763.585837411*u[k] + 352228.322442098*u[k-1] + -190463.303430783*u[k-2]; // TF6 97.22%fit
+//	y[k] = 1.92284862023119*y[k-1] - 0.922871371518358*y[k-2]
+//			+ -161763.585837411*u[k] + 352228.322442098*u[k-1] + -190463.303430783*u[k-2]; // TF6 97.22%fit
 
-	return ( y[k] );
+	y[k] = filterTorqueButterworth( y[k] );	// clean it up, note this may cause additional delay
+
+
+	if (tare)
+	{	// User input has requested re-zeroing the load cell, ie locked output testing.
+		tareState = -1;
+		timer = 0;
+		tare=0;
+	}
+
+	switch(tareState)
+	{
+		case -1:
+			// Wait for transfer function to stabilize
+			timer++;
+
+			if(timer >= numSamples)
+			{
+				tareState = 0;
+				zeroLoadCell = 0;
+				timer = 0;
+			}
+			return 0;	// send a zero command until we stabilize.
+		case 0:
+			return ( y[k] );
+		default:
+			return ( y[k] );
+	}
+
 }
 
 
@@ -522,7 +556,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->tauMeas = actx->jointTorque;
 
 	// Feed Forward term
-	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
+//	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
 
 	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);
@@ -1293,10 +1327,11 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
-	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
+//	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
 
 	//DEBUG todo: testing this function
-	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
+//	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
+	actx->axialForce = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
 
 	actx->jointTorque = getJointTorque(actx);
 
