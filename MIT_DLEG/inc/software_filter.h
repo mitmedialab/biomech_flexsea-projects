@@ -57,6 +57,7 @@ float runCircularSoftFirFilt(float inputVal);
 float filterButterworth30Hz(float inputVal);
 float filterButterworth50Hz(float inputVal);
 float filterTorqueButterworth(float inputVal);
+float filterEncoderTorqueButterworth(float inputVal);
 float filterTorqueDerivativeButterworth(float inputVal);
 float filterJointAngleButterworth(float inputVal);
 float filterJointVelocityButterworth(float inputVal);

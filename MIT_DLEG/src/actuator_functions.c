@@ -169,7 +169,8 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
-//	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
+	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
+//	strainReading = filterEncoderTorqueButterworth( (float) rigid1.ex.strain );
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing.
@@ -177,7 +178,6 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 		timer = 0;
 		tareOffset = 0;
 		tare=0;
-
 	}
 
 	switch(tareState)
@@ -198,7 +198,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 		case 0:
 
-			axialForce =  FORCE_DIR * (strainReading - tareOffset) * forcePerTick;
+			axialForce =  FORCE_DIR * (strainReading - tareOffset) * FORCE_PER_TICK;
 
 			break;
 
@@ -217,19 +217,20 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
  * Linear Actuator Actual Moment Arm, internal units are [mm, rad], outputs [m]
  * Param: theta(float) - the angle of the joint in RADIANS
  *
- * Return: projLength(float) - moment arm projected length in METERS
+ * Return: projLength(float) - moment arm projected length in [m]
  */
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
 	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0;
-	static float motorTheta0 = 0.0;
+	static int32_t motorTheta0 = 0.0;
+	static int16_t timerTare = 0;
 //	static float deltaLengthMotorMeas = 0, deltaMotorCalc=0;
 //	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
 
 	CAng = M_PI - theta - (MA_TF); 	// angle
     c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
 
-    c =  sqrtf(c2) ;  // [m] Expected length of actuator from motor pivot to rotary output arm pivot.
+    c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
 
     A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
 
@@ -237,29 +238,39 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
     if (tareState == 1)
     {
-    	c0 = c;	// save initial length of actuator	//NOTE: THIS SEEMS TO OUTPUT A FUNNY VALUE
-    	motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Neutral Position.
-    	tareState = 0;
-    	zeroLoadCell = 0;
+    	timerTare++;
+    	if (timerTare > 100)
+    	{
+			c0 = c;	// save initial length of actuator	//NOTE: THIS SEEMS TO OUTPUT A FUNNY VALUE
+			motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Neutral Position.
+			tareState = 0;
+			timerTare = 0;
+    	}
     }
 
-    rigid1.mn.genVar[9] = c-c0;
-    rigid1.mn.genVar[8] = -MOTOR_MM_PER_TICK*(actx->motorPosRaw - motorTheta0);
+
+    rigid1.mn.genVar[8] = ( (int16_t) -MOTOR_MILLIMETER_PER_TICK*(actx->motorPosRaw - motorTheta0) ) *1000;
+
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = MOTOR_DIRECTION * MOTOR_MM_PER_TICK*(actx->motorPosRaw - motorTheta0) - (c-c0);	// [mm]
-
-//    // Keep track of spring deflection, expected and actual
-//    float expectedMotorPosition = (c-c0)MOTOR_METER_PER_TICK - motorTheta0; // [m * rev/m * cnt/rev]
-//
-//    actx->screwLengthDelta = (c-c0); // This is deflection of spring [m]
-//    actx->motorPosDelta = (actx->motorPosRaw - actx->motorPosNeutral);
-//
-//    deltaLengthMotorMeas = screwTravelPerMotorCnt * ( (float) actx->motorPosDelta ); // correct
-//    actx->linkageLengthNonLinearity = deltaLengthMotorMeas - actx->screwLengthDelta;	// Difference for now, todo: use to calc force. NOT WORKING YET
+    actx->screwLengthDelta = ( (float) ( (MOTOR_DIRECTION * MOTOR_MILLIMETER_PER_TICK*( ( (float) ( actx->motorPosRaw - motorTheta0) ) ) - (c-c0)) / 1000 ) );	// [m]
 
     return projLength/1000.; // [m] output is in meters
 
+}
+
+/*
+ * Calculate axial force based on displacement of spring measured from motor angle and expected motor angle
+ */
+float getAxialForceEncoderCalc(struct act_s *actx)
+{
+	static float output = 0.0;
+	static float force = 0.0;
+
+	force =  -1.0* ( SPRING_K_D * asinf( actx->screwLengthDelta / SPRING_D ) );	// [N]
+//	output = filterTorqueButterworth( (float) force);
+//	return filterEncoderTorqueButterworth( (float) force );	// I can filter on screwLengthDelta, but not on force.
+	return force;
 }
 
 /*
@@ -267,40 +278,40 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
  */
 float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 {
-	static float y[3] = {0, 0, 0};
-	static float u[3] = {0, 0, 0};
+	static float y[3] = {0.0, 0.0, 0.0};
+	static float u[3] = {0.0, 0.0, 0.0};
 	static int8_t k = 2;
 
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
-	float numSamples = 5000.;
+	float numSamples = 4900.;
 
 	// shift previous values into new locations
 	u[k-2] = u[k-1];
 	u[k-1] = u[k];
 	// update current state to new values
-	u[k] = actx->screwLengthDelta;
+	u[k] = actx->screwLengthDelta; // [m]
 
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
 	//TF1
 //	y[k] = 0.949200866873389*y[k-1] + 20025.5997143947*u[k-1]; // TF1 simple estimate 95.06% fit
-//	y[k] = 0.917703269653775*y[k-1] + -27307.8288879291*u[k-1];
+	y[k] = 0.917703269653775*y[k-1] + -27307.8288879291*u[k-1];
 
 	//TF3
-	y[k] = 0.983824144892093*y[k-1]
-			+ -639993.632211884/1000*u[k] + 634646.499333143/1000*u[k-1];
+//	y[k] = 0.983824144892093*y[k-1]
+//			+ -639993.632211884/1000*u[k] + 634646.499333143/1000*u[k-1];
 
 	//TF6
 //	y[k] = 1.92284862023119*y[k-1] - 0.922871371518358*y[k-2]
 //			+ -161763.585837411*u[k] + 352228.322442098*u[k-1] + -190463.303430783*u[k-2]; // TF6 97.22%fit
 
-	y[k] = filterTorqueButterworth( y[k] );	// clean it up, note this may cause additional delay
+//	y[k] = filterTorqueButterworth( y[k] );	// clean it up, note this may cause additional delay
 
 
 	if (tare)
-	{	// User input has requested re-zeroing the load cell, ie locked output testing.
+	{	// User input has requested re-zeroing the load cell, ie locked output testing. Turned on externally, turned off internal
 		tareState = -1;
 		timer = 0;
 		tare=0;
@@ -557,6 +568,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	// Feed Forward term
 //	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
+	float tauFF =0.0;
 
 	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);
@@ -1327,11 +1339,12 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
-//	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
+	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
 
 	//DEBUG todo: testing this function
-//	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
-	actx->axialForce = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
+	float test = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
+	rigid1.mn.genVar[9] = (int16_t)  (test * 10.0);
+	actx->axialForceTF = getAxialForceEncoderCalc(actx);
 
 	actx->jointTorque = getJointTorque(actx);
 

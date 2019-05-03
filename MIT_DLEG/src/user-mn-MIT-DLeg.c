@@ -224,13 +224,15 @@ void MITDLegFsm1(void)
 //			setMotorNeutralPosition(&act1);	// initialize to define motor initial position
 			//todo check this is okay
 			zeroLoadCell = 1;	// forces getAxialForce() to zero the load cell again. this is kinda sketchy using a global variable.
+			isEnabledUpdateSensors = 1;
 
-			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
+//			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
+			if (fsmTime > 5000)
 			{
 				fsm1State = STATE_INIT_USER_WRITES;
 				fsmTime = 0;
-				isEnabledUpdateSensors = 1;
 				onEntry = 1;
+				zeroLoadCell = 0;
 			}
 			break;
 
@@ -390,9 +392,9 @@ void updateGenVarOutputs(Act_s *actx)
 	  rigid1.mn.genVar[2] = (int16_t) (act1.axialForce*10.0); //(act1.jointVel*100.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
 	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
-	  rigid1.mn.genVar[5] = (int16_t) (act1.axialForceTF*10); //(rigid1.ex.strain);
+	  rigid1.mn.genVar[5] = (int16_t) (act1.axialForceTF*10.0); //(rigid1.ex.strain);
 	  rigid1.mn.genVar[6] = (int16_t) (act1.motorPosRaw);//(rigid1.ex.mot_volt);	// mA
-	  rigid1.mn.genVar[7] = (int16_t) (act1.screwLengthDelta*1000); //(fsm1State); //kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
+	  rigid1.mn.genVar[7] = (int16_t) (act1.screwLengthDelta*10000.0); //(fsm1State); //kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
 //	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV

@@ -195,6 +195,8 @@
 //#define SOFT_FILTER_DEFAULT_IIR_50HZ
 //#define SOFT_FILTER_TORQ_IIR_10HZ
 #define SOFT_FILTER_TORQ_IIR_15HZ
+#define SOFT_FILTER_ENCTORQ_IIR_30HZ
+//#define SOFT_FILTER_ENCTORQ_IIR_50HZ
 //#define SOFT_FILTER_TORQ_IIR_20HZ			// torque signal
 #define SOFT_FILTER_DERIVATIVE_IIR_15HZ		// PID, D filter
 #define SOFT_FILTER_JOINTANGLE_IIR_20HZ		// joint angle
@@ -443,6 +445,62 @@
 	}
 #endif //end 20Hz
 
+
+#ifdef SOFT_FILTER_ENCTORQ_IIR_50HZ
+	/*  lpFilt = designfilt('lowpassiir','FilterOrder',2, ...
+         'PassbandFrequency',50,'PassbandRipple',0.2, ...
+         'SampleRate',1000);
+        [b,a] = tf(lpFilt)
+ 	 	[z p k ] = zpk(lpFilt)
+		fvtool(lpFilt)
+		M = idpoly(a,b,'NoiseVariance',0)
+        fvtool(lpFilt)
+	*/
+
+	#define NTENCZEROS 2
+	#define NTENCPOLES 2
+
+	static float xvTENC[NTENCZEROS+1], yvTENC[NTENCPOLES+1];
+
+	float filterEncoderTorqueButterworth(float inputVal)
+	{
+		xvTENC[0] = xvTENC[1];
+		xvTENC[1] = xvTENC[2];
+		xvTENC[2] = inputVal;
+		yvTENC[0] = yvTENC[1];
+		yvTENC[1] = yvTENC[2];
+		yvTENC[2] = 1.37923908288931*yvTENC[1] - 0.552575367724063*yvTENC[0] + 0.0423476673206792*xvTENC[2] + 0.0846953346413584*xvTENC[1] + 0.0423476673206792*xvTENC[0];
+		return yvTENC[2];
+	}
+#endif //end 50Hz
+
+#ifdef SOFT_FILTER_ENCTORQ_IIR_30HZ
+	/*  lpFilt = designfilt('lowpassiir','FilterOrder',2, ...
+         'PassbandFrequency',30,'PassbandRipple',0.1, ...
+         'SampleRate',1000);
+        [b,a] = tf(lpFilt)
+ 	 	[z p k ] = zpk(lpFilt)
+		fvtool(lpFilt)
+		M = idpoly(a,b,'NoiseVariance',0)
+        fvtool(lpFilt)
+	*/
+
+	#define NTENCZEROS 2
+	#define NTENCPOLES 2
+
+	static float xvTENC[NTENCZEROS+1], yvTENC[NTENCPOLES+1];
+
+	float filterEncoderTorqueButterworth(float inputVal)
+	{
+		xvTENC[0] = xvTENC[1];
+		xvTENC[1] = xvTENC[2];
+		xvTENC[2] = inputVal;
+		yvTENC[0] = yvTENC[1];
+		yvTENC[1] = yvTENC[2];
+		yvTENC[2] = 1.54783230371669*yvTENC[1] - 0.642300475325108*yvTENC[0] + 0.0233467008475219*xvTENC[2] + 0.0466934016950439*xvTENC[1] + 0.0233467008475219*xvTENC[0];
+		return yvTENC[2];
+	}
+#endif //end 30Hz
 
 #ifdef SOFT_FILTER_JOINTANGLE_IIR_20HZ
 	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
