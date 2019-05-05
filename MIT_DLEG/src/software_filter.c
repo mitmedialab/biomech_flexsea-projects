@@ -475,18 +475,13 @@
 #endif //end 50Hz
 
 #ifdef SOFT_FILTER_ENCTORQ_IIR_30HZ
-	/*  lpFilt = designfilt('lowpassiir','FilterOrder',2, ...
-         'PassbandFrequency',30,'PassbandRipple',0.1, ...
-         'SampleRate',1000);
-        [b,a] = tf(lpFilt)
- 	 	[z p k ] = zpk(lpFilt)
-		fvtool(lpFilt)
-		M = idpoly(a,b,'NoiseVariance',0)
-        fvtool(lpFilt)
-	*/
+	/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
+		   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 2.0000000000e-02 0.0000000000e+00 -l */
+
 
 	#define NTENCZEROS 2
 	#define NTENCPOLES 2
+	#define BUTWRTH_ENCTQ_FILT_GAIN_VEL   2.761148367e+02
 
 	static float xvTENC[NTENCZEROS+1];
 	static float yvTENC2[NTENCPOLES+1];
@@ -502,11 +497,11 @@
 
 		xvTENC[0] = xvTENC[1];
 		xvTENC[1] = xvTENC[2];
-		xvTENC[2] = inputVal;
+		xvTENC[2] = inputVal/BUTWRTH_ENCTQ_FILT_GAIN_VEL;
 		yvTENC2[0] = yvTENC2[1];
 		yvTENC2[1] = yvTENC2[2];
-//		yvTENC2[2] = 1.54783230371669*yvTENC2[1] - 0.642300475325108*yvTENC2[0] + 0.0233467008475219*xvTENC[2] + 0.0466934016950439*xvTENC[1] + 0.0233467008475219*xvTENC[0];
-		yvTENC2[2] = 1.5478*yvTENC2[1] - 0.6423*yvTENC2[0] + 0.02334*xvTENC[2] + 0.04669*xvTENC[1] + 0.02334*xvTENC[0];
+		yvTENC2[2] = (xvTENC[0] + xvTENC[2]) + 2 * xvTENC[1]
+						 + ( -0.8371816513 * yvTENC2[0]) + (  1.8226949252 * yvTENC2[1]);
 
 		return yvTENC2[2];
 	}

@@ -21,10 +21,10 @@ CubicSpline cubicSpline;
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-GainParams ankleGainsEst = {1.5, 0.0, 0.2, -10.0};	// may want to increase this damping, at least.
-GainParams ankleGainsMst = {5.5, 0.0, 0.10, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsEst = {1.5, 0.0, 0.1, -10.0};	// may want to increase this damping, at least.
+GainParams ankleGainsMst = {1.5, 0.0, 0.10, 0.0};	// may want to increase this damping, at least.
 GainParams ankleGainsLst = {4.0, 0.0, 0.03, 14.0};
-GainParams ankleGainsEsw = {1.5, 0.0, 0.3, -10.0};
+GainParams ankleGainsEsw = {1.5, 0.0, 0.1, -10.0};
 GainParams ankleGainsLsw = {1.5, 0.0,  0.1, -10.0};
 GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
@@ -61,6 +61,9 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
     static int8_t isTransitioning = 0;
     static uint32_t timeInState = 0;
     static int8_t passedStanceThresh = 0;
+
+    ankleGainsMst = ankleGainsEst;
+    ankleGainsEsw = ankleGainsLsw;
 
     kneeAnkleStateMachine.onEntrySlaveSmState = kneeAnkleStateMachine.slaveCurrentState; // save the state on entry, assigned to last_currentState on exit
 

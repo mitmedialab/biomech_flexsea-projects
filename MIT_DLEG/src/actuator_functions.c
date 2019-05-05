@@ -166,8 +166,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
-//	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
-//	strainReading = filterEncoderTorqueButterworth( (float) rigid1.ex.strain );
+	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing.
@@ -262,12 +261,13 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
  */
 float getAxialForceEncoderCalc(struct act_s *actx)
 {
-	float output = 0.0;
-	float force = 0.0;
 
-	force =   ( (SPRING_K_D) * asinf( actx->screwLengthDelta / (SPRING_D*1000) ) );	// [N]
+	float force = 0;
+	float output = 0;
+
+	force =  MOTOR_DIRECTION*( (SPRING_K_D) * asinf( actx->screwLengthDelta / (SPRING_D*1000) ) );	// [N]
 	// can't get filter to work on this value for some reason, I put about 8 hours of work into it, no idea.
-
+	output = filterEncoderTorqueButterworth(force);
 	return force;
 }
 
@@ -390,7 +390,7 @@ static float getJointTorque(struct act_s *actx)
 {
 	float torque = 0;
 
-	torque = actx->linkageMomentArm * actx->axialForce;
+	torque = actx->linkageMomentArm * actx->axialForceTF;
 
 	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
 
@@ -591,8 +591,6 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	float tauCCombined = tauC + tauFF;
 
-//	rigid1.mn.genVar[7] = ( (int16_t) (tauC * 100.0) );
-//	rigid1.mn.genVar[8] = ( (int16_t) (tauFF * 100.0) );
 
 	// motor current signal
 	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
@@ -803,6 +801,7 @@ float getReferenceLPF(float refTorque)
 
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
+
 
 	//fc = 10hz
 	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
@@ -1360,11 +1359,12 @@ void updateSensorValues(struct act_s *actx)
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
 	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
+	actx->axialForceTF =  getAxialForceEncoderCalc(actx) ;
 
 	//DEBUG todo: testing this function
-	float test = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
+//	float test = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
 
-	actx->axialForceTF = getAxialForceEncoderCalc(actx);
+
 
 	actx->jointTorque = getJointTorque(actx);
 
