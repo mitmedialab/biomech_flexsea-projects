@@ -624,6 +624,52 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 }
 
 /*
+ * set motor torque using position control
+ */
+void setMotorTorqueSEA(struct act_s *actx, float tauDes)
+{
+//Saturation limit on Torque
+	if (tauDes > ABS_TORQUE_LIMIT_INIT) {
+		tauDes = ABS_TORQUE_LIMIT_INIT;
+	} else if (tauDes < -ABS_TORQUE_LIMIT_INIT) {
+		tauDes = -ABS_TORQUE_LIMIT_INIT;
+	}
+
+//	//Angle Limit bumpers
+	actx->tauDes = tauDes;
+	float refTorque = tauDes + actuateAngleLimits(actx);
+	actx->tauMeas = actx->jointTorque;
+
+	// Feed Forward term
+//	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
+	float tauFF =0.0;
+
+	// LPF Reference term to compensate for FF delay
+	refTorque = getReferenceLPF(refTorque);
+
+	// Compensator
+	//PID around motor torque
+	float tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
+	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
+//	float tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
+
+	float tauCCombined = tauC + tauFF;
+
+	//Calc Desired Force
+	float refForce = tauCCombined / actx->linkageMomentArm;
+
+	float motorTheta = getMotorPositionSEA(actx, refForce);
+
+	// set motor position
+
+
+	// motor current signal
+	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
+
+
+}
+
+/*
  * Control compensator based on system Identification and simulation
  * Input is system state
  * return:	torque command value to the motor driver
