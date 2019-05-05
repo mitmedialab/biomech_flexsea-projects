@@ -199,7 +199,7 @@
 //#define SOFT_FILTER_ENCTORQ_IIR_50HZ
 //#define SOFT_FILTER_TORQ_IIR_20HZ			// torque signal
 #define SOFT_FILTER_DERIVATIVE_IIR_15HZ		// PID, D filter
-#define SOFT_FILTER_JOINTANGLE_IIR_20HZ		// joint angle
+//#define SOFT_FILTER_JOINTANGLE_IIR_20HZ		// joint angle
 #define SOFT_FILTER_JOINTVEL_IIR_20HZ
 
 
@@ -488,17 +488,27 @@
 	#define NTENCZEROS 2
 	#define NTENCPOLES 2
 
-	static float xvTENC[NTENCZEROS+1], yvTENC[NTENCPOLES+1];
+	static float xvTENC[NTENCZEROS+1];
+	static float yvTENC2[NTENCPOLES+1];
 
 	float filterEncoderTorqueButterworth(float inputVal)
 	{
+		// I can't get this filter to work!  yvTENC2, just won't save a value. maybe out of memory?
+
+		// debug these are testing why static floats aren't working for yvTENC, out of memory?
+		static float test0 = 0.0;
+		static float test1 = 0.0;
+		static float test2 = 0.0;
+
 		xvTENC[0] = xvTENC[1];
 		xvTENC[1] = xvTENC[2];
 		xvTENC[2] = inputVal;
-		yvTENC[0] = yvTENC[1];
-		yvTENC[1] = yvTENC[2];
-		yvTENC[2] = 1.54783230371669*yvTENC[1] - 0.642300475325108*yvTENC[0] + 0.0233467008475219*xvTENC[2] + 0.0466934016950439*xvTENC[1] + 0.0233467008475219*xvTENC[0];
-		return yvTENC[2];
+		yvTENC2[0] = yvTENC2[1];
+		yvTENC2[1] = yvTENC2[2];
+//		yvTENC2[2] = 1.54783230371669*yvTENC2[1] - 0.642300475325108*yvTENC2[0] + 0.0233467008475219*xvTENC[2] + 0.0466934016950439*xvTENC[1] + 0.0233467008475219*xvTENC[0];
+		yvTENC2[2] = 1.5478*yvTENC2[1] - 0.6423*yvTENC2[0] + 0.02334*xvTENC[2] + 0.04669*xvTENC[1] + 0.02334*xvTENC[0];
+
+		return yvTENC2[2];
 	}
 #endif //end 30Hz
 

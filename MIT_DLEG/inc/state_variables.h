@@ -104,8 +104,10 @@ typedef struct act_s
     float jointTorqueRate;  // Joint torque rate
     float safetyTorqueScalar;	// Scalar value to reduce overall allowed torque generated.
 
+    float c;				// calculated screw Length 	[mm]
+    float c0; 				// initial calculated screw length	[mm]
     int32_t motorPosRaw;    	// motor position [counts]
-    int32_t motorPosNeutral;	// neutral position of motor.
+    int32_t motorPos0;		// initial position of motor.[counts]
     int32_t motorPosDelta; 	// motor position expected [cnts]
     float motorPos;       		// motor position [rad]
     float motorVel;				// motor velocity [rad/s]

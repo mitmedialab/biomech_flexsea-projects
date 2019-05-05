@@ -104,11 +104,8 @@ static void getJointAngleKinematic(struct act_s *actx)
 
 	//ANGLEReturn: tauRestoring(float) -
 	jointAngleRad = JOINT_ANGLE_DIR * ( jointZero + JOINT_ENC_DIR * ( (float) (*(rigid1.ex.joint_ang)) ) )  * RAD_PER_CNT; // (angleUnit)/JOINT_CPR;
-
-	// filter joint angle? TODO: maybe remove this. or use windowAveraging
-//	actx->jointAngle = 0.8*actx->jointAngle + 0.2*jointAngleRad;
-//	actx->jointAngle = filterJointAngleButterworth(jointAngleRad);		// Lowpass butterworth, check on performance
 	actx->jointAngle = jointAngleRad;
+
 	//VELOCITY
 //	actx->jointVel = 0.5*actx->jointVel + 0.5*( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
 	actx->jointVel = filterJointVelocityButterworth( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
@@ -169,7 +166,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
-	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
+//	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
 //	strainReading = filterEncoderTorqueButterworth( (float) rigid1.ex.strain );
 
 	if (tare)
@@ -214,7 +211,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 
 /**
- * Linear Actuator Actual Moment Arm, internal units are [mm, rad], outputs [m]
+ * Linear Actuator Actual Moment Arm, internal units are [mm, rad] to keep internal precision, outputs [m]
  * Param: theta(float) - the angle of the joint in RADIANS
  *
  * Return: projLength(float) - moment arm projected length in [m]
@@ -231,6 +228,7 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
     c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
 
     c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
+    actx->c = c;
 
     A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
 
@@ -241,19 +239,19 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
     	timerTare++;
     	if (timerTare > 100)
     	{
-			c0 = c;	// save initial length of actuator	//NOTE: THIS SEEMS TO OUTPUT A FUNNY VALUE
-			motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Neutral Position.
+			c0 = c;	// save initial length of actuator
+			motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Initial Position [counts].
+			actx->c0 = c0;
+			actx->motorPos0 = motorTheta0;
+
 			tareState = 0;
 			timerTare = 0;
     	}
     }
 
-
-    rigid1.mn.genVar[8] = ( (int16_t) -MOTOR_MILLIMETER_PER_TICK*(actx->motorPosRaw - motorTheta0) ) *1000;
-
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = ( (float) ( (MOTOR_DIRECTION * MOTOR_MILLIMETER_PER_TICK*( ( (float) ( actx->motorPosRaw - motorTheta0) ) ) - (c-c0)) / 1000 ) );	// [m]
+    actx->screwLengthDelta = ( (float) ( ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
 
     return projLength/1000.; // [m] output is in meters
 
@@ -264,12 +262,12 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
  */
 float getAxialForceEncoderCalc(struct act_s *actx)
 {
-	static float output = 0.0;
-	static float force = 0.0;
+	float output = 0.0;
+	float force = 0.0;
 
-	force =  -1.0* ( SPRING_K_D * asinf( actx->screwLengthDelta / SPRING_D ) );	// [N]
-//	output = filterTorqueButterworth( (float) force);
-//	return filterEncoderTorqueButterworth( (float) force );	// I can filter on screwLengthDelta, but not on force.
+	force =   ( (SPRING_K_D) * asinf( actx->screwLengthDelta / (SPRING_D*1000) ) );	// [N]
+	// can't get filter to work on this value for some reason, I put about 8 hours of work into it, no idea.
+
 	return force;
 }
 
@@ -290,7 +288,7 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 	u[k-2] = u[k-1];
 	u[k-1] = u[k];
 	// update current state to new values
-	u[k] = actx->screwLengthDelta; // [m]
+	u[k] = actx->screwLengthDelta*1000.0; // [m]
 
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
@@ -338,6 +336,17 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 
 }
 
+
+/*
+ * Calculate desired motor position, for SEA Force control based on position
+ */
+float getMotorPositionSEA(struct act_s *actx, float refForce)
+{
+	float thetaMotor = 0.0;
+
+	thetaMotor = MOTOR_DIRECTION * MOTOR_TICK_PER_MILLIMETER *( SPRING_D_MM	* sinf( refForce * SPRING_D/SPRING_K) + (actx->c - actx->c0) ) + ( (float)actx->motorPos0);
+	return thetaMotor;
+}
 
 ///* NOTE: NOT WORKING DO NOT USE
 // * Spring state-space representation to map model of spring to calculate actual force in spring
@@ -1292,41 +1301,6 @@ float torqueSystemIDPRBS(void)
 // Private Function(s)
 //****************************************************************************
 
-//todo: in process to determine forces without loadcell
-void setMotorNeutralPosition(struct act_s *actx)
-{
-	static int8_t tareState= -1;
-	static uint16_t sample=0;
-	uint16_t numSamples = 100;
-	static int32_t motorEncReading = 0;
-
-	float r = getLinkageMomentArm(&act1, act1.jointAngle, 1);
-
-//	switch(tareState)
-//		{
-//			case -1:
-//				//Tare the balance using average of numSamples readings
-//				sample++;
-//
-//				if(sample <= numSamples)
-//				{
-//					motorEncReading =  motorEncReading + (int32_t)(*rigid1.ex.enc_ang/sample);
-//				}
-//				else
-//				{
-//					actx->motorPosNeutral = motorEncReading;
-//					float r = getLinkageMomentArm(&act1, act1.jointAngle, 1);
-//					tareState = 0;
-//				}
-//
-//				break;
-//
-//			case 0:
-//
-//				break;
-//		}
-
-}
 
 /*
  * Collect all sensor values and update the actuator structure.
@@ -1343,16 +1317,16 @@ void updateSensorValues(struct act_s *actx)
 
 	//DEBUG todo: testing this function
 	float test = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
-	rigid1.mn.genVar[9] = (int16_t)  (test * 10.0);
+
 	actx->axialForceTF = getAxialForceEncoderCalc(actx);
 
 	actx->jointTorque = getJointTorque(actx);
 
 	updateJointTorqueRate(actx);
 
-	actx->motorPosRaw = *rigid1.ex.enc_ang;
+	actx->motorPosRaw = *rigid1.ex.enc_ang;		// [counts]
 
-	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; //counts
+	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; // [rad]
 	actx->motorVel =  ( (float) *rigid1.ex.enc_ang_vel ) * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
 

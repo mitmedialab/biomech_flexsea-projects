@@ -251,7 +251,7 @@ static void actuatePassiveMode(Act_s *actx){
 	}
 
 	//todo: Ramp position from current position to neutral motor position
-	setMotorPosition(actx->motorPosNeutral, DEVICE_CHANNEL);
+	setMotorPosition(actx->motorPos0, DEVICE_CHANNEL);
 
 }
 
