@@ -262,10 +262,10 @@ static void updateGenVars(struct taskmachine_s* tm){
 	    	rigid1.mn.genVar[9] = (int16_t)(get_control_params()->adaptive.lst_engagement_tq_Nm[tm->control_mode]);
 
 		break;
-	    case GUI_MODE_NOM_CONTROL_PARAMS: //9
-	    	rigid1.mn.genVar[1] = (int16_t)(get_control_params()->nominal.theta_rad*SCALE_FACTOR_10000);
-	    	rigid1.mn.genVar[2] = (int16_t)(get_control_params()->nominal.k_Nm_p_rad);
-	    	rigid1.mn.genVar[3] = (int16_t)(get_control_params()->nominal.b_Nm_p_rps);
+	    case GUI_MODE_NOM_CONTROL_PARAMS: //5
+	    	rigid1.mn.genVar[3] = (int16_t)(get_control_params()->nominal.theta_rad*SCALE_FACTOR_10000);
+	    	rigid1.mn.genVar[4] = (int16_t)(get_control_params()->nominal.k_Nm_p_rad);
+	    	rigid1.mn.genVar[5] = (int16_t)(get_control_params()->nominal.b_Nm_p_rps);
 	    	break;
 	    case GUI_MODE_FL_CONTROL_METRICS: //10
 		case GUI_MODE_UR_CONTROL_METRICS: //11
