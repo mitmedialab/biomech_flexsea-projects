@@ -390,9 +390,9 @@ static float getJointTorque(struct act_s *actx)
 {
 	float torque = 0;
 
-	torque = actx->linkageMomentArm * actx->axialForceTF;
+	torque = actx->linkageMomentArm * actx->axialForce;
 
-	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
+//	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
 
 	if(torque >= ABS_TORQUE_LIMIT_INIT || torque <= -ABS_TORQUE_LIMIT_INIT) {
 		isSafetyFlag = SAFETY_TORQUE;
@@ -576,8 +576,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->tauMeas = actx->jointTorque;
 
 	// Feed Forward term
-//	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
-	float tauFF =0.0;
+	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
+//	float tauFF =0.0;
 
 	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);

@@ -14,8 +14,8 @@ extern "C" {
 
 //1. Select joint type
 //#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
-#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this if using Knee, ankle is slave
-//#define IS_ACTUATOR_TESTING 		// Used when testing actuators, ie manually setting impedance values
+//#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this if using Knee, ankle is slave
+#define IS_ACTUATOR_TESTING 		// Used when testing actuators, ie manually setting impedance values
 //#define IS_SWEEP_TEST
 //#define IS_SWEEP_CHIRP_TEST			// For system ID experiments.
 
@@ -27,9 +27,10 @@ extern "C" {
 //#define DEVICE_M14			// Standalone motor for testbench
 //#define DEVICE_M15			// Standalone motor for testbench
 //#define DEVICE_M16			// Standalone motor for testbench
+//#define DEVICE_M23
 
 // 3. Turn off things if necessary.
-//#define NO_DEVICE				// use if not connected to an actuator or any hardware
+//#define NO_DEVICE				// use if not connected to an actuator or any hardware. Note to get Device ID use getDeviceIdIncrementing()
 //#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
 //#define NO_POWER				// testing control signals, do not use setMotorcurrent()
 

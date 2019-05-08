@@ -242,6 +242,8 @@ void MITDLegFsm1(void)
 
 			//Initialize Filters for Torque Sensing
 			initSoftFIRFilt();	// Initialize software filter
+//			initSGFilt();		// Savitsky-Golay
+//			initSGVelFilt();
 
 			mitInitCurrentController();		//initialize Current Controller with gains
 
@@ -274,7 +276,7 @@ void MITDLegFsm1(void)
 
 //					tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 					// Try running impedance update slower than torque controller.
-					if ( fmod(controlTime,4) == 0 )
+					if ( fmod(controlTime,5) == 0 )
 					{
 						if (fabs(inputTorq) > 0)
 						{
@@ -384,6 +386,7 @@ void MITDLegFsm2(void)
  * genVars are output to the GUI. These can be used to send out values, they are global variables but it's good to keep track
  * of them all in one place, hence his function. It's also annoying to flip up and down the code, so now they're located near
  * the userwrites as well (input from the GUI)
+ * Note: to get device ID use //getDeviceIdIncrementing()
  */
 void updateGenVarOutputs(Act_s *actx)
 {
@@ -394,7 +397,7 @@ void updateGenVarOutputs(Act_s *actx)
 	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
 	  rigid1.mn.genVar[5] = (int16_t) (act1.axialForceTF*10.0); //(rigid1.ex.strain);
 	  rigid1.mn.genVar[6] = (int16_t) (act1.jointVel*100.);//(rigid1.ex.mot_volt);	// mA
-	  rigid1.mn.genVar[7] = (int16_t) (act1.screwLengthDelta); //(fsm1State); //kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
+	  rigid1.mn.genVar[7] = (int16_t) (act1.screwLengthDelta*100.); //(fsm1State); //kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
 	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
@@ -490,12 +493,12 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 #ifdef IS_ANKLE
 
-	wParams->earlyStanceK0 = 6.23;
+	wParams->earlyStanceK0 = 2.0; //6.23;
 	wParams->earlyStanceKF = 0.1;
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 
 	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
-	wParams->virtualHardstopK				= 4.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
+	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
 	wParams->lspEngagementTorque 			= 70.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
 	wParams->lstPGDelTics 					= 100.0;	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
 //	ankleGainsMst.k1						= 4.0;	//user_data_1.w[5] = 400 [Nm/deg]
@@ -510,9 +513,9 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
 	user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque*100 ); 			// Late stance power, torque threshhold
 	user_data_1.w[4] =  (int32_t) ( wParams->lstPGDelTics ); 		// ramping rate to rampup pushoff power (effectively a delay)
-	user_data_1.w[5] =  (int32_t) ( ankleGainsMst.k1 * 100 );		// 4.5 x 100
-	user_data_1.w[6] =  (int32_t) ( ankleGainsLst.thetaDes * 100 ); // 14 x 100
-	user_data_1.w[7] =  (int32_t) ( ankleGainsMst.b * 100 ); 		// 0.1 x 100
+	user_data_1.w[5] =  (int32_t) ( ankleGainsEst.k1 * 100 );		// 4.5 x 100
+	user_data_1.w[6] =  (int32_t) ( ankleGainsEst.b * 100 ); // 14 x 100
+	user_data_1.w[7] =  (int32_t) ( ankleGainsLst.thetaDes * 100 ); 		// 0.1 x 100
 	user_data_1.w[8] =  (int32_t) ( ankleGainsEsw.k1 * 100 ); 			// 0.1 x 100
 	user_data_1.w[9] =  (int32_t) ( ankleGainsEsw.b * 100 ); 			// 0.1 x 100
 
