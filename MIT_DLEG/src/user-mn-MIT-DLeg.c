@@ -160,7 +160,7 @@ void MITDLegFsm1(void)
 			//Same power-on delay as FSM2:
 			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 				//sensor update happens in mainFSM2(void) in main_fsm.c
-				isEnabledUpdateSensors = 1;
+				isEnabledUpdateSensors = 0;
 				onEntry = 1;
 				fsmTime = 0;
 				fsm1State = STATE_INITIALIZE_SETTINGS;
@@ -276,8 +276,8 @@ void MITDLegFsm1(void)
 
 //					tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 					// Try running impedance update slower than torque controller.
-					if ( fmod(controlTime,5) == 0 )
-					{
+//					if ( fmod(controlTime,5) == 0 )
+//					{
 						if (fabs(inputTorq) > 0)
 						{
 							tor = inputTorq;
@@ -288,7 +288,7 @@ void MITDLegFsm1(void)
 							tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 							act1.tauDes = tor;
 						}
-					}
+//					}
 
 
 					setMotorTorque( &act1, act1.tauDes);
@@ -301,13 +301,10 @@ void MITDLegFsm1(void)
 					setMotorTorque( &act1, act1.tauDes);
 				#elif defined(IS_SWEEP_CHIRP_TEST)
 
-//					if ( fmod(controlTime,4) == 0 )
-//					{
-						act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
-//					}
+					act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
 
-//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
-					setMotorTorque( &act1, act1.tauDes);
+					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+//					setMotorTorque( &act1, act1.tauDes);
 
 				#else
 					setKneeAnkleFlatGroundFSM(&act1);
@@ -398,11 +395,11 @@ void updateGenVarOutputs(Act_s *actx)
 	  rigid1.mn.genVar[5] = (int16_t) (act1.axialForceTF*10.0); //(rigid1.ex.strain);
 	  rigid1.mn.genVar[6] = (int16_t) (act1.jointVel*100.);//(rigid1.ex.mot_volt);	// mA
 	  rigid1.mn.genVar[7] = (int16_t) (act1.screwLengthDelta*100.); //(fsm1State); //kneeAnkleStateMachine.timeStampFromSlave; //(*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+//	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
-	  rigid1.mn.genVar[9] = (int16_t) (act1.linkageMomentArm*1000); //(act1.axialForce *10);
+//	  rigid1.mn.genVar[9] = (int16_t) (act1.linkageMomentArm*1000); //(act1.axialForce *10);
 #endif
 }
 

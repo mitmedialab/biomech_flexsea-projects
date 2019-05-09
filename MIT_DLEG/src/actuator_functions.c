@@ -36,7 +36,7 @@ float currentScalar = CURRENT_SCALAR_INIT;
 
 int8_t zeroLoadCell = 0;	//Used to allow re-zeroing of the load cell, ie for testing purposes
 float voltageGain = 1.0;	//tested
-float velGain = 1.1;	// tested
+float velGain = 1.0; //1.1;	// tested
 float indGain = 1.73;	// tested
 
 
@@ -250,29 +250,36 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = ( (float) ( ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
-
+    actx->screwLengthDelta = ( (float) filterJointAngleButterworth( ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
+//    filterTorqueEncButterworth
+//    filterJointAngleButterworth
     return projLength/1000.; // [m] output is in meters
 
 }
 
 /*
  * Calculate axial force based on displacement of spring measured from motor angle and expected motor angle
+ * This function works fairly well. It has as noise diff of about 0.8N, and effectively no delay other than
+ * the delay from the filter on teh screwLengthDelta.
+ * A small angle approximation is valid so the arcsin is not necessary.
  */
 float getAxialForceEncoderCalc(struct act_s *actx)
 {
 
 	float force = 0;
-	float output = 0;
 
-	force =  MOTOR_DIRECTION*( (SPRING_K_D) * asinf( actx->screwLengthDelta / (SPRING_D*1000) ) );	// [N]
-	// can't get filter to work on this value for some reason, I put about 8 hours of work into it, no idea.
-	output = filterEncoderTorqueButterworth(force);
+//	force =  MOTOR_DIRECTION*( (SPRING_K_D) * asinf( actx->screwLengthDelta / (SPRING_D*1000) ) );	// [N]
+	force =  MOTOR_DIRECTION*( (SPRING_K_E) * ( actx->screwLengthDelta/1000.0) );	// [N], small angle approximation
 	return force;
 }
 
+
+
+
 /*
  * Spring transfer function to map model of spring to calculate actual force in spring
+ * This function works fairly well, however it has about a 13ms delay compared to the
+ * calculated version above. This has a diff of about 0.5N, compared to 0.8N above
  */
 float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 {
@@ -288,7 +295,7 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 	u[k-2] = u[k-1];
 	u[k-1] = u[k];
 	// update current state to new values
-	u[k] = actx->screwLengthDelta*1000.0; // [m]
+	u[k] = actx->screwLengthDelta/1000.0; // [m]
 
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
@@ -306,7 +313,7 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 //			+ -161763.585837411*u[k] + 352228.322442098*u[k-1] + -190463.303430783*u[k-2]; // TF6 97.22%fit
 
 //	y[k] = filterTorqueButterworth( y[k] );	// clean it up, note this may cause additional delay
-
+//	y[k] = runSoftFirFilt(y[k]);		// works well, except there's substantial delay.
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing. Turned on externally, turned off internal
@@ -390,7 +397,7 @@ static float getJointTorque(struct act_s *actx)
 {
 	float torque = 0;
 
-	torque = actx->linkageMomentArm * actx->axialForce;
+	torque = actx->linkageMomentArm * actx->axialForceTF;
 
 //	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
 
@@ -576,8 +583,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->tauMeas = actx->jointTorque;
 
 	// Feed Forward term
-	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
-//	float tauFF =0.0;
+//	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
+	float tauFF =0.0;
 
 	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);
@@ -1359,11 +1366,10 @@ void updateSensorValues(struct act_s *actx)
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
 	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
-	actx->axialForceTF =  getAxialForceEncoderCalc(actx) ;
+	actx->axialForceTF = getAxialForceEncoderCalc(actx);
 
-	//DEBUG todo: testing this function
-//	float test = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
-
+	//
+//	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
 
 
 	actx->jointTorque = getJointTorque(actx);

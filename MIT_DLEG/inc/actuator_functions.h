@@ -69,4 +69,6 @@ bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output); /
 float actuateAngleLimits(Act_s *actx);	// apply virtual spring/damper on angle limits
 int32_t noLoadCurrent(float desCurr);
 
+
+
 #define WINDOW_SIZE 10

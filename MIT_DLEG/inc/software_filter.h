@@ -62,6 +62,10 @@ float filterTorqueDerivativeButterworth(float inputVal);
 float filterJointAngleButterworth(float inputVal);
 float filterJointVelocityButterworth(float inputVal);
 
+float filterTorqueEncButterworth(float inputVal);
+
+float testingFilter(float input);
+float testingVelFilter(float input);
 
 //****************************************************************************
 // Definition(s):

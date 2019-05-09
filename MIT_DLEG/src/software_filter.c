@@ -201,7 +201,8 @@
 	//#define SOFT_FILTER_ENCTORQ_IIR_50HZ
 	//#define SOFT_FILTER_TORQ_IIR_20HZ			// torque signal
 	#define SOFT_FILTER_DERIVATIVE_IIR_15HZ		// PID, D filter
-	//#define SOFT_FILTER_JOINTANGLE_IIR_20HZ		// joint angle
+
+	#define SOFT_FILTER_JOINTANGLE_IIR_20HZ		// joint angle
 	#define SOFT_FILTER_JOINTVEL_IIR_20HZ
 
 
@@ -387,14 +388,14 @@
 		   Cutoff = 10Hz, 2nd order, Butterworth filter, Sampling at 1000Hz
 		*/
 
-		#define NZEROS 2
-		#define NPOLES 2
-		#define BUTWRTH_FILT_GAIN   1.058546241e+03
-
-		static float xv[NZEROS+1], yv[NPOLES+1];
-
 		float filterTorqueButterworth(float inputVal)
 		{
+			#define NZEROS 2
+			#define NPOLES 2
+			#define BUTWRTH_FILT_GAIN   1.058546241e+03
+
+			static float xv[NZEROS+1], yv[NPOLES+1];
+
 			xv[0] = xv[1];
 			xv[1] = xv[2];
 			xv[2] = inputVal / BUTWRTH_FILT_GAIN;
@@ -418,13 +419,14 @@
 		   Cutoff = 15Hz, 2nd order, 0.1 ripple, Butterworth filter, Sampling at 1000Hz
 		*/
 
-		#define NTZEROS 2
-		#define NTPOLES 2
-
-		static float xvT[NTZEROS+1], yvT[NTPOLES+1];
 
 		float filterTorqueButterworth(float inputVal)
 		{
+			#define NTZEROS 2
+			#define NTPOLES 2
+
+			static float xvT[NTZEROS+1], yvT[NTPOLES+1];
+
 			xvT[0] = xvT[1];
 			xvT[1] = xvT[2];
 			xvT[2] = inputVal;
@@ -433,7 +435,24 @@
 			yvT[2] = 1.77374445515908*yvT[1] - 0.800084509789504*yvT[0] + 0.00650963562958534*xvT[2] + 0.0130192712591707*xvT[1] + 0.00650963562958534*xvT[0];
 			return yvT[2];
 		}
-	#endif //end 20Hz
+	#endif //end 15Hz
+
+		//fc=15hz
+	float filterTorqueEncButterworth(float inputVal)
+	{
+
+		static float xvT[3]={0,0,0};
+		static float yvT[3]={0,0,0};
+
+		xvT[0] = xvT[1];
+		xvT[1] = xvT[2];
+		xvT[2] = inputVal;
+		yvT[0] = yvT[1];
+		yvT[1] = yvT[2];
+		yvT[2] = 1.77374445515908*yvT[1] - 0.800084509789504*yvT[0] + 0.00650963562958534*xvT[2] + 0.0130192712591707*xvT[1] + 0.00650963562958534*xvT[0];
+		return yvT[2];
+	}
+
 
 	#ifdef SOFT_FILTER_TORQ_IIR_20HZ
 		/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
@@ -442,14 +461,15 @@
 		*/
 
 
-		#define NTZEROS 2
-		#define NTPOLES 2
-		#define BUTWRTH_FILT_GAIN_TORQ   2.761148367e+02
-
-		static float xvT[NTZEROS+1], yvT[NTPOLES+1];
-
 		float filterTorqueButterworth(float inputVal)
 		{
+
+			#define NTZEROS 2
+			#define NTPOLES 2
+			#define BUTWRTH_FILT_GAIN_TORQ   2.761148367e+02
+
+			static float xvT[NTZEROS+1], yvT[NTPOLES+1];
+
 			xvT[0] = xvT[1];
 			xvT[1] = xvT[2];
 			xvT[2] = inputVal / BUTWRTH_FILT_GAIN_TORQ;
@@ -491,20 +511,24 @@
 		}
 	#endif //end 50Hz
 
+
+
+
+
 	#ifdef SOFT_FILTER_ENCTORQ_IIR_20HZ
 		/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
 			   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 2.0000000000e-02 0.0000000000e+00 -l */
 
 
-		#define NTENCZEROS 2
-		#define NTENCPOLES 2
-		#define BUTWRTH_ENCTQ_FILT_GAIN_VEL   2.761148367e+02
-
-		static float xvTENC[NTENCZEROS+1];
-		static float yvTENC2[NTENCPOLES+1];
-
 		float filterEncoderTorqueButterworth(float inputVal)
 		{
+			#define NTENCZEROS 2
+			#define NTENCPOLES 2
+			#define BUTWRTH_ENCTQ_FILT_GAIN_VEL   2.761148367e+02
+
+			static float xvTENC[NTENCZEROS+1];
+			static float yvTENC2[NTENCPOLES+1];
+
 
 			xvTENC[0] = xvTENC[1];
 			xvTENC[1] = xvTENC[2];
@@ -592,13 +616,14 @@
 		}
 	#endif //end 15Hz
 
-//	/*
-//	 * Savitzky-Golay Filter - NOT WORKING
-//	 */
+	/*
+	 * Savitzky-Golay Filter - NOT WORKING
+	 */
+
+//	#define SG_FILT5
+//#define SG_FILT7
 //
-//	#define SG_FILT
-//
-//	#ifdef SG_FILT // Passband 10Hz, Stopband 500Hz
+//	#ifdef SG_FILT5
 //
 //		#define SG_SAMPLE_SIZE  5
 //		#define SG_GAIN  0.0285714285714286	// 1/35
@@ -608,12 +633,55 @@
 //
 //	#endif
 //
+//		#ifdef SG_FILT7
+//
+//		#define SG_SAMPLE_SIZE  7
+//		#define SG_GAIN  0.047619048	// 1/21
+//		static float sGFilter[SG_SAMPLE_SIZE] = {
+//				-2, 3, 6, 7, 6, 3 ,-2
+//		};
+//
+//	#endif
+//
+//
+//
+//
+//	float testingFilter(float input)
+//	{
+//	#define numSamp SG_SAMPLE_SIZE
+//		static int16_t M = (numSamp-1)/2;
+//		static float x[numSamp] = {0, 0, 0, 0, 0};
+//		float y=0.0;
+//
+//		x[M-3] = x[M-2];
+//		x[M-2] = x[M-1];
+//		x[M-1] = x[M];
+//		x[M] = x[M+1];
+//		x[M+1] = x[M+2];
+//		x[M+2] = x[M+3];
+//		x[M+3] = input;
+//
+////		for(int i = 0; i<numSamp-2; i++)
+////		{
+////			x[i] = x[i+1];
+////		}
+////		x[numSamp-1] = input;
+//
+//		for(int i = -M; i<M; i++)
+//		{
+//			y = y + x[M+i]*sGFilter[M+i]*SG_GAIN;
+////			y = y + x[M+i];
+//		}
+////		y = (y/numSamp);
+////		x[numSamp-1] = y;
+//		return y;
+//	}
+//
+//
 //	static float sGFiltBuffer[SG_SAMPLE_SIZE];
 //	static float sGFiltOutput;
 //	static int16_t sGIndex;
-//
-//
-//
+
 //	void initSGFilt(void)
 //	{
 ////		memset(sGFiltBuffer, 0, SG_SAMPLE_SIZE*4);	// initialize input blocks
@@ -636,7 +704,7 @@
 //
 //		for (i = 0; i < SG_SAMPLE_SIZE;  i++)
 //		{
-//			result += ( sGFilter[i] * sGFiltBuffer[i] );
+//			result += SG_GAIN*( sGFilter[i] * sGFiltBuffer[i] );
 //		}
 //
 //		sGFiltBuffer[(SG_SAMPLE_SIZE-1)/2] = result;
@@ -654,9 +722,9 @@
 ////			sGFiltBuffer[i] = sGFiltBuffer[i-1];
 ////		}
 //
-//		return result*SG_GAIN;
+//		return result;
 //	}
-//
+////
 //#define SG_VEL_FILT
 //
 //	#ifdef SG_VEL_FILT // Passband 10Hz, Stopband 500Hz
@@ -673,6 +741,30 @@
 //	static float sGVelFiltOutput;
 //	static int16_t sGVelIndex;
 //
+//
+//	float testingVelFilter(float input)
+//		{
+//		#define numSamp 5
+//			static int16_t M = (numSamp-1)/2;
+//			static float x[numSamp] = {0, 0, 0, 0, 0};
+//			float y=0.0;
+//
+//			x[M-2] = x[M-1];
+//			x[M-1] = x[M];
+//			x[M] = x[M+1];
+//			x[M+1] = x[M+2];
+//			x[M+2] = input;
+//
+//			for(int i = -M; i<M; i++)
+//			{
+//				y = y + x[M+i]*sGVelFilter[M+i]*SG_VEL_GAIN;
+//			}
+//	//		y = (y/numSamp);
+////			x[numSamp-1] = y;
+//			return y;
+//
+//
+//		}
 //
 //
 //	void initSGVelFilt(void)
@@ -702,7 +794,7 @@
 //
 //		return result;
 //	}
-//
+
 
 
 
