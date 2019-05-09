@@ -250,7 +250,7 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = ( (float) filterJointAngleButterworth( ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
+    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
 //    filterTorqueEncButterworth
 //    filterJointAngleButterworth
     return projLength/1000.; // [m] output is in meters
@@ -397,7 +397,7 @@ static float getJointTorque(struct act_s *actx)
 {
 	float torque = 0;
 
-	torque = actx->linkageMomentArm * actx->axialForceTF;
+	torque = actx->linkageMomentArm * actx->axialForce;
 
 //	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
 
@@ -570,6 +570,11 @@ int32_t noLoadCurrent(float desCurr) {
  */
 void setMotorTorque(struct act_s *actx, float tauDes)
 {
+	float tauFF =0.0;
+	float tauC = 0.0;
+	float tauCCombined = 0.0;
+	float N=0.0, Icalc=0.0;
+
 	//Saturation limit on Torque
 	if (tauDes > ABS_TORQUE_LIMIT_INIT) {
 		tauDes = ABS_TORQUE_LIMIT_INIT;
@@ -583,25 +588,28 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->tauMeas = actx->jointTorque;
 
 	// Feed Forward term
-//	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
-	float tauFF =0.0;
+	tauFF = getFeedForwardTerm(refTorque); 	//
+
 
 	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);
 
 	// Compensator
 	//PID around motor torque
-	float tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
+//	tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
-//	float tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
+	tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
 
+	tauCCombined = tauC + tauFF;
 
-	float tauCCombined = tauC + tauFF;
+	// Disturbance Observer
+//	tauCCombined += getDOB(tauCCombined, actx->tauMeas);
 
+	rigid1.mn.genVar[8] = (int16_t) (tauCCombined*100.0);
 
 	// motor current signal
-	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
-	float Icalc = ( 1.0/(MOT_KT * N ) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
+	N = actx->linkageMomentArm * N_SCREW;	// gear ratio
+	Icalc = ( 1.0/(MOT_KT * N ) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
 
@@ -726,9 +734,21 @@ float getCompensatorCustomOutput(float refTorque, float sensedTorque)
 //	y[k] = 1.98698574428531*y[k-1] - 0.986985744285313*y[k-2]
 //			+ 0.152409464742096*u[k] -0.30441022160376*u[k-1] + 0.152028916963166*u[k-2]; // Internal Model with FF
 
-	y[k] = 2.99658244121261*y[k-1] - 2.99335168788952*y[k-2] + 0.996769246676907*y[k-3]
-			+ 0*u[k] +7.67677135433392e-07*u[k-1] + -1.53331944492887e-06*u[k-2]
-			+ 7.65784083882671e-07*u[k-3]; // LGQ_robust
+//	y[k] = 2.99658244121261*y[k-1] - 2.99335168788952*y[k-2] + 0.996769246676907*y[k-3]
+//			+ 0*u[k] +7.67677135433392e-07*u[k-1] + -1.53331944492887e-06*u[k-2]
+//			+ 7.65784083882671e-07*u[k-3]; // LGQ_robust
+
+//	y[k] = 2.95173205599843*y[k-1] - 2.90478006489518*y[k-2] + 0.953048008896744*y[k-3]
+//			+ 0*u[k] + 0.000487240901613151*u[k-1] - 0.000975072809443166*u[k-2]
+//			+ 0.00048787960545394*u[k-3]; // LGQ_robust2, worked, but very sluggish, worked okay with FF, DOB
+
+//	y[k] = 2.95173205599843*y[k-1] - 2.90478006489518*y[k-2] + 0.953048008896744*y[k-3]
+//			+ 0*u[k] + 0.00693283053802919*u[k-1] + -0.0138740703576578*u[k-2]
+//			+ 0.00694191849734771*u[k-3]; // LGQ_robust2, slow
+
+	y[k] = 0.497955331171937*y[k-1]
+			+ 71.8291748524559*u[k] + -71.2524739446287*u[k-1]; // Working decently,
+
 
 
 //	rigid1.mn.genVar[7] = (int16_t) ( u[k] * 100.0);
@@ -784,8 +804,12 @@ float getFeedForwardTerm(float refTorque)
 //				+ 71.0565154791215*u[k] -141.922482701404*u[k-1] + 70.8790960571072*u[k-2];
 
 	//fc = 10hz
+//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
+//				+ 13.2619229729635*u[k] -26.4882821937814*u[k-1] + 13.2288095745257*u[k-2];
+
+	//fc = 10;
 	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-				+ 13.2619229729635*u[k] -26.4882821937814*u[k-1] + 13.2288095745257*u[k-2];
+				+ 23.2083845430577*u[k] - 46.3543006813545*u[k-1] + 23.150436047501*u[k-2];
 	return ( y[k] );
 }
 
@@ -817,7 +841,72 @@ float getReferenceLPF(float refTorque)
 }
 
 
+/*
+ * DOB applies a LPF on reference and output term and combines them
+ * Input is reference and measured output torque
+ * return:	torque command value to the motor driver
+ */
+float getDOB(float refTorque, float measTorque)
+{
+	return ( getDobLpf(refTorque) - getDoBInv(measTorque) );
+}
 
+/*
+ * DOB applies a LPF on reference term
+ * Input is reference (measured from output)
+ * return:	torque command value to the motor driver
+ */
+float getDoBInv(float refTorque)
+{
+	static float y[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = refTorque;			// [Nm]
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+
+	//fc = 10hz * PlantInverse
+	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
+			+ 23.2083845430577*u[k] + -46.3543006813545*u[k-1] + 23.150436047501*u[k-2];
+
+
+	return ( y[k] );
+}
+
+/*
+ * DOB applies a LPF on reference
+ * Input is reference
+ * return:	torque command value to the motor driver
+ */
+float getDobLpf(float refTorque)
+{
+	static float y[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = refTorque;			// [Nm]
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+
+	//fc = 10hz
+	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
+			+ 0.0018543217247955*u[k-1] + 0.0018543217247955*u[k-2];
+
+	return ( y[k] );
+}
 
 
 /*
@@ -1365,10 +1454,9 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
-	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
-	actx->axialForceTF = getAxialForceEncoderCalc(actx);
+//	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
+	actx->axialForce = getAxialForceEncoderCalc(actx);
 
-	//
 //	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
 
 

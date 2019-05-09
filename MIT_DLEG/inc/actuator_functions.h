@@ -58,7 +58,11 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque);
 float getFeedForwardTerm(float refTorque);
 float getReferenceLPF(float refTorque);
 float getCompensatorCustomOutput(float refTorque, float sensedTorque);									// calculate compensator output value
-float getCompensatorCustomOutput2(Act_s *actx, float tauMeas, float tauRef);									// calculate compensator output value
+//float getCompensatorCustomOutput2(Act_s *actx, float tauMeas, float tauRef);									// calculate compensator output value
+float getDOB(float refTorque, float measTorque);
+float getDobLpf(float refTorque);
+float getDoBInv(float refTorque);
+
 
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp, int16_t begin);

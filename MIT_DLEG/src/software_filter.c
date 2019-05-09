@@ -546,17 +546,17 @@
 		/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
 		   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 2.0000000000e-02 0.0000000000e+00 -l */
 
-		#define NJAZEROS 2
-		#define NJAPOLES 2
-		#define BUTWRTH_FILT_GAIN_ANG   2.761148367e+02
-
-		static float xvJA[NJAZEROS+1], yvJA[NJAPOLES+1];
-
 		float filterJointAngleButterworth(float inputVal)
 		{
+			#define NJAZEROS 2
+			#define NJAPOLES 2
+			#define BUTWRTH_FILT_GAIN_ANG   2.761148367e+02
+
+			static float xvJA[NJAZEROS+1], yvJA[NJAPOLES+1];
+
 			xvJA[0] = xvJA[1];
 			xvJA[1] = xvJA[2];
-			xvJA[2] = inputVal / BUTWRTH_FILT_GAIN_ANG;
+			xvJA[2] = inputVal / ( (float)BUTWRTH_FILT_GAIN_ANG);
 			yvJA[0] = yvJA[1];
 			yvJA[1] = yvJA[2];
 			yvJA[2] = (xvJA[0] + xvJA[2]) + 2 * xvJA[1]
