@@ -61,6 +61,7 @@ float filterEncoderTorqueButterworth(float inputVal);
 float filterTorqueDerivativeButterworth(float inputVal);
 float filterJointAngleButterworth(float inputVal);
 float filterJointVelocityButterworth(float inputVal);
+float filterJointAngleOutputButterworth(float inputVal);
 
 float filterTorqueEncButterworth(float inputVal);
 

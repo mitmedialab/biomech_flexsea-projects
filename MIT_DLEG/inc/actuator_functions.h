@@ -57,6 +57,7 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque);
 
 float getFeedForwardTerm(float refTorque);
 float getReferenceLPF(float refTorque);
+float getNotchFilter(float refTorque);
 float getCompensatorCustomOutput(float refTorque, float sensedTorque);									// calculate compensator output value
 //float getCompensatorCustomOutput2(Act_s *actx, float tauMeas, float tauRef);									// calculate compensator output value
 float getDOB(float refTorque, float measTorque);

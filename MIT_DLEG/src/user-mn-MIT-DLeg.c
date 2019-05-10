@@ -303,8 +303,8 @@ void MITDLegFsm1(void)
 
 					act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
 
-					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
-//					setMotorTorque( &act1, act1.tauDes);
+//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+					setMotorTorque( &act1, act1.tauDes);
 
 				#else
 					setKneeAnkleFlatGroundFSM(&act1);

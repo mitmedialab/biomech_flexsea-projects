@@ -574,6 +574,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	float tauC = 0.0;
 	float tauCCombined = 0.0;
 	float N=0.0, Icalc=0.0;
+	static float DOB = 0.0;
 
 	//Saturation limit on Torque
 	if (tauDes > ABS_TORQUE_LIMIT_INIT) {
@@ -590,20 +591,23 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	// Feed Forward term
 	tauFF = getFeedForwardTerm(refTorque); 	//
 
-
 	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);
 
 	// Compensator
 	//PID around motor torque
-//	tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
-	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
-	tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
+	tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
 
-	tauCCombined = tauC + tauFF;
+	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
+//	tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
+
+	//Apply Notch filter after compensator
+//	tauC = getNotchFilter(tauC);
+
+	tauCCombined = tauC + tauFF + DOB;
 
 	// Disturbance Observer
-//	tauCCombined += getDOB(tauCCombined, actx->tauMeas);
+	DOB = getDOB(tauCCombined, actx->tauMeas); // send it back for next round
 
 	rigid1.mn.genVar[8] = (int16_t) (tauCCombined*100.0);
 
@@ -746,9 +750,14 @@ float getCompensatorCustomOutput(float refTorque, float sensedTorque)
 //			+ 0*u[k] + 0.00693283053802919*u[k-1] + -0.0138740703576578*u[k-2]
 //			+ 0.00694191849734771*u[k-3]; // LGQ_robust2, slow
 
-	y[k] = 0.497955331171937*y[k-1]
-			+ 71.8291748524559*u[k] + -71.2524739446287*u[k-1]; // Working decently,
+//	y[k] = .497955331171937*y[k-1]
+//			+ (71.8291748524559*u[k] + -71.2524739446287*u[k-1]); // Working decently, 05/08/19
 
+//	y[k] = 1.00729286908813*y[k-1] + 0.00729286908812694*y[k-2]
+//			+ 73.9965057760154*u[k] + -147.814491028553*u[k-1] + 73.8180420010814*u[k-2]; // rockets out of the way
+
+	y[k] = 1.0*y[k-1] +
+			+ 0.0*u[k] + 0.00121054729895155*u[k-1];
 
 
 //	rigid1.mn.genVar[7] = (int16_t) ( u[k] * 100.0);
@@ -767,7 +776,7 @@ float getCompensatorCustomOutput(float refTorque, float sensedTorque)
 
 	// Clamp and turn off integral term if it's causing a torque saturation
 
-	tauErrIntWindup = integralAntiWindup(u[k], tauC, tauCOutput);
+	tauErrIntWindup = integralAntiWindup( (u[k]), tauC, tauCOutput);
 	// If there is Integral Windup problem stop integrating error
 	if (tauErrIntWindup)
 	{
@@ -807,11 +816,28 @@ float getFeedForwardTerm(float refTorque)
 //	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
 //				+ 13.2619229729635*u[k] -26.4882821937814*u[k-1] + 13.2288095745257*u[k-2];
 
-	//fc = 10;
-	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-				+ 23.2083845430577*u[k] - 46.3543006813545*u[k-1] + 23.150436047501*u[k-2];
+//	//fc = 10;
+//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
+//				+ 23.2083845430577*u[k] - 46.3543006813545*u[k-1] + 23.150436047501*u[k-2];
+
+//	//fc = 20;
+//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
+//					+ 87.2661742636883*u[k] + -174.297460197009*u[k-1] + 87.04828130771*u[k-2];
+
+	//fc = 30; Workign well
+	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
+					+ 184.694944687829*u[k] + -368.892758757167*u[k-1] + 184.233784017135*u[k-2];
+
+//	//fc = 30; // updated plant
+//	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
+//					+ 184.697703835199*u[k] + -368.934240110452*u[k-1] + 184.236536275252*u[k-2];
+
+//	//fc = 30; //updated plant, no spring, no damping
+//	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
+//					+ 184.467062409284 *u[k] + -368.934124818568*u[k-1] + 184.467062409284*u[k-2];
 	return ( y[k] );
 }
+
 
 /*
  * LPF on reference due to Feedforward Term
@@ -834,12 +860,46 @@ float getReferenceLPF(float refTorque)
 	y[k-1] = y[k];
 
 
-	//fc = 10hz
-	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-			+ 0.0018543217247955*u[k-1] + 0.0018543217247955*u[k-2];
+//	//fc = 10hz
+//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
+//			+ 0.0018543217247955*u[k-1] + 0.0018543217247955*u[k-2];
+
+//	//fc = 20hz
+//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
+//			+ 0.0*u[k] + 0.00697246128771821*u[k-1] + 0.00697246128771821*u[k-2];
+
+	//fc = 30hz
+	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
+			+ 0.0*u[k] + 0.0147569016602231*u[k-1] + 0.0147569016602231*u[k-2];
 	return ( y[k] );
 }
 
+/*
+ * Feedforward Term based on system Identification and simulation
+ * Input is reference
+ * return:	torque command value to the motor driver
+ */
+float getNotchFilter(float refTorque)
+{
+	static float y[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = refTorque;			// [Nm]
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+	//fc = 30;
+	y[k] = 1.97219508852572*y[k-1] - 0.972388366801247*y[k-2]
+					+ 0.987369348311765*u[k] + -1.97206727426789*u[k-1] + 0.984891204231653*u[k-2];
+
+	return ( y[k] );
+}
 
 /*
  * DOB applies a LPF on reference and output term and combines them
@@ -871,11 +931,29 @@ float getDoBInv(float refTorque)
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
+	//fc = 8hz * PlantInverse
+	y[k] = 1.90195384658863*y[k-1] - 0.904357108638321*y[k-2]
+			+ 15.0394155073408*u[k] + -30.038350459323*u[k-1] + 15.0018639276053*u[k-2];
 
-	//fc = 10hz * PlantInverse
-	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-			+ 23.2083845430577*u[k] + -46.3543006813545*u[k-1] + 23.150436047501*u[k-2];
+//	//fc = 8hz * PlantInverse, with Plant faking no spring
+//	y[k] = 1.90195384658863*y[k-1] - 0.904357108638321*y[k-2]
+//			+ 15.0392939721932*u[k] + -30.0410366681093*u[k-1] + 15.0017426959161*u[k-2];
 
+//	//fc = 8hz * PlantInverse, with Plant faking no spring, no damp
+//	y[k] = 1.90195384658863*y[k-1] - 0.904357108638321*y[k-2]
+//			+ 15.0205136401454*u[k] + -30.0410272802908*u[k-1] + 15.0205136401454*u[k-2];
+
+////	//fc = 10hz * PlantInverse
+//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
+//			+ 23.2083845430577*u[k] + -46.3543006813545*u[k-1] + 23.150436047501*u[k-2];
+
+	//fc = 15hz * PlantInverse
+//	y[k] = 1.82011448135205*y[k-1] - 0.82820418130686*y[k-2]
+//			+ 50.6246744776461*u[k] + -101.113086017633*u[k-1] + 50.498270861807*u[k-2];
+
+//	//fc = 20hz * PlantInverse
+//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
+//			+ 87.2661742636883*u[k] + -174.297460197009*u[k-1] + 87.04828130771*u[k-2];
 
 	return ( y[k] );
 }
@@ -900,10 +978,22 @@ float getDobLpf(float refTorque)
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
+	//fc = 8hz
+	y[k] = 1.90195384658863*y[k-1] - 0.904357108638321*y[k-2]
+			+ 0.00120163102484574*u[k-1] + 0.00120163102484574*u[k-2];
 
-	//fc = 10hz
-	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-			+ 0.0018543217247955*u[k-1] + 0.0018543217247955*u[k-2];
+
+//	//fc = 10hz
+//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
+//			+ 0.0018543217247955*u[k-1] + 0.0018543217247955*u[k-2];
+
+	//fc = 20hz
+//	y[k] = 1.82011448135205*y[k-1] - 0.82820418130686*y[k-2]
+//			+ 0.0*u[k] + 0.00404484997740527*u[k-1] + 0.00404484997740527*u[k-2];
+
+//	//fc = 20hz
+//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
+//			+ 0.0*u[k] + 0.00697246128771821*u[k-1] + 0.00697246128771821*u[k-2];
 
 	return ( y[k] );
 }
@@ -999,7 +1089,8 @@ float biomCalcImpedance(Act_s *actx,float k1, float b, float thetaSet)
  */
 float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet)
 {
-	return k1 * (thetaSet - actx->jointAngleDegrees ) - b*actx->jointVelDegrees;
+	float thetaDelta = filterJointAngleOutputButterworth(thetaSet - actx->jointAngleDegrees);
+	return k1 * (thetaDelta ) - b*actx->jointVelDegrees;
 }
 
 //Used for testing purposes. See state_machine
