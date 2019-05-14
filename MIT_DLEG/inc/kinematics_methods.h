@@ -53,9 +53,6 @@ struct kinematics_s
     float meanAccelSumSqr;
     float accelSumSqr;
 
-    uint8_t updateOrientation;
-    uint8_t resetPosition;
-
     float aa_dot_aOmegaX_error;
     float aa_dot_aOmegaX_error_prev;
     float aa_dot_aOmegaX_error_prev_prev;

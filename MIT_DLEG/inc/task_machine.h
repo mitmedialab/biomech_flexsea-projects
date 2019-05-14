@@ -83,6 +83,7 @@ struct taskmachine_s
 
 
     float net_work_j;
+    float power_w;
     float max_power_w;
     float min_power_w;
     float stance_rom_rad;

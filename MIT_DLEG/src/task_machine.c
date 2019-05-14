@@ -106,27 +106,26 @@ static void update_ankle_dynamics(Act_s* actx)
     //
 	#if defined(NO_DEVICE)
     simulate_ankle_torque();
-    tm.tq = FILTA*tm.tq + FILTB*tqraw; //for debug with no actuator
-    tm.aa = FILTA*tm.aa + FILTB*aaraw;
+    tm.tq = tqraw; //for debug with no actuator
+    tm.aa = aaraw;
 	#else
-    tm.tq = FILTA*tm.tq + FILTB*actx->jointTorque;
-    tm.aa = FILTA*tm.aa + FILTB*actx->jointAngleDegrees;
+    tm.tq = actx->jointTorque;
+    tm.aa = actx->jointAngleDegrees;
 	#endif
 
-    tm.max_tq = MAX(tm.max_tq, tm.tq);
     tm.tq_dot = FILTA * tm.tq_dot + FILTB* (tm.tq - tm.tq_prev);
 
     float aa_diff = (tm.aa - tm.aa_prev)*RAD_PER_DEG;
     tm.aa_dot = FILTA*tm.aa_dot + FILTB*(aa_diff)*SAMPLE_RATE_HZ;
 
-    float power_w = aa_diff*tm.tq;
+    tm.power_w = FILTA*tm.power_w + FILTB*(aa_diff*tm.tq);
     if (!tm.in_swing){
-    	tm.net_work_j = tm.net_work_j + power_w;
-		if (tm.max_power_w < power_w){
-			tm.max_power_w = power_w;
+    	tm.net_work_j = tm.net_work_j + tm.power_w;
+		if (tm.max_power_w < tm.power_w){
+			tm.max_power_w = tm.power_w;
 		}
-		if (tm.min_power_w > power_w){
-			tm.min_power_w = power_w;
+		if (tm.min_power_w > tm.power_w){
+			tm.min_power_w = tm.power_w;
 		}
 	}
     if (tm.gait_event_trigger == GAIT_EVENT_FOOT_ON){

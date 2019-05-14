@@ -18,11 +18,11 @@
 #define GYRO_RPS_PER_LSB RAD_PER_DEG / GYRO_LSB_PER_DPS
 #define MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING 1.0
 #define MIN_ACCEL_QUIET_SAMPLES_FOR_RESCALING 1000
+#define PAZ_MAX 1.0
 
 //Foot static constants
-#define MIN_TQ_FOR_FOOT_STATIC 5.0
-#define AA_DOT_AOMEGAX_ERROR_THRESH_HIGH 0.4
-#define AA_DOT_AOMEGAX_ERROR_THRESH_LOW 0.2
+#define AA_DOT_AOMEGAX_ERROR_THRESH_HIGH 0.1
+#define AA_DOT_AOMEGAX_ERROR_THRESH_LOW 0.01
 #define LOW_AA_DOT_AOMEGAX_ERROR_COUNT_THRESH 50
 
 static struct kinematics_s kin;
@@ -31,7 +31,7 @@ static float ANKLE_TO_IMU_SAGITTAL_PLANE_M;
 
 static void update_ankle_translations(){
 	
-	if (fabs(kin.pAz) < 1.0){
+	if (fabs(kin.pAz) < PAZ_MAX){
 		float aOmegaXSquared = kin.aOmegaX*kin.aOmegaX;
 		float SaAy = kin.aAccY - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Y_M - SAMPLE_RATE_HZ*kin.daOmegaX*ANKLE_POS_IMU_FRAME_Z_M;
 		float SaAz = -1.0*kin.aAccZ - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Z_M + SAMPLE_RATE_HZ*kin.daOmegaX*ANKLE_POS_IMU_FRAME_Y_M;
@@ -53,33 +53,20 @@ static void update_ankle_translations(){
 
 }
 
+static void reset_position_and_velocity(){
+	kin.vAy = 0.0f;
+	kin.vAz = 0.0f;
+	kin.pAy = 0.0f;
+	kin.pAz = 0.0f;
+}
+
 static void reset_kinematics(struct taskmachine_s* tm){
-	kin.aa_dot_aOmegaX_error_prev_prev = kin.aa_dot_aOmegaX_error;
-	kin.aa_dot_aOmegaX_error_prev = kin.aa_dot_aOmegaX_error;
-	kin.aa_dot_aOmegaX_error = FILTA *kin.aa_dot_aOmegaX_error + FILTB*(tm->aa_dot - kin.aOmegaX);
+	float aa_dot_minus_aOmegaX = tm->aa_dot - kin.aOmegaX;
+	kin.aa_dot_aOmegaX_error = FILTA *kin.aa_dot_aOmegaX_error + FILTB*aa_dot_minus_aOmegaX*aa_dot_minus_aOmegaX;
 
-	if (!tm->in_swing && tm->low_torque_counter == 0){
-		float abserr = fabs(kin.aa_dot_aOmegaX_error);
-		float abserrprev = fabs(kin.aa_dot_aOmegaX_error_prev);
-		float abserrprev2 = fabs(kin.aa_dot_aOmegaX_error_prev_prev);
-		float abstq = fabs(tm->tq);
-		if (abserr < abserrprev &&
-		  abserr < AA_DOT_AOMEGAX_ERROR_THRESH_HIGH && abstq > MIN_TQ_FOR_FOOT_STATIC){
-			kin.updateOrientation = 1;
-		}
-		if (tm->tq > tm->tq_prev){
-			if (abserr > abserrprev && abserrprev < abserrprev2 &&
-					((abserr >= 0 && abserrprev >= 0 && abserrprev2 >= 0) ||
-					(abserr < 0 && abserrprev < 0 && abserrprev2 < 0)) ){
-				kin.resetPosition = 1;
-			}
-
-			if (kin.low_aa_dot_aOmegaX_error_counter > LOW_AA_DOT_AOMEGAX_ERROR_COUNT_THRESH){
-				kin.resetPosition = 2;
-			}
-		}
-
-		if (kin.updateOrientation){
+	if (!tm->in_swing){
+		float fabserr = fabs(kin.aa_dot_aOmegaX_error);
+		if (fabserr < AA_DOT_AOMEGAX_ERROR_THRESH_LOW){
 			float zAccWithCentripetalAccCompensation = (kin.aAccZ - kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
 			float yAccWithTangentialAccCompensation = (kin.aAccY + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
 			float accNormReciprocal	= 1.0/sqrtf(yAccWithTangentialAccCompensation*yAccWithTangentialAccCompensation + zAccWithCentripetalAccCompensation*zAccWithCentripetalAccCompensation);
@@ -88,31 +75,21 @@ static void reset_kinematics(struct taskmachine_s* tm){
 			kin.rot1 = FILTA*kin.rot1 + FILTB*costheta;
 			kin.rot3 = FILTA*kin.rot3 - FILTB*sintheta;
 		}
-		if (kin.resetPosition){
-			kin.vAy = 0.0f;
-			kin.vAz = 0.0f;
-			kin.pAy = 0.0f;
-			kin.pAz = 0.0f;
+		if (fabserr < AA_DOT_AOMEGAX_ERROR_THRESH_HIGH){
+			reset_position_and_velocity();
 			kin.iaOmegaX = 0.0f;
 			kin.iaAccY = 0.0f;
 			kin.iaAccZ = 0.0f;
 			kin.latest_foot_static_samples = tm->elapsed_samples;
-		}
-
-		if (abserr < AA_DOT_AOMEGAX_ERROR_THRESH_LOW){
 			kin.low_aa_dot_aOmegaX_error_counter = kin.low_aa_dot_aOmegaX_error_counter + 1;
 		}
-
-		if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
-			kin.low_aa_dot_aOmegaX_error_counter = 0;
-			kin.vAy = 0.0f;
-			kin.vAz = 0.0f;
-			kin.pAy = 0.0f;
-			kin.pAz = 0.0f;
-			kin.latest_foot_static_samples = tm->elapsed_samples;
-		}
-
 	}
+	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
+		kin.low_aa_dot_aOmegaX_error_counter = 0;
+		reset_position_and_velocity();
+		kin.latest_foot_static_samples = tm->elapsed_samples;
+	}
+
 }
 
 
@@ -161,7 +138,7 @@ static void update_integrals_and_derivatives(){
 	kin.iaAccZ = kin.iaAccZ + kin.aAccZ;
 	kin.daAccZ = FILTA*kin.daAccZ + FILTB*(kin.aAccZ - kin.aAccZprev);
 	kin.iaOmegaX = kin.iaOmegaX - kin.aOmegaX;
-	kin.daOmegaX = FILTA*kin.daOmegaX + FILTB*(kin.aOmegaX - kin.aOmegaXprev);
+	kin.daOmegaX = kin.aOmegaX - kin.aOmegaXprev;
 }
 
 
@@ -170,26 +147,17 @@ static void update_rotation_matrix(){
 
 	kin.rot1 = kin.rot1 - kin.rot3*kin.aOmegaX * SAMPLE_PERIOD;
 	kin.rot3 = kin.rot3 + rotprev1*kin.aOmegaX * SAMPLE_PERIOD;
-
-//	float rotnormReciprocal = 1.0/sqrtf(kin.rot1*kin.rot1 + kin.rot3*kin.rot3);
-//	kin.rot1 = kin.rot1*rotnormReciprocal;
-//	kin.rot3 = kin.rot3*rotnormReciprocal;
 }
 
 void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm){
-
-	kin.updateOrientation = 0;
-	kin.resetPosition = 0;
 
 	update_acc(mn);
 	update_omega(mn);
 	correct_gyro_bias();
 	correct_accel_scaling();
-
 	update_integrals_and_derivatives();
 	update_rotation_matrix();
 	update_ankle_translations();
-
 	reset_kinematics(tm);
 
 }
@@ -233,9 +201,6 @@ void init_kinematics(){
     kin.accelQuietSamples = 0;
     kin.meanAccelSumSqr = 0.0;
     kin.accelSumSqr = 0.0;
-
-    kin.updateOrientation = 0;
-    kin.resetPosition = 0;
 
     kin.aa_dot_aOmegaX_error = 0.0;
     kin.aa_dot_aOmegaX_error_prev = 0.0;
