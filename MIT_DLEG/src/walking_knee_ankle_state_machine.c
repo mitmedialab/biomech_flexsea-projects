@@ -63,7 +63,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
     static int8_t passedStanceThresh = 0;
 
     ankleGainsMst = ankleGainsEst;
-    ankleGainsEsw = ankleGainsLsw;
+    ankleGainsLsw = ankleGainsEsw;
 
     kneeAnkleStateMachine.onEntrySlaveSmState = kneeAnkleStateMachine.slaveCurrentState; // save the state on entry, assigned to last_currentState on exit
 
@@ -199,13 +199,14 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				ankleWalkParams.virtualHardstopTq = 0.0;
 
 				// initialize cubic spline params once
-//				initializeCubicSplineParams(&cubicSpline, actx, ankleGainsEsw, splineTime); // last parameter is res_factor (delta X - time)
+				initializeCubicSplineParams(&cubicSpline, actx, ankleGainsEsw, splineTime); // last parameter is res_factor (delta X - time)
 			}
 
 			#ifdef IS_ANKLE
 				// Cubic Spline NOT WORKING; UNTESTED
-//				calcCubicSpline(&cubicSpline);
+				calcCubicSpline(&cubicSpline);
 //				ankleGainsEsw.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
+				rigid1.mn.genVar[9] = (int16_t) (getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, cubicSpline.Y)*100.0); //new thetaDes after cubic spline
 
 				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
 
