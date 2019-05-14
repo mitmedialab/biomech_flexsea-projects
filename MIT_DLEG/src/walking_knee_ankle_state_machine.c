@@ -21,11 +21,11 @@ CubicSpline cubicSpline;
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-GainParams ankleGainsEst = {1.5, 0.0, 0.1, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsMst = {1.5, 0.0, 0.10, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsLst = {4.0, 0.0, 0.03, 14.0};
-GainParams ankleGainsEsw = {1.5, 0.0, 0.1, -10.0};
-GainParams ankleGainsLsw = {1.5, 0.0,  0.1, -10.0};
+GainParams ankleGainsEst = {1.5, 0.0, 0.01, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsMst = {1.5, 0.0, 0.01, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsLst = {4.0, 0.0, 0.01, 14.0};
+GainParams ankleGainsEsw = {1.5, 0.0, 0.01, -8.0};
+GainParams ankleGainsLsw = {1.5, 0.0,  0.01, -8.0};
 GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
 float splineTime = 100.0;
@@ -182,7 +182,8 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 				//Late Stance Power transition vectors
 					//todo: Should there be a way to jump back into early_stance in the event of running?
-				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && timeInState > LST_TO_ESW_DELAY && (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -1.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
+				if (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH && timeInState > LST_TO_ESW_DELAY ) //&& (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -1.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
+				{
 					kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;
 				}
 			#elif defined(IS_KNEE)

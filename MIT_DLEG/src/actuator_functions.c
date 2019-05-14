@@ -589,7 +589,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->tauMeas = actx->jointTorque;
 
 	// Feed Forward term
-	tauFF = getFeedForwardTerm(refTorque); 	//
+//	tauFF = getFeedForwardTerm(refTorque); 	//
 
 	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);
@@ -607,9 +607,9 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	tauCCombined = tauC + tauFF + DOB;
 
 	// Disturbance Observer
-	DOB = getDOB(tauCCombined, actx->tauMeas); // send it back for next round
+//	DOB = getDOB(tauCCombined, actx->tauMeas); // send it back for next round
 
-	rigid1.mn.genVar[8] = (int16_t) (tauCCombined*100.0);
+//	rigid1.mn.genVar[8] = (int16_t) (tauCCombined*100.0);
 
 	// motor current signal
 	N = actx->linkageMomentArm * N_SCREW;	// gear ratio
