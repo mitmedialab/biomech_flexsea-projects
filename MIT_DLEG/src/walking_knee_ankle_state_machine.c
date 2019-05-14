@@ -206,7 +206,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				// Cubic Spline NOT WORKING; UNTESTED
 				calcCubicSpline(&cubicSpline);
 //				ankleGainsEsw.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
-				rigid1.mn.genVar[9] = (int16_t) (getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, cubicSpline.Y)*100.0); //new thetaDes after cubic spline
+//				rigid1.mn.genVar[9] = (int16_t) (getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, cubicSpline.Y)*100.0); //new thetaDes after cubic spline
 
 				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
 
