@@ -276,8 +276,8 @@ void MITDLegFsm1(void)
 
 //					tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 					// Try running impedance update slower than torque controller.
-//					if ( fmod(controlTime,5) == 0 )
-//					{
+					if ( fmod(controlTime,10) == 0 )
+					{
 						if (fabs(inputTorq) > 0)
 						{
 							tor = inputTorq;
@@ -288,7 +288,7 @@ void MITDLegFsm1(void)
 							tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 							act1.tauDes = tor;
 						}
-//					}
+					}
 
 
 					setMotorTorque( &act1, act1.tauDes);
