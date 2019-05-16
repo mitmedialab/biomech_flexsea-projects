@@ -343,13 +343,13 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->aa_dot_aOmegaX_error*SCALE_FACTOR_10000);
 			break;
 	    case GUI_MODE_KINEMATICS: //9
-			rigid1.mn.genVar[3] = (int16_t) (get_task_machine()->tq_dot*1000.0);
-			rigid1.mn.genVar[4] = (int16_t) (get_task_machine()->aa_dot*100.0);
-			rigid1.mn.genVar[5] = (int16_t) (get_kinematics()->aOmegaX*100.0);
-			rigid1.mn.genVar[6] = (int16_t) (get_kinematics()->foot_flat);
-			rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->aa_dot_aOmegaX_error*100.0);
-			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->aAccY*100.0);
-			rigid1.mn.genVar[9] = (int16_t) (get_kinematics()->aAccZ*100.0);
+			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->foot_flat);
+			rigid1.mn.genVar[4] = (int16_t) (get_kinematics()->ground_slope_est*570.0);
+			rigid1.mn.genVar[5] = (int16_t) (get_kinematics()->pAy*100.0);
+			rigid1.mn.genVar[6] = (int16_t) (get_kinematics()->pAz*100.0);
+			rigid1.mn.genVar[7] = (int16_t) (get_statistics()->k_est);
+			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->accNormSq*100.0);
+			rigid1.mn.genVar[9] = (int16_t) (get_task_machine()->in_swing);
 			break;
 	    case GUI_MODE_BACK_ESTIMATION: //16
 			rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
@@ -510,7 +510,7 @@ void MITDLegFsm1(void)
 
     // Send genVars values to the GUI
     updateGenVars(get_task_machine());
-    updateUserWrites(get_task_machine());
+
 
     //begin main FSM
 	switch(fsm1State)
@@ -623,7 +623,7 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				
+				updateUserWrites(get_task_machine());
 
 
 				//DEBUG removed this because joint encoder can't update in locked state.

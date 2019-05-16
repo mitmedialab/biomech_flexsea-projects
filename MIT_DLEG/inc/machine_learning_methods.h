@@ -14,7 +14,7 @@
 #include <float.h>
 
 void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin);
-void update_statistics_demux(struct taskmachine_s* tm);
+void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin);
 void update_learner_demux();
 void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* kin);
 void init_learning_structs();
