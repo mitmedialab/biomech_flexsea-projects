@@ -11,6 +11,6 @@
 #include "walking_knee_ankle_state_machine.h"
 #include "actuator_functions.h"
 
-void runMainUserApplication(Act_s *actx){
-
+void runMainUserApplication(struct rigid_s* rigid, Act_s *actx){
+	task_machine_demux(rigid, actx);
 }

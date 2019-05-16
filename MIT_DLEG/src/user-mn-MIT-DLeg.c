@@ -44,6 +44,10 @@
 #include "ui.h"
 
 
+#define SCALE_FACTOR_1000 1000.0
+#define SCALE_FACTOR_10000 10000.0
+#define SCALE_FACTOR_ONE 1.0
+
 //****************************************************************************
 // Variable(s)
 //****************************************************************************
@@ -107,9 +111,364 @@ extern float errorKi;
 
 extern int16_t splineTime;
 
+static int gui_mode = GUI_MODE_NOM_CONTROL_PARAMS;
+static int gui_mode_prev = GUI_MODE_NOM_CONTROL_PARAMS;
+
 //****************************************************************************
 // Macro(s)
 //****************************************************************************
+
+static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
+
+	user_data_1.w[0] = gui_mode;
+
+	switch (gui_mode){		
+	    case GUI_MODE_FL_CONTROL_PARAMS:
+	    case GUI_MODE_UR_CONTROL_PARAMS:
+	    case GUI_MODE_DR_CONTROL_PARAMS:
+	    case GUI_MODE_US_CONTROL_PARAMS:
+	    case GUI_MODE_DS_CONTROL_PARAMS:
+	    case GUI_MODE_FL_CONTROL_METRICS:
+		case GUI_MODE_UR_CONTROL_METRICS:
+		case GUI_MODE_DR_CONTROL_METRICS:
+		case GUI_MODE_US_CONTROL_METRICS:
+		case GUI_MODE_DS_CONTROL_METRICS:
+
+	    	tm->control_mode = gui_mode % 5;
+	    	user_data_1.w[1] = (int32_t)(get_control_params()->adaptive.hard_stop_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	user_data_1.w[2] = (int32_t)(get_control_params()->adaptive.hard_stop_k_Nm_p_rad[tm->control_mode]);
+	    	user_data_1.w[3] = (int32_t)(get_control_params()->adaptive.lsw_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	user_data_1.w[4] = (int32_t)(get_control_params()->adaptive.est_k_Nm_p_rad[tm->control_mode]);
+	    	user_data_1.w[5] = (int32_t)(get_control_params()->adaptive.est_b_Nm_p_rps[tm->control_mode]);
+	    	user_data_1.w[6] = (int32_t)(get_control_params()->adaptive.lst_k_Nm_p_rad[tm->control_mode]);
+	    	user_data_1.w[7] = (int32_t)(get_control_params()->adaptive.lst_b_Nm_p_rps[tm->control_mode]);
+	    	user_data_1.w[8] = (int32_t)(get_control_params()->adaptive.lst_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(get_control_params()->adaptive.est_lst_min_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(get_control_params()->adaptive.lst_engagement_tq_Nm[tm->control_mode]);
+
+	    break;
+		case GUI_MODE_NOM_CONTROL_PARAMS:
+		case GUI_MODE_NOM_CONTROL_METRICS:
+			tm->control_mode = MODE_NOMINAL;
+			user_data_1.w[3] = (int32_t)(get_control_params()->nominal.theta_rad*SCALE_FACTOR_10000);
+			user_data_1.w[4] = (int32_t)(get_control_params()->nominal.k_Nm_p_rad);
+			user_data_1.w[5] = (int32_t)(get_control_params()->nominal.b_Nm_p_rps);
+		break;
+		case GUI_MODE_SW_CONTROL:
+			tm->control_mode = MODE_POSITION;
+			user_data_1.w[1] = (int32_t)(get_control_params()->active.esw_theta_rad*SCALE_FACTOR_10000);
+			user_data_1.w[2] = (int32_t)(get_control_params()->active.sw_k_Nm_p_rad);
+			user_data_1.w[3] = (int32_t)(get_control_params()->active.sw_b_Nm_p_rps);
+			user_data_1.w[4] = (int32_t)(get_minimum_jerk_values()->enabled);
+		break;
+		case GUI_MODE_FEATURES:
+		case GUI_MODE_ADAPTIVE_CONTROL:
+		case GUI_MODE_GAIT_EVENTS:
+		case GUI_MODE_KINEMATICS:
+	    case GUI_MODE_LEARNING:
+	    case GUI_MODE_BACK_ESTIMATION:
+	    	user_data_1.w[1] = tm->control_mode;
+	    break;
+	}
+		
+}
+
+static void initializeUserWrites(struct taskmachine_s* tm){
+
+	user_data_1.w[0] = gui_mode;
+
+	switch (gui_mode){		
+	    case GUI_MODE_FL_CONTROL_PARAMS:
+	    case GUI_MODE_FL_CONTROL_METRICS:
+	    	tm->control_mode = MODE_FLAT;
+	    	user_data_1.w[1] = (int32_t)(DEFAULT_FLAT_HS_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[2] = (int32_t)(DEFAULT_FLAT_HS_K_NM_P_RAD);
+	    	user_data_1.w[3] = (int32_t)(DEFAULT_FLAT_LSW_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[4] = (int32_t)(DEFAULT_FLAT_EST_K_NM_P_RAD);
+	    	user_data_1.w[5] = (int32_t)(DEFAULT_FLAT_EST_B_NM_P_RPS);
+	    	user_data_1.w[6] = (int32_t)(DEFAULT_FLAT_LST_K_NM_P_RAD);
+	    	user_data_1.w[7] = (int32_t)(DEFAULT_FLAT_LST_B_NM_P_RPS);
+	    	user_data_1.w[8] = (int32_t)(DEFAULT_FLAT_LST_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_FLAT_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_FLAT_LST_ENGAGEMENT_TQ_NM);
+	    	break;
+	    case GUI_MODE_UR_CONTROL_PARAMS:
+		case GUI_MODE_UR_CONTROL_METRICS:
+	    	tm->control_mode = MODE_URAMP;
+	    	user_data_1.w[1] = (int32_t)(DEFAULT_URAMP_HS_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[2] = (int32_t)(DEFAULT_URAMP_HS_K_NM_P_RAD);
+	    	user_data_1.w[3] = (int32_t)(DEFAULT_URAMP_LSW_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[4] = (int32_t)(DEFAULT_URAMP_EST_K_NM_P_RAD);
+	    	user_data_1.w[5] = (int32_t)(DEFAULT_URAMP_EST_B_NM_P_RPS);
+	    	user_data_1.w[6] = (int32_t)(DEFAULT_URAMP_LST_K_NM_P_RAD);
+	    	user_data_1.w[7] = (int32_t)(DEFAULT_URAMP_LST_B_NM_P_RPS);
+	    	user_data_1.w[8] = (int32_t)(DEFAULT_URAMP_LST_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_URAMP_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_URAMP_LST_ENGAGEMENT_TQ_NM);
+	    	break;
+	    case GUI_MODE_DR_CONTROL_PARAMS:
+		case GUI_MODE_DR_CONTROL_METRICS:
+	    	tm->control_mode = MODE_DRAMP;
+	    	user_data_1.w[1] = (int32_t)(DEFAULT_DRAMP_HS_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[2] = (int32_t)(DEFAULT_DRAMP_HS_K_NM_P_RAD);
+	    	user_data_1.w[3] = (int32_t)(DEFAULT_DRAMP_LSW_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[4] = (int32_t)(DEFAULT_DRAMP_EST_K_NM_P_RAD);
+	    	user_data_1.w[5] = (int32_t)(DEFAULT_DRAMP_EST_B_NM_P_RPS);
+	    	user_data_1.w[6] = (int32_t)(DEFAULT_DRAMP_LST_K_NM_P_RAD);
+	    	user_data_1.w[7] = (int32_t)(DEFAULT_DRAMP_LST_B_NM_P_RPS);
+	    	user_data_1.w[8] = (int32_t)(DEFAULT_DRAMP_LST_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_DRAMP_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_DRAMP_LST_ENGAGEMENT_TQ_NM);
+	    	break;
+	    case GUI_MODE_US_CONTROL_PARAMS:
+		case GUI_MODE_US_CONTROL_METRICS:
+	    	tm->control_mode = MODE_USTAIRS;
+	    	user_data_1.w[1] = (int32_t)(DEFAULT_USTAIRS_HS_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[2] = (int32_t)(DEFAULT_USTAIRS_HS_K_NM_P_RAD);
+	    	user_data_1.w[3] = (int32_t)(DEFAULT_USTAIRS_LSW_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[4] = (int32_t)(DEFAULT_USTAIRS_EST_K_NM_P_RAD);
+	    	user_data_1.w[5] = (int32_t)(DEFAULT_USTAIRS_EST_B_NM_P_RPS);
+	    	user_data_1.w[6] = (int32_t)(DEFAULT_USTAIRS_LST_K_NM_P_RAD);
+	    	user_data_1.w[7] = (int32_t)(DEFAULT_USTAIRS_LST_B_NM_P_RPS);
+	    	user_data_1.w[8] = (int32_t)(DEFAULT_USTAIRS_LST_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_USTAIRS_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_USTAIRS_LST_ENGAGEMENT_TQ_NM);
+	    	break;
+	    case GUI_MODE_DS_CONTROL_PARAMS:
+		case GUI_MODE_DS_CONTROL_METRICS:
+	    	tm->control_mode = MODE_DSTAIRS;
+	    	user_data_1.w[1] = (int32_t)(DEFAULT_DSTAIRS_HS_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[2] = (int32_t)(DEFAULT_DSTAIRS_HS_K_NM_P_RAD);
+	    	user_data_1.w[3] = (int32_t)(DEFAULT_DSTAIRS_LSW_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[4] = (int32_t)(DEFAULT_DSTAIRS_EST_K_NM_P_RAD);
+	    	user_data_1.w[5] = (int32_t)(DEFAULT_DSTAIRS_EST_B_NM_P_RPS);
+	    	user_data_1.w[6] = (int32_t)(DEFAULT_DSTAIRS_LST_K_NM_P_RAD);
+	    	user_data_1.w[7] = (int32_t)(DEFAULT_DSTAIRS_LST_B_NM_P_RPS);
+	    	user_data_1.w[8] = (int32_t)(DEFAULT_DSTAIRS_LST_THETA_RAD*SCALE_FACTOR_10000);
+	    	//user_data_1.w[9] = (int32_t)(DEFAULT_DSTAIRS_EST_LST_MIN_THETA_RAD*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] = (int32_t)(DEFAULT_DSTAIRS_LST_ENGAGEMENT_TQ_NM);
+		break;
+
+		case GUI_MODE_NOM_CONTROL_PARAMS:
+			tm->control_mode = MODE_NOMINAL;
+			user_data_1.w[3] = (int32_t)(DEFAULT_NOMINAL_THETA_RAD*SCALE_FACTOR_10000);
+			user_data_1.w[4] = (int32_t)(DEFAULT_NOMINAL_K_NM_P_RAD);
+			user_data_1.w[5] = (int32_t)(DEFAULT_NOMINAL_B_NM_P_RPS);
+		break;
+		case GUI_MODE_SW_CONTROL:
+			tm->control_mode = MODE_POSITION;
+			user_data_1.w[1] = (int32_t)(DEFAULT_ESW_THETA_RAD*SCALE_FACTOR_10000);
+			user_data_1.w[2] = (int32_t)(DEFAULT_SW_K_NM_P_RAD);
+			user_data_1.w[3] = (int32_t)(DEFAULT_SW_B_NM_P_RPS);
+			user_data_1.w[4] = 1;
+		break;
+		case GUI_MODE_FEATURES:
+		case GUI_MODE_ADAPTIVE_CONTROL:
+		case GUI_MODE_GAIT_EVENTS:
+		case GUI_MODE_KINEMATICS:
+	    case GUI_MODE_LEARNING:
+	    case GUI_MODE_BACK_ESTIMATION:
+	    	user_data_1.w[1] = tm->control_mode;
+	    break;
+	}
+		
+}
+
+
+static void updateGenVars(struct taskmachine_s* tm){
+
+
+	int16_t guimode_state_inswing = 1000 + gui_mode*100 + get_walking_state()*10 + tm->in_swing;
+	rigid1.mn.genVar[0] = guimode_state_inswing;
+	rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*10.0);
+	rigid1.mn.genVar[2] = (int16_t) (act1.jointAngle*10000.0);
+
+	switch (gui_mode){
+		
+	    case GUI_MODE_FL_CONTROL_PARAMS://0
+	    case GUI_MODE_UR_CONTROL_PARAMS: //1
+	    case GUI_MODE_DR_CONTROL_PARAMS: //2
+	    case GUI_MODE_US_CONTROL_PARAMS: //3
+	    case GUI_MODE_DS_CONTROL_PARAMS: //4
+	    	rigid1.mn.genVar[1] = (int16_t)(get_control_params()->adaptive.hard_stop_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	rigid1.mn.genVar[2] = (int16_t)(get_control_params()->adaptive.hard_stop_k_Nm_p_rad[tm->control_mode]);
+	    	rigid1.mn.genVar[3] = (int16_t)(get_control_params()->adaptive.lsw_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	rigid1.mn.genVar[4] = (int16_t)(get_control_params()->adaptive.est_k_Nm_p_rad[tm->control_mode]);
+	    	rigid1.mn.genVar[5] = (int16_t)(get_control_params()->adaptive.est_b_Nm_p_rps[tm->control_mode]);
+	    	rigid1.mn.genVar[6] = (int16_t)(get_control_params()->adaptive.lst_k_Nm_p_rad[tm->control_mode]);
+	    	rigid1.mn.genVar[7] = (int16_t)(get_control_params()->adaptive.lst_b_Nm_p_rps[tm->control_mode]);
+	    	rigid1.mn.genVar[8] = (int16_t)(get_control_params()->adaptive.lst_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	//rigid1.mn.genVar[9] = (int16_t)(get_control_params()->adaptive.est_lst_min_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
+	    	rigid1.mn.genVar[9] = (int16_t)(get_control_params()->adaptive.lst_engagement_tq_Nm[tm->control_mode]);
+
+		break;
+	    case GUI_MODE_NOM_CONTROL_PARAMS: //5
+	    	rigid1.mn.genVar[3] = (int16_t)(get_control_params()->nominal.theta_rad*SCALE_FACTOR_10000);
+	    	rigid1.mn.genVar[4] = (int16_t)(get_control_params()->nominal.k_Nm_p_rad);
+	    	rigid1.mn.genVar[5] = (int16_t)(get_control_params()->nominal.b_Nm_p_rps);
+	    	rigid1.mn.genVar[6] = (int16_t)(act1.jointVel*10000.0);
+	    	break;
+	    case GUI_MODE_FL_CONTROL_METRICS: //10
+		case GUI_MODE_UR_CONTROL_METRICS: //11
+		case GUI_MODE_DR_CONTROL_METRICS: //12
+		case GUI_MODE_US_CONTROL_METRICS: //13
+		case GUI_MODE_DS_CONTROL_METRICS: //14
+		case GUI_MODE_NOM_CONTROL_METRICS: //15
+		 	rigid1.mn.genVar[3] = (int16_t) (tm->net_work_j*100.0);
+			rigid1.mn.genVar[4] = (int16_t) (tm->peak_power_w*10.0);
+//			rigid1.mn.genVar[5] = (int16_t) (tm->min_power_w*10.0);
+			rigid1.mn.genVar[6] = (int16_t) (tm->tq*10.0);
+			rigid1.mn.genVar[7] = (int16_t) (tm->aa*RAD_PER_DEG*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[8] = (int16_t) (0);
+			rigid1.mn.genVar[9] = (int16_t) (0);
+		break;
+		case GUI_MODE_SW_CONTROL: //6
+			rigid1.mn.genVar[3] = (int16_t) (get_control_params()->active.esw_theta_rad*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[4] = (int16_t) (get_control_params()->active.sw_k_Nm_p_rad);
+			rigid1.mn.genVar[5] = (int16_t) (get_control_params()->active.sw_b_Nm_p_rps);
+			rigid1.mn.genVar[6] = (int16_t) (act1.jointVel*SCALE_FACTOR_1000);
+			rigid1.mn.genVar[7] = (int16_t) (tm->aa*RAD_PER_DEG * SCALE_FACTOR_10000);
+			rigid1.mn.genVar[8] = (int16_t) (tm->aa_dot * SCALE_FACTOR_1000);
+			rigid1.mn.genVar[9] = (int16_t) (get_minimum_jerk_values()->enabled);
+		break;
+		case GUI_MODE_ADAPTIVE_CONTROL: //7
+			rigid1.mn.genVar[3] = (int16_t) (get_predictor()->k_pred);
+		break;
+		case GUI_MODE_GAIT_EVENTS: //8
+			rigid1.mn.genVar[3] = (int16_t) (tm->elapsed_samples);
+			rigid1.mn.genVar[4] = (int16_t) (get_kinematics()->latest_foot_static_samples);
+			rigid1.mn.genVar[5] = (int16_t) (tm->latest_foot_off_samples);
+			rigid1.mn.genVar[6] = (int16_t) (tm->aa_dot*SCALE_FACTOR_1000);
+			rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->aOmegaX*SCALE_FACTOR_1000);
+			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->aa_dot_aOmegaX_error*SCALE_FACTOR_10000);
+			break;
+	    case GUI_MODE_KINEMATICS: //9
+			rigid1.mn.genVar[3] = (int16_t) (get_task_machine()->tq_dot*1000.0);
+			rigid1.mn.genVar[4] = (int16_t) (get_task_machine()->aa_dot*100.0);
+			rigid1.mn.genVar[5] = (int16_t) (get_kinematics()->aOmegaX*100.0);
+			rigid1.mn.genVar[6] = (int16_t) (get_kinematics()->foot_flat);
+			rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->aa_dot_aOmegaX_error*100.0);
+			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->aAccY*100.0);
+			rigid1.mn.genVar[9] = (int16_t) (get_kinematics()->aAccZ*100.0);
+			break;
+	    case GUI_MODE_BACK_ESTIMATION: //16
+			rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
+			rigid1.mn.genVar[4] = (int16_t) (get_task_machine()->in_swing*1.0);
+			rigid1.mn.genVar[5] = (int16_t) (get_back_estimator()->min_stance_theta*10.0);
+			rigid1.mn.genVar[6] = (int16_t) (get_back_estimator()->curr_stride_paz_thresh_status);
+			break;
+	    case GUI_MODE_LEARNING: //17
+			rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
+			rigid1.mn.genVar[4] = (int16_t) (get_predictor()->A[0]*get_predictor()->A[73]*get_predictor()->A[146]*get_predictor()->A[219]*get_predictor()->A[292]*get_predictor()->B[0]);
+			rigid1.mn.genVar[5] = (int16_t) (get_statistics()->pop_k[0]);
+			rigid1.mn.genVar[6] = (int16_t) (get_statistics()->pop_k[1]);
+			rigid1.mn.genVar[7] = (int16_t) (get_statistics()->pop_k[2]);
+			rigid1.mn.genVar[8] = (int16_t) (get_statistics()->pop_k[3]);
+			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->pop_k[4]);
+	   			break;
+	    case GUI_MODE_FEATURES: //18
+			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->latest_foot_static_samples);
+			rigid1.mn.genVar[4] = (int16_t) (tm->latest_foot_off_samples);
+			rigid1.mn.genVar[5] = (int16_t) (tm->do_learning_for_curr_stride);
+			rigid1.mn.genVar[6] = (int16_t) (get_curr_features()->max[0]);
+			rigid1.mn.genVar[7] = (int16_t) (get_curr_features()->min[1]);
+			rigid1.mn.genVar[8] = (int16_t) (get_curr_features()->rng[2]);
+			rigid1.mn.genVar[9] = (int16_t) (get_curr_features()->fin[3]);
+			break;
+	    case GUI_MODE_SAFETY: //19
+	    {
+	    	int8_t* safetyConditions = getSafetyConditions();
+	    	int16_t safety0to2 = safetyConditions[0]*100 + safetyConditions[1]*10+safetyConditions[2];
+	    	int16_t safety3to5 = safetyConditions[3]*100 + safetyConditions[4]*10+safetyConditions[5];
+	    	int16_t safety6to8 = safetyConditions[6]*100 + safetyConditions[7]*10+safetyConditions[8];
+	    	int16_t safety9to11 = safetyConditions[9]*100 + safetyConditions[10]*10+safetyConditions[11];
+	    	int16_t safety12to14 = safetyConditions[12]*100 + safetyConditions[13]*10+safetyConditions[14];
+	    	rigid1.mn.genVar[3] = (int16_t) (getMotorMode());
+			rigid1.mn.genVar[4] = safety0to2;
+			rigid1.mn.genVar[5] = safety3to5;
+			rigid1.mn.genVar[6] = safety6to8;
+			rigid1.mn.genVar[7] = safety9to11;
+			rigid1.mn.genVar[8] = safety12to14;
+			rigid1.mn.genVar[9] = (int16_t) (actuatorIsCorrect());
+	    }
+	    	break;
+
+
+
+	}
+}
+
+/*
+ * Updates the Input values based off of user data
+ * Param: actx(Act_s) - Actuator structure to track sensor values
+ * Param: wParams(WalkParams) -
+ */
+static void updateUserWrites(struct taskmachine_s* tm){
+
+	gui_mode = user_data_1.w[0];
+	if (gui_mode_prev != gui_mode){
+		syncUserWritesWithCurrentParameterValues(tm);
+	}
+	gui_mode_prev = gui_mode;
+	
+	switch (gui_mode){
+		
+	    case GUI_MODE_FL_CONTROL_PARAMS:
+	    case GUI_MODE_UR_CONTROL_PARAMS:
+	    case GUI_MODE_DR_CONTROL_PARAMS:
+	    case GUI_MODE_US_CONTROL_PARAMS:
+	    case GUI_MODE_DS_CONTROL_PARAMS:
+	    case GUI_MODE_FL_CONTROL_METRICS:
+		case GUI_MODE_UR_CONTROL_METRICS:
+		case GUI_MODE_DR_CONTROL_METRICS:
+		case GUI_MODE_US_CONTROL_METRICS:
+		case GUI_MODE_DS_CONTROL_METRICS:
+	    	tm->control_mode = gui_mode % 5;
+	    	tm->do_update_learner = 0;
+			set_hard_stop_theta_rad((float) user_data_1.w[1]/SCALE_FACTOR_10000, tm->control_mode);
+			set_hard_stop_k_Nm_p_rad((float) user_data_1.w[2], tm->control_mode);
+			set_lsw_theta_rad(((float) user_data_1.w[3])/SCALE_FACTOR_10000, tm->control_mode);
+			set_est_k_Nm_p_rad(((float) user_data_1.w[4]), tm->control_mode);
+			set_est_b_Nm_p_rps((float) user_data_1.w[5], tm->control_mode);
+			set_lst_k_Nm_p_rad((float) user_data_1.w[6], tm->control_mode);
+			set_lst_b_Nm_p_rps((float) user_data_1.w[7], tm->control_mode);
+			set_lst_theta_rad((float) user_data_1.w[8]/SCALE_FACTOR_10000, tm->control_mode);
+			//set_est_lst_min_theta_rad((float) user_data_1.w[9]/SCALE_FACTOR_10000, tm->control_mode);
+			set_lst_engagement_tq_Nm((float) user_data_1.w[9], tm->control_mode);
+		break;
+		case GUI_MODE_NOM_CONTROL_PARAMS:
+		case GUI_MODE_NOM_CONTROL_METRICS:
+			tm->control_mode = MODE_NOMINAL;
+			tm->do_update_learner = 0;
+			set_nominal_theta_rad((float) user_data_1.w[3]  /SCALE_FACTOR_10000);
+			set_nominal_k_Nm_p_rad((float) user_data_1.w[4] );
+			set_nominal_b_Nm_p_rps((float) user_data_1.w[5]);
+		break;
+		case GUI_MODE_SW_CONTROL:
+			tm->do_update_learner = 0;
+			set_esw_theta_rad((float) user_data_1.w[1]/SCALE_FACTOR_10000);
+			set_sw_k_Nm_p_rad((float) user_data_1.w[2]);
+			set_sw_b_Nm_p_rps((float) user_data_1.w[3]);
+			enable_minimum_jerk((uint8_t) user_data_1.w[4]);
+			
+		break;
+		case GUI_MODE_FEATURES:
+		case GUI_MODE_ADAPTIVE_CONTROL: //Consider enabling learning here? Needs to be tested first.
+		case GUI_MODE_GAIT_EVENTS:
+		case GUI_MODE_KINEMATICS:
+		case GUI_MODE_BACK_ESTIMATION:
+			tm->do_update_learner = 0;
+			tm->control_mode = user_data_1.w[1];
+	    break;
+	    case GUI_MODE_LEARNING:
+	    	tm->do_update_learner = 1;
+	    	tm->control_mode = user_data_1.w[1];
+	    break;
+
+	}
+	
+	
+}
 
 #define FINDPOLES_DONE (calibrationFlags == 0) && (calibrationNew == 0)
 //****************************************************************************
@@ -150,7 +509,8 @@ void MITDLegFsm1(void)
     fsmTime++;
 
     // Send genVars values to the GUI
-    updateGenVarOutputs(&act1);
+    updateGenVars(get_task_machine());
+    updateUserWrites(get_task_machine());
 
     //begin main FSM
 	switch(fsm1State)
@@ -250,7 +610,7 @@ void MITDLegFsm1(void)
 			//Set userwrites to initial values
 			ankleWalkParams.initializedStateMachineVariables = 0;
 			if (!ankleWalkParams.initializedStateMachineVariables){
-				initializeUserWrites(&act1, &ankleWalkParams);
+				initializeUserWrites(get_task_machine());
 				ankleWalkParams.initializedStateMachineVariables = 1;
 				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
 			}
@@ -263,7 +623,7 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				updateUserWrites(&act1, &ankleWalkParams);
+				
 
 
 				//DEBUG removed this because joint encoder can't update in locked state.
@@ -307,8 +667,7 @@ void MITDLegFsm1(void)
 					setMotorTorque( &act1, act1.tauDes);
 
 				#else
-					setKneeAnkleFlatGroundFSM(&act1);
-					setMotorTorque( &act1, act1.tauDes);
+					runMainUserApplication(&rigid1, &act1);
 
 				#endif
 
@@ -373,189 +732,6 @@ void MITDLegFsm2(void)
 	}
 
 	#endif	//ACTIVE_PROJECT == PROJECT_MIT_DLEG
-}
-
-//****************************************************************************
-// Private Function(s)
-//****************************************************************************
-
-/*
- * genVars are output to the GUI. These can be used to send out values, they are global variables but it's good to keep track
- * of them all in one place, hence his function. It's also annoying to flip up and down the code, so now they're located near
- * the userwrites as well (input from the GUI)
- * Note: to get device ID use //getDeviceIdIncrementing()
- */
-void updateGenVarOutputs(Act_s *actx)
-{
-	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
-	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
-	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*100.);			// radians/s
-	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
-	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(rigid1.ex.strain);
-	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_volt);	// mA
-	  rigid1.mn.genVar[7] = (int16_t) (*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-	  rigid1.mn.genVar[8] = (int16_t) (*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
-#ifdef IS_KNEE
-//	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
-#else
-	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
-#endif
-}
-
-/*UserWrites are inputs from Plan. They are initailized to teh values shown below.
- * Their values are then used by udpateUserWrites to set function values.
- * These can be updated as necessary.
- * Do keep care to initialize and upate correctly.
- * Also note, the initial values will not show up in Plan, that must be manually entered
- */
-
-/*
- * Updates the Input values based off of user data
- * Param: actx(Act_s) - Actuator structure to track sensor values
- * Param: wParams(WalkParams) -
- */
-void updateUserWrites(Act_s *actx, WalkParams *wParams){
-  
-	#ifdef IS_ANKLE
-		ankleGainsEsw.thetaDes					= ( (float) user_data_1.w[0] ) /100.0;	// [milliseconds]
-		wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
-		wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
-		wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
-		wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
-		ankleGainsEst.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
-		ankleGainsEst.b		 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
-		ankleGainsLst.thetaDes 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
-		ankleGainsEsw.k1			 			= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
-		ankleGainsEsw.b	 						= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
-	#elif defined(IS_KNEE)
-
-		kneeGainsEst.k1			 				= ( (float) user_data_1.w[0] ) / 100.0;	// [Nm/deg]
-		kneeGainsEst.b			 				= ( (float) user_data_1.w[1] ) / 100.0;	// [Nm/s]
-		kneeGainsEst.thetaDes			 		= ( (float) user_data_1.w[2] ) / 100.0;	// [Nm/deg]
-
-		kneeGainsLst.k1							= ( (float) user_data_1.w[3] ) / 100.0;	// [Nm/deg]
-		kneeGainsLst.b		 					= ( (float) user_data_1.w[4] ) / 100.0;	// [Deg]
-		kneeGainsLst.thetaDes 					= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/s]
-
-		kneeGainsEsw.k1							= ( (float) user_data_1.w[6] ) / 100.0;	// [Nm/deg]
-		kneeGainsEsw.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
-		kneeGainsEsw.thetaDes 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/s]
-
-		//user_data_1.w[9] in use!
-
-		// These are generally redundant
-		kneeGainsMst.k1 = kneeGainsEst.k1;
-		kneeGainsMst.b 	= kneeGainsEst.b;
-		kneeGainsMst.thetaDes = kneeGainsEst.thetaDes;
-
-		kneeGainsLsw.k1	= kneeGainsEsw.k1;
-		kneeGainsLsw.b	= kneeGainsEsw.b;
-		kneeGainsLsw.thetaDes	= kneeGainsEsw.thetaDes;
-
-	#elif defined(IS_ACTUATOR_TESTING)
-		inputTheta								= ( (float) user_data_1.w[0] ) /100.0;
-		inputK									= ( (float) user_data_1.w[1] ) /100.0;
-		inputB									= ( (float) user_data_1.w[2] ) /100.0;
-		torqueKp								= ( (float) user_data_1.w[3] ) /1000.0;
-		torqueKi								= ( (float) user_data_1.w[4] ) /1000.0;
-		torqueKd								= ( (float) user_data_1.w[5] ) /1000.0;
-		inputTorq								= ( (float) user_data_1.w[6] ) /100.0;
-		errorKi									= ( (float) user_data_1.w[7] ) /1000.0;
-	#elif defined(IS_SWEEP_TEST)
-		begin									= ( (int8_t) user_data_1.w[0] ) ;
-		freq									= ( (float) user_data_1.w[1] ) /100.0;
-		amplitude								= ( (float) user_data_1.w[2] ) /100.0;
-		dcBias									= ( (float) user_data_1.w[3] ) /100.0;
-		noiseAmp								= ( (float) user_data_1.w[4] ) /100.0;
-
-	#elif defined(IS_SWEEP_CHIRP_TEST)
-		begin									= ( (int16_t) user_data_1.w[0] ) ;
-		freq									= ( (float) user_data_1.w[1] ) /100.0;
-		freqFinal								= ( (float) user_data_1.w[2] ) /100.0;
-		freqSweepTime							= ( (float) user_data_1.w[3] ) ; //milli seconds
-		chirpType								= ( (int16_t) user_data_1.w[4] ) ; // 0:def, 1:lin, 2:exp
-		amplitude								= ( (float) user_data_1.w[5] ) /100.0;
-		dcBias									= ( (float) user_data_1.w[6] ) /100.0;
-		noiseAmp								= ( (float) user_data_1.w[7] ) /100.0;
-	#endif
-
-}
-
-/*
- * Initializes the Input values
- * Param: actx(Act_s) - Actuator structure to track sensor values
- * Param: wParams(WalkParams) -
- */
-void initializeUserWrites(Act_s *actx, WalkParams *wParams){
-#ifdef IS_ANKLE
-
-	wParams->earlyStanceK0 = 6.23; //2.0
-	wParams->earlyStanceKF = 0.1;
-	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
-
-	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
-	wParams->virtualHardstopK				= 7.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
-	wParams->lspEngagementTorque 			= 60.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
-	wParams->lstPGDelTics 					= 10.0;	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
-//	ankleGainsMst.k1						= 4.0;	//user_data_1.w[5] = 400 [Nm/deg]
-//	ankleGainsLst.thetaDes 					= 14;	//user_data_1.w[6] = 1800 [Deg]
-//	ankleGainsMst.b		 					= 0.20;	//user_data_1.w[7] = 30   [Nm/s]
-//	ankleGainsEst.k1			 			= 1.50;	//user_data_1.w[8] = 150  [Nm/deg]
-//	ankleGainsEst.thetaDes			 		= -15.0;	//user_data_1.w[9] = 32  [Nm/s]
-
-	//USER WRITE INITIALIZATION GOES HERE//////////////
-	user_data_1.w[0] =  (int32_t) ( ankleGainsEsw.thetaDes * 100);
-	user_data_1.w[1] =  (int32_t) ( wParams->virtualHardstopEngagementAngle*100 ); 	// Hardstop Engagement angle
-	user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK*100 ); 				// Hardstop spring constant
-	user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque*100 ); 			// Late stance power, torque threshhold
-	user_data_1.w[4] =  (int32_t) ( wParams->lstPGDelTics ); 		// ramping rate to rampup pushoff power (effectively a delay)
-	user_data_1.w[5] =  (int32_t) ( ankleGainsEst.k1 * 100 );		// 4.5 x 100
-	user_data_1.w[6] =  (int32_t) ( ankleGainsEst.b * 100 ); // 14 x 100
-	user_data_1.w[7] =  (int32_t) ( ankleGainsLst.thetaDes * 100 ); 		// 0.1 x 100
-	user_data_1.w[8] =  (int32_t) ( ankleGainsEsw.k1 * 100 ); 			// 0.1 x 100
-	user_data_1.w[9] =  (int32_t) ( ankleGainsEsw.b * 100 ); 			// 0.1 x 100
-
-	///////////////////////////////////////////////////
-
-#elif defined(IS_KNEE)
-	//USER WRITE INITIALIZATION GOES HERE//////////////
-
-	user_data_1.w[0] =  (int32_t) ( kneeGainsEst.k1*100 );
-	user_data_1.w[1] =  (int32_t) ( kneeGainsEst.b*100 );
-	user_data_1.w[2] =  (int32_t) ( kneeGainsEst.thetaDes*100 );
-
-	user_data_1.w[3] =  (int32_t) ( kneeGainsLst.k1*100 );
-	user_data_1.w[4] =  (int32_t) ( kneeGainsLst.b*100 );
-	user_data_1.w[5] =  (int32_t) ( kneeGainsLst.thetaDes * 100 );
-
-	user_data_1.w[6] =  (int32_t) ( kneeGainsEsw.k1 * 100 );
-	user_data_1.w[7] =  (int32_t) ( kneeGainsEsw.b * 100 );
-	user_data_1.w[8] =  (int32_t) ( kneeGainsEsw.thetaDes* 100 );
-
-
-	///////////////////////////////////////////////////
-#elif defined(IS_ACTUATOR_TESTING)
-	inputTheta								= 0.0;
-	inputK									= 0.0;
-	inputB									= 0.0;
-	torqueKp								= TORQ_KP_INIT;
-	torqueKi								= TORQ_KI_INIT;
-	torqueKd								= TORQ_KD_INIT;
-	inputTorq								= 0.0;
-	errorKi									= 0.0;
-#elif defined(IS_SWEEP_TEST)
-	freq									= 0.0;
-	amplitude								= 0.0;
-	dcBias									= 0.0;
-	noiseAmp								= 0.0;
-
-#endif
-
-
-
-
-	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
 }
 
 

@@ -11,12 +11,12 @@
 #include "flexsea_system.h"
 #include "flexsea.h"
 #include "spline_functions.h"
+#include "task_machine.h"
 #include "main.h"
 #include <math.h>
 
 
-
-void run_main_user_application(Act_s *actx);
+void run_main_user_application(struct rigid_s* rigid, Act_s *actx);
 
 #endif
 

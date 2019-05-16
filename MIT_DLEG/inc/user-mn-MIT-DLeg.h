@@ -65,23 +65,32 @@ void MITDLegFsm1(void);
 void MITDLegFsm2(void);
 
 //****************************************************************************
-// Private Function Prototype(s):
-//****************************************************************************
-
-
-//Main FSMs
-
-
-//User writes/reads
-void updateUserWrites(Act_s *actx, WalkParams *wParams);
-void initializeUserWrites(Act_s *actx, WalkParams *wParams);
-void updateGenVarOutputs(Act_s *actx);
-
-//****************************************************************************
 // Definition(s):
 //****************************************************************************
 
 
+enum Gui_Modes {
+    GUI_MODE_FL_CONTROL_PARAMS = 0,
+    GUI_MODE_UR_CONTROL_PARAMS = 1,
+    GUI_MODE_DR_CONTROL_PARAMS = 2,
+    GUI_MODE_US_CONTROL_PARAMS = 3,
+    GUI_MODE_DS_CONTROL_PARAMS = 4,
+    GUI_MODE_NOM_CONTROL_PARAMS = 5,
+    GUI_MODE_SW_CONTROL = 6,
+    GUI_MODE_ADAPTIVE_CONTROL = 7,
+    GUI_MODE_GAIT_EVENTS = 8,
+    GUI_MODE_KINEMATICS = 9,
+	GUI_MODE_FL_CONTROL_METRICS = 10,
+	GUI_MODE_UR_CONTROL_METRICS = 11,
+	GUI_MODE_DR_CONTROL_METRICS = 12,
+	GUI_MODE_US_CONTROL_METRICS = 13,
+	GUI_MODE_DS_CONTROL_METRICS = 14,
+	GUI_MODE_NOM_CONTROL_METRICS = 15,
+    GUI_MODE_BACK_ESTIMATION = 16,
+	GUI_MODE_LEARNING = 17,
+    GUI_MODE_FEATURES = 18,
+	GUI_MODE_SAFETY = 19,
+};
 
 
 
