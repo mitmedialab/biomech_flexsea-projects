@@ -246,6 +246,8 @@ void MITDLegFsm1(void)
 //			initSGVelFilt();
 
 			mitInitCurrentController();		//initialize Current Controller with gains
+//			mitInitPositionController();	// try initialize position controller
+
 
 			//Set userwrites to initial values
 			ankleWalkParams.initializedStateMachineVariables = 0;
@@ -293,6 +295,8 @@ void MITDLegFsm1(void)
 
 					setMotorTorque( &act1, act1.tauDes);
 
+//					setMotorTorqueSEA( &act1, act1.tauDes);
+
 				#elif defined(IS_SWEEP_TEST)
 					float omega = 2*freq * 2 * M_PI;
 					float thetaLocal = torqueSystemIDFrequencySweep( omega, fsmTime, amplitude, dcBias, noiseAmp, begin);
@@ -301,7 +305,13 @@ void MITDLegFsm1(void)
 					setMotorTorque( &act1, act1.tauDes);
 				#elif defined(IS_SWEEP_CHIRP_TEST)
 
-					act1.tauDes = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
+					tor = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
+
+					// only update the control command every n cycles, to allow controller settling.
+					if ( fmod(controlTime,10) == 0 )
+					{
+						act1.tauDes = tor;
+					}
 
 //					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
 					setMotorTorque( &act1, act1.tauDes);
@@ -399,7 +409,7 @@ void updateGenVarOutputs(Act_s *actx)
 #ifdef IS_KNEE
 //	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
-	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
+//	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
 #endif
 }
 

@@ -350,8 +350,10 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 float getMotorPositionSEA(struct act_s *actx, float refForce)
 {
 	float thetaMotor = 0.0;
+	thetaMotor = MOTOR_DIRECTION * MOTOR_TICK_PER_METER * (refForce/SPRING_K_E + (actx->c - actx->c0)/1000.0 ) + actx->motorPos0;
 
-	thetaMotor = MOTOR_DIRECTION * MOTOR_TICK_PER_MILLIMETER *( SPRING_D_MM	* sinf( refForce * SPRING_D/SPRING_K) + (actx->c - actx->c0) ) + ( (float)actx->motorPos0);
+	//original
+//	thetaMotor = MOTOR_DIRECTION * MOTOR_TICK_PER_MILLIMETER *( SPRING_D_MM	* sinf( refForce * SPRING_D/SPRING_K) + (actx->c - actx->c0) ) + ( (float)actx->motorPos0);
 	return thetaMotor;
 }
 
@@ -590,12 +592,12 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	// Feed Forward term
 //	tauFF = getFeedForwardTerm(refTorque); 	//
-
-	// LPF Reference term to compensate for FF delay
+//
+//	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);
 
 	// Compensator
-	//PID around motor torque
+	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
 
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
@@ -642,6 +644,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 /*
  * set motor torque using position control
+ * DO NOT USE, FLEXSEA POSITION CONTROLLER IS CRAZY!
  */
 void setMotorTorqueSEA(struct act_s *actx, float tauDes)
 {
@@ -659,30 +662,32 @@ void setMotorTorqueSEA(struct act_s *actx, float tauDes)
 
 	// Feed Forward term
 //	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
-	float tauFF =0.0;
+	float tauFF = 0.0;
 
 	// LPF Reference term to compensate for FF delay
+	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio, at the motor
+
 	refTorque = getReferenceLPF(refTorque);
 
 	// Compensator
 	//PID around motor torque
 	float tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
-	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
-//	float tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
 
 	float tauCCombined = tauC + tauFF;
 
-	//Calc Desired Force
-	float refForce = tauCCombined / actx->linkageMomentArm;
+	float motorTheta = getMotorPositionSEA(actx, tauCCombined/actx->linkageMomentArm);
 
-	float motorTheta = getMotorPositionSEA(actx, refForce);
-
-	// set motor position
+	float motorTor = SPRING_K_E/N_SCREW * (MOTOR_DIRECTION * MOTOR_METER_PER_TICK * ( motorTheta - actx->motorPos0) - (actx->c - actx->c0)/1000.0 );
 
 
-	// motor current signal
-	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio
+//	float motorTor = SPRING_K_E/N * actx->screwLengthDelta;
 
+	int32_t Icalc = (int32_t)  ( (1.0/(MOT_KT)) * motorTor * CURRENT_SCALAR_INIT );
+
+	rigid1.mn.genVar[9] = (int16_t) (Icalc );
+
+	// set motor position, DO NOT USE, IT'S CRAZY
+	setMotorCurrent( Icalc, DEVICE_CHANNEL);
 
 }
 
@@ -1128,8 +1133,18 @@ void mitInitOpenController(void) {
 	writeEx[DEVICE_CHANNEL].setpoint = 0;
 	setControlGains(0, 0, 0, 0, DEVICE_CHANNEL);
 
-
 }
+
+/*
+ *  Initialize Current controller on Execute, Set initial gains.
+ */
+void mitInitPositionController(void) {
+	act1.currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
+	setControlMode(CTRL_POSITION, DEVICE_CHANNEL);
+	writeEx[DEVICE_CHANNEL].setpoint = *rigid1.ex.enc_ang;			// wasn't included in setControlMode, could be safe for init
+	setControlGains(POS_CTRL_GAIN_KP, POS_CTRL_GAIN_KI, POS_CTRL_GAIN_KD, 0, DEVICE_CHANNEL);
+}
+
 
 /*
  *  Updates the static variables tim
