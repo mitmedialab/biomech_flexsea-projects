@@ -68,9 +68,11 @@ static void reset_integrals(){
 
 static void correct_orientation(){
 
-	float zAccWithCentripetalAccCompensation = (kin.aAccZ - kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
-	float yAccWithTangentialAccCompensation = (kin.aAccY - kin.daOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
-	float accNormReciprocal	= 1.0/sqrtf(yAccWithTangentialAccCompensation*yAccWithTangentialAccCompensation + zAccWithCentripetalAccCompensation*zAccWithCentripetalAccCompensation);
+//	float zAccWithCentripetalAccCompensation = kin.aAccZ;
+//	float yAccWithTangentialAccCompensation = kin.aAccY;
+	float zAccWithCentripetalAccCompensation = kin.aAccZ - (kin.aOmegaX*kin.aOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
+		float yAccWithTangentialAccCompensation = kin.aAccY - (kin.daOmegaX*ANKLE_TO_IMU_SAGITTAL_PLANE_M);
+	float accNormReciprocal	= 1.0/(sqrtf((yAccWithTangentialAccCompensation*yAccWithTangentialAccCompensation) + (zAccWithCentripetalAccCompensation*zAccWithCentripetalAccCompensation)));
 	float costheta = zAccWithCentripetalAccCompensation*accNormReciprocal;
 	float sintheta = yAccWithTangentialAccCompensation*accNormReciprocal;
 	kin.rot1 = 0.99*kin.rot1 + 0.01*costheta;
@@ -81,6 +83,7 @@ static void update_rotation_matrix(){
 	float rotprev1 = kin.rot1;
 	kin.rot1 = kin.rot1 - kin.rot3*kin.aOmegaX * SAMPLE_PERIOD_S;
 	kin.rot3 = kin.rot3 + rotprev1*kin.aOmegaX * SAMPLE_PERIOD_S;
+
 }
 
 
@@ -162,6 +165,8 @@ static void correct_accel_scaling(){
 }
 
 static void update_pose(struct taskmachine_s* tm){
+		//kin.pitch = asinf(kin.rot3);
+
 		float aa_dot_minus_aOmegaX = tm->aa_dot - kin.aOmegaX;
 
 		kin.aa_dot_aOmegaX_error = filter_second_order_butter_5hz(aa_dot_minus_aOmegaX*aa_dot_minus_aOmegaX,
@@ -211,7 +216,7 @@ void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm){
 
 void init_kinematics(){
 
-	ANKLE_TO_IMU_SAGITTAL_PLANE_M = sqrtf(ANKLE_POS_IMU_FRAME_Y_M*ANKLE_POS_IMU_FRAME_Y_M + ANKLE_POS_IMU_FRAME_Z_M*ANKLE_POS_IMU_FRAME_Z_M);
+	ANKLE_TO_IMU_SAGITTAL_PLANE_M = sqrtf((ANKLE_POS_IMU_FRAME_Y_M*ANKLE_POS_IMU_FRAME_Y_M) + (ANKLE_POS_IMU_FRAME_Z_M*ANKLE_POS_IMU_FRAME_Z_M));
 
 	kin.aOmegaX = 0.0;
     kin.aOmegaY = 0.0;

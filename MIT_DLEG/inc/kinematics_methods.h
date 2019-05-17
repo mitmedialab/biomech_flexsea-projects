@@ -37,6 +37,7 @@ struct kinematics_s
     float rot1;
     float rot3;
     float sinSqAttackAngle;
+    float pitch;
 
     float aOmegaXbias;
     float aOmegaYbias;
