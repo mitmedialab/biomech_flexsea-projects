@@ -2,6 +2,28 @@
 
 #include "task_machine.h"
 
+ //Gait event thresholds
+#define MIN_TQ_FOR_FOOT_ON 6.0
+#define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 30
+#define PREDICTION_CUTOFF_SAMPLES 250.0
+#define MAX_SWING_TQ_DOT_NM_P_S 20.0
+
+//Ideal controller values
+#define FL_IDEAL_NET_WORK_J_PER_KG 0.0244 //Sinitski 2012
+#define US_IDEAL_NET_WORK_J_PER_KG 0.386 //Sinitski 2012
+#define DS_IDEAL_NET_WORK_J_PER_KG -0.559 //Sinitski 2012
+#define UR_IDEAL_NET_WORK_J_PER_KG 0.390 //calculated from digitized McIntosh 2006 ankle power
+#define DR_IDEAL_NET_WORK_J_PER_KG -0.391 //calculated from digitized McIntosh 2006 ankle power
+#define FL_IDEAL_ROM_RAD 0.51 //Sinitski 2012
+#define US_IDEAL_ROM_RAD 0.74 //Sinitski 2012
+#define DS_IDEAL_ROM_RAD 1.06 //Sinitski 2012
+#define UR_IDEAL_ROM_RAD 0.642 //calculated from digitized McIntosh 2006 ankle angle
+#define DR_IDEAL_ROM_RAD 0.398 //calculated from digitized McIntosh 2006 ankle angle
+#define FL_IDEAL_FOOTSTRIKE_ANGLE_RAD 0.03 //Sinitski 2012
+#define US_IDEAL_FOOTSTRIKE_ANGLE_RAD 0.28 //Sinitski 2012
+#define DS_IDEAL_FOOTSTRIKE_ANGLE_RAD -0.51 //Sinitski 2012
+#define UR_IDEAL_FOOTSTRIKE_ANGLE_RAD 0.14 //calculated from digitized McIntosh 2006 ankle angle
+#define DR_IDEAL_FOOTSTRIKE_ANGLE_RAD 0.03 //calculated from digitized McIntosh 2006 ankle angle
 
 static struct taskmachine_s tm;
 static int task_machine_demux_state = INIT_TASK_MACHINE;
@@ -81,7 +103,7 @@ static void update_gait_events(){
     }
     else{
           if (fabs(tm.tq) < MIN_TQ_FOR_FOOT_ON &&
-          	fabs(tm.tq_dot) < MAX_SWING_TQ_DOT_NM_P_SAMPLE)
+          	fabs(tm.tq_dot) < MAX_SWING_TQ_DOT_NM_P_S)
             tm.low_torque_counter = tm.low_torque_counter + 1;
           else
             tm.low_torque_counter = 0;
@@ -124,7 +146,7 @@ static void update_ankle_dynamics(Act_s* actx)
     tm.aa = actx->jointAngle;
 	#endif
 
-    tm.tq_dot = filter_second_order_butter_20hz(tm.tq - tm.tq_prev, &tq_dot_outputs[0], &tq_dot_inputs[0]);
+    tm.tq_dot = filter_second_order_butter_20hz(SAMPLE_RATE_HZ*(tm.tq - tm.tq_prev), &tq_dot_outputs[0], &tq_dot_inputs[0]);
     tm.aa_dot = filter_second_order_butter_5hz(SAMPLE_RATE_HZ*(tm.aa - tm.aa_prev), &aa_dot_outputs[0], &aa_dot_inputs[0]);
 
     tm.power_w = tm.tq*tm.aa_dot;
