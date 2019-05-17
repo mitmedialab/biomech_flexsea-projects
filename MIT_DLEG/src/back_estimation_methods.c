@@ -1,13 +1,12 @@
 
 #include "back_estimation_methods.h"
 
- //Back estimation constants (copied from matlab pil)
 #define US_Z_THRESH_M  0.3
 #define DS_Z_THRESH_M  -0.08
-#define US_Z_MAX_SAMPLES  220
+#define US_Z_MAX_SAMPLES  300
 #define DS_Z_MAX_SAMPLES  550
-#define UR_SLOPE_THRESH_RAD  -0.16
-#define DR_SLOPE_THRESH_RAD  0.1
+#define UR_SLOPE_THRESH_RAD  0.16
+#define DR_SLOPE_THRESH_RAD  -0.07
 
 
 static struct back_estimator_s be;
@@ -20,11 +19,11 @@ void back_estimate(struct statistics_s* stats, struct kinematics_s* kin){
 
 	uint8_t passed_ur_slope_thresh = 0;
 	uint8_t passed_dr_slope_thresh = 0;
-	if (kin->ground_slope_est > DR_SLOPE_THRESH_RAD){
+	if (kin->ground_slope_est < DR_SLOPE_THRESH_RAD){
 	    passed_dr_slope_thresh = 1;
 	}
 	
-	if (kin->ground_slope_est < UR_SLOPE_THRESH_RAD){
+	if (kin->ground_slope_est > UR_SLOPE_THRESH_RAD){
 	    passed_ur_slope_thresh = 1;
 	}
 	

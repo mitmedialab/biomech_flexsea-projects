@@ -99,14 +99,14 @@ static void set_next_theta_for_minimum_jerk(Act_s* actx){
 }
 
 static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float scale_factor) {
-	actx->tauDes = scale_factor * (k * (des_theta - actx->jointAngle) - b * actx->jointVel );
+	actx->tauDes = scale_factor * (k * (des_theta - tm->aa) - b * tm->aa_dot );
 	setMotorTorque(actx, actx->tauDes);
 }
 
 static void set_joint_torque_with_hardstop(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float hs_theta, float hs_k, float scale_factor) {
-	actx->tauDes = scale_factor * (k * (des_theta - actx->jointAngle) - b * actx->jointVel );
-	if (actx->jointAngle < hs_theta){
-		actx->tauDes = actx->tauDes - hs_k*(actx->jointAngle - hs_theta);
+	actx->tauDes = scale_factor * (k * (des_theta - tm->aa) - b * tm->aa_dot  );
+	if (tm->aa < hs_theta){
+		actx->tauDes = actx->tauDes - hs_k*(tm->aa - hs_theta);
 	}
 	setMotorTorque(actx, actx->tauDes);
 }

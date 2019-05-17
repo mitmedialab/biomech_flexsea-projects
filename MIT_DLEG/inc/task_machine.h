@@ -10,13 +10,14 @@
 #include <math.h>
 #include <float.h>
 #include "terrain_state_machine.h"
+#include "filtering_methods.h"
 #include "state_variables.h"
 
  //Gait event thresholds
 #define MIN_TQ_FOR_FOOT_ON 6.0
-#define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 50
+#define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 30
 #define PREDICTION_CUTOFF_SAMPLES 250.0
-#define MAX_SWING_TQ_DOT_NM_P_SAMPLE 0.03
+#define MAX_SWING_TQ_DOT_NM_P_SAMPLE 0.02
 
  //Timing constants
 #define SAMPLE_RATE_HZ 1000.0
@@ -27,12 +28,6 @@
 #define FILTB 0.05
 #define FILTC 0.99999
 #define FILTD 0.00001
-#define BUTTER_ORDER 2
-#define BUTTER_ORDER_P1 BUTTER_ORDER+1
-#define BUTTER_ORDER_M1 BUTTER_ORDER-1
-#define BUTTER_ORDER_M2 BUTTER_ORDER-2
-
-
 
 //Other important values
 #define PI 3.14159
@@ -68,7 +63,6 @@ struct taskmachine_s
     float elapsed_samples;
     float latest_foot_off_samples;
     uint8_t in_swing;
-    uint8_t stride_classified;
     uint8_t do_learning_for_curr_stride;
     uint8_t do_learning_for_prev_stride;
 
@@ -83,6 +77,7 @@ struct taskmachine_s
     float aa_dot;
     float tq_prev;
     float aa_prev;
+    float mean_swing_tq_nm;
 
 
     float net_work_j;
@@ -141,6 +136,7 @@ enum Gait_Events {
 };
 
  enum Terrain_Classes {
+	 K_DEFAULT = -1,
      K_FLAT = 0,
  	K_URAMP = 1,
  	K_DRAMP = 2,

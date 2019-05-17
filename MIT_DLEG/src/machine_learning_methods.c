@@ -191,7 +191,7 @@ void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin)
       case STATS_READY_TO_UPDATE_STATISTICS: //constant flops
         if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
               stats.k_est_prev = stats.k_est;
-              stats.k_est = K_FLAT;
+              stats.k_est = K_DEFAULT;
                if (tm->do_learning_for_prev_stride){
                  stats.demux_state = STATS_BACK_ESTIMATE;
                }
@@ -327,8 +327,8 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
         return;
     }
 
-  if (tm->stride_classified || tm->gait_event_trigger == GAIT_EVENT_WINDOW_CLOSE)
-        return;
+//  if (tm->stride_classified || tm->gait_event_trigger == GAIT_EVENT_WINDOW_CLOSE)
+//        return;
 
     currfeats.max[ROT3] = MAX(currfeats.max[ROT3], kin->rot3);
     currfeats.max[AOMEGAX] = MAX(currfeats.max[AOMEGAX], kin->aOmegaX);

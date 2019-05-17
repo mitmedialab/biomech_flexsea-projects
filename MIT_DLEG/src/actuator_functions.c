@@ -108,10 +108,10 @@ static void getJointAngleKinematic(struct act_s *actx)
 
 	//VELOCITY
 //	actx->jointVel = 0.5*actx->jointVel + 0.5*( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
-	actx->jointVel = filterJointVelocityButterworth( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
+//	actx->jointVel = filterJointVelocityButterworth( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
 
 	//ACCEL  -- todo: check to see if this works
-	actx->jointAcc = 0.5 * actx->jointAcc + 0.5*( (actx->jointVel - lastJointVel ) * SECONDS);
+	//actx->jointAcc = 0.5 * actx->jointAcc + 0.5*( (actx->jointVel - lastJointVel ) * SECONDS);
 
 	// SAFETY CHECKS
 	//if we start over soft limits after findPoles(), only turn on motor after getting within limits
@@ -229,9 +229,10 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
     c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
     actx->c = c;
 
-    A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
+    A = ( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c);
 
-    projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm.
+    //projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm.
+    projLength = (MA_B * (sqrtf(1-A*A)));
 
     if (tareState == 1)
     {
@@ -251,7 +252,9 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
     actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
-//    filterTorqueEncButterworth
+    //actx->screwLengthDelta =  (MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*(  (float) ( *rigid1.ex.enc_ang - actx->motorPos0) )  - c-actx->c0)/2.761148367e+02;	// [mm]
+
+    //    filterTorqueEncButterworth
 //    filterJointAngleButterworth
     return projLength/1000.; // [m] output is in meters
 

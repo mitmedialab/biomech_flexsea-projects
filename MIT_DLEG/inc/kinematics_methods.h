@@ -6,6 +6,7 @@
 #include <math.h>
 #include "flexsea_user_structs.h"
 #include "task_machine.h"
+#include "filtering_methods.h"
 
 
 
@@ -52,6 +53,7 @@ struct kinematics_s
     int accelQuietSamples;
     float meanaccNormSq;
     float accNormSq;
+    float accNormSqRaw;
 
     float aa_dot_aOmegaX_error;
     float latest_foot_static_samples;
