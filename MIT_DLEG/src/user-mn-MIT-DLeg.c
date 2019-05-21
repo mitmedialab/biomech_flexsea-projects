@@ -317,7 +317,11 @@ void MITDLegFsm1(void)
 					setMotorTorque( &act1, act1.tauDes);
 
 				#else
-					setKneeAnkleFlatGroundFSM(&act1);
+					if ( fmod(controlTime,10) == 0 )
+					{
+						setKneeAnkleFlatGroundFSM(&act1);
+					}
+
 					setMotorTorque( &act1, act1.tauDes);
 
 				#endif
@@ -380,6 +384,8 @@ void MITDLegFsm2(void)
 			//if(writeEx[0].setGains == CHANGE){writeEx[0].setGains = KEEP;}
 			if(writeEx[1].setGains == CHANGE){writeEx[1].setGains = KEEP;}
 
+
+			 rigid1.mn.genVar[7] = (int16_t) 1;
 	}
 
 	#endif	//ACTIVE_PROJECT == PROJECT_MIT_DLEG
@@ -404,10 +410,10 @@ void updateGenVarOutputs(Act_s *actx)
 	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
 	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(rigid1.ex.strain);
 	  rigid1.mn.genVar[6] = (int16_t) (rigid1.ex.mot_volt);	// mA
-	  rigid1.mn.genVar[7] = (int16_t) (*rigid1.ex.enc_ang_vel);		// mV, //getDeviceIdIncrementing() ;
-	  rigid1.mn.genVar[8] = (int16_t) (*rigid1.ex.enc_ang); //(rigid2.ex.mot_current);			// mA
+//	  rigid1.mn.genVar[7] = (int16_t) (*rigid1.ex.enc_ang);		// mV, //getDeviceIdIncrementing() ;
+	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
-//	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
+	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else
 //	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
 #endif
@@ -455,13 +461,13 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		//user_data_1.w[9] in use!
 
 		// These are generally redundant
-		kneeGainsMst.k1 = kneeGainsEst.k1;
-		kneeGainsMst.b 	= kneeGainsEst.b;
-		kneeGainsMst.thetaDes = kneeGainsEst.thetaDes;
-
-		kneeGainsLsw.k1	= kneeGainsEsw.k1;
-		kneeGainsLsw.b	= kneeGainsEsw.b;
-		kneeGainsLsw.thetaDes	= kneeGainsEsw.thetaDes;
+//		kneeGainsMst.k1 = kneeGainsEst.k1;
+//		kneeGainsMst.b 	= kneeGainsEst.b;
+//		kneeGainsMst.thetaDes = kneeGainsEst.thetaDes;
+//
+//		kneeGainsLsw.k1	= kneeGainsEsw.k1;
+//		kneeGainsLsw.b	= kneeGainsEsw.b;
+//		kneeGainsLsw.thetaDes	= kneeGainsEsw.thetaDes;
 
 	#elif defined(IS_ACTUATOR_TESTING)
 		inputTheta								= ( (float) user_data_1.w[0] ) /100.0;
@@ -505,9 +511,9 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 	wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 
 	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
-	wParams->virtualHardstopK				= 7.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
-	wParams->lspEngagementTorque 			= 60.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
-	wParams->lstPGDelTics 					= 10.0;	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
+	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
+	wParams->lspEngagementTorque 			= 20.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
+	wParams->lstPGDelTics 					= 100.0;	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
 //	ankleGainsMst.k1						= 4.0;	//user_data_1.w[5] = 400 [Nm/deg]
 //	ankleGainsLst.thetaDes 					= 14;	//user_data_1.w[6] = 1800 [Deg]
 //	ankleGainsMst.b		 					= 0.20;	//user_data_1.w[7] = 30   [Nm/s]

@@ -14,7 +14,8 @@ extern "C" {
 //0. Update ./flexsea-projects/inc/User-mn.h to specify ACTIVE_SUBPROJECT
 
 //1. Select joint type
-//#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
+
+#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
 //#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this if using Knee, ankle is slave
 //#define IS_ACTUATOR_TESTING 		// Used when testing actuators, ie manually setting impedance values
 //#define IS_SWEEP_TEST
