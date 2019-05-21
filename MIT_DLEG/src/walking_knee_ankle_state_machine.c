@@ -21,21 +21,21 @@ CubicSpline cubicSpline;
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-GainParams ankleGainsEst = {1.5, 0.0, 0.01, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsMst = {1.5, 0.0, 0.01, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsLst = {4.0, 0.0, 0.01, 14.0};
-GainParams ankleGainsEsw = {1.0, 0.0, 0.015, -5.0};
-GainParams ankleGainsLsw = {1.0, 0.0,  0.015, -5.0};
+GainParams ankleGainsEst = {1.5, 0.0, 0.1, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsMst = {1.5, 0.0, 0.1, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsLst = {4.0, 0.0, 0.1, 14.0};
+GainParams ankleGainsEsw = {1.0, 0.0, 0.15, -5.0};
+GainParams ankleGainsLsw = {1.0, 0.0,  0.15, -5.0};
 GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
 float splineTime = 100.0;
 
 //Knee, Positive Knee Flexion
-GainParams kneeGainsEst = {2.5, 0.0, 0.02, 10.0};
-GainParams kneeGainsMst = {3.5, 0.0, 0.02, 10.0};
-GainParams kneeGainsLst = {2.5, 0.0, 0.02, 15.0};
-GainParams kneeGainsEsw = {1.5, 0.0, 0.02, 50.0};
-GainParams kneeGainsLsw = {1.5, 0.0, 0.02, 50.0};
+GainParams kneeGainsEst = {2.5, 0.0, 0.18, 18.0};
+GainParams kneeGainsMst = {2.5, 0.0, 0.18, 18.0};	// {2.5, 0.0, 0.1, 10.0};
+GainParams kneeGainsLst = {2.5, 0.0, 0.18, 18.0};	// {2.5, 0.0, 0.1, 15.0};
+GainParams kneeGainsEsw = {1.5, 0.0, 0.18, 18.0}; // GainParams kneeGainsEsw = {1.5, 0.0, 0.1, 50.0};
+GainParams kneeGainsLsw = {1.5, 0.0, 0.18, 18.0};
 
 
 
@@ -65,13 +65,18 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
     ankleGainsMst = ankleGainsEst;
     ankleGainsLsw = ankleGainsEsw;
 
+    kneeGainsMst = kneeGainsEst;
+    kneeGainsLsw = kneeGainsEsw;
+
     kneeAnkleStateMachine.onEntrySlaveSmState = kneeAnkleStateMachine.slaveCurrentState; // save the state on entry, assigned to last_currentState on exit
 
-    //TODO: See if this is reasonable, change state to slave state, unless in early swing. In that case only switch when local state decides to change
-//    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING)
-//    {
-//    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
-//    }
+	#ifdef IS_KNEE
+		//TODO: See if this is reasonable, change state to slave state, unless in early swing. In that case only switch when local state decides to change
+	    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING)
+	    {
+	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
+	    }
+	#endif
 
     kneeAnkleStateMachine.onEntrySmState = kneeAnkleStateMachine.currentState; // save the state on entry, assigned to last_currentState on exit
 
