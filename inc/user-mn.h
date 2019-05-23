@@ -82,7 +82,8 @@ void reset_user_code(void);
 //==========================================
 
 #define ACTIVE_PROJECT			PROJECT_MIT_DLEG
-#define ACTIVE_SUBPROJECT		SUBPROJECT_A
+#define ACTIVE_SUBPROJECT		SUBPROJECT_A		// If using Ankle alone, or for Knee with Ankle
+//#define ACTIVE_SUBPROJECT		SUBPROJECT_B		// User for Ankle when used with Knee
 
 //Step 2) Customize the enabled/disabled sub-modules:
 //===================================================

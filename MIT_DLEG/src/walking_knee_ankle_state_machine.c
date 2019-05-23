@@ -21,11 +21,11 @@ CubicSpline cubicSpline;
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-GainParams ankleGainsEst = {1.5, 0.0, 0.1, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsMst = {1.5, 0.0, 0.1, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsEst = {1.5, 0.0, 0.15, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsMst = {1.5, 0.0, 0.15, 0.0};	// may want to increase this damping, at least.
 GainParams ankleGainsLst = {4.0, 0.0, 0.1, 14.0};
 GainParams ankleGainsEsw = {1.0, 0.0, 0.15, -5.0};
-GainParams ankleGainsLsw = {1.0, 0.0,  0.15, -5.0};
+GainParams ankleGainsLsw = {1.0, 0.0, 0.15, -5.0};
 GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
 float splineTime = 100.0;
