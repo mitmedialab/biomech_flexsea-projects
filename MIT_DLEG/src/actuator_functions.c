@@ -1560,7 +1560,7 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
-//	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
+	actx->axialForceLC = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
 	actx->axialForce = getAxialForceEncoderCalc(actx);
 
 //	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
