@@ -105,6 +105,9 @@ extern float torqueKi;
 extern float torqueKd;
 extern float errorKi;
 
+extern float jointLimitK;
+extern float jointLimitB;
+
 extern int16_t splineTime;
 
 //****************************************************************************
@@ -226,8 +229,7 @@ void MITDLegFsm1(void)
 			zeroLoadCell = 1;	// forces getAxialForce() to zero the load cell again. this is kinda sketchy using a global variable.
 			isEnabledUpdateSensors = 1;
 
-//			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
-			if (fsmTime > 5000)
+			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
 			{
 				fsm1State = STATE_INIT_USER_WRITES;
 				fsmTime = 0;
@@ -443,6 +445,9 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		ankleGainsEsw.k1			 			= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
 		ankleGainsEsw.b	 						= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
 	#elif defined(IS_KNEE)
+
+//		jointLimitK			 				= ( (float) user_data_1.w[0] ) / 100.0;	// [Nm/deg]
+//		jointLimitB			 				= ( (float) user_data_1.w[1] ) / 100.0;	// [Nm/s]
 
 		kneeGainsEst.k1			 				= ( (float) user_data_1.w[0] ) / 100.0;	// [Nm/deg]
 		kneeGainsEst.b			 				= ( (float) user_data_1.w[1] ) / 100.0;	// [Nm/s]

@@ -570,13 +570,12 @@
 		/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
 		   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 2.0000000000e-02 0.0000000000e+00 -l */
 
-
+		#define NJVZEROS 2
+		#define NJVPOLES 2
+		#define BUTWRTH_FILT_GAIN_VEL   2.761148367e+02
 
 		float filterJointVelocityButterworth(float inputVal)
 		{
-			#define NJVZEROS 2
-			#define NJVPOLES 2
-			#define BUTWRTH_FILT_GAIN_VEL   2.761148367e+02
 
 			static float xvJV[NJVZEROS+1], yvJV[NJVPOLES+1];
 
@@ -593,9 +592,6 @@
 
 		float filterJointAngleOutputButterworth(float inputVal)
 		{
-			#define NJVZEROS 2
-			#define NJVPOLES 2
-			#define BUTWRTH_FILT_GAIN_VEL   2.761148367e+02
 
 			static float xvJV[NJVZEROS+1], yvJV[NJVPOLES+1];
 
@@ -609,6 +605,23 @@
 			return yvJV[2];
 
 		}
+
+		float filterJointAngleLimitOutputButterworth(float inputVal)
+		{
+
+			static float xvJV[NJVZEROS+1], yvJV[NJVPOLES+1];
+
+			xvJV[0] = xvJV[1];
+			xvJV[1] = xvJV[2];
+			xvJV[2] = inputVal / BUTWRTH_FILT_GAIN_VEL;
+			yvJV[0] = yvJV[1];
+			yvJV[1] = yvJV[2];
+			yvJV[2] = (xvJV[0] + xvJV[2]) + 2 * xvJV[1]
+					 + ( -0.8371816513 * yvJV[0]) + (  1.8226949252 * yvJV[1]);
+			return yvJV[2];
+
+		}
+
 	#endif //end 20Hz
 
 	#ifdef SOFT_FILTER_DERIVATIVE_IIR_15HZ

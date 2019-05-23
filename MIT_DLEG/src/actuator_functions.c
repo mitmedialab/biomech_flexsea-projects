@@ -47,6 +47,9 @@ float torqueKi = TORQ_KI_INIT;
 float torqueKd = TORQ_KD_INIT;
 float errorKi = 0.0;
 
+//Work on Joint Angle Limits
+float jointLimitK = JOINT_SOFT_K;
+float jointLimitB = JOINT_SOFT_B;
 
 //motor param terms
 float motJ = MOT_J;
@@ -521,19 +524,26 @@ bool integralAntiWindup(float tauErr, float tauCTotal, float tauCOutput) {
 float actuateAngleLimits(Act_s *actx){
 	static float bumperTorq=0.0;
 	float tauK = 0; float tauB = 0;
+	float thetaDelta =0;
 
 	// apply unidirectional spring
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
 
-		float thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
-		tauK = JOINT_SOFT_K * (thetaDelta);
+		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+//		tauK = JOINT_SOFT_K * (thetaDelta);
 //		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+
+		tauK = jointLimitK * (thetaDelta);
+		tauB = -jointLimitB * (actx->jointVelDegrees);
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
 
-		float thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
-		tauK = JOINT_SOFT_K * (thetaDelta);
+		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
+//		tauK = JOINT_SOFT_K * (thetaDelta);
 //		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+
+		tauK = jointLimitK * (thetaDelta);
+		tauB = -jointLimitB * (actx->jointVelDegrees);
 
 	} else
 	{
