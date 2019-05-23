@@ -522,17 +522,19 @@ float actuateAngleLimits(Act_s *actx){
 	static float bumperTorq=0.0;
 	float tauK = 0; float tauB = 0;
 
-
-
 	// apply unidirectional spring
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
+
 		float thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
 		tauK = JOINT_SOFT_K * (thetaDelta);
 //		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
+
 		float thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
 		tauK = JOINT_SOFT_K * (thetaDelta);
 //		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+
 	} else
 	{
 		tauK = 0.0;
