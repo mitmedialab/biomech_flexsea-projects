@@ -515,8 +515,8 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams){
 
 	wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
 	wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
-	wParams->lspEngagementTorque 			= 20.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
-	wParams->lstPGDelTics 					= 10.0;	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
+	wParams->lspEngagementTorque 			= 40.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
+	wParams->lstPGDelTics 					= 100.0;	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
 
 
 	//USER WRITE INITIALIZATION GOES HERE//////////////

@@ -534,7 +534,7 @@ float actuateAngleLimits(Act_s *actx){
 //		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
 
 		tauK = jointLimitK * (thetaDelta);
-		tauB = -jointLimitB * (actx->jointVelDegrees);
+//		tauB = -jointLimitB * (actx->jointVelDegrees);
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
 
@@ -543,7 +543,7 @@ float actuateAngleLimits(Act_s *actx){
 //		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
 
 		tauK = jointLimitK * (thetaDelta);
-		tauB = -jointLimitB * (actx->jointVelDegrees);
+//		tauB = -jointLimitB * (actx->jointVelDegrees);
 
 	} else
 	{
