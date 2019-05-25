@@ -32,11 +32,11 @@ GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 float splineTime = 100.0;
 
 //Knee, Positive Knee Flexion
-GainParams kneeGainsEst = {2.5, 0.0, 0.18, 2.0};
-GainParams kneeGainsMst = {2.5, 0.0, 0.18, 2.0};	// {2.5, 0.0, 0.1, 10.0};
-GainParams kneeGainsLst = {2.5, 0.0, 0.18, 2.0};	// {2.5, 0.0, 0.1, 15.0};
-GainParams kneeGainsEsw = {2.5, 0.0, 0.18, 2.0}; // GainParams kneeGainsEsw = {1.5, 0.0, 0.1, 50.0};
-GainParams kneeGainsLsw = {2.5, 0.0, 0.18, 2.0};
+GainParams kneeGainsEst = {2.5, 0.0, 0.15, 10.0};
+GainParams kneeGainsMst = {2.5, 0.0, 0.15, 10.0};	// {2.5, 0.0, 0.1, 10.0};
+GainParams kneeGainsLst = {1.0, 0.0, 0.15, 30.0};	// {2.5, 0.0, 0.1, 15.0};
+GainParams kneeGainsEsw = {2.5, 0.0, 0.15, 30.0}; // GainParams kneeGainsEsw = {1.5, 0.0, 0.1, 50.0};
+GainParams kneeGainsLsw = {2.5, 0.0, 0.15, 10.0};
 
 
 
@@ -225,7 +225,8 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			#elif defined(IS_KNEE)
 				actx->tauDes = getImpedanceTorque(actx, kneeGainsEsw.k1, kneeGainsEsw.b, kneeGainsEsw.thetaDes);
 
-				// This State is different, Knee decides on its own when to transition to STATE_LATE_SWING
+				// This State is different, Knee decides on its own when to transition to STATE_LATE_SWING,
+				// waits for knee to reach max flexion, then switches to late
 //				if(actx->jointVelDegrees < 0 )
 //				{
 //					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
