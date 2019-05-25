@@ -67,16 +67,16 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
     ankleGainsLsw = ankleGainsEsw;
 
     kneeGainsMst = kneeGainsEst;
-    kneeGainsLsw = kneeGainsEsw;
+    kneeGainsLsw = kneeGainsEst;
 
     kneeAnkleStateMachine.onEntrySlaveSmState = kneeAnkleStateMachine.slaveCurrentState; // save the state on entry, assigned to last_currentState on exit
 
 	#ifdef IS_KNEE
 		//TODO: See if this is reasonable, change state to slave state, unless in early swing. In that case only switch when local state decides to change
-//	    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING)
-//	    {
+	    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING)
+	    {
 	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
-//	    }
+	    }
 	#endif
 
     kneeAnkleStateMachine.onEntrySmState = kneeAnkleStateMachine.currentState; // save the state on entry, assigned to last_currentState on exit
@@ -227,10 +227,10 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 				// This State is different, Knee decides on its own when to transition to STATE_LATE_SWING,
 				// waits for knee to reach max flexion, then switches to late
-//				if(actx->jointVelDegrees < 0 )
-//				{
-//					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
-//				}
+				if(actx->jointVelDegrees < 0 )
+				{
+					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
+				}
 
 			#endif
 
@@ -285,13 +285,13 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 			#elif defined(IS_KNEE)
 				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, kneeGainsLsw.thetaDes);
-//				if(timeInState > LSW_TO_EST_DELAY)
-//				{
-//					if (actx->jointAngleDegrees <= kneeGainsLsw.thetaDes + 1.0)
-//					{
-//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-//					}
-//				}
+				if(timeInState > LSW_TO_EST_DELAY)
+				{
+					if (actx->jointAngleDegrees <= kneeGainsLsw.thetaDes)
+					{
+						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+					}
+				}
 			#endif
 
 			break;
