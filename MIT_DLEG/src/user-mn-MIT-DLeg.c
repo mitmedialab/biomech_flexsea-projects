@@ -442,7 +442,7 @@ void updateGenVarOutputs(Act_s *actx)
 void updateUserWrites(Act_s *actx, WalkParams *wParams){
   
 	#ifdef IS_ANKLE
-		ankleGainsEsw.thetaDes					= ( (float) user_data_1.w[0] ) /100.0;	// [milliseconds]
+		ankleGainsLsw.thetaDes					= ( (float) user_data_1.w[0] ) /100.0;	// [milliseconds]
 		wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
 		wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
 		wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
@@ -451,23 +451,25 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		ankleGainsEst.b		 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
 		ankleGainsLst.thetaDes 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
 		ankleGainsEsw.k1			 			= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
-		ankleGainsEsw.b	 						= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/s]
+		ankleGainsEsw.thetaDes					= ( (float) user_data_1.w[9] ) / 100.0;	// [Deg]
 	#elif defined(IS_KNEE)
 
 //		jointLimitK			 				= ( (float) user_data_1.w[0] ) / 100.0;	// [Nm/deg]
 //		jointLimitB			 				= ( (float) user_data_1.w[1] ) / 100.0;	// [Nm/s]
 
 		kneeGainsEst.k1			 				= ( (float) user_data_1.w[0] ) / 100.0;	// [Nm/deg]
-		kneeGainsEst.b			 				= ( (float) user_data_1.w[1] ) / 100.0;	// [Nm/s]
-		kneeGainsEst.thetaDes			 		= ( (float) user_data_1.w[2] ) / 100.0;	// [Nm/deg]
+		kneeGainsEst.thetaDes			 		= ( (float) user_data_1.w[1] ) / 100.0;	// [Nm/deg]
 
-		kneeGainsLst.k1							= ( (float) user_data_1.w[3] ) / 100.0;	// [Nm/deg]
-		kneeGainsLst.b		 					= ( (float) user_data_1.w[4] ) / 100.0;	// [Deg]
-		kneeGainsLst.thetaDes 					= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/s]
+		kneeGainsLst.k1							= ( (float) user_data_1.w[2] ) / 100.0;	// [Nm/deg]
+		kneeGainsLst.thetaDes 					= ( (float) user_data_1.w[3] ) / 100.0;	// [Nm/s]
 
-		kneeGainsEsw.k1							= ( (float) user_data_1.w[6] ) / 100.0;	// [Nm/deg]
-		kneeGainsEsw.b		 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
-		kneeGainsEsw.thetaDes 					= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/s]
+		kneeGainsEsw.k1							= ( (float) user_data_1.w[4] ) / 100.0;	// [Nm/deg]
+		kneeGainsEsw.thetaDes 					= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/s]
+
+		kneeGainsLsw.k1							= ( (float) user_data_1.w[6] ) / 100.0;	// [Nm/deg]
+		kneeGainsLsw.thetaDes 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
+
+
 
 		//user_data_1.w[9] in use!
 

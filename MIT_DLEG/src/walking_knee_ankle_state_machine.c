@@ -64,16 +64,23 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
     static int8_t passedStanceThresh = 0;
 
     ankleGainsMst = ankleGainsEst;
-    ankleGainsLsw = ankleGainsEsw;
+//    ankleGainsLsw = ankleGainsEsw;
+    ankleGainsLsw.k1 = ankleGainsEsw.k1;
 
     kneeGainsMst = kneeGainsEst;
-    kneeGainsLsw = kneeGainsEst;
+//    kneeGainsLsw = kneeGainsEst;
+
 
     kneeAnkleStateMachine.onEntrySlaveSmState = kneeAnkleStateMachine.slaveCurrentState; // save the state on entry, assigned to last_currentState on exit
 
 	#ifdef IS_KNEE
 		//TODO: See if this is reasonable, change state to slave state, unless in early swing. In that case only switch when local state decides to change
-	    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING  || kneeAnkleStateMachine.currentState != STATE_LATE_SWING)
+	    if (kneeAnkleStateMachine.currentState == STATE_EARLY_SWING  || kneeAnkleStateMachine.currentState == STATE_LATE_SWING)
+	    {
+//	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
+	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.currentState;
+	    	// do nothing, stay in current state.
+	    } else
 	    {
 	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
 	    }
@@ -216,7 +223,8 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
 
-				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes || timeInState >= ESW_TO_LSW_DELAY)
+				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes && timeInState >= ESW_TO_LSW_DELAY)
+//				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes || timeInState >= ESW_TO_LSW_DELAY)
 //				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes)
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
@@ -227,7 +235,8 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 				// This State is different, Knee decides on its own when to transition to STATE_LATE_SWING,
 				// waits for knee to reach max flexion, then switches to late
-				if( (actx->jointVelDegrees <= 0) || (actx->jointAngleDegrees >= kneeGainsEsw.thetaDes) )
+//				if( (actx->jointVelDegrees <= 0) || (actx->jointAngleDegrees >= kneeGainsEsw.thetaDes) )
+				if(  (actx->jointAngleDegrees >= kneeGainsEsw.thetaDes)   )
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
 				}
@@ -284,10 +293,12 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				}
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 			#elif defined(IS_KNEE)
-				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, kneeGainsLsw.thetaDes);
+				float angleTracking = actx->jointAngleDegrees;
+				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, angleTracking);
+//				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, kneeGainsLsw.thetaDes);
 				if(timeInState > LSW_TO_EST_DELAY)
 				{
-					if (actx->jointAngleDegrees <= kneeGainsLsw.thetaDes)
+					if ( (actx->jointAngleDegrees <= kneeGainsLsw.thetaDes) || (kneeAnkleStateMachine.onEntrySlaveSmState == STATE_EARLY_STANCE) )
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 					}
