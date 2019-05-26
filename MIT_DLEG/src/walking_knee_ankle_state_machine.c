@@ -73,7 +73,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 	#ifdef IS_KNEE
 		//TODO: See if this is reasonable, change state to slave state, unless in early swing. In that case only switch when local state decides to change
-	    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING)
+	    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING  || kneeAnkleStateMachine.currentState != STATE_LATE_SWING)
 	    {
 	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
 	    }
@@ -147,7 +147,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 			break;
         }
-        case STATE_MID_STANCE:
+        case STATE_MID_STANCE: //1
         {
 			if (isTransitioning) {
 
@@ -198,7 +198,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
             break;
         }
-        case STATE_EARLY_SWING:
+        case STATE_EARLY_SWING: //3
         {
 			//Put anything you want to run ONCE during state entry.
 			if (isTransitioning) {
@@ -242,7 +242,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 			break; // case STATE_EARLY_SWING
         }
-		case STATE_LATE_SWING:
+		case STATE_LATE_SWING: //4
 		{
 			if (isTransitioning) {
 				ankleWalkParams.transitionId = 0;

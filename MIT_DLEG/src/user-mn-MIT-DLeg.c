@@ -358,6 +358,7 @@ void MITDLegFsm2(void)
 
 	//Modified version of ActPack
 	static uint32_t Fsm2Timer = 0;
+	static uint32_t commDelayTimer = 0;
 
 	//Wait X seconds before communicating
 	if(Fsm2Timer < AP_FSM2_POWER_ON_DELAY)
@@ -375,6 +376,9 @@ void MITDLegFsm2(void)
 	//FSM1 can disable this one:
 	if(enableMITfsm2)
 	{
+		if ( fmod(commDelayTimer,5) == 0 )	// Include delay 5 samples, for comms to try to get cleaner RS485 updates from slave
+		{
+
 			writeEx[1].offset = 7;	// grab only this offset.
 			tx_cmd_actpack_rw(TX_N_DEFAULT, writeEx[1].offset, writeEx[1].ctrl, writeEx[1].setpoint, \
 											writeEx[1].setGains, writeEx[1].g[0], writeEx[1].g[1], \
@@ -385,6 +389,10 @@ void MITDLegFsm2(void)
 			//Reset KEEP/CHANGE once set:
 			//if(writeEx[0].setGains == CHANGE){writeEx[0].setGains = KEEP;}
 			if(writeEx[1].setGains == CHANGE){writeEx[1].setGains = KEEP;}
+
+		}
+
+		commDelayTimer++;
 
 	}
 
