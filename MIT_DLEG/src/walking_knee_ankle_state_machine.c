@@ -227,7 +227,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 				// This State is different, Knee decides on its own when to transition to STATE_LATE_SWING,
 				// waits for knee to reach max flexion, then switches to late
-				if(actx->jointVelDegrees < 0 )
+				if( (actx->jointVelDegrees <= 0) || (actx->jointAngleDegrees >= kneeGainsEsw.thetaDes) )
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
 				}
