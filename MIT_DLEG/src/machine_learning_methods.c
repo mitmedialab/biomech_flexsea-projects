@@ -332,8 +332,8 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
 
     currfeats.max[ROT3] = MAX(currfeats.max[ROT3], kin->rot3);
     currfeats.max[AOMEGAX] = MAX(currfeats.max[AOMEGAX], kin->aOmegaX);
-    currfeats.max[AOMEGAY] = MAX(currfeats.max[AOMEGAY], kin->aOmegaY);
-    currfeats.max[AOMEGAZ] = MAX(currfeats.max[AOMEGAZ], kin->aOmegaZ);
+//    currfeats.max[AOMEGAY] = MAX(currfeats.max[AOMEGAY], kin->aOmegaY);
+//    currfeats.max[AOMEGAZ] = MAX(currfeats.max[AOMEGAZ], kin->aOmegaZ);
     currfeats.max[AACCX] = MAX(currfeats.max[AACCX], kin->aAccX);
     currfeats.max[AACCY] = MAX(currfeats.max[AACCY], kin->aAccY);
     currfeats.max[AACCZ] = MAX(currfeats.max[AACCZ], kin->aAccZ);
@@ -343,7 +343,7 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
     currfeats.max[AAZ] = MAX(currfeats.max[AAZ], kin->aAz);
     currfeats.max[VAZ] = MAX(currfeats.max[VAZ], kin->vAz);
     currfeats.max[PAZ] = MAX(currfeats.max[PAZ], kin->pAz);
-    currfeats.max[SINSQATTACK] = MAX(currfeats.max[SINSQATTACK], kin->sinSqAttackAngle);
+//    currfeats.max[SINSQATTACK] = MAX(currfeats.max[SINSQATTACK], kin->sinSqAttackAngle);
     currfeats.max[AA] = MAX(currfeats.max[AA], tm->aa);
     currfeats.max[TQ] = MAX(currfeats.max[TQ], tm->tq);
     currfeats.max[AADOT] = MAX(currfeats.max[AADOT], tm->aa_dot);
@@ -351,8 +351,8 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
 
     currfeats.min[ROT3] = MIN(currfeats.min[ROT3], kin->rot3);
     currfeats.min[AOMEGAX] = MIN(currfeats.min[AOMEGAX], kin->aOmegaX);
-    currfeats.min[AOMEGAY] = MIN(currfeats.min[AOMEGAY], kin->aOmegaY);
-    currfeats.min[AOMEGAZ] = MIN(currfeats.min[AOMEGAZ], kin->aOmegaZ);
+//    currfeats.min[AOMEGAY] = MIN(currfeats.min[AOMEGAY], kin->aOmegaY);
+//    currfeats.min[AOMEGAZ] = MIN(currfeats.min[AOMEGAZ], kin->aOmegaZ);
     currfeats.min[AACCX] = MIN(currfeats.min[AACCX], kin->aAccX);
     currfeats.min[AACCY] = MIN(currfeats.min[AACCY], kin->aAccY);
     currfeats.min[AACCZ] = MIN(currfeats.min[AACCZ], kin->aAccZ);
@@ -362,7 +362,7 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
     currfeats.min[AAZ] = MIN(currfeats.min[AAZ], kin->aAz);
     currfeats.min[VAZ] = MIN(currfeats.min[VAZ], kin->vAz);
     currfeats.min[PAZ] = MIN(currfeats.min[PAZ], kin->pAz);
-    currfeats.min[SINSQATTACK] = MIN(currfeats.min[SINSQATTACK], kin->sinSqAttackAngle);
+//    currfeats.min[SINSQATTACK] = MIN(currfeats.min[SINSQATTACK], kin->sinSqAttackAngle);
     currfeats.min[AA] = MIN(currfeats.min[AA], tm->aa);
     currfeats.min[TQ] = MIN(currfeats.min[TQ], tm->tq);
     currfeats.min[AADOT] = MIN(currfeats.min[AADOT], tm->aa_dot);
@@ -396,8 +396,8 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
       case PRED_UPDATE_FIN: //f/4 flops
             currfeats.fin[ROT3] = kin->rot3;
             currfeats.fin[AOMEGAX] = kin->aOmegaX;
-            currfeats.fin[AOMEGAY] = kin->aOmegaY;
-            currfeats.fin[AOMEGAZ] = kin->aOmegaZ;
+//            currfeats.fin[AOMEGAY] = kin->aOmegaY;
+//            currfeats.fin[AOMEGAZ] = kin->aOmegaZ;
             currfeats.fin[AACCX] = kin->aAccX;
             currfeats.fin[AACCY] = kin->aAccY;
             currfeats.fin[AACCZ] = kin->aAccZ;
@@ -407,7 +407,7 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
             currfeats.fin[AAZ] = kin->aAz;
             currfeats.fin[VAZ] = kin->vAz;
             currfeats.fin[PAZ] = kin->pAz;
-            currfeats.fin[SINSQATTACK] = kin->sinSqAttackAngle;
+//            currfeats.fin[SINSQATTACK] = kin->sinSqAttackAngle;
             currfeats.fin[AA] = tm->aa;
             currfeats.fin[TQ] = tm->tq;
             currfeats.fin[AADOT] = tm->aa_dot;

@@ -364,9 +364,12 @@ switch (state_machine_demux_state){
     case STATE_EST:
         set_joint_torque_with_hardstop(actx, tm, stance_entry_theta_rad, cp.active.est_k_Nm_p_rad, cp.active.est_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad,1.0);
 
-       //if (actx->jointAngle < cp.active.hard_stop_theta_rad - cp.active.est_lst_min_theta_rad){
        	if (actx->jointTorque > cp.active.lst_engagement_tq_Nm && actx->jointAngle < cp.active.hard_stop_theta_rad)
        		state_machine_demux_state = STATE_LST;
+
+       	if (tm->in_swing){
+       		state_machine_demux_state = STATE_ESW;
+       	}
 
 
     break;

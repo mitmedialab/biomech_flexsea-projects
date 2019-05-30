@@ -252,10 +252,10 @@ static void updateUserWrites(struct taskmachine_s* tm){
 		break;
 		case GUI_MODE_SW_CONTROL_PARAMS: //6
 			tm->do_update_learner = 0;
-			set_esw_theta_rad((float) user_data_1.w[1]/SCALE_FACTOR_10000);
-			set_sw_k_Nm_p_rad((float) user_data_1.w[2]);
-			set_sw_b_Nm_p_rps((float) user_data_1.w[3]);
-			enable_minimum_jerk((uint8_t) user_data_1.w[4]);
+			set_esw_theta_rad((float) user_data_1.w[3]/SCALE_FACTOR_10000);
+			set_sw_k_Nm_p_rad((float) user_data_1.w[4]);
+			set_sw_b_Nm_p_rps((float) user_data_1.w[5]);
+			enable_minimum_jerk((uint8_t) user_data_1.w[6]);
 
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL: //7
@@ -382,7 +382,7 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->aAccY*100.0);
 			rigid1.mn.genVar[4] = (int16_t) (get_kinematics()->aAccZ*100.0);
 			rigid1.mn.genVar[5] = (int16_t) (get_kinematics()->aOmegaX*100.0);
-			rigid1.mn.genVar[6] = (int16_t) (get_kinematics()->daOmegaX*100.0);
+			rigid1.mn.genVar[6] = (int16_t) (get_task_machine()->in_swing*100.0);
 			rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->rot3*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->pAy*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[9] = (int16_t) (get_kinematics()->pAz*SCALE_FACTOR_10000);
@@ -390,7 +390,7 @@ static void updateGenVars(struct taskmachine_s* tm){
 	    case GUI_MODE_KINEMATICS2: //13
 			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->aOmegaX*100.0);
 			rigid1.mn.genVar[4] = (int16_t) (get_task_machine()->aa_dot*100.0);
-			rigid1.mn.genVar[5] = (int16_t) (get_kinematics()->aa_dot_aOmegaX_error*100.0);
+			rigid1.mn.genVar[5] = (int16_t) (get_kinematics()->joint_vel_seg_vel_diff_sq*100.0);
 			rigid1.mn.genVar[6] = (int16_t) (get_kinematics()->accNormSq*100.0);
 			rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->foot_flat);
 			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->ground_slope_est*SCALE_FACTOR_10000);

@@ -44,6 +44,7 @@ struct taskmachine_s
     uint8_t in_swing;
     uint8_t do_learning_for_curr_stride;
     uint8_t do_learning_for_prev_stride;
+    uint8_t passed_min_stance_tq;
 
     uint8_t gait_event_trigger;  
     uint8_t reset_back_estimator_trigger;

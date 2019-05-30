@@ -6,6 +6,30 @@
  */
 
 
+float filter_fourth_order_butter_20hz(float new_val, float* outputs, float* inputs){
+
+	inputs[0] = inputs[1];
+	inputs[1] = inputs[2];
+	inputs[2] = inputs[3];
+	inputs[3] = inputs[4];
+	inputs[4] = new_val;
+	outputs[0] = outputs[1];
+	outputs[1] = outputs[2];
+	outputs[2] = outputs[3];
+	outputs[3] = outputs[4];
+
+	outputs[4] = 3.671729096494733*outputs[3] -
+		5.067998406396987*outputs[2] +
+		3.115966942846247*outputs[1] -
+		0.719910332588087*outputs[0] +
+		1.32937277559364e-05*inputs[4] +
+		5.31749110237456e-05*inputs[3] +
+		7.97623665356184e-05*inputs[2] +
+		5.31749110237456e-05*inputs[1] +
+		1.32937277559364e-05*inputs[0];
+}
+
+
 float filter_second_order_butter_20hz(float new_val, float* outputs, float* inputs){
 	inputs[0] = inputs[1];
 	inputs[1] = inputs[2];

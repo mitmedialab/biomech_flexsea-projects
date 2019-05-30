@@ -3,10 +3,13 @@
 #include "task_machine.h"
 
  //Gait event thresholds
-#define MIN_TQ_FOR_FOOT_ON 6.0
-#define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 30
-#define PREDICTION_CUTOFF_SAMPLES 250.0
-#define MAX_SWING_TQ_DOT_NM_P_S 20.0
+#define EXPECTED_SWING_TQ 0.0
+#define TRANSITION_TQ_THRESH 10.0
+#define MIN_STANCE_TQ EXPECTED_SWING_TQ + TRANSITION_TQ_THRESH + 5.0
+#define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 20
+#define PREDICTION_CUTOFF_SAMPLES 250
+#define MAX_SWING_TQ_DOT_NM_HZ 100
+#define MIN_GAIT_PHASE_SAMPLES 250
 
 //Ideal controller values
 #define FL_IDEAL_NET_WORK_J_PER_KG 0.0244 //Sinitski 2012
@@ -36,10 +39,6 @@ float example_stride_aa[] = {0.15, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.16, 0.1
 static float ideal_net_work_j_per_kg[] = {FL_IDEAL_NET_WORK_J_PER_KG,UR_IDEAL_NET_WORK_J_PER_KG,DR_IDEAL_NET_WORK_J_PER_KG,US_IDEAL_NET_WORK_J_PER_KG,DS_IDEAL_NET_WORK_J_PER_KG};
 static float ideal_rom_rad[] = {FL_IDEAL_ROM_RAD,UR_IDEAL_ROM_RAD,DR_IDEAL_ROM_RAD,US_IDEAL_ROM_RAD,DS_IDEAL_ROM_RAD};
 static float ideal_heelstrike_angle_rad[] = {FL_IDEAL_FOOTSTRIKE_ANGLE_RAD,UR_IDEAL_FOOTSTRIKE_ANGLE_RAD,DR_IDEAL_FOOTSTRIKE_ANGLE_RAD,US_IDEAL_FOOTSTRIKE_ANGLE_RAD,DS_IDEAL_FOOTSTRIKE_ANGLE_RAD};
-static float tq_dot_inputs[] = {0,0,0};
-static float tq_dot_outputs[] = {0,0,0};
-static float aa_dot_inputs[] = {0,0,0};
-static float aa_dot_outputs[] = {0,0,0};
 
 //Copied from matlab pil simulation
 static void init_task_machine(){
@@ -52,6 +51,7 @@ static void init_task_machine(){
     tm.in_swing = 0;
     tm.do_learning_for_curr_stride = 0;
     tm.do_learning_for_prev_stride = 0;
+    tm.passed_min_stance_tq = 0;
 
     tm.gait_event_trigger = 0;  
     tm.reset_back_estimator_trigger = 0;
@@ -93,17 +93,32 @@ static void update_gait_events(){
               tm.gait_event_trigger = GAIT_EVENT_WINDOW_CLOSE; 
               return;  
           }
+
+          if(tm.elapsed_samples - tm.latest_foot_off_samples < MIN_GAIT_PHASE_SAMPLES){
+          	  return;
+          }
+
             //Swing to stance transition condition
-          if (fabs(tm.tq) >= MIN_TQ_FOR_FOOT_ON){
+          if (fabs(EXPECTED_SWING_TQ - tm.tq) >= TRANSITION_TQ_THRESH ||
+        		  fabs(tm.tq_dot) >= MAX_SWING_TQ_DOT_NM_HZ){
               tm.elapsed_samples = 0;
               tm.in_swing = 0;
               tm.low_torque_counter = 0;
-              tm.gait_event_trigger = GAIT_EVENT_FOOT_ON; 
+              tm.gait_event_trigger = GAIT_EVENT_FOOT_ON;
+              tm.passed_min_stance_tq = 0;
           }
-    }
-    else{
-          if (fabs(tm.tq) < MIN_TQ_FOR_FOOT_ON &&
-          	fabs(tm.tq_dot) < MAX_SWING_TQ_DOT_NM_P_S)
+    }else{
+
+    	if (tm.elapsed_samples < MIN_GAIT_PHASE_SAMPLES){
+			return;
+    	}
+		if (tm.tq > MIN_STANCE_TQ){
+			tm.passed_min_stance_tq = 1;
+		}
+
+
+          if (fabs(EXPECTED_SWING_TQ - tm.tq) < TRANSITION_TQ_THRESH &&
+        		  tm.passed_min_stance_tq)
             tm.low_torque_counter = tm.low_torque_counter + 1;
           else
             tm.low_torque_counter = 0;
@@ -146,8 +161,8 @@ static void update_ankle_dynamics(Act_s* actx)
     tm.aa = actx->jointAngle;
 	#endif
 
-    tm.tq_dot = filter_second_order_butter_20hz(SAMPLE_RATE_HZ*(tm.tq - tm.tq_prev), &tq_dot_outputs[0], &tq_dot_inputs[0]);
-    tm.aa_dot = filter_second_order_butter_5hz(SAMPLE_RATE_HZ*(tm.aa - tm.aa_prev), &aa_dot_outputs[0], &aa_dot_inputs[0]);
+    tm.tq_dot = SAMPLE_RATE_HZ*(tm.tq - tm.tq_prev);
+    tm.aa_dot = SAMPLE_RATE_HZ*(tm.aa - tm.aa_prev);
 
     tm.power_w = tm.tq*tm.aa_dot;
     tm.net_work_j = tm.net_work_j + tm.power_w*SAMPLE_PERIOD_S;
@@ -194,7 +209,7 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_ankle_dynamics(actx);
 		update_gait_events();
 		update_kinematics(&rigid->mn,&tm);
-		update_statistics_demux(&tm, get_kinematics());
+		//update_statistics_demux(&tm, get_kinematics());
 		
 
 //		if (tm.do_update_learner){
@@ -204,7 +219,7 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 
 		//predict_stask_demux(&tm, get_kinematics());
 
-		update_back_estimation_features(&tm, get_kinematics());
+		//update_back_estimation_features(&tm, get_kinematics());
 		//update_prediction_features(&tm, get_kinematics());
 
 		if (tm.control_mode == MODE_ADAPTIVE){

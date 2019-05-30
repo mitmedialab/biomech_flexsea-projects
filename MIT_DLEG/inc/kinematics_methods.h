@@ -20,28 +20,17 @@ struct kinematics_s* get_kinematics();
 struct kinematics_s
 {
 	float aOmegaX;
-    float aOmegaY;
-    float aOmegaZ;
     float aAccX;
     float aAccY;
     float aAccZ;
-    float iaAccY;
-    float daAccY;
-    float iaAccZ;
-    float daAccZ;
-    float iaOmegaX;
     float daOmegaX;
-    float aAccYprev;
-    float aAccZprev;
     float aOmegaXprev;
     float rot1;
     float rot3;
-    float sinSqAttackAngle;
+    float rot3prev;
     float pitch;
 
     float aOmegaXbias;
-    float aOmegaYbias;
-    float aOmegaZbias;
 
     float aAy;
     float aAz;
@@ -55,8 +44,14 @@ struct kinematics_s
     float meanaccNormSq;
     float accNormSq;
     float accNormSqRaw;
+    uint8_t rolling_over_foot;
+    int roll_over_counter;
+    float ground_slope_est_sum;
+    float curr_ground_slope_est;
+    float prev_ground_slope_est;
 
-    float aa_dot_aOmegaX_error;
+
+    float joint_vel_seg_vel_diff_sq;
     float latest_foot_static_samples;
 
     uint8_t foot_flat;
