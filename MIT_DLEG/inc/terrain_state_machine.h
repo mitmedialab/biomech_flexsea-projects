@@ -11,7 +11,7 @@
 #include "actuator_functions.h"
 
 
-//#define DEFAULT_SW_K_NM_P_RAD 1000.0
+#define DEFAULT_MAX_SAFE_B_NM_P_RPS 15.0
 #define DEFAULT_SW_K_NM_P_RAD 1.5/RAD_PER_DEG
 #define DEFAULT_SW_B_NM_P_RPS 0.15/RAD_PER_DEG
 #define DEFAULT_LST_DELAY_TICS 70.0
@@ -23,16 +23,15 @@
 
 #define DEFAULT_ESW_THETA_RAD 0.0
 
-#define DEFAULT_FLAT_HS_THETA_RAD 0.04
+#define DEFAULT_FLAT_HS_THETA_RAD -0.087
 #define DEFAULT_FLAT_HS_K_NM_P_RAD 200.0
-#define DEFAULT_FLAT_LSW_THETA_RAD -0.03
+#define DEFAULT_FLAT_LSW_THETA_RAD -0.087
 #define DEFAULT_FLAT_EST_K_NM_P_RAD 86.0
-#define DEFAULT_FLAT_EST_B_NM_P_RPS 8.0
-#define DEFAULT_FLAT_LST_K_NM_P_RAD 200.0
-#define DEFAULT_FLAT_LST_B_NM_P_RPS 8.0
-#define DEFAULT_FLAT_LST_THETA_RAD 0.26
-#define DEFAULT_FLAT_EST_LST_MIN_THETA_RAD 0.26
-#define DEFAULT_FLAT_LST_ENGAGEMENT_TQ_NM 20.0
+#define DEFAULT_FLAT_EST_B_NM_P_RPS 8.6
+#define DEFAULT_FLAT_LST_K_NM_P_RAD 230.0
+#define DEFAULT_FLAT_LST_B_NM_P_RPS 5.7
+#define DEFAULT_FLAT_LST_THETA_RAD 0.244
+#define DEFAULT_FLAT_LST_ENGAGEMENT_TQ_NM 30.0
 
 #define DEFAULT_URAMP_HS_THETA_RAD -0.19
 #define DEFAULT_URAMP_HS_K_NM_P_RAD 500.0
@@ -54,23 +53,34 @@
 #define DEFAULT_DRAMP_LST_THETA_RAD 0.0
 #define DEFAULT_DRAMP_LST_ENGAGEMENT_TQ_NM 20.0
 
-#define DEFAULT_USTAIRS_HS_THETA_RAD -0.22
+#define DEFAULT_USTAIRS_HS_THETA_RAD -0.17
 #define DEFAULT_USTAIRS_HS_K_NM_P_RAD 300.0
 #define DEFAULT_USTAIRS_LSW_THETA_RAD -0.17
-#define DEFAULT_USTAIRS_EST_K_NM_P_RAD 10.0
-#define DEFAULT_USTAIRS_EST_B_NM_P_RPS 0.0
-#define DEFAULT_USTAIRS_LST_K_NM_P_RAD 300.0
+#define DEFAULT_USTAIRS_EST_K_NM_P_RAD 86.0
+#define DEFAULT_USTAIRS_EST_B_NM_P_RPS 8.0
+#define DEFAULT_USTAIRS_LST_K_NM_P_RAD 100.0
 #define DEFAULT_USTAIRS_LST_B_NM_P_RPS 8.0
-#define DEFAULT_USTAIRS_LST_THETA_RAD 0.0
+#define DEFAULT_USTAIRS_LST_THETA_RAD 0.26
 #define DEFAULT_USTAIRS_LST_ENGAGEMENT_TQ_NM 20.0
 
-#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.04
-#define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 300.0
-#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.2
-#define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 100.0
-#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 15.0
+//#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.04
+//#define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 300.0
+//#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.45
+//#define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 100.0
+//#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 10.0
+//#define DEFAULT_DSTAIRS_LST_K_NM_P_RAD 0.0
+//#define DEFAULT_DSTAIRS_LST_B_NM_P_RPS 10.0
+//#define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
+//#define DEFAULT_DSTAIRS_LST_ENGAGEMENT_TQ_NM 20.0
+
+//For now going to use the version where hs engagement angle always equals late swing desired angle
+#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.45
+#define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 40.0
+#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.45
+#define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 0.0
+#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 10.0
 #define DEFAULT_DSTAIRS_LST_K_NM_P_RAD 0.0
-#define DEFAULT_DSTAIRS_LST_B_NM_P_RPS 0.0
+#define DEFAULT_DSTAIRS_LST_B_NM_P_RPS 10.0
 #define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
 #define DEFAULT_DSTAIRS_LST_ENGAGEMENT_TQ_NM 20.0
 
@@ -98,7 +108,6 @@ void set_est_b_Nm_p_rps(float est_b_Nm_p_rps, int terrain);
 void set_lst_k_Nm_p_rad(float lst_k_Nm_p_rad, int terrain);
 void set_lst_b_Nm_p_rps(float lst_b_Nm_p_rps, int terrain);
 void set_lst_theta_rad(float lst_theta_rad, int terrain);
-void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain);
 void set_lst_engagement_tq_Nm(float lst_engagement_tq_Nm, int terrain);
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int current_terrain);
 void init_terrain_state_machine();

@@ -36,6 +36,7 @@ struct taskmachine_s
     uint8_t initialized;
     
 	int control_mode;
+	int current_terrain;
 	uint8_t do_update_learner;
 
 	
@@ -105,8 +106,8 @@ enum Gait_Modes {
 	MODE_DSTAIRS = 4,
     MODE_NOMINAL = 5,
     MODE_POSITION = 6,
-	MODE_ADAPTIVE = 7,
-	MODE_HEURISTIC = 8,
+	MODE_ADAPTIVE_WITH_LEARNING = 7,
+	MODE_ADAPTIVE_WITH_HEURISTICS = 8,
 };
 
 enum Gait_Events {

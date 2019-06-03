@@ -135,7 +135,7 @@ static void init_predictor(){
 void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
     switch (stats.demux_state){
       case STATS_BACK_ESTIMATE: //constant flops
-          back_estimate(&stats, kin);
+          back_estimate(tm, &stats, kin);
           tm->est_pred_correct = stats.k_est*100 +  pred.k_pred*10 + (int)(stats.k_est == pred.k_pred);
           stats.demux_state = STATS_UPDATE_CLASS_SUM;
       break;

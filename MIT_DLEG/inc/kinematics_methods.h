@@ -57,9 +57,6 @@ struct kinematics_s
     uint8_t foot_flat;
     int foot_flat_counter;
 
-    float inst_ground_slope_est;
-    float inst_ground_slope_est_sum;
-    float ground_slope_est;
 };
 
 

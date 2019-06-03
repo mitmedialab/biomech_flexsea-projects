@@ -24,7 +24,6 @@ static void init_adaptive_control_params_s()
 	cp.adaptive.lst_b_Nm_p_rps = (float*)calloc(N_CLASSES, sizeof(float));
 	cp.adaptive.lst_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
 
-	cp.adaptive.est_lst_min_theta_rad = (float*)calloc(N_CLASSES, sizeof(float));
 	cp.adaptive.lst_engagement_tq_Nm = (float*)calloc(N_CLASSES,sizeof(float));
 
 
@@ -237,7 +236,10 @@ void set_sw_k_Nm_p_rad(float k_Nm_p_rad){
 	cp.active.sw_k_Nm_p_rad = k_Nm_p_rad;
 }
 void set_sw_b_Nm_p_rps(float b_Nm_p_rps){
-	cp.active.sw_b_Nm_p_rps = b_Nm_p_rps;
+	if (b_Nm_p_rps > DEFAULT_MAX_SAFE_B_NM_P_RPS)
+		cp.active.sw_b_Nm_p_rps = DEFAULT_MAX_SAFE_B_NM_P_RPS;
+	else
+		cp.active.sw_b_Nm_p_rps = b_Nm_p_rps;
 }
 void set_nominal_theta_rad(float theta_rad){
 	cp.nominal.theta_rad = theta_rad;
@@ -246,7 +248,10 @@ void set_nominal_k_Nm_p_rad(float k_Nm_p_rad){
 	cp.nominal.k_Nm_p_rad = k_Nm_p_rad;
 }
 void set_nominal_b_Nm_p_rps(float b_Nm_p_rps){
-	cp.nominal.b_Nm_p_rps = b_Nm_p_rps;
+	if (b_Nm_p_rps > DEFAULT_MAX_SAFE_B_NM_P_RPS)
+		cp.nominal.b_Nm_p_rps = DEFAULT_MAX_SAFE_B_NM_P_RPS;
+	else
+		cp.nominal.b_Nm_p_rps = b_Nm_p_rps;
 }
 void set_hard_stop_theta_rad(float hard_stop_theta_rad, int terrain){
 	cp.adaptive.hard_stop_theta_rad[terrain] = hard_stop_theta_rad;
@@ -261,20 +266,24 @@ void set_est_k_Nm_p_rad(float est_k_Nm_p_rad, int terrain){
 	cp.adaptive.est_k_Nm_p_rad[terrain] = est_k_Nm_p_rad;
 }
 void set_est_b_Nm_p_rps(float est_b_Nm_p_rps, int terrain){
-	cp.adaptive.est_b_Nm_p_rps[terrain] = est_b_Nm_p_rps;
+	if (est_b_Nm_p_rps > DEFAULT_MAX_SAFE_B_NM_P_RPS)
+		cp.adaptive.est_b_Nm_p_rps[terrain] = DEFAULT_MAX_SAFE_B_NM_P_RPS;
+	else
+		cp.adaptive.est_b_Nm_p_rps[terrain] = est_b_Nm_p_rps;
 }
 void set_lst_k_Nm_p_rad(float lst_k_Nm_p_rad, int terrain){
 	cp.adaptive.lst_k_Nm_p_rad[terrain] = lst_k_Nm_p_rad;
 }
 void set_lst_b_Nm_p_rps(float lst_b_Nm_p_rps, int terrain){
-	cp.adaptive.lst_b_Nm_p_rps[terrain] = lst_b_Nm_p_rps;
+	if (lst_b_Nm_p_rps > DEFAULT_MAX_SAFE_B_NM_P_RPS)
+		cp.adaptive.lst_b_Nm_p_rps[terrain] = DEFAULT_MAX_SAFE_B_NM_P_RPS;
+	else
+		cp.adaptive.lst_b_Nm_p_rps[terrain] = lst_b_Nm_p_rps;
 }
 void set_lst_theta_rad(float lst_theta_rad, int terrain){
 	cp.adaptive.lst_theta_rad[terrain] = lst_theta_rad;
 }
-void set_est_lst_min_theta_rad(float est_lst_min_theta_rad, int terrain){
-	cp.adaptive.est_lst_min_theta_rad[terrain] = est_lst_min_theta_rad;
-}
+
 void set_lst_engagement_tq_Nm(float lst_engagement_tq_Nm, int terrain){
 	cp.adaptive.lst_engagement_tq_Nm[terrain] = lst_engagement_tq_Nm;
 }
@@ -286,6 +295,9 @@ static float lst_tics = 0.0;
 static int on_entry = 0;
 static int prev_state_machine_demux_state = STATE_ESW;
 static float stance_entry_theta_rad = 0.0;
+//static uint8_t passed_first_torque_peak_for_stair_ascent = 0;
+//static uint8_t passed_torque_dip_for_stair_ascent = 0;
+//static max_torque_update_counter_for_stair_ascent = 0;
 
 if (terrain_mode == MODE_NOMINAL){
 	set_joint_torque(actx, tm, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps,1.0);
@@ -362,6 +374,18 @@ switch (state_machine_demux_state){
 
     break;
     case STATE_EST:
+    	if (on_entry){
+//    		if (terrain_mode == MODE_USTAIRS){
+//    			passed_first_torque_peak_for_stair_ascent = 0;
+//    			uint8_t passed_torque_dip_for_stair_ascent = 0;
+//    		}
+    	}
+    	//TODO: come up with a way to handle the double powered plantarflexion needed in stair ascent.
+    	//might want to create a mid_stance period for controlled dorsi-flexion
+//    	if (terrain_mode == MODE_USTAIRS){
+//    		if ()
+//    	}
+
         set_joint_torque_with_hardstop(actx, tm, stance_entry_theta_rad, cp.active.est_k_Nm_p_rad, cp.active.est_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad,1.0);
 
        	if (actx->jointTorque > cp.active.lst_engagement_tq_Nm && actx->jointAngle < cp.active.hard_stop_theta_rad)

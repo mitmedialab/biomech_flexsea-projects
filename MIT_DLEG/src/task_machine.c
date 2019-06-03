@@ -214,7 +214,7 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_ankle_dynamics(actx);
 		update_gait_events();
 		update_kinematics(&rigid->mn,&tm);
-		//update_statistics_demux(&tm, get_kinematics());
+		update_statistics_demux(&tm, get_kinematics());
 		
 
 //		if (tm.do_update_learner){
@@ -227,25 +227,27 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_back_estimation_features(&tm, get_kinematics());
 		//update_prediction_features(&tm, get_kinematics());
 
-		if (tm.control_mode == MODE_ADAPTIVE){
-			terrain_state_machine_demux(&tm, rigid, actx, get_predictor()->k_pred);
+		if (tm.control_mode == MODE_ADAPTIVE_WITH_LEARNING){
+			tm.current_terrain = get_predictor()->k_pred;
 		}
-		else if (tm.control_mode == MODE_HEURISTIC){
+		else if (tm.control_mode == MODE_ADAPTIVE_WITH_HEURISTICS){
 				if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_US_THRESH &&
 						get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
-					terrain_state_machine_demux(&tm, rigid, actx, MODE_USTAIRS);
+					tm.current_terrain = MODE_USTAIRS;
 				}
 				else if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_DS_THRESH &&
 						get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
-					terrain_state_machine_demux(&tm, rigid, actx, MODE_DSTAIRS);
+					tm.current_terrain = MODE_DSTAIRS;
 				}
 				else
 				{
-					terrain_state_machine_demux(&tm, rigid, actx, MODE_FLAT);
+					tm.current_terrain = MODE_FLAT;
 				}
 			}else{
-			terrain_state_machine_demux(&tm, rigid, actx, tm.control_mode);
+				tm.current_terrain = tm.control_mode;
 		}
+		terrain_state_machine_demux(&tm, rigid, actx, tm.current_terrain);
+
     	tm.elapsed_samples = tm.elapsed_samples + 1.0;
     	break;
   }

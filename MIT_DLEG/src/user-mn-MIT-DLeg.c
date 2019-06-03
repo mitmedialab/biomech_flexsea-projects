@@ -369,10 +369,10 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[9] = (int16_t) (0);
 		break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
-			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->ground_slope_est*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->curr_ground_slope_est*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[4] = (int16_t) (get_back_estimator()->curr_stride_paz_thresh_pass_samples);
 			rigid1.mn.genVar[5] = (int16_t) (get_back_estimator()->curr_stride_paz_thresh_status);
-			rigid1.mn.genVar[6] = (int16_t) (get_kinematics()->aAccY*100.0);
+			rigid1.mn.genVar[6] = (int16_t) (get_task_machine()->current_terrain);
 			rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->aAccZ*100.0);
 			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->pAz*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->k_est);
