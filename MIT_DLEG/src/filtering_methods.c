@@ -5,6 +5,48 @@
  *      Author: rmsto
  */
 
+float filter_fourth_order_butter_5hz(float new_val, float* outputs, float*inputs){
+	inputs[0] = inputs[1];
+		inputs[1] = inputs[2];
+		inputs[2] = inputs[3];
+		inputs[3] = inputs[4];
+		inputs[4] = new_val;
+		outputs[0] = outputs[1];
+		outputs[1] = outputs[2];
+		outputs[2] = outputs[3];
+		outputs[3] = outputs[4];
+
+		outputs[4] = 3.91790786539199*outputs[3] -
+				5.75707637911807*outputs[2] +
+				3.76034950769453*outputs[1] -
+				0.921181929191239*outputs[0] +
+				5.84514243118228e-08*inputs[4] +
+				2.33805697247291e-07*inputs[3] +
+				3.50708545870937e-07*inputs[2] +
+				2.33805697247291e-07*inputs[1] +
+				5.84514243118228e-08*inputs[0];
+}
+float filter_fourth_order_butter_15hz(float new_val, float* outputs, float*inputs){
+	inputs[0] = inputs[1];
+	inputs[1] = inputs[2];
+	inputs[2] = inputs[3];
+	inputs[3] = inputs[4];
+	inputs[4] = new_val;
+	outputs[0] = outputs[1];
+	outputs[1] = outputs[2];
+	outputs[2] = outputs[3];
+	outputs[3] = outputs[4];
+
+	outputs[4] = 3.75376275667119*outputs[3] -
+		5.29115258416347*outputs[2] +
+		3.31893860475052*outputs[1] -
+		0.781618740279001*outputs[0] +
+		4.37268879785457e-06*inputs[4] +
+		1.74907551914183e-05*inputs[3] +
+		2.62361327871274e-05*inputs[2] +
+		1.74907551914183e-05*inputs[1] +
+		4.37268879785457e-06*inputs[0];
+}
 
 float filter_fourth_order_butter_20hz(float new_val, float* outputs, float* inputs){
 

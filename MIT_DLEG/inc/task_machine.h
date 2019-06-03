@@ -55,6 +55,7 @@ struct taskmachine_s
     float tq_dot;
     float aa;
     float aa_dot;
+    float aa_dot_15hz_filt;
     float tq_prev;
     float aa_prev;
     float mean_swing_tq_nm;
@@ -96,7 +97,7 @@ enum Task_Machine_States {
 	RUN_TASK_MACHINE,
 };
 
-enum Control_Modes {
+enum Gait_Modes {
 	MODE_FLAT = 0,
 	MODE_URAMP = 1,
 	MODE_DRAMP = 2,
@@ -105,6 +106,7 @@ enum Control_Modes {
     MODE_NOMINAL = 5,
     MODE_POSITION = 6,
 	MODE_ADAPTIVE = 7,
+	MODE_HEURISTIC = 8,
 };
 
 enum Gait_Events {

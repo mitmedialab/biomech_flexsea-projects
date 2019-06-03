@@ -155,7 +155,7 @@ static float windowAveraging(float currentVal) {
  * Output axial force on screw
  * Return: axialForce(float) -  Force on the screw in NEWTONS
  */
-static float getAxialForce(struct act_s *actx, int8_t tare)
+static float getAxialForceLC(struct act_s *actx, int8_t tare)
 {
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
@@ -223,16 +223,17 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 //	static float deltaLengthMotorMeas = 0, deltaMotorCalc=0;
 //	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
 
-	CAng = M_PI - theta - (MA_TF); 	// angle
-    c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
+    CAng = M_PI - theta - (MA_TF); 	// angle
+	c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
 
-    c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
-    actx->c = c;
+	c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
+	actx->c = c;
 
-    A = ( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c);
 
-    //projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm.
-    projLength = (MA_B * (sqrtf(1-A*A)));
+
+	A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
+
+	projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm.
 
     if (tareState == 1)
     {
@@ -401,6 +402,42 @@ static float getJointTorque(struct act_s *actx)
 	float torque = 0;
 
 	torque = actx->linkageMomentArm * actx->axialForce;
+
+//	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
+
+	if(torque >= ABS_TORQUE_LIMIT_INIT || torque <= -ABS_TORQUE_LIMIT_INIT) {
+		isSafetyFlag = SAFETY_TORQUE;
+		isTorqueLimit = 1;
+	} else {
+		isTorqueLimit = 0;
+	}
+
+	return torque;
+}
+
+static float getJointTorqueAdj(struct act_s *actx)
+{
+	float torque = 0;
+
+	torque = actx->linkageMomentArm * actx->axialForceAdj;
+
+//	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
+
+	if(torque >= ABS_TORQUE_LIMIT_INIT || torque <= -ABS_TORQUE_LIMIT_INIT) {
+		isSafetyFlag = SAFETY_TORQUE;
+		isTorqueLimit = 1;
+	} else {
+		isTorqueLimit = 0;
+	}
+
+	return torque;
+}
+
+static float getJointTorqueLC(struct act_s *actx)
+{
+	float torque = 0;
+
+	torque = actx->linkageMomentArm * actx->axialForceLC;
 
 //	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
 
@@ -1548,13 +1585,15 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
-//	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
-	actx->axialForce = getAxialForceEncoderCalc(actx);
-
+	actx->axialForceLC = getAxialForceLC(actx, zeroLoadCell); //filtering happening inside function
+//	actx->axialForce = getAxialForceEncoderCalc(actx);
+	//actx->axialForceAdj = actx->axialForce*2.02+36.02;
 //	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
 
 
-	actx->jointTorque = getJointTorque(actx);
+//	actx->jointTorque = getJointTorque(actx);
+	actx->jointTorque = getJointTorqueLC(actx);
+//	actx->jointTorqueAdj = getJointTorqueAdj(actx);
 
 	updateJointTorqueRate(actx);
 

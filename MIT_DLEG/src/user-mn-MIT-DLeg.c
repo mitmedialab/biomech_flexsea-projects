@@ -260,7 +260,6 @@ static void updateUserWrites(struct taskmachine_s* tm){
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL: //7
 		case GUI_MODE_GAIT_EVENTS: //8
-
 		case GUI_MODE_KINEMATICS1: //12
 		case GUI_MODE_KINEMATICS2: //13
 		case GUI_MODE_FEATURES: //14
@@ -318,18 +317,18 @@ static void updateGenVars(struct taskmachine_s* tm){
 	    	rigid1.mn.genVar[3] = (int16_t)(get_control_params()->nominal.theta_rad*SCALE_FACTOR_10000);
 	    	rigid1.mn.genVar[4] = (int16_t)(get_control_params()->nominal.k_Nm_p_rad);
 	    	rigid1.mn.genVar[5] = (int16_t)(get_control_params()->nominal.b_Nm_p_rps);
-	    	rigid1.mn.genVar[6] = (int16_t) (0);
-			rigid1.mn.genVar[7] = (int16_t) (0);
-			rigid1.mn.genVar[8] = (int16_t) (0);
-			rigid1.mn.genVar[9] = (int16_t) (0);
+	    	rigid1.mn.genVar[6] = (int16_t) (act1.axialForce*10.0);
+			rigid1.mn.genVar[7] = (int16_t) (act1.axialForceLC*10.0);
+			rigid1.mn.genVar[8] = (int16_t) (act1.jointTorqueLC*100.0);
+			rigid1.mn.genVar[9] = (int16_t) (act1.jointTorqueAdj*100.0);
 	    break;
 		case GUI_MODE_SW_CONTROL_PARAMS: //6
 			rigid1.mn.genVar[3] = (int16_t) (get_control_params()->active.esw_theta_rad*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[4] = (int16_t) (get_control_params()->active.sw_k_Nm_p_rad);
 			rigid1.mn.genVar[5] = (int16_t) (get_control_params()->active.sw_b_Nm_p_rps);
-			rigid1.mn.genVar[6] = (int16_t) (tm->aa_dot * SCALE_FACTOR_1000);
-			rigid1.mn.genVar[7] = (int16_t) (0);
-			rigid1.mn.genVar[8] = (int16_t) (0);
+			rigid1.mn.genVar[6] = (int16_t) ((float)act1.motorPos0/10.0);
+			rigid1.mn.genVar[7] = (int16_t) ((float)*rigid1.ex.enc_ang/10.0);
+			rigid1.mn.genVar[8] = (int16_t) (act1.c0*10.0);
 			rigid1.mn.genVar[9] = (int16_t) (0);
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL: //7
@@ -363,16 +362,16 @@ static void updateGenVars(struct taskmachine_s* tm){
 	    case GUI_MODE_DYNAMICS: //10
 			rigid1.mn.genVar[3] = (int16_t) (tm->tq_dot*100.0);
 			rigid1.mn.genVar[4] = (int16_t) (tm->aa_dot*100.0);
-			rigid1.mn.genVar[5] = (int16_t) (tm->power_w);
+			rigid1.mn.genVar[5] = (int16_t) (tm->aa_dot_15hz_filt*100.0);
 			rigid1.mn.genVar[6] = (int16_t) (tm->peak_power_w);
 			rigid1.mn.genVar[7] = (int16_t) (tm->net_work_j*100.0);
-			rigid1.mn.genVar[8] = (int16_t) (0);
+			rigid1.mn.genVar[8] = (int16_t) (tm->power_w);
 			rigid1.mn.genVar[9] = (int16_t) (0);
 		break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
 			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->ground_slope_est*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[4] = (int16_t) (get_kinematics()->rot3*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[5] = (int16_t) (get_kinematics()->foot_flat);
+			rigid1.mn.genVar[4] = (int16_t) (get_back_estimator()->curr_stride_paz_thresh_pass_samples);
+			rigid1.mn.genVar[5] = (int16_t) (get_back_estimator()->curr_stride_paz_thresh_status);
 			rigid1.mn.genVar[6] = (int16_t) (get_kinematics()->aAccY*100.0);
 			rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->aAccZ*100.0);
 			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->pAz*SCALE_FACTOR_10000);

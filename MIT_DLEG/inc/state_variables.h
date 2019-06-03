@@ -96,7 +96,10 @@ typedef struct act_s
     float axialForce;		// actively used force measurement.
     float axialForceTF;		// calculated or transfer function force measurement
     float axialForceLC;		// load cell measurement
+    float axialForceAdj;
     float jointTorque;
+    float jointTorqueLC;
+    float jointTorqueAdj;
     float tauMeas;          // torque contribution from series spring
     float tauDes;           // FSM des torque - tauMeas
     float screwLengthDelta;		// track deflection of spring

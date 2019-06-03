@@ -4,7 +4,7 @@
 
  //Gait event thresholds
 #define EXPECTED_SWING_TQ 0.0
-#define TRANSITION_TQ_THRESH 10.0
+#define TRANSITION_TQ_THRESH 5.0
 #define MIN_STANCE_TQ EXPECTED_SWING_TQ + TRANSITION_TQ_THRESH + 5.0
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 20
 #define PREDICTION_CUTOFF_SAMPLES 250
@@ -40,6 +40,9 @@ static float ideal_net_work_j_per_kg[] = {FL_IDEAL_NET_WORK_J_PER_KG,UR_IDEAL_NE
 static float ideal_rom_rad[] = {FL_IDEAL_ROM_RAD,UR_IDEAL_ROM_RAD,DR_IDEAL_ROM_RAD,US_IDEAL_ROM_RAD,DS_IDEAL_ROM_RAD};
 static float ideal_heelstrike_angle_rad[] = {FL_IDEAL_FOOTSTRIKE_ANGLE_RAD,UR_IDEAL_FOOTSTRIKE_ANGLE_RAD,DR_IDEAL_FOOTSTRIKE_ANGLE_RAD,US_IDEAL_FOOTSTRIKE_ANGLE_RAD,DS_IDEAL_FOOTSTRIKE_ANGLE_RAD};
 
+static float aa_dot_outputs[] = {0,0,0,0,0};
+static float aa_dot_inputs[] = {0,0,0,0,0};
+
 //Copied from matlab pil simulation
 static void init_task_machine(){
 	tm.initialized = 0;
@@ -62,6 +65,7 @@ static void init_task_machine(){
     tm.tq_dot = 0.0;
     tm.aa = 0.0;
     tm.aa_dot = 0.0;
+    tm.aa_dot_15hz_filt = 0.0;
 
     tm.tq_prev = 0.0;
     tm.aa_prev = 0.0;
@@ -163,6 +167,7 @@ static void update_ankle_dynamics(Act_s* actx)
 
     tm.tq_dot = SAMPLE_RATE_HZ*(tm.tq - tm.tq_prev);
     tm.aa_dot = SAMPLE_RATE_HZ*(tm.aa - tm.aa_prev);
+//    tm.aa_dot_15hz_filt = filter_fourth_order_butter_5hz( tm.aa_dot, &aa_dot_outputs[0], &aa_dot_inputs[0]);
 
     tm.power_w = tm.tq*tm.aa_dot;
     tm.net_work_j = tm.net_work_j + tm.power_w*SAMPLE_PERIOD_S;
@@ -219,12 +224,26 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 
 		//predict_stask_demux(&tm, get_kinematics());
 
-		//update_back_estimation_features(&tm, get_kinematics());
+		update_back_estimation_features(&tm, get_kinematics());
 		//update_prediction_features(&tm, get_kinematics());
 
 		if (tm.control_mode == MODE_ADAPTIVE){
 			terrain_state_machine_demux(&tm, rigid, actx, get_predictor()->k_pred);
-		}else{
+		}
+		else if (tm.control_mode == MODE_HEURISTIC){
+				if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_US_THRESH &&
+						get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
+					terrain_state_machine_demux(&tm, rigid, actx, MODE_USTAIRS);
+				}
+				else if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_DS_THRESH &&
+						get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
+					terrain_state_machine_demux(&tm, rigid, actx, MODE_DSTAIRS);
+				}
+				else
+				{
+					terrain_state_machine_demux(&tm, rigid, actx, MODE_FLAT);
+				}
+			}else{
 			terrain_state_machine_demux(&tm, rigid, actx, tm.control_mode);
 		}
     	tm.elapsed_samples = tm.elapsed_samples + 1.0;
