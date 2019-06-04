@@ -250,9 +250,6 @@ void init_kinematics(){
     kin.foot_flat = 0;
     kin.foot_flat_counter = 1;
 
-    kin.inst_ground_slope_est = 0.0;
-    kin.inst_ground_slope_est_sum = 0.0;
-    kin.ground_slope_est = 0.0;
 }
 
 struct kinematics_s* get_kinematics(){

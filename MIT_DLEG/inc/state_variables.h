@@ -93,16 +93,18 @@ typedef struct act_s
     float jointVelDegrees;
     float jointAcc;
     float linkageMomentArm;
+    float linkageMomentArmRoman;
     float axialForce;		// actively used force measurement.
     float axialForceTF;		// calculated or transfer function force measurement
     float axialForceLC;		// load cell measurement
-    float axialForceAdj;
+    float axialForceRoman;
     float jointTorque;
     float jointTorqueLC;
-    float jointTorqueAdj;
+    float jointTorqueRoman;
     float tauMeas;          // torque contribution from series spring
     float tauDes;           // FSM des torque - tauMeas
     float screwLengthDelta;		// track deflection of spring
+    float screwLengthDeltaRoman;
     float linkageLengthNonLinearity;	// track difference in calculated and measured length
     float lastJointAngle;
     float lastJointVel;
@@ -111,7 +113,9 @@ typedef struct act_s
     float safetyTorqueScalar;	// Scalar value to reduce overall allowed torque generated.
 
     float c;				// calculated screw Length 	[mm]
-    float c0; 				// initial calculated screw length	[mm]
+    float croman;
+    float c0;
+    float c0roman;// initial calculated screw length	[mm]
     int32_t motorPosRaw;    	// motor position [counts]
     int32_t motorPos0;		// initial position of motor.[counts]
     int32_t motorPosDelta; 	// motor position expected [cnts]

@@ -564,6 +564,25 @@
 			return yvJA[2];
 
 		}
+
+		float filterJointAngleButterworth2(float inputVal)
+				{
+					#define NJAZEROS 2
+					#define NJAPOLES 2
+					#define BUTWRTH_FILT_GAIN_ANG   2.761148367e+02
+
+					static float xvJA[NJAZEROS+1], yvJA[NJAPOLES+1];
+
+					xvJA[0] = xvJA[1];
+					xvJA[1] = xvJA[2];
+					xvJA[2] = inputVal / ( (float)BUTWRTH_FILT_GAIN_ANG);
+					yvJA[0] = yvJA[1];
+					yvJA[1] = yvJA[2];
+					yvJA[2] = (xvJA[0] + xvJA[2]) + 2 * xvJA[1]
+							 + ( -0.8371816513 * yvJA[0]) + (  1.8226949252 * yvJA[1]);
+					return yvJA[2];
+
+				}
 	#endif //end 20Hz
 
 	#ifdef SOFT_FILTER_JOINTVEL_IIR_20HZ
