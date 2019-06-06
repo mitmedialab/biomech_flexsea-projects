@@ -212,9 +212,9 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
     case RUN_TASK_MACHINE:
 
 		update_ankle_dynamics(actx);
-		update_gait_events();
-		update_kinematics(&rigid->mn,&tm);
-		update_statistics_demux(&tm, get_kinematics());
+//		update_gait_events();
+//		update_kinematics(&rigid->mn,&tm);
+//		update_statistics_demux(&tm, get_kinematics());
 		
 
 //		if (tm.do_update_learner){
@@ -224,7 +224,7 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 
 		//predict_stask_demux(&tm, get_kinematics());
 
-		update_back_estimation_features(&tm, get_kinematics());
+//		update_back_estimation_features(&tm, get_kinematics());
 		//update_prediction_features(&tm, get_kinematics());
 
 		if (tm.control_mode == MODE_ADAPTIVE_WITH_LEARNING){

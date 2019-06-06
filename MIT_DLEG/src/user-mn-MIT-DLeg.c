@@ -158,7 +158,7 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 			user_data_1.w[3] = (int32_t)(get_control_params()->active.esw_theta_rad*SCALE_FACTOR_10000);
 			user_data_1.w[4] = (int32_t)(get_control_params()->active.sw_k_Nm_p_rad);
 			user_data_1.w[5] = (int32_t)(get_control_params()->active.sw_b_Nm_p_rps);
-			user_data_1.w[6] = (int32_t)(0);
+			user_data_1.w[6] = (int32_t)(act1.jointAngleOffset*10000);
 			user_data_1.w[7] = (int32_t)(0);
 			user_data_1.w[8] = (int32_t)(0);
 			user_data_1.w[9] = (int32_t)(0);
@@ -255,7 +255,9 @@ static void updateUserWrites(struct taskmachine_s* tm){
 			set_esw_theta_rad((float) user_data_1.w[3]/SCALE_FACTOR_10000);
 			set_sw_k_Nm_p_rad((float) user_data_1.w[4]);
 			set_sw_b_Nm_p_rps((float) user_data_1.w[5]);
-			enable_minimum_jerk((uint8_t) user_data_1.w[6]);
+			act1.jointAngleOffset = ((float) user_data_1.w[6])/SCALE_FACTOR_10000;
+			//act1.b = (float) user_data_1.w[6];
+			//enable_minimum_jerk((uint8_t) user_data_1.w[7]);
 
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL: //7
@@ -293,7 +295,7 @@ static void updateGenVars(struct taskmachine_s* tm){
 	int16_t guimode_controlmode_state_inswing = gui_mode*1000 + tm->control_mode*100 + get_walking_state()*10 + tm->in_swing;
 	rigid1.mn.genVar[0] = guimode_controlmode_state_inswing;
 	rigid1.mn.genVar[1] = (int16_t) (tm->tq*100.0);
-	rigid1.mn.genVar[2] = (int16_t) (tm->aa*SCALE_FACTOR_10000);
+	rigid1.mn.genVar[2] = (int16_t) (act1.jointAngle*SCALE_FACTOR_10000);
 
 	switch (gui_mode){
 		
@@ -324,11 +326,11 @@ static void updateGenVars(struct taskmachine_s* tm){
 	    break;
 		case GUI_MODE_SW_CONTROL_PARAMS: //6
 			rigid1.mn.genVar[3] = (int16_t) (get_control_params()->active.esw_theta_rad*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[4] = (int16_t)(act1.screwLengthDelta*100000.0);
-			rigid1.mn.genVar[5] = (int16_t)(act1.screwLengthDeltaRoman*100000.0);
-			rigid1.mn.genVar[6] = (int16_t) (act1.linkageMomentArm*100000.0);
-			rigid1.mn.genVar[7] = (int16_t) (act1.linkageMomentArmRoman*100000.0);
-			rigid1.mn.genVar[8] = (int16_t) (act1.jointTorque*100.0);
+			rigid1.mn.genVar[4] = (int16_t)(act1.screwLengthDelta*10000.0);
+			rigid1.mn.genVar[5] = (int16_t)(act1.screwLengthDeltaRoman*10000.0);
+			rigid1.mn.genVar[6] = (int16_t) (act1.jointAngleOffset*10000.0);
+			rigid1.mn.genVar[7] = (int16_t) ((act1.croman-act1.c0roman)*10.0);
+			rigid1.mn.genVar[8] = (int16_t) ( (act1.c-act1.c0)*10.0);
 			rigid1.mn.genVar[9] = (int16_t) (act1.jointTorqueRoman*100.0);
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL: //7

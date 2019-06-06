@@ -87,6 +87,7 @@ typedef struct{
 // Actuator structure to track sensor values, initially built for the TF08 style actuator
 typedef struct act_s
 {
+	float jointAngleOffset;
     float jointAngle;
     float jointAngleDegrees;
     float jointVel;
@@ -112,6 +113,7 @@ typedef struct act_s
     float jointTorqueRate;  // Joint torque rate
     float safetyTorqueScalar;	// Scalar value to reduce overall allowed torque generated.
 
+    float b;
     float c;				// calculated screw Length 	[mm]
     float croman;
     float c0;

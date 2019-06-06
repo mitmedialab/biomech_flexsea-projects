@@ -214,14 +214,14 @@ static float getAxialForceLC(struct act_s *actx, int8_t tare)
  */
 static float getLinkageMomentArmRoman(struct act_s *actx, float theta, int8_t tareState)
 {
+	float a = 43.86;
+	float b = 130.74;
+	float tf = 1.5156;
 
-	float a = MA_B;
-	float b = 129.0;
-	float alpha = 1.187;
-	float M = a*a + b*b - 2*a*b*cosf(alpha-fabs(theta));
+	float M = a*a + b*b - 2*a*b*cosf(M_PI - tf - theta);
 	actx->croman = sqrtf(M);
 	float L = b*b - a*a;
-	float projLength = sqrtf(a*a - ((M-L)*(M-L))/(4*M));
+	float projLength = sqrtf(a*a - ((M-L)*(M-L))/(4.0*M));
 
 
 
@@ -243,7 +243,7 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 //	static float deltaLengthMotorMeas = 0, deltaMotorCalc=0;
 //	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
 
-    CAng = M_PI - theta - (MA_TF); 	// angle
+    CAng = M_PI - theta - actx->jointAngleOffset - (MA_TF); 	// angle
 	c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
 
 	c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
@@ -251,9 +251,9 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
 
 
-	A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
+	A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_A*c) );
 
-	projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm.
+	projLength = (MA_A * sinf(A));	// [mm] project length, r (in docs) of moment arm.
 
     if (tareState == 1)
     {
@@ -261,10 +261,10 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
     	if (timerTare > 100)
     	{
 			c0 = actx->c;	// save initial length of actuator
-			c0roman = actx->croman;
+//			c0roman = actx->croman;
 			motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Initial Position [counts].
 			actx->c0 = c0;
-			actx->c0roman = c0roman;
+//			actx->c0roman = c0roman;
 			actx->motorPos0 = motorTheta0;
 
 			tareState = 0;
@@ -274,8 +274,8 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDeltaRoman = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (actx->croman-actx->c0roman) ) ) );	// [mm]
-    actx->screwLengthDelta = (  filterJointAngleButterworth2( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
+//    actx->screwLengthDeltaRoman = (float) ( MOTOR_DIRECTION*2.993159602325407e-04*( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) - 0.403564715559730 - (actx->croman-actx->c0roman));	// [mm]
+    actx->screwLengthDelta = (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) - (actx->c-actx->c0) ) ;	// [mm]
 
     //actx->screwLengthDelta =  (MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*(  (float) ( *rigid1.ex.enc_ang - actx->motorPos0) )  - c-actx->c0)/2.761148367e+02;	// [mm]
 
@@ -1616,15 +1616,15 @@ float torqueSystemIDPRBS(void)
 void updateSensorValues(struct act_s *actx)
 {
 	getJointAngleKinematic(actx);
-	actx->linkageMomentArmRoman = getLinkageMomentArmRoman(actx, actx->jointAngle, zeroLoadCell);
+//	actx->linkageMomentArmRoman = getLinkageMomentArmRoman(actx, actx->jointAngle, zeroLoadCell);
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
 
 	//actx->axialForceLC = getAxialForceLC(actx, zeroLoadCell); //filtering happening inside function
 	actx->axialForce = getAxialForceEncoderCalc(actx);
-	actx->axialForceRoman= getAxialForceEncoderCalcRoman(actx);
+//	actx->axialForceRoman= getAxialForceEncoderCalcRoman(actx);
 	actx->jointTorque = getJointTorque(actx);
-	actx->jointTorqueRoman = getJointTorqueRoman(actx);
+//	actx->jointTorqueRoman = getJointTorqueRoman(actx);
 
 	updateJointTorqueRate(actx);
 
