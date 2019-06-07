@@ -4,7 +4,7 @@
 
  //Gait event thresholds
 #define EXPECTED_SWING_TQ 0.0
-#define TRANSITION_TQ_THRESH 5.0
+#define TRANSITION_TQ_THRESH 10.0
 #define MIN_STANCE_TQ EXPECTED_SWING_TQ + TRANSITION_TQ_THRESH + 5.0
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 20
 #define PREDICTION_CUTOFF_SAMPLES 250
@@ -167,7 +167,7 @@ static void update_ankle_dynamics(Act_s* actx)
 
     tm.tq_dot = SAMPLE_RATE_HZ*(tm.tq - tm.tq_prev);
     tm.aa_dot = SAMPLE_RATE_HZ*(tm.aa - tm.aa_prev);
-//    tm.aa_dot_15hz_filt = filter_fourth_order_butter_5hz( tm.aa_dot, &aa_dot_outputs[0], &aa_dot_inputs[0]);
+   tm.aa_dot_15hz_filt = filter_fourth_order_butter_15hz( tm.aa_dot, &aa_dot_outputs[0], &aa_dot_inputs[0]);
 
     tm.power_w = tm.tq*tm.aa_dot;
     tm.net_work_j = tm.net_work_j + tm.power_w*SAMPLE_PERIOD_S;
