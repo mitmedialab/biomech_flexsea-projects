@@ -217,42 +217,33 @@ static float getAxialForceLC(struct act_s *actx, int8_t tare)
  */
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
-	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0;
+	static float c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0, cdiff;
 	static int32_t motorTheta0 = 0.0;
 	static int16_t timerTare = 0;
-//	static float deltaLengthMotorMeas = 0, deltaMotorCalc=0;
-//	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
 
-    CAng = M_PI - theta - (MA_TF); 	// angle
-	c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
-
-	c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
+	CAng = M_PI - theta - MA_TF; 	// angle
+	c2 = MA_B2PLUSA2 - MA_TWOAB*cosf(CAng);
+	c = sqrtf(c2);
+	cdiff = c2 - MA_B2MINUSA2;
+	projLength = sqrtf(MA_A_SQ - (cdiff*cdiff)/(4.0*c2));
 	actx->c = c;
-
-
-
-	A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
-
-	projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm.
 
     if (tareState == 1)
     {
     	timerTare++;
     	if (timerTare > 100)
     	{
-			c0 = c;	// save initial length of actuator
-			motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Initial Position [counts].
-			actx->c0 = c0;
-			actx->motorPos0 = motorTheta0;
+    		//actx->c0 = c;	// save initial length of actuator
+    		actx->motorPos0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Initial Position [counts].
+			actx->c0 = c;
 
 			tareState = 0;
 			timerTare = 0;
     	}
     }
-
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
+    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (actx->c-actx->c0) ) ) );	// [mm]
     //actx->screwLengthDelta =  (MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*(  (float) ( *rigid1.ex.enc_ang - actx->motorPos0) )  - c-actx->c0)/2.761148367e+02;	// [mm]
 
     //    filterTorqueEncButterworth
@@ -1584,21 +1575,10 @@ void updateSensorValues(struct act_s *actx)
 	getJointAngleKinematic(actx);
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
-
-	actx->axialForceLC = getAxialForceLC(actx, zeroLoadCell); //filtering happening inside function
-//	actx->axialForce = getAxialForceEncoderCalc(actx);
-	//actx->axialForceAdj = actx->axialForce*2.02+36.02;
-//	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
-
-
-//	actx->jointTorque = getJointTorque(actx);
-	actx->jointTorque = getJointTorqueLC(actx);
-//	actx->jointTorqueAdj = getJointTorqueAdj(actx);
-
+	actx->axialForce = getAxialForceEncoderCalc(actx);
+	actx->jointTorque = getJointTorque(actx);
 	updateJointTorqueRate(actx);
-
 	actx->motorPosRaw = *rigid1.ex.enc_ang;		// [counts]
-
 	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; // [rad]
 	actx->motorVel =  ( (float) *rigid1.ex.enc_ang_vel ) * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
