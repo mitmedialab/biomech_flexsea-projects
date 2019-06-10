@@ -102,6 +102,7 @@ typedef struct act_s
     float jointTorqueAdj;
     float tauMeas;          // torque contribution from series spring
     float tauDes;           // FSM des torque - tauMeas
+    float thetaDes;
     float screwLengthDelta;		// track deflection of spring
     float linkageLengthNonLinearity;	// track difference in calculated and measured length
     float lastJointAngle;
@@ -112,6 +113,7 @@ typedef struct act_s
 
     float c;				// calculated screw Length 	[mm]
     float c0; 				// initial calculated screw length	[mm]
+    float theta0;
     int32_t motorPosRaw;    	// motor position [counts]
     int32_t motorPos0;		// initial position of motor.[counts]
     int32_t motorPosDelta; 	// motor position expected [cnts]

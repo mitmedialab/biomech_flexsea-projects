@@ -4,7 +4,7 @@
 
  //Gait event thresholds
 #define EXPECTED_SWING_TQ 0.0
-#define TRANSITION_TQ_THRESH 10.0
+#define TRANSITION_TQ_THRESH 5.0
 #define MIN_STANCE_TQ EXPECTED_SWING_TQ + TRANSITION_TQ_THRESH + 5.0
 #define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 20
 #define PREDICTION_CUTOFF_SAMPLES 250
@@ -86,7 +86,7 @@ static void init_task_machine(){
 
 
 //Copied over from pil simulation
-static void update_gait_events(){
+static void update_gait_events(Act_s* actx){
 
     tm.gait_event_trigger = GAIT_EVENT_DEFAULT;
 
@@ -101,6 +101,9 @@ static void update_gait_events(){
           if(tm.elapsed_samples - tm.latest_foot_off_samples < MIN_GAIT_PHASE_SAMPLES){
           	  return;
           }
+
+          if (fabs(tm.aa - actx->thetaDes) > 0.05)
+        	  return;
 
             //Swing to stance transition condition
           if (fabs(EXPECTED_SWING_TQ - tm.tq) >= TRANSITION_TQ_THRESH ||
@@ -161,7 +164,7 @@ static void update_ankle_dynamics(Act_s* actx)
     tm.tq = tqraw; //for debug with no actuator
     tm.aa = aaraw;
 	#else
-    tm.tq = actx->jointTorque;
+    tm.tq = actx->jointTorqueLC;
     tm.aa = actx->jointAngle;
 	#endif
 
@@ -212,7 +215,7 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
     case RUN_TASK_MACHINE:
 
 		update_ankle_dynamics(actx);
-		update_gait_events();
+		update_gait_events(actx);
 		update_kinematics(&rigid->mn,&tm);
 		update_statistics_demux(&tm, get_kinematics());
 		

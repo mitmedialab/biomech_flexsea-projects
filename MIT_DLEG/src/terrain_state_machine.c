@@ -6,7 +6,8 @@
 
 
 static int state_machine_demux_state = STATE_EARLY_SWING;
-
+static float max_tq;
+static float tics_at_last_max_tq;
 
 static struct control_params_s cp;
 static struct minimum_jerk_values_s mj;
@@ -98,12 +99,14 @@ static void set_next_theta_for_minimum_jerk(Act_s* actx){
 }
 
 static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float scale_factor) {
-	actx->tauDes = scale_factor * (k * (des_theta - tm->aa) - b * tm->aa_dot );
+	actx->thetaDes = des_theta;
+	actx->tauDes = scale_factor * (k * (des_theta - tm->aa) - b * tm->aa_dot_15hz_filt );
 	setMotorTorque(actx, actx->tauDes);
 }
 
 static void set_joint_torque_with_hardstop(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float hs_theta, float hs_k, float scale_factor) {
-	actx->tauDes = scale_factor * (k * (des_theta - tm->aa) - b * tm->aa_dot  );
+	actx->thetaDes = des_theta;
+	actx->tauDes = scale_factor * (k * (des_theta - tm->aa) - b * tm->aa_dot_15hz_filt  );
 	if (tm->aa < hs_theta){
 		actx->tauDes = actx->tauDes - hs_k*(tm->aa - hs_theta);
 	}
@@ -375,21 +378,25 @@ switch (state_machine_demux_state){
     break;
     case STATE_EST:
     	if (on_entry){
-//    		if (terrain_mode == MODE_USTAIRS){
-//    			passed_first_torque_peak_for_stair_ascent = 0;
-//    			uint8_t passed_torque_dip_for_stair_ascent = 0;
-//    		}
+    		if (terrain_mode == MODE_USTAIRS){
+    			max_tq = -FLT_MAX;
+    			tics_at_last_max_tq = 0.0;
+    		}
     	}
-    	//TODO: come up with a way to handle the double powered plantarflexion needed in stair ascent.
-    	//might want to create a mid_stance period for controlled dorsi-flexion
-//    	if (terrain_mode == MODE_USTAIRS){
-//    		if ()
-//    	}
+    	if (terrain_mode == MODE_USTAIRS){
+    		if (actx->jointTorque > max_tq){
+    			max_tq = actx->jointTorque;
+    			tics_at_last_max_tq = tm->elapsed_samples;
+    		}
+    	}
 
         set_joint_torque_with_hardstop(actx, tm, stance_entry_theta_rad, cp.active.est_k_Nm_p_rad, cp.active.est_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad,1.0);
 
-       	if (actx->jointTorque > cp.active.lst_engagement_tq_Nm && actx->jointAngle < cp.active.hard_stop_theta_rad)
+       	if (actx->jointTorque > cp.active.lst_engagement_tq_Nm && actx->jointAngle < cp.active.hard_stop_theta_rad &&
+       		((terrain_mode != MODE_USTAIRS) || (terrain_mode == MODE_USTAIRS && tm->elapsed_samples - tics_at_last_max_tq > 300.0))){
        		state_machine_demux_state = STATE_LST;
+       	}
+
 
        	if (tm->in_swing){
        		state_machine_demux_state = STATE_ESW;

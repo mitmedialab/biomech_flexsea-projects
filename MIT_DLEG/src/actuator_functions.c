@@ -236,6 +236,7 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
     		//actx->c0 = c;	// save initial length of actuator
     		actx->motorPos0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Initial Position [counts].
 			actx->c0 = c;
+			actx->theta0 = theta;
 
 			tareState = 0;
 			timerTare = 0;
@@ -617,7 +618,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 //	//Angle Limit bumpers
 	actx->tauDes = tauDes;
 	float refTorque = tauDes + actuateAngleLimits(actx);
-	actx->tauMeas = actx->jointTorque;
+	actx->tauMeas = actx->jointTorqueLC;
 
 	// Feed Forward term
 //	tauFF = getFeedForwardTerm(refTorque); 	//
@@ -1576,7 +1577,9 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 	actx->axialForce = getAxialForceEncoderCalc(actx);
+	actx->axialForceLC = getAxialForceLC(actx, zeroLoadCell);
 	actx->jointTorque = getJointTorque(actx);
+	actx->jointTorqueLC = getJointTorqueLC(actx);
 	updateJointTorqueRate(actx);
 	actx->motorPosRaw = *rigid1.ex.enc_ang;		// [counts]
 	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; // [rad]
