@@ -164,7 +164,7 @@ static void update_ankle_dynamics(Act_s* actx)
     tm.tq = tqraw; //for debug with no actuator
     tm.aa = aaraw;
 	#else
-    tm.tq = actx->jointTorqueLC;
+    tm.tq = actx->jointTorque;
     tm.aa = actx->jointAngle;
 	#endif
 

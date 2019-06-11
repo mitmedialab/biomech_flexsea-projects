@@ -217,7 +217,7 @@ static float getAxialForceLC(struct act_s *actx, int8_t tare)
  */
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
-	static float c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0, cdiff;
+	static float c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0, cdiff, projLengthSq;
 	static int32_t motorTheta0 = 0.0;
 	static int16_t timerTare = 0;
 
@@ -225,7 +225,8 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 	c2 = MA_B2PLUSA2 - MA_TWOAB*cosf(CAng);
 	c = sqrtf(c2);
 	cdiff = c2 - MA_B2MINUSA2;
-	projLength = sqrtf(MA_A_SQ - (cdiff*cdiff)/(4.0*c2));
+	projLengthSq = MA_A_SQ - (cdiff*cdiff)/(4.0*c2);
+	projLength = sqrtf(projLengthSq);
 	actx->c = c;
 
     if (tareState == 1)
@@ -1577,9 +1578,7 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 	actx->axialForce = getAxialForceEncoderCalc(actx);
-	actx->axialForceLC = getAxialForceLC(actx, zeroLoadCell);
 	actx->jointTorque = getJointTorque(actx);
-	actx->jointTorqueLC = getJointTorqueLC(actx);
 	updateJointTorqueRate(actx);
 	actx->motorPosRaw = *rigid1.ex.enc_ang;		// [counts]
 	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; // [rad]
