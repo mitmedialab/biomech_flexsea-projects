@@ -265,6 +265,7 @@ static void updateUserWrites(struct taskmachine_s* tm){
 		case GUI_MODE_KINEMATICS2: //13
 		case GUI_MODE_FEATURES: //14
 		case GUI_MODE_SAFETY: //15
+		case GUI_MODE_PREDICTION_ACCURACY: //16
 			tm->do_update_learner = 0;
 			tm->control_mode = user_data_1.w[1];
 	    break;
@@ -391,12 +392,12 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[9] = (int16_t) (get_kinematics()->pAz*SCALE_FACTOR_10000);
 			break;
 	    case GUI_MODE_KINEMATICS2: //13
-			rigid1.mn.genVar[3] = (int16_t) (get_kinematics()->aOmegaX*100.0);
+			rigid1.mn.genVar[3] = (int16_t) ((get_kinematics()->rot3 - get_kinematics()->rot3prev)*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[4] = (int16_t) (get_task_machine()->aa_dot*100.0);
 			rigid1.mn.genVar[5] = (int16_t) (get_kinematics()->joint_vel_seg_vel_diff_sq*100.0);
 			rigid1.mn.genVar[6] = (int16_t) (get_kinematics()->accNormSq*100.0);
 			rigid1.mn.genVar[7] = (int16_t) (get_kinematics()->foot_flat);
-			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->curr_ground_slope_est*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[8] = (int16_t) (get_kinematics()->pAz*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->k_est);
 			break;
 	    case GUI_MODE_FEATURES: //14
@@ -424,6 +425,15 @@ static void updateGenVars(struct taskmachine_s* tm){
 			rigid1.mn.genVar[8] = safety12to14;
 			rigid1.mn.genVar[9] = (int16_t) (actuatorIsCorrect());
 	    }
+	    	break;
+	    case GUI_MODE_PREDICTION_ACCURACY: //16
+//	    	rigid1.mn.genVar[3] = (int16_t) (tm->);
+//			rigid1.mn.genVar[4] = (int16_t) (tm->latest_foot_off_samples);
+//			rigid1.mn.genVar[5] = (int16_t) (tm->do_learning_for_curr_stride);
+//			rigid1.mn.genVar[6] = (int16_t) (get_curr_features()->max[0]);
+//			rigid1.mn.genVar[7] = (int16_t) (get_curr_features()->min[1]);
+//			rigid1.mn.genVar[8] = (int16_t) (get_curr_features()->rng[2]);
+//			rigid1.mn.genVar[9] = (int16_t) (get_curr_features()->fin[3]);
 	    	break;
 	}
 }

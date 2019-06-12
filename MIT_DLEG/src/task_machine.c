@@ -40,8 +40,13 @@ static float ideal_net_work_j_per_kg[] = {FL_IDEAL_NET_WORK_J_PER_KG,UR_IDEAL_NE
 static float ideal_rom_rad[] = {FL_IDEAL_ROM_RAD,UR_IDEAL_ROM_RAD,DR_IDEAL_ROM_RAD,US_IDEAL_ROM_RAD,DS_IDEAL_ROM_RAD};
 static float ideal_heelstrike_angle_rad[] = {FL_IDEAL_FOOTSTRIKE_ANGLE_RAD,UR_IDEAL_FOOTSTRIKE_ANGLE_RAD,DR_IDEAL_FOOTSTRIKE_ANGLE_RAD,US_IDEAL_FOOTSTRIKE_ANGLE_RAD,DS_IDEAL_FOOTSTRIKE_ANGLE_RAD};
 
-static float aa_dot_outputs[] = {0,0,0,0,0};
-static float aa_dot_inputs[] = {0,0,0,0,0};
+static float aa_dot_15hz_filt_outputs[] = {0,0,0,0,0};
+static float aa_dot_15hz_filt_inputs[] = {0,0,0,0,0};
+
+static float tq_dot_outputs[] = {0,0,0};
+static float tq_dot_inputs[] = {0,0,0};
+static float aa_dot_outputs[] = {0,0,0};
+static float aa_dot_inputs[] = {0,0,0};
 
 //Copied from matlab pil simulation
 static void init_task_machine(){
@@ -168,9 +173,10 @@ static void update_ankle_dynamics(Act_s* actx)
     tm.aa = actx->jointAngle;
 	#endif
 
-    tm.tq_dot = SAMPLE_RATE_HZ*(tm.tq - tm.tq_prev);
-    tm.aa_dot = SAMPLE_RATE_HZ*(tm.aa - tm.aa_prev);
-   tm.aa_dot_15hz_filt = filter_fourth_order_butter_15hz( tm.aa_dot, &aa_dot_outputs[0], &aa_dot_inputs[0]);
+    tm.tq_dot = filter_second_order_butter_50hz(SAMPLE_RATE_HZ*(tm.tq - tm.tq_prev), &tq_dot_outputs[0], &tq_dot_inputs[0]);
+    tm.aa_dot = filter_second_order_butter_50hz(SAMPLE_RATE_HZ*(tm.aa - tm.aa_prev), &aa_dot_outputs[0], &aa_dot_inputs[0]);
+
+   tm.aa_dot_15hz_filt = filter_fourth_order_butter_15hz( tm.aa_dot, &aa_dot_15hz_filt_outputs[0], &aa_dot_15hz_filt_inputs[0]);
 
     tm.power_w = tm.tq*tm.aa_dot;
     tm.net_work_j = tm.net_work_j + tm.power_w*SAMPLE_PERIOD_S;
@@ -218,7 +224,7 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_gait_events(actx);
 		update_kinematics(&rigid->mn,&tm);
 		update_statistics_demux(&tm, get_kinematics());
-		
+
 
 //		if (tm.do_update_learner){
 //
@@ -229,7 +235,6 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 
 		update_back_estimation_features(&tm, get_kinematics());
 		//update_prediction_features(&tm, get_kinematics());
-
 		if (tm.control_mode == MODE_ADAPTIVE_WITH_LEARNING){
 			tm.current_terrain = get_predictor()->k_pred;
 		}

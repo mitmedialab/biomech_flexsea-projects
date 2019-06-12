@@ -26,8 +26,7 @@
 #define FILTD 0.00001
 
 //Other important values
-#define PI 3.14159
-#define RAD_PER_DEG_X_SAMPLE_RATE_HZ RAD_PER_DEG * SAMPLE_RATE_HZ
+#define PI 3.1415926536
 #define N_CLASSES 5
 
 //Copied from matlab pil simulation
