@@ -23,7 +23,7 @@
 
 
 //Foot static constants
-#define JOINT_VEL_SEG_VEL_DIFF_SQ_THRESH_R2PS2 0.2
+#define JOINT_VEL_SEG_VEL_DIFF_SQ_THRESH_R2PS2 1.0
 #define MIN_SAMPLES_FOR_FOOT_FLAT 10
 #define STATIC_ACC_NORM_TOL_MPS2 0.1
 #define GRAVITY_P_TOL (GRAVITY_MPS2 + STATIC_ACC_NORM_TOL_MPS2)
@@ -147,6 +147,9 @@ static void correct_accel_scaling(){
 }
 
 static void update_pose(struct taskmachine_s* tm){
+	update_integrals_and_derivatives();
+	update_rotation_matrix();
+	update_ankle_translations();
 
 	float segvel = (kin.rot3 - kin.rot3prev)*SAMPLE_RATE_HZ;
 	float joint_vel_seg_vel_diff = tm->aa_dot - segvel;
@@ -182,9 +185,7 @@ static void update_pose(struct taskmachine_s* tm){
 		reset_position_and_velocity(tm);
 	}
 
-	update_integrals_and_derivatives();
-	update_rotation_matrix();
-	update_ankle_translations();
+
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
 		reset_position_and_velocity(tm);
