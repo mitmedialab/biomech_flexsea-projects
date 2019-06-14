@@ -132,9 +132,9 @@ static void correct_gyro_bias(){
 
 static void correct_accel_scaling(){
 	kin.accNormSqRaw = kin.aAccX*kin.aAccX + kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
-	kin.meanaccNormSq = FILTA*kin.meanaccNormSq + FILTB*kin.accNormSq;
+	kin.meanaccNormSq = FILTA*kin.meanaccNormSq + FILTB*kin.accNormSqRaw;
 
-	if (fabs(kin.meanaccNormSq - kin.accNormSq) < MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING){
+	if (fabs(kin.meanaccNormSq - kin.accNormSqRaw) < MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING){
 		kin.accelQuietSamples = kin.accelQuietSamples + 1;
 	}else{
 		kin.accelQuietSamples = 0;
@@ -153,10 +153,11 @@ static void update_pose(struct taskmachine_s* tm){
 
 	float segvel = (kin.rot3 - kin.rot3prev)*SAMPLE_RATE_HZ;
 	float joint_vel_seg_vel_diff = tm->aa_dot - segvel;
-	float joint_vel_seg_vel_diff_sq = joint_vel_seg_vel_diff*joint_vel_seg_vel_diff;
-	kin.joint_vel_seg_vel_diff_sq = filter_fourth_order_butter_20hz(joint_vel_seg_vel_diff_sq,
-			&joint_vel_seg_vel_diff_sq_outputs[0], &joint_vel_seg_vel_diff_sq_inputs[0]);
-	kin.accNormSq = filter_fourth_order_butter_20hz(kin.accNormSqRaw, &accNormSq_outputs[0], &accNormSq_inputs[0]);
+	kin.joint_vel_seg_vel_diff_sq = joint_vel_seg_vel_diff*joint_vel_seg_vel_diff;
+//	kin.joint_vel_seg_vel_diff_sq = filter_fourth_order_butter_20hz(joint_vel_seg_vel_diff_sq_raw,
+//			&joint_vel_seg_vel_diff_sq_outputs[0], &joint_vel_seg_vel_diff_sq_inputs[0]);
+	kin.accNormSq = kin.accNormSqRaw;
+//	kin.accNormSq = filter_fourth_order_butter_20hz(kin.accNormSqRaw, &accNormSq_outputs[0], &accNormSq_inputs[0]);
 	kin.foot_flat = 0;
 	kin.rolling_over_foot = 0;
 	if (!tm->in_swing){

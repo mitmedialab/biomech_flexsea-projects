@@ -60,9 +60,17 @@ float filter_fourth_order_butter_20hz(float new_val, float* outputs, float* inpu
 		5.067998406396987*outputs[2] +
 		3.115966942846247*outputs[1] -
 		0.719910332588087*outputs[0] +
-		1.32937277559364e-05*(inputs[4]+inputs[0]) +
-		5.31749110237456e-05*(inputs[3]+inputs[1]) +
-		7.97623665356184e-05*inputs[2];
+		0.0000132937277559364*(inputs[4]+inputs[0]) +
+		0.0000531749110237456*(inputs[3]+inputs[1]) +
+		0.0000797623665356184*inputs[2];
+
+//	outputs[4] = 3.671729096494733*outputs[3] -
+//			5.067998406396987*outputs[2] +
+//			3.115966942846247*outputs[1] -
+//			0.719910332588087*outputs[0] +
+//			1.32937277559364e-05*(inputs[4]+inputs[0]) +
+//			5.31749110237456e-05*(inputs[3]+inputs[1]) +
+//			7.97623665356184e-05*inputs[2];
 }
 
 
