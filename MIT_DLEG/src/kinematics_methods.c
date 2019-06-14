@@ -151,8 +151,10 @@ static void update_pose(struct taskmachine_s* tm){
 	}
 	if (kin.foot_flat)
 		kin.foot_flat_counter = kin.foot_flat_counter + 1;
-	else
+	else{
 		kin.foot_flat_counter = 0;
+		kin.min_joint_vel_seg_vel_diff_sq = FLT_MAX;
+	}
 
 	if (kin.foot_flat_counter > MIN_SAMPLES_FOR_FOOT_FLAT){
 		if (kin.joint_vel_seg_vel_diff_sq < kin.min_joint_vel_seg_vel_diff_sq){
