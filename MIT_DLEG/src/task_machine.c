@@ -6,7 +6,6 @@
 #define EXPECTED_SWING_TQ 0.0
 #define TRANSITION_TQ_THRESH 5.0
 #define MIN_STANCE_TQ EXPECTED_SWING_TQ + TRANSITION_TQ_THRESH + 5.0
-#define MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION 20
 #define PREDICTION_CUTOFF_SAMPLES 250
 #define MAX_SWING_TQ_DOT_NM_HZ 100
 #define MIN_GAIT_PHASE_SAMPLES 250
@@ -64,8 +63,6 @@ static void init_task_machine(){
     tm.gait_event_trigger = 0;  
     tm.reset_back_estimator_trigger = 0;
 
-    tm.low_torque_counter = 0;
-
     tm.tq = 0.0;
     tm.tq_dot = 0.0;
     tm.aa = 0.0;
@@ -115,7 +112,6 @@ static void update_gait_events(Act_s* actx){
         		  fabs(tm.tq_dot) >= MAX_SWING_TQ_DOT_NM_HZ){
               tm.elapsed_samples = 0;
               tm.in_swing = 0;
-              tm.low_torque_counter = 0;
               tm.gait_event_trigger = GAIT_EVENT_FOOT_ON;
               tm.passed_min_stance_tq = 0;
           }
@@ -129,20 +125,14 @@ static void update_gait_events(Act_s* actx){
 		}
 
 
-          if (fabs(EXPECTED_SWING_TQ - tm.tq) < TRANSITION_TQ_THRESH &&
-        		  tm.passed_min_stance_tq)
-            tm.low_torque_counter = tm.low_torque_counter + 1;
-          else
-            tm.low_torque_counter = 0;
-
-          //Stance to swing transition condition
-          if (tm.low_torque_counter > MIN_LOW_TQ_SAMPLES_FOR_SWING_TRANSITION){
-            tm.in_swing = 1;
-            tm.latest_foot_off_samples = tm.elapsed_samples;
-            tm.do_learning_for_prev_stride = tm.do_learning_for_curr_stride;
-            tm.do_learning_for_curr_stride = 0;
-            tm.gait_event_trigger = GAIT_EVENT_FOOT_OFF;    
-          }
+		if (fabs(EXPECTED_SWING_TQ - tm.tq) < TRANSITION_TQ_THRESH &&
+		  tm.passed_min_stance_tq){
+			tm.in_swing = 1;
+			tm.latest_foot_off_samples = tm.elapsed_samples;
+			tm.do_learning_for_prev_stride = tm.do_learning_for_curr_stride;
+			tm.do_learning_for_curr_stride = 0;
+			tm.gait_event_trigger = GAIT_EVENT_FOOT_OFF;
+		}
       }
 
 }

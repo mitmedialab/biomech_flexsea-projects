@@ -17,14 +17,14 @@
 #define ACCEL_MPS2_PER_LSB  (GRAVITY_MPS2 / ACCEL_LSB_PER_G)
 #define N_ACCEL_MPS2_PER_LSB (-1.0*ACCEL_MPS2_PER_LSB)
 #define GYRO_RPS_PER_LSB (RAD_PER_DEG / GYRO_LSB_PER_DPS)
-#define MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING 1.0
+#define MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING 2.0
 #define MIN_ACCEL_QUIET_SAMPLES_FOR_RESCALING 1000
 #define PAZ_MAX 1.0
 
 
 //Foot static constants
-#define JOINT_VEL_SEG_VEL_DIFF_SQ_THRESH_R2PS2 1.0
-#define MIN_SAMPLES_FOR_FOOT_FLAT 10
+#define JOINT_VEL_SEG_VEL_DIFF_SQ_THRESH_R2PS2 1.5
+#define MIN_SAMPLES_FOR_FOOT_FLAT 20
 #define STATIC_ACC_NORM_TOL_MPS2 0.1
 #define GRAVITY_P_TOL (GRAVITY_MPS2 + STATIC_ACC_NORM_TOL_MPS2)
 #define GRAVITY_M_TOL (GRAVITY_MPS2 - STATIC_ACC_NORM_TOL_MPS2)
@@ -36,18 +36,12 @@
 
 static float daOmegaX_inputs[] = {0,0};
 static float daOmegaX_outputs[] = {0,0};
-static float aOmegaX_inputs[] = {0,0};
-static float aOmegaX_outputs[] = {0,0};
 static float aAccX_inputs[] = {0,0};
 static float aAccX_outputs[] = {0,0};
 static float aAccY_inputs[] = {0,0};
 static float aAccY_outputs[] = {0,0};
 static float aAccZ_inputs[] = {0,0};
 static float aAccZ_outputs[] = {0,0};
-static float accNormSq_inputs[] = {0,0,0,0,0};
-static float accNormSq_outputs[] = {0,0,0,0,0};
-static float joint_vel_seg_vel_diff_sq_inputs[] = {0,0,0,0,0};
-static float joint_vel_seg_vel_diff_sq_outputs[] = {0,0,0,0,0};
 
 static struct kinematics_s kin;
 
@@ -61,22 +55,10 @@ static void reset_position_and_velocity(struct taskmachine_s* tm){
     kin.latest_foot_static_samples = tm->elapsed_samples;
 }
 
-//static void reset_integrals(){
-//    kin.iaOmegaX = 0.0;
-//    kin.iaAccY = 0.0;
-//    kin.iaAccZ = 0.0;
-//}
-
 static void correct_orientation(){
-
-	float g2_minus_aAccY2 = GRAVITY_SQ - kin.aAccY*kin.aAccY;
-	if (g2_minus_aAccY2 < 0.0){
-		g2_minus_aAccY2 = 0.0;
-	}
-	float costheta = sqrtf(g2_minus_aAccY2)*GRAVITY_RECIP;
 	float sintheta = kin.aAccY*GRAVITY_RECIP;
-	kin.rot1 = 0.99*kin.rot1 + 0.01*costheta;
-	kin.rot3 = 0.99*kin.rot3 + 0.01*sintheta;
+	kin.rot3 = 0.98*kin.rot3 + 0.02*sintheta;
+	kin.rot1 = sqrtf(1.0-(kin.rot3*kin.rot3));
 }
 
 static void update_rotation_matrix(){
@@ -121,20 +103,15 @@ static void update_acc( struct fx_rigid_mn_s* mn){
 
 static void update_omega(struct fx_rigid_mn_s* mn){
 	kin.aOmegaXprev = kin.aOmegaX;
-	kin.aOmegaX =  filter_first_order_butter_20hz(GYRO_RPS_PER_LSB * (float) mn->gyro.x + kin.aOmegaXbias, &aOmegaX_outputs[0], &aOmegaX_inputs[0]);
-}
-
-static void correct_gyro_bias(){
 	kin.aOmegaXbias = FILTC*kin.aOmegaXbias - FILTD*kin.aOmegaX;
+	kin.aOmegaX =  GYRO_RPS_PER_LSB * (float) mn->gyro.x + kin.aOmegaXbias;
 }
-
-
 
 static void correct_accel_scaling(){
-	kin.accNormSqRaw = kin.aAccX*kin.aAccX + kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
-	kin.meanaccNormSq = FILTA*kin.meanaccNormSq + FILTB*kin.accNormSqRaw;
+	kin.accNormSq = kin.aAccX*kin.aAccX + kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
+	kin.meanaccNormSq = FILTA*kin.meanaccNormSq + FILTB*kin.accNormSq;
 
-	if (fabs(kin.meanaccNormSq - kin.accNormSqRaw) < MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING){
+	if (fabs(kin.meanaccNormSq - kin.accNormSq) < MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING){
 		kin.accelQuietSamples = kin.accelQuietSamples + 1;
 	}else{
 		kin.accelQuietSamples = 0;
@@ -150,14 +127,9 @@ static void update_pose(struct taskmachine_s* tm){
 	update_integrals_and_derivatives();
 	update_rotation_matrix();
 	update_ankle_translations();
-
-	float segvel = (kin.rot3 - kin.rot3prev)*SAMPLE_RATE_HZ;
-	float joint_vel_seg_vel_diff = tm->aa_dot - segvel;
+	float joint_vel_seg_vel_diff = tm->aa_dot - kin.aOmegaX;
 	kin.joint_vel_seg_vel_diff_sq = joint_vel_seg_vel_diff*joint_vel_seg_vel_diff;
-//	kin.joint_vel_seg_vel_diff_sq = filter_fourth_order_butter_20hz(joint_vel_seg_vel_diff_sq_raw,
-//			&joint_vel_seg_vel_diff_sq_outputs[0], &joint_vel_seg_vel_diff_sq_inputs[0]);
-	kin.accNormSq = kin.accNormSqRaw;
-//	kin.accNormSq = filter_fourth_order_butter_20hz(kin.accNormSqRaw, &accNormSq_outputs[0], &accNormSq_inputs[0]);
+
 	kin.foot_flat = 0;
 	kin.rolling_over_foot = 0;
 	if (!tm->in_swing){
@@ -183,7 +155,10 @@ static void update_pose(struct taskmachine_s* tm){
 		kin.foot_flat_counter = 0;
 
 	if (kin.foot_flat_counter > MIN_SAMPLES_FOR_FOOT_FLAT){
-		reset_position_and_velocity(tm);
+		if (kin.joint_vel_seg_vel_diff_sq < kin.min_joint_vel_seg_vel_diff_sq){
+			kin.min_joint_vel_seg_vel_diff_sq = kin.joint_vel_seg_vel_diff_sq;
+			reset_position_and_velocity(tm);
+		}
 	}
 
 
@@ -192,6 +167,7 @@ static void update_pose(struct taskmachine_s* tm){
 		reset_position_and_velocity(tm);
 		 kin.roll_over_counter = 1;
 		kin.ground_slope_est_sum = 0.0;
+		kin.min_joint_vel_seg_vel_diff_sq = FLT_MAX;
 	}
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
@@ -209,7 +185,6 @@ void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm){
 
 	update_acc(mn);
 	update_omega(mn);
-	correct_gyro_bias();
 	correct_accel_scaling();
 	update_pose(tm);
 
@@ -242,7 +217,6 @@ void init_kinematics(){
     kin.accelQuietSamples = 0;
     kin.meanaccNormSq = 0.0;
     kin.accNormSq = 0.0;
-    kin.accNormSqRaw = 0.0;
     kin.rolling_over_foot = 0;
     kin.roll_over_counter = 1;
     kin.ground_slope_est_sum = 0.0;

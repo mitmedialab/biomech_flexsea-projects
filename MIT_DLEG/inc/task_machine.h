@@ -49,8 +49,6 @@ struct taskmachine_s
     uint8_t gait_event_trigger;  
     uint8_t reset_back_estimator_trigger;
 
-    int low_torque_counter;
-
     float tq;
     float tq_dot;
     float aa;
