@@ -62,6 +62,7 @@ static void init_task_machine(){
 
     tm.gait_event_trigger = 0;  
     tm.reset_back_estimator_trigger = 0;
+    tm.stride_classified = 0;
 
     tm.tq = 0.0;
     tm.tq_dot = 0.0;
@@ -132,6 +133,7 @@ static void update_gait_events(Act_s* actx){
 			tm.do_learning_for_prev_stride = tm.do_learning_for_curr_stride;
 			tm.do_learning_for_curr_stride = 0;
 			tm.gait_event_trigger = GAIT_EVENT_FOOT_OFF;
+			tm.stride_classified = 0;
 		}
       }
 
@@ -216,15 +218,15 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_statistics_demux(&tm, get_kinematics());
 
 
-//		if (tm.do_update_learner){
-//
-//			update_learner_demux();
-//		}
+		if (tm.do_update_learner){
 
-		//predict_stask_demux(&tm, get_kinematics());
+			update_learner_demux();
+		}
+
+		predict_task_demux(&tm, get_kinematics());
 
 		update_back_estimation_features(&tm, get_kinematics());
-		//update_prediction_features(&tm, get_kinematics());
+		update_prediction_features(&tm, get_kinematics());
 		if (tm.control_mode == MODE_ADAPTIVE_WITH_LEARNING){
 			tm.current_terrain = get_predictor()->k_pred;
 		}

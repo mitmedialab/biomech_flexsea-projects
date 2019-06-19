@@ -48,6 +48,7 @@ struct taskmachine_s
 
     uint8_t gait_event_trigger;  
     uint8_t reset_back_estimator_trigger;
+    uint8_t stride_classified;
 
     float tq;
     float tq_dot;

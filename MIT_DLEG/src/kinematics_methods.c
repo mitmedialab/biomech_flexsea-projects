@@ -34,8 +34,6 @@
 #define MIN_ROLL_OVER_PITCH -0.25
 #define TQ_DOT_THRESH_NM_HZ 50
 
-static float daOmegaX_inputs[] = {0,0};
-static float daOmegaX_outputs[] = {0,0};
 static float aAccX_inputs[] = {0,0};
 static float aAccX_outputs[] = {0,0};
 static float aAccY_inputs[] = {0,0};
@@ -69,17 +67,12 @@ static void update_rotation_matrix(){
 
 }
 
-
-static void update_integrals_and_derivatives(){
-	kin.daOmegaX =  filter_first_order_butter_20hz(SAMPLE_RATE_HZ*(kin.aOmegaX - kin.aOmegaXprev), &daOmegaX_outputs[0], &daOmegaX_inputs[0]);
-}
-
 static void update_ankle_translations(){
 	
 	if (fabs(kin.pAz) < PAZ_MAX){
 		float aOmegaXSquared = kin.aOmegaX*kin.aOmegaX;
-		float SaAy = kin.aAccY - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Y_M - kin.daOmegaX*ANKLE_POS_IMU_FRAME_Z_M;
-		float SaAz = kin.aAccZ - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Z_M + kin.daOmegaX*ANKLE_POS_IMU_FRAME_Y_M;
+		float SaAy = kin.aAccY - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Y_M - kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_POS_IMU_FRAME_Z_M;
+		float SaAz = kin.aAccZ - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Z_M + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_POS_IMU_FRAME_Y_M;
 
 		kin.aAy = kin.rot1*SaAy - kin.rot3*SaAz;
 		kin.aAz = kin.rot3*SaAy + kin.rot1*SaAz - GRAVITY_MPS2;
@@ -105,6 +98,8 @@ static void update_omega(struct fx_rigid_mn_s* mn){
 	kin.aOmegaXprev = kin.aOmegaX;
 	kin.aOmegaXbias = FILTC*kin.aOmegaXbias - FILTD*kin.aOmegaX;
 	kin.aOmegaX =  GYRO_RPS_PER_LSB * (float) mn->gyro.x + kin.aOmegaXbias;
+	kin.daOmegaX =  kin.aOmegaX - kin.aOmegaXprev;
+
 }
 
 static void correct_accel_scaling(){
@@ -124,7 +119,6 @@ static void correct_accel_scaling(){
 }
 
 static void update_pose(struct taskmachine_s* tm){
-	update_integrals_and_derivatives();
 	update_rotation_matrix();
 	update_ankle_translations();
 	float joint_vel_seg_vel_diff = tm->aa_dot - kin.aOmegaX;
@@ -153,14 +147,10 @@ static void update_pose(struct taskmachine_s* tm){
 		kin.foot_flat_counter = kin.foot_flat_counter + 1;
 	else{
 		kin.foot_flat_counter = 0;
-		kin.min_joint_vel_seg_vel_diff_sq = FLT_MAX;
 	}
 
 	if (kin.foot_flat_counter > MIN_SAMPLES_FOR_FOOT_FLAT){
-		if (kin.joint_vel_seg_vel_diff_sq < kin.min_joint_vel_seg_vel_diff_sq){
-			kin.min_joint_vel_seg_vel_diff_sq = kin.joint_vel_seg_vel_diff_sq;
-			reset_position_and_velocity(tm);
-		}
+		reset_position_and_velocity(tm);
 	}
 
 

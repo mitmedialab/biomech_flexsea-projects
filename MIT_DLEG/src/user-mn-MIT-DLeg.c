@@ -192,6 +192,8 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 	    	user_data_1.w[6] =  (int32_t) (get_back_estimator()->ur_slope_thresh_rad*10000.0);
 	    	user_data_1.w[7] =  (int32_t) (get_back_estimator()->dr_slope_thresh_rad*10000.0);
 			break;
+	    case GUI_MODE_TASK_MACHINE: //17
+	    	break;
 	}
 		
 }
@@ -283,6 +285,12 @@ static void updateUserWrites(struct taskmachine_s* tm){
 			set_ur_slope_thresh_rad(((float)user_data_1.w[6])/10000.0);
 			set_dr_slope_thresh_rad(((float)user_data_1.w[7])/10000.0);
 			break;
+	    case GUI_MODE_TASK_MACHINE: //17
+	    	tm->do_update_learner = 0;
+	    	tm->control_mode = MODE_ADAPTIVE_WITH_LEARNING;
+	    	break;
+
+
 
 	}
 
