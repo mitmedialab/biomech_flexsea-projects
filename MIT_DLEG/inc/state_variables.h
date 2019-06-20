@@ -14,13 +14,19 @@ extern "C" {
 //0. Update ./flexsea-projects/inc/User-mn.h to specify ACTIVE_SUBPROJECT
 
 //1. Select joint type
-//#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
+
+#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
 //#define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this if using Knee, ankle is slave
-#define IS_ACTUATOR_TESTING 		// Used when testing actuators, ie manually setting impedance values
+//#define IS_ACTUATOR_TESTING 		// Used when testing actuators, ie manually setting impedance values
 //#define IS_SWEEP_TEST
 //#define IS_SWEEP_CHIRP_TEST			// For system ID experiments.
 
-//2. Select device
+//2. Set Subproject if necessary.
+// go to ../inc/user-mn.h
+// set SUBPROJECT_A <- Don't forget to set this if using Ankle alone, or set for Knee when using an Ankle, This is Master
+// set SUBPROJECT_B <- Don't forget to set this for the ankle if using Knee, ankle is slave
+
+//3. Select device
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
 //#define DEVICE_TF08_A02		// Define specific actuator configuration. Knee 01
 #define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
@@ -30,12 +36,13 @@ extern "C" {
 //#define DEVICE_M16			// Standalone motor for testbench
 //#define DEVICE_M23			// Standalone motor for testbench
 
-// 3. Turn off things if necessary.
+
+// 4. Turn off things if necessary.
 //#define NO_DEVICE				// use if not connected to an actuator or any hardware. Note to get Device ID use getDeviceIdIncrementing()
 //#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
 //#define NO_POWER				// testing control signals, do not use setMotorcurrent()
 
-//4. Select peripheral options
+//5. Select peripheral options
 //#define USE_EMG
 
 //****************************************************************************

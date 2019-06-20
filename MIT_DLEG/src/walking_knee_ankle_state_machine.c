@@ -21,21 +21,22 @@ CubicSpline cubicSpline;
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-GainParams ankleGainsEst = {1.5, 0.0, 0.01, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsMst = {1.5, 0.0, 0.01, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsLst = {4.0, 0.0, 0.01, 14.0};
-GainParams ankleGainsEsw = {1.0, 0.0, 0.015, -5.0};
-GainParams ankleGainsLsw = {1.0, 0.0,  0.015, -5.0};
+GainParams ankleGainsEst = {2.5, 0.0, 0.15, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsMst = {2.5, 0.0, 0.15, 0.0};	// may want to increase this damping, at least.
+GainParams ankleGainsLst = {4.0, 0.0, 0.12, 1.0};
+GainParams ankleGainsEsw = {1.5, 0.0, 0.15, 0.0};
+GainParams ankleGainsLsw = {1.5, 0.0, 0.15, 0.0};
+
 GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
 float splineTime = 100.0;
 
 //Knee, Positive Knee Flexion
-GainParams kneeGainsEst = {2.5, 0.0, 0.02, 10.0};
-GainParams kneeGainsMst = {3.5, 0.0, 0.02, 10.0};
-GainParams kneeGainsLst = {2.5, 0.0, 0.02, 15.0};
-GainParams kneeGainsEsw = {1.5, 0.0, 0.02, 50.0};
-GainParams kneeGainsLsw = {1.5, 0.0, 0.02, 50.0};
+GainParams kneeGainsEst = {2.5, 0.0, 0.15, 10.0};
+GainParams kneeGainsMst = {2.5, 0.0, 0.15, 10.0};	// {2.5, 0.0, 0.1, 10.0};
+GainParams kneeGainsLst = {1.0, 0.0, 0.15, 30.0};	// {2.5, 0.0, 0.1, 15.0};
+GainParams kneeGainsEsw = {2.5, 0.0, 0.15, 30.0}; // GainParams kneeGainsEsw = {1.5, 0.0, 0.1, 50.0};
+GainParams kneeGainsLsw = {2.5, 0.0, 0.15, 10.0};
 
 
 
@@ -63,15 +64,27 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
     static int8_t passedStanceThresh = 0;
 
     ankleGainsMst = ankleGainsEst;
-    ankleGainsLsw = ankleGainsEsw;
+//    ankleGainsLsw = ankleGainsEsw;
+    ankleGainsLsw.k1 = ankleGainsEsw.k1;
+
+    kneeGainsMst = kneeGainsEst;
+//    kneeGainsLsw = kneeGainsEst;
+
 
     kneeAnkleStateMachine.onEntrySlaveSmState = kneeAnkleStateMachine.slaveCurrentState; // save the state on entry, assigned to last_currentState on exit
 
-    //TODO: See if this is reasonable, change state to slave state, unless in early swing. In that case only switch when local state decides to change
-//    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING)
-//    {
-//    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
-//    }
+	#ifdef IS_KNEE
+		//TODO: See if this is reasonable, change state to slave state, unless in early swing. In that case only switch when local state decides to change
+	    if (kneeAnkleStateMachine.currentState == STATE_EARLY_SWING  || kneeAnkleStateMachine.currentState == STATE_LATE_SWING)
+	    {
+//	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
+	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.currentState;
+	    	// do nothing, stay in current state.
+	    } else
+	    {
+	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
+	    }
+	#endif
 
     kneeAnkleStateMachine.onEntrySmState = kneeAnkleStateMachine.currentState; // save the state on entry, assigned to last_currentState on exit
 
@@ -141,7 +154,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 			break;
         }
-        case STATE_MID_STANCE:
+        case STATE_MID_STANCE: //1
         {
 			if (isTransitioning) {
 
@@ -192,7 +205,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
             break;
         }
-        case STATE_EARLY_SWING:
+        case STATE_EARLY_SWING: //3
         {
 			//Put anything you want to run ONCE during state entry.
 			if (isTransitioning) {
@@ -204,13 +217,14 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 			#ifdef IS_ANKLE
 				// Cubic Spline NOT WORKING; UNTESTED
-				calcCubicSpline(&cubicSpline);
+//				calcCubicSpline(&cubicSpline);
 //				ankleGainsEsw.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 //				rigid1.mn.genVar[9] = (int16_t) (getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, cubicSpline.Y)*100.0); //new thetaDes after cubic spline
 
 				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
 
-				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes || timeInState >= ESW_TO_LSW_DELAY)
+				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes && timeInState >= ESW_TO_LSW_DELAY)
+//				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes || timeInState >= ESW_TO_LSW_DELAY)
 //				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes)
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
@@ -219,8 +233,10 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			#elif defined(IS_KNEE)
 				actx->tauDes = getImpedanceTorque(actx, kneeGainsEsw.k1, kneeGainsEsw.b, kneeGainsEsw.thetaDes);
 
-				// This State is different, Knee decides on its own when to transition to STATE_LATE_SWING
-				if(actx->jointVelDegrees < 0 )
+				// This State is different, Knee decides on its own when to transition to STATE_LATE_SWING,
+				// waits for knee to reach max flexion, then switches to late
+//				if( (actx->jointVelDegrees <= 0) || (actx->jointAngleDegrees >= kneeGainsEsw.thetaDes) )
+				if(  (actx->jointAngleDegrees >= kneeGainsEsw.thetaDes)   )
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
 				}
@@ -235,7 +251,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 			break; // case STATE_EARLY_SWING
         }
-		case STATE_LATE_SWING:
+		case STATE_LATE_SWING: //4
 		{
 			if (isTransitioning) {
 				ankleWalkParams.transitionId = 0;
@@ -277,10 +293,12 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				}
 				//------------------------- END OF TRANSITION VECTORS ------------------------//
 			#elif defined(IS_KNEE)
-				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, kneeGainsLsw.thetaDes);
+				float angleTracking = actx->jointAngleDegrees;
+				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, angleTracking);
+//				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, kneeGainsLsw.thetaDes);
 				if(timeInState > LSW_TO_EST_DELAY)
 				{
-					if (actx->jointAngleDegrees <= kneeGainsLsw.thetaDes + 1.0)
+					if ( (actx->jointAngleDegrees <= kneeGainsLsw.thetaDes) || (kneeAnkleStateMachine.onEntrySlaveSmState == STATE_EARLY_STANCE) )
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 					}

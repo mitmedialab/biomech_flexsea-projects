@@ -41,6 +41,7 @@
 int8_t 	findPoles(void);
 void   	mitInitCurrentController(void);
 void	mitInitOpenController(void);
+void mitInitPositionController(void);
 
 
 // Sensor values
