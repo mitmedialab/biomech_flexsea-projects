@@ -220,18 +220,17 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0;
 	static int32_t motorTheta0 = 0.0;
 	static int16_t timerTare = 0;
-//	static float deltaLengthMotorMeas = 0, deltaMotorCalc=0;
-//	static float screwTravelPerMotorCnt = (float) (L_SCREW/MOTOR_COUNTS_PER_REVOLUTION);
+
 
 	CAng = M_PI - theta - (MA_TF); 	// angle
-    c2 = MA_A2B2 - MA_TWOAB* cosf(CAng);
-
+	c2 = MA_B2PLUSA2 - MA_TWOAB* cosf(CAng);
     c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
+
+//    A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) ); //Don't need, this, sqrt is faster than sin(acos())
+//    projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm. sqrt is faster calc
+
+    projLength = MA_B * sqrtf( 1 - ( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c)  );
     actx->c = c;
-
-    A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
-
-    projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm.
 
     if (tareState == 1)
     {
@@ -251,8 +250,7 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
     actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
-//    filterTorqueEncButterworth
-//    filterJointAngleButterworth
+
     return projLength/1000.; // [m] output is in meters
 
 }
