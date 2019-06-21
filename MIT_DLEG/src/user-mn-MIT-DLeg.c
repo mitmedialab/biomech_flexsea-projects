@@ -62,6 +62,7 @@ uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
 	float inputK 		= 0.0;
 	float inputB 		= 0.0;
 	float inputTorq 	= 0.0;
+	float manualInput	= 0.0;
 	int8_t currentOrVoltage = 0;
 #elif defined(IS_SWEEP_TEST) || defined(IS_SWEEP_CHIRP_TEST)
 	float freq									= 0.0;
@@ -416,7 +417,7 @@ void updateGenVarOutputs(Act_s *actx)
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*100.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
 	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
-	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.mot_current); //(rigid1.ex.strain);
+	  rigid1.mn.genVar[5] = (int16_t) (act1.screwLengthDelta*100.0); //(rigid1.ex.strain);
 	  rigid1.mn.genVar[6] = (int16_t) (act1.axialForceLC); //(rigid1.ex.mot_volt);	// mA
 	  rigid1.mn.genVar[7] = (int16_t) (act1.axialForce); //(*rigid1.ex.enc_ang);		// mV, //getDeviceIdIncrementing() ;
 	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(rigid2.ex.mot_current);			// mA
@@ -491,6 +492,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams){
 		torqueKd								= ( (float) user_data_1.w[5] ) /1000.0;
 		inputTorq								= ( (float) user_data_1.w[6] ) /100.0;
 		errorKi									= ( (float) user_data_1.w[7] ) /1000.0;
+		manualInput								= ( (float) user_data_1.w[8] ) /1000000.0;
 	#elif defined(IS_SWEEP_TEST)
 		begin									= ( (int8_t) user_data_1.w[0] ) ;
 		freq									= ( (float) user_data_1.w[1] ) /100.0;
