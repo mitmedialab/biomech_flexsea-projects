@@ -12,14 +12,19 @@
 #define US_Z_EARLY_MAX_SAMPLES 200
 #define DS_Z_EARLY_MAX_SAMPLES 200
 #define US_Z_EARLY_THRESH_M 0.2
-#define DS_Z_EARLY_THRESH_M -0.1
+#define DS_Z_EARLY_THRESH_M -0.04
 #define US_Z_MAX_SAMPLES 300
 #define DS_Z_MAX_SAMPLES 500
 #define US_Z_THRESH_M 0.3
 #define DS_Z_THRESH_M -0.2
 #define MAX_STANCE_SAMPLES 1500
 #define UR_GROUND_SLOPE_THRESH_RAD -0.05
-#define DR_GROUND_SLOPE_THRESH_RAD 0.04
+#define DR_GROUND_SLOPE_THRESH_RAD 0.05
+#ifdef POLETEST
+#define TORQUE_RANGE_THRESH 10.0
+#else
+#define TORQUE_RANGE_THRESH 60.0
+#endif
 
 
 static struct back_estimator_s be;
@@ -31,7 +36,8 @@ void back_estimate(struct taskmachine_s* tm, struct statistics_s* stats, struct 
 
 	stats->k_est = K_FLAT; 
 
-	if (tm->elapsed_samples > MAX_STANCE_SAMPLES){
+	if (tm->elapsed_samples > MAX_STANCE_SAMPLES ||
+			be.prev_torque_range < TORQUE_RANGE_THRESH){
 		return;
 	}
 
@@ -76,11 +82,20 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
 	    be.prev_stride_paz_thresh_status =  be.curr_stride_paz_thresh_status;
 	    be.prev_stride_paz_thresh_pass_samples = be.curr_stride_paz_thresh_pass_samples;
+	    be.prev_stance_samples = tm->latest_foot_off_samples;
+	    be.prev_torque_range = be.max_torque - be.min_torque;
+	    be.max_torque = -FLT_MAX;
+	    be.min_torque = FLT_MAX;
 	        
 	}
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
 	    be.curr_stride_paz_thresh_status = PAZ_PASSED_NO_THRESH;
+	}
+
+	if (!tm->in_swing){
+		be.max_torque = MAX(be.max_torque, tm->tq);
+		be.min_torque = MIN(be.min_torque, tm->tq);
 	}
 
 }

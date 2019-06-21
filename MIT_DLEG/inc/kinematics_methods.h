@@ -52,7 +52,6 @@ struct kinematics_s
 
 
     float joint_vel_seg_vel_diff_sq;
-    float min_joint_vel_seg_vel_diff_sq;
     float latest_foot_static_samples;
 
     uint8_t foot_flat;

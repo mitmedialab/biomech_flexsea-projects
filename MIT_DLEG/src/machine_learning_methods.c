@@ -5,14 +5,14 @@
 
  //Machine learning (copied from matlab pil)
 #define N_PREDICTION_SIGNALS 5
-#define N_PREDICTION_FEATURES 4
+#define N_PREDICTION_FEATURES 2
 #define N_FEATURES (N_PREDICTION_SIGNALS * N_PREDICTION_FEATURES)
 #define N_FEATURES_SQ (N_FEATURES * N_FEATURES)
 
-#define MAX_FEATURES_START_IND 0
-#define MIN_FEATURES_START_IND (N_PREDICTION_SIGNALS*1)
-#define RNG_FEATURES_START_IND (N_PREDICTION_SIGNALS*2)
-#define FIN_FEATURES_START_IND (N_PREDICTION_SIGNALS*3)
+#define RNG_FEATURES_START_IND 0
+#define FIN_FEATURES_START_IND (N_PREDICTION_SIGNALS*1)
+#define MAX_FEATURES_START_IND (N_PREDICTION_SIGNALS*2)
+#define MIN_FEATURES_START_IND (N_PREDICTION_SIGNALS*3)
 
 
 
@@ -26,13 +26,13 @@ static struct features_s prevfeats;
 
 static void update_class_sum(){
   int ind = stats.k_est*N_FEATURES;
-  int ind_max = ind+MAX_FEATURES_START_IND;
-  int ind_min = ind+MIN_FEATURES_START_IND;
+//  int ind_max = ind+MAX_FEATURES_START_IND;
+//  int ind_min = ind+MIN_FEATURES_START_IND;
   int ind_rng = ind+RNG_FEATURES_START_IND;
   int ind_fin = ind+FIN_FEATURES_START_IND;
   stats.pop_k[stats.k_est] = stats.pop_k[stats.k_est] + 1.0; //1 flop
-  sum(&stats.sum_k[ind_max], prevfeats.max, &stats.sum_k[ind_max], N_PREDICTION_SIGNALS); // f/4 flops
-  sum(&stats.sum_k[ind_min], prevfeats.min, &stats.sum_k[ind_min], N_PREDICTION_SIGNALS); // f/4 flops
+//  sum(&stats.sum_k[ind_max], prevfeats.max, &stats.sum_k[ind_max], N_PREDICTION_SIGNALS); // f/4 flops
+//  sum(&stats.sum_k[ind_min], prevfeats.min, &stats.sum_k[ind_min], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&stats.sum_k[ind_rng], prevfeats.rng, &stats.sum_k[ind_rng], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&stats.sum_k[ind_fin], prevfeats.fin, &stats.sum_k[ind_fin], N_PREDICTION_SIGNALS); // f/4 flops
 
@@ -41,14 +41,26 @@ static void update_class_sum(){
 static void update_overall_sum(){
   assignment(stats.mu, stats.mu_prev, N_FEATURES);// assignment
   stats.pop = stats.pop + 1.0;
-  sum(&stats.sum[MAX_FEATURES_START_IND], prevfeats.max, &stats.sum[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
-  sum(&stats.sum[MIN_FEATURES_START_IND], prevfeats.min, &stats.sum[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
+//  sum(&stats.sum[MAX_FEATURES_START_IND], prevfeats.max, &stats.sum[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
+//  sum(&stats.sum[MIN_FEATURES_START_IND], prevfeats.min, &stats.sum[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&stats.sum[RNG_FEATURES_START_IND], prevfeats.rng, &stats.sum[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&stats.sum[FIN_FEATURES_START_IND], prevfeats.fin, &stats.sum[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   
 }
 
-//copied from matlab pil
+
+static void reset_features(){
+	memset(currfeats.max, 0, N_PREDICTION_SIGNALS * sizeof(float));
+	memset(currfeats.min, 0, N_PREDICTION_SIGNALS * sizeof(float));
+	memset(currfeats.rng, 0, N_PREDICTION_SIGNALS * sizeof(float));
+	memset(currfeats.fin, 0, N_PREDICTION_SIGNALS * sizeof(float));
+	memset(prevfeats.max, 0, N_PREDICTION_SIGNALS * sizeof(float));
+	memset(prevfeats.min, 0, N_PREDICTION_SIGNALS * sizeof(float));
+	memset(prevfeats.rng, 0, N_PREDICTION_SIGNALS * sizeof(float));
+	memset(prevfeats.fin, 0, N_PREDICTION_SIGNALS * sizeof(float));
+
+}
+
 static void init_features(){
   currfeats.max = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
   currfeats.min = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
@@ -60,7 +72,37 @@ static void init_features(){
   prevfeats.fin = (float*)calloc(N_PREDICTION_SIGNALS, sizeof(float));
 }
 
-//copied from matlab pil
+static void reset_statistics(){
+
+	memset(stats.mu_k, 0, N_CLASSES*N_FEATURES * sizeof(float));
+	memset(stats.sum_k, 0, N_CLASSES*N_FEATURES * sizeof(float));
+	memset(stats.mu_prev, 0, N_FEATURES * sizeof(float));
+	memset(stats.mu, 0, N_FEATURES * sizeof(float));
+	memset(stats.sum, 0, N_FEATURES * sizeof(float));
+	memset(stats.temp, 0, N_CLASSES*N_FEATURES * sizeof(float));
+	memset(stats.x, 0, N_FEATURES * sizeof(float));
+	memset(stats.y, 0, N_FEATURES * sizeof(float));
+	memset(stats.sum_sigma, 0, N_FEATURES_SQ * sizeof(float));
+
+	for (int i = 0; i < N_CLASSES; i++){
+		stats.pop_k[i] = 1.0;
+	}
+
+	int N_FEATURES_p_1 = N_FEATURES+1;
+	for (int i = 0; i < N_FEATURES; i++){
+		stats.sum_sigma[i*N_FEATURES_p_1] = 1.0;
+	}
+	stats.pop = 1.0;
+
+
+  stats.k_est = K_FLAT;
+   stats.k_est_prev = K_FLAT;
+  stats.updating_statistics_matrices = 1;
+  stats.demux_state = STATS_READY_TO_UPDATE_STATISTICS;
+  stats.segment = 0;
+
+}
+
 static void init_statistics(){
 
   stats.mu_k = (float*)calloc(N_CLASSES*N_FEATURES, sizeof(float));
@@ -91,11 +133,27 @@ static void init_statistics(){
   stats.updating_statistics_matrices = 1;
   stats.demux_state = STATS_READY_TO_UPDATE_STATISTICS;
   stats.segment = 0;
-  stats.subsegment = 0;
 
 }
 
-//copied from matlab pil
+static void reset_learner(){
+
+	memset(lrn.UT, 0, N_FEATURES_SQ * sizeof(float));
+	memset(lrn.LT, 0, N_FEATURES_SQ * sizeof(float));
+	memset(lrn.latest_sum_sigma, 0, N_FEATURES_SQ * sizeof(float));
+	memset(lrn.latest_mu_k, 0, N_CLASSES*N_FEATURES * sizeof(float));
+	memset(lrn.Atemp, 0, N_CLASSES*N_FEATURES * sizeof(float));
+	memset(lrn.Btemp, 0, N_CLASSES * sizeof(float));
+	memset(lrn.y, 0, N_FEATURES * sizeof(float));
+
+  lrn.copying_statistics_matrices = 0;
+  lrn.demux_state = LRN_COPY_MU_K;
+  lrn.segment = 0;
+  lrn.subsegment = 0;
+  lrn.doing_forward_substitution = 1;
+
+}
+
 static void init_learner(){
 
 
@@ -117,7 +175,19 @@ static void init_learner(){
 
 }
 
-//copied from matlab pil
+static void reset_predictor(){
+	memset(pred.A, 0, N_CLASSES*N_FEATURES * sizeof(float));
+	memset(pred.B, 0, N_CLASSES * sizeof(float));
+	memset(pred.score_k, 0, N_CLASSES * sizeof(float));
+
+  pred.k_pred = 0;
+  pred.max_score = -FLT_MAX;
+  pred.predicting_task = 0;
+  pred.demux_state = PRED_UPDATE_RNG;
+  pred.segment = 0;
+  pred.subsegment = 0;
+}
+
 static void init_predictor(){
   pred.A = (float*)calloc(N_CLASSES * N_FEATURES, sizeof(float));
   pred.B = (float*)calloc(N_CLASSES, sizeof(float));
@@ -131,7 +201,7 @@ static void init_predictor(){
   pred.subsegment = 0;
 }
 
-//copied from matlab pil
+
 void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
     switch (stats.demux_state){
       case STATS_BACK_ESTIMATE: //constant flops
@@ -162,15 +232,15 @@ void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin)
         stats.demux_state = STATS_GET_DEVIATION_FROM_PREV_MEAN;
       break;
       case STATS_GET_DEVIATION_FROM_PREV_MEAN: // f flops per cycle
-        diff(prevfeats.max, &stats.mu_prev[MAX_FEATURES_START_IND], &stats.x[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
-        diff(prevfeats.min, &stats.mu_prev[MIN_FEATURES_START_IND], &stats.x[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+//        diff(prevfeats.max, &stats.mu_prev[MAX_FEATURES_START_IND], &stats.x[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+//        diff(prevfeats.min, &stats.mu_prev[MIN_FEATURES_START_IND], &stats.x[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         diff(prevfeats.rng, &stats.mu_prev[RNG_FEATURES_START_IND], &stats.x[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         diff(prevfeats.fin, &stats.mu_prev[FIN_FEATURES_START_IND], &stats.x[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         stats.demux_state = STATS_GET_DEVIATION_FROM_CURR_MEAN;
       break;
       case STATS_GET_DEVIATION_FROM_CURR_MEAN: // f flops per cycle
-        diff(prevfeats.max, &stats.mu[MAX_FEATURES_START_IND], &stats.y[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
-        diff(prevfeats.min, &stats.mu[MIN_FEATURES_START_IND], &stats.y[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+//        diff(prevfeats.max, &stats.mu[MAX_FEATURES_START_IND], &stats.y[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
+//        diff(prevfeats.min, &stats.mu[MIN_FEATURES_START_IND], &stats.y[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         diff(prevfeats.rng, &stats.mu[RNG_FEATURES_START_IND], &stats.y[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         diff(prevfeats.fin, &stats.mu[FIN_FEATURES_START_IND], &stats.y[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         stats.demux_state = STATS_UPDATE_MEAN_DEVIATION_OUTER_PRODUCT;
@@ -200,7 +270,7 @@ void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin)
     }
   }
 
-//copied from matlab pil
+
 void update_learner_demux(){
 
       switch (lrn.demux_state){
@@ -317,7 +387,7 @@ void update_learner_demux(){
   }
 }
 
-//copied from matlab pil
+
 void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* kin){
     if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
         for (int j=0; j < N_PREDICTION_SIGNALS; j++){
@@ -332,45 +402,26 @@ void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* k
 
     currfeats.max[ROT3] = MAX(currfeats.max[ROT3], kin->rot3);
     currfeats.max[AOMEGAX] = MAX(currfeats.max[AOMEGAX], kin->aOmegaX);
-//    currfeats.max[AOMEGAY] = MAX(currfeats.max[AOMEGAY], kin->aOmegaY);
-//    currfeats.max[AOMEGAZ] = MAX(currfeats.max[AOMEGAZ], kin->aOmegaZ);
-//    currfeats.max[AACCX] = MAX(currfeats.max[AACCX], kin->aAccX);
     currfeats.max[AACCY] = MAX(currfeats.max[AACCY], kin->aAccY);
     currfeats.max[AACCZ] = MAX(currfeats.max[AACCZ], kin->aAccZ);
-//    currfeats.max[AAY] = MAX(currfeats.max[AAY], kin->aAy);
-//    currfeats.max[VAY] = MAX(currfeats.max[VAY], kin->vAy);
-//    currfeats.max[PAY] = MAX(currfeats.max[PAY], kin->pAy);
-//    currfeats.max[AAZ] = MAX(currfeats.max[AAZ], kin->aAz);
-//    currfeats.max[VAZ] = MAX(currfeats.max[VAZ], kin->vAz);
     currfeats.max[PAZ] = MAX(currfeats.max[PAZ], kin->pAz);
-//    currfeats.max[SINSQATTACK] = MAX(currfeats.max[SINSQATTACK], kin->sinSqAttackAngle);
-//    currfeats.max[AA] = MAX(currfeats.max[AA], tm->aa);
-//    currfeats.max[TQ] = MAX(currfeats.max[TQ], tm->tq);
-//    currfeats.max[AADOT] = MAX(currfeats.max[AADOT], tm->aa_dot);
-//    currfeats.max[TQDOT] = MAX(currfeats.max[TQDOT], tm->tq_dot);
 
     currfeats.min[ROT3] = MIN(currfeats.min[ROT3], kin->rot3);
     currfeats.min[AOMEGAX] = MIN(currfeats.min[AOMEGAX], kin->aOmegaX);
-//    currfeats.min[AOMEGAY] = MIN(currfeats.min[AOMEGAY], kin->aOmegaY);
-//    currfeats.min[AOMEGAZ] = MIN(currfeats.min[AOMEGAZ], kin->aOmegaZ);
-//    currfeats.min[AACCX] = MIN(currfeats.min[AACCX], kin->aAccX);
     currfeats.min[AACCY] = MIN(currfeats.min[AACCY], kin->aAccY);
     currfeats.min[AACCZ] = MIN(currfeats.min[AACCZ], kin->aAccZ);
-//    currfeats.min[AAY] = MIN(currfeats.min[AAY], kin->aAy);
-//    currfeats.min[VAY] = MIN(currfeats.min[VAY], kin->vAy);
-//    currfeats.min[PAY] = MIN(currfeats.min[PAY], kin->pAy);
-//    currfeats.min[AAZ] = MIN(currfeats.min[AAZ], kin->aAz);
-//    currfeats.min[VAZ] = MIN(currfeats.min[VAZ], kin->vAz);
     currfeats.min[PAZ] = MIN(currfeats.min[PAZ], kin->pAz);
-//    currfeats.min[SINSQATTACK] = MIN(currfeats.min[SINSQATTACK], kin->sinSqAttackAngle);
-//    currfeats.min[AA] = MIN(currfeats.min[AA], tm->aa);
-//    currfeats.min[TQ] = MIN(currfeats.min[TQ], tm->tq);
-//    currfeats.min[AADOT] = MIN(currfeats.min[AADOT], tm->aa_dot);
-//    currfeats.min[TQDOT] = MIN(currfeats.min[TQDOT], tm->tq_dot);
 
 }
 
-//copied from matlab pil
+void reset_learning_structs(){
+	 reset_features();
+	 reset_statistics();
+	 reset_learner();
+	 reset_predictor();
+}
+
+
 void init_learning_structs(){
   init_features();
   init_statistics();
@@ -381,7 +432,7 @@ void init_learning_structs(){
 
 
 
-//copied from matlab pil
+
 void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
 
       switch (pred.demux_state){
@@ -396,22 +447,9 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
       case PRED_UPDATE_FIN: //f/4 flops
             currfeats.fin[ROT3] = kin->rot3;
             currfeats.fin[AOMEGAX] = kin->aOmegaX;
-//            currfeats.fin[AOMEGAY] = kin->aOmegaY;
-//            currfeats.fin[AOMEGAZ] = kin->aOmegaZ;
-//            currfeats.fin[AACCX] = kin->aAccX;
             currfeats.fin[AACCY] = kin->aAccY;
             currfeats.fin[AACCZ] = kin->aAccZ;
-//            currfeats.fin[AAY] = kin->aAy;
-//            currfeats.fin[VAY] = kin->vAy;
-//            currfeats.fin[PAY] = kin->pAy;
-//            currfeats.fin[AAZ] = kin->aAz;
-//            currfeats.fin[VAZ] = kin->vAz;
             currfeats.fin[PAZ] = kin->pAz;
-//            currfeats.fin[SINSQATTACK] = kin->sinSqAttackAngle;
-//            currfeats.fin[AA] = tm->aa;
-//            currfeats.fin[TQ] = tm->tq;
-//            currfeats.fin[AADOT] = tm->aa_dot;
-//            currfeats.fin[TQDOT] = tm->tq_dot;
             pred.predicting_task = 1;
             pred.demux_state = PRED_PREDICT;
       
@@ -420,16 +458,16 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
       {
             int ind = pred.segment*N_FEATURES;
 
-            if (pred.subsegment == 0){
-                int ind_max = ind+MAX_FEATURES_START_IND;
-                int ind_min = ind+MIN_FEATURES_START_IND;
+//            if (pred.subsegment == 0){
+//                int ind_max = ind+MAX_FEATURES_START_IND;
+//                int ind_min = ind+MIN_FEATURES_START_IND;
                 
                 pred.score_k[pred.segment] = pred.B[pred.segment];
-                pred.score_k[pred.segment] += inner_product(&pred.A[ind_max], currfeats.max, N_PREDICTION_SIGNALS);
-                pred.score_k[pred.segment] += inner_product(&pred.A[ind_min], currfeats.min, N_PREDICTION_SIGNALS);
-                pred.subsegment++;
-            }
-            else{
+//                pred.score_k[pred.segment] += inner_product(&pred.A[ind_max], currfeats.max, N_PREDICTION_SIGNALS);
+//                pred.score_k[pred.segment] += inner_product(&pred.A[ind_min], currfeats.min, N_PREDICTION_SIGNALS);
+//                pred.subsegment++;
+////            }
+////            else{
                 int ind_rng = ind+RNG_FEATURES_START_IND;
                 int ind_fin = ind+FIN_FEATURES_START_IND;
                 pred.score_k[pred.segment] += inner_product(&pred.A[ind_rng], currfeats.rng, N_PREDICTION_SIGNALS);
@@ -439,8 +477,8 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
                     pred.k_pred = pred.segment;
                 }
                 pred.segment++;
-                pred.subsegment = 0;
-            }
+//                pred.subsegment = 0;
+//            }
 
             if (pred.segment == N_CLASSES){
               pred.segment = 0;
@@ -451,8 +489,8 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
       break;
       case PRED_UPDATE_PREV_FEATS: //f assignments
           pred.predicting_task = 0;
-          assignment(currfeats.max, prevfeats.max, N_PREDICTION_SIGNALS);
-          assignment(currfeats.min, prevfeats.min, N_PREDICTION_SIGNALS);
+//          assignment(currfeats.max, prevfeats.max, N_PREDICTION_SIGNALS);
+//          assignment(currfeats.min, prevfeats.min, N_PREDICTION_SIGNALS);
           assignment(currfeats.rng, prevfeats.rng, N_PREDICTION_SIGNALS);
           assignment(currfeats.fin, prevfeats.fin, N_PREDICTION_SIGNALS);
           pred.demux_state = PRED_READY_TO_PREDICT;

@@ -33,6 +33,11 @@ struct back_estimator_s
    	float ur_slope_thresh_rad;
    	float dr_slope_thresh_rad;
 
+   	float prev_torque_range;
+   	float max_torque;
+   	float min_torque;
+   	float prev_stance_samples;
+
 
 
 };

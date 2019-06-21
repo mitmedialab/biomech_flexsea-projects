@@ -14,10 +14,11 @@
 #define ANKLE_POS_IMU_FRAME_X_M 0.0  //Frontal axis (medial->lateral)
 #define ANKLE_POS_IMU_FRAME_Y_M -0.00445  //Longitudinal axis (bottom->top)
 #define ANKLE_POS_IMU_FRAME_Z_M -0.0605  //Sagittal axis (back->front)
-#define ACCEL_MPS2_PER_LSB  (GRAVITY_MPS2 / ACCEL_LSB_PER_G)
+//#define ACCEL_MPS2_PER_LSB  (GRAVITY_MPS2 / ACCEL_LSB_PER_G)
+#define ACCEL_MPS2_PER_LSB 0.0012283 //Actual value different (but consistently so) from accelerometer documentation.
 #define N_ACCEL_MPS2_PER_LSB (-1.0*ACCEL_MPS2_PER_LSB)
 #define GYRO_RPS_PER_LSB (RAD_PER_DEG / GYRO_LSB_PER_DPS)
-#define MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING 2.0
+#define MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING 1.0
 #define MIN_ACCEL_QUIET_SAMPLES_FOR_RESCALING 1000
 #define PAZ_MAX 1.0
 
@@ -159,7 +160,6 @@ static void update_pose(struct taskmachine_s* tm){
 		reset_position_and_velocity(tm);
 		 kin.roll_over_counter = 1;
 		kin.ground_slope_est_sum = 0.0;
-		kin.min_joint_vel_seg_vel_diff_sq = FLT_MAX;
 	}
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){

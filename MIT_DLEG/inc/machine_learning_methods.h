@@ -17,6 +17,7 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin);
 void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin);
 void update_learner_demux();
 void update_prediction_features(struct taskmachine_s* tm, struct kinematics_s* kin);
+void reset_learning_structs();
 void init_learning_structs();
 
 //Getters
@@ -130,7 +131,6 @@ struct statistics_s
 	uint8_t updating_statistics_matrices;
 	int demux_state;		
 	int segment;
-	int subsegment;
 
 
 };
