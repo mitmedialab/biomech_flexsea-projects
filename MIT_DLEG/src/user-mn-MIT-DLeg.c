@@ -238,7 +238,6 @@ static void updateUserWrites(struct taskmachine_s* tm){
 	    case GUI_MODE_DS_CONTROL_PARAMS: //4
 	    case GUI_MODE_NOM_CONTROL_PARAMS: //5
 	    case GUI_MODE_DYNAMICS: //10
-	    	tm->do_update_learner = 0;
 	    	if (tm->control_mode == MODE_NOMINAL)
 	    	{
 	    		set_nominal_theta_rad((float) user_data_1.w[3]  /SCALE_FACTOR_10000);
@@ -257,7 +256,6 @@ static void updateUserWrites(struct taskmachine_s* tm){
 	    	}
 		break;
 		case GUI_MODE_SW_CONTROL_PARAMS: //6
-			tm->do_update_learner = 0;
 			set_esw_theta_rad((float) user_data_1.w[3]/SCALE_FACTOR_10000);
 			set_sw_k_Nm_p_rad((float) user_data_1.w[4]);
 			set_sw_b_Nm_p_rps((float) user_data_1.w[5]);
@@ -266,26 +264,19 @@ static void updateUserWrites(struct taskmachine_s* tm){
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL: //7
 		case GUI_MODE_GAIT_EVENTS: //8
+		case GUI_MODE_LEARNING: //9
 		case GUI_MODE_KINEMATICS1: //12
 		case GUI_MODE_KINEMATICS2: //13
 		case GUI_MODE_FEATURES: //14
 		case GUI_MODE_SAFETY: //15
 		case GUI_MODE_PREDICTION_ACCURACY: //16
-			tm->do_update_learner = 0;
+		case GUI_MODE_STATISTICS: //18
+		case GUI_MODE_PREDICTOR: //19
 			tm->control_mode = user_data_1.w[1];
 			if (user_data_1.w[2] == 1)
 				reset_learning_structs();
 	    break;
-	    case GUI_MODE_LEARNING: //9
-	    case GUI_MODE_PREDICTOR: //19
-	    case GUI_MODE_STATISTICS: //18
-	    	tm->do_update_learner = 1;
-	    	tm->control_mode = user_data_1.w[1];
-	    	if (user_data_1.w[2] == 1)
-	    		reset_learning_structs();
-	    break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
-	    	tm->do_update_learner = 0;
 	    	tm->control_mode = user_data_1.w[1];
 			set_us_z_thresh_m(((float)user_data_1.w[2])/10000.0);
 			set_ds_z_thresh_m(((float)user_data_1.w[3])/10000.0);
@@ -295,7 +286,6 @@ static void updateUserWrites(struct taskmachine_s* tm){
 			set_dr_slope_thresh_rad(((float)user_data_1.w[7])/10000.0);
 			break;
 	    case GUI_MODE_TASK_MACHINE: //17
-	    	tm->do_update_learner = 0;
 	    	tm->control_mode = MODE_ADAPTIVE_WITH_LEARNING;
 	    	break;
 
@@ -444,13 +434,13 @@ static void updateGenVars(struct taskmachine_s* tm){
 	    }
 	    	break;
 	    case GUI_MODE_PREDICTION_ACCURACY: //16
-//	    	rigid1.mn.genVar[3] = (int16_t) (tm->);
-//			rigid1.mn.genVar[4] = (int16_t) (tm->latest_foot_off_samples);
-//			rigid1.mn.genVar[5] = (int16_t) (tm->do_learning_for_curr_stride);
-//			rigid1.mn.genVar[6] = (int16_t) (get_curr_features()->max[0]);
-//			rigid1.mn.genVar[7] = (int16_t) (get_curr_features()->min[1]);
-//			rigid1.mn.genVar[8] = (int16_t) (get_curr_features()->rng[2]);
-//			rigid1.mn.genVar[9] = (int16_t) (get_curr_features()->fin[3]);
+	    	rigid1.mn.genVar[3] = (int16_t) (get_statistics()->k_est);
+			rigid1.mn.genVar[4] = (int16_t) (get_predictor()->k_pred);
+			rigid1.mn.genVar[5] = (int16_t) (get_statistics()->running_accuracies[0]*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[6] = (int16_t) (get_statistics()->running_accuracies[1]*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[7] = (int16_t) (get_statistics()->running_accuracies[2]*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[8] = (int16_t) (get_statistics()->running_accuracies[3]*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[9] = (int16_t) (get_statistics()->running_accuracies[4]*SCALE_FACTOR_10000);
 	    	break;
 	    case GUI_MODE_STATISTICS: //18
 	    	rigid1.mn.genVar[3] = (int16_t) (get_predictor()->A[0]*10000.0);

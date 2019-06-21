@@ -21,6 +21,8 @@ void reset_learning_structs();
 void init_learning_structs();
 
 //Getters
+float get_prediction_accuracy_for_class(int k_est);
+int* get_confusion_matrix_row_for_class(int k_est);
 struct statistics_s* get_statistics();
 struct learner_s* get_learner();
 struct predictor_s* get_predictor();
@@ -125,6 +127,11 @@ struct statistics_s
 
 	int k_est;
 	int k_est_prev;
+
+	//prediction performance metrics
+	int* confusion_matrix;
+	float* mean_accuracies;
+	float* running_accuracies;
 
 
 	//Segmentation, state,and mutex variables

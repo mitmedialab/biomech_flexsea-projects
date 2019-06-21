@@ -47,11 +47,16 @@ static float tq_dot_inputs[] = {0,0,0};
 static float aa_dot_outputs[] = {0,0,0};
 static float aa_dot_inputs[] = {0,0,0};
 
+//static float torque_replay_70kg[] = {-4.001649, -4.852673, -11.852532, -14.614554, -9.826756, -8.796879, -5.918001, -0.888233, 2.200429, 5.075491, 8.681907, 12.352409, 15.634863, 19.046701, 22.175614, 25.030629, 27.762032, 30.134923, 32.248197, 34.176628, 35.853156, 37.183527, 38.377596, 39.389298, 40.306929, 41.285400, 42.317727, 43.574136, 45.059061, 46.821967, 48.937716, 51.406733, 54.387221, 57.872666, 61.833998, 66.243208, 71.179092, 76.448118, 81.949901, 87.699807, 93.607025, 99.355844, 104.744118, 109.791961, 113.980215, 117.084070, 118.982611, 119.405260, 117.985780, 114.244175, 107.925739, 100.368482, 90.742188, 76.392282, 59.252296, 40.923735, 23.919683, 10.275839, 0.948522, -2.241754, -2.738065, -2.837141, -2.723922, -2.406633, -1.957389, -1.487492, -1.102087, -0.857047, -0.747952, -0.729212, -0.747070, -0.765693, -0.773913, -0.776564, -0.783944, -0.804860, -0.842396, -0.893250, -0.949676, -1.004377, -1.055209, -1.105390, -1.161034, -1.226084, -1.294344, -1.346250, -1.355576, -1.296739, -1.149954, -0.909682, -0.587207, -0.206126, 0.196165, 0.580245, 0.911793, 1.160153, 1.293800, 1.279092, 1.080700, 0.663608, 0.016374};
+//static float stance_torque_replay_70kg[] = {-4.001649, -4.852673, -11.852532, -14.614554, -9.826756, -8.796879, -5.918001, -0.888233, 2.200429, 5.075491, 8.681907, 12.352409, 15.634863, 19.046701, 22.175614, 25.030629, 27.762032, 30.134923, 32.248197, 34.176628, 35.853156, 37.183527, 38.377596, 39.389298, 40.306929, 41.285400, 42.317727, 43.574136, 45.059061, 46.821967, 48.937716, 51.406733, 54.387221, 57.872666, 61.833998, 66.243208, 71.179092, 76.448118, 81.949901, 87.699807, 93.607025, 99.355844, 104.744118, 109.791961, 113.980215, 117.084070, 118.982611, 119.405260, 117.985780, 114.244175, 107.925739, 100.368482, 90.742188, 76.392282, 59.252296, 40.923735, 23.919683, 10.275839};
+//static int torque_replay_transition_gait_cycle_percent = 57;
+//static float prev_stride_tics = 1000.0;
+//static float prev_stance_tics = 600.0;
+//static float subject_weight_kg = 9.1;
+
 //Copied from matlab pil simulation
 static void init_task_machine(){
-	tm.initialized = 0;
 	tm.control_mode = MODE_NOMINAL;
-	tm.do_update_learner = 0;
 
     tm.elapsed_samples = 0.0;
     tm.latest_foot_off_samples = 10000.0;
@@ -111,6 +116,7 @@ static void update_gait_events(Act_s* actx){
             //Swing to stance transition condition
           if (fabs(EXPECTED_SWING_TQ - tm.tq) >= TRANSITION_TQ_THRESH ||
         		  fabs(tm.tq_dot) >= MAX_SWING_TQ_DOT_NM_HZ){
+//        	  prev_stride_tics = tm.elapsed_samples;
               tm.elapsed_samples = 0;
               tm.in_swing = 0;
               tm.gait_event_trigger = GAIT_EVENT_FOOT_ON;
@@ -128,6 +134,7 @@ static void update_gait_events(Act_s* actx){
 
 		if (fabs(EXPECTED_SWING_TQ - tm.tq) < TRANSITION_TQ_THRESH &&
 		  tm.passed_min_stance_tq){
+//			prev_stance_tics = tm.elapsed_samples;
 			tm.in_swing = 1;
 			tm.latest_foot_off_samples = tm.elapsed_samples;
 			tm.do_learning_for_prev_stride = tm.do_learning_for_curr_stride;
@@ -208,45 +215,67 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
     case INIT_TERRAIN_STATE_MACHINE:
             init_terrain_state_machine();
             task_machine_demux_state = RUN_TASK_MACHINE;
-            tm.initialized = 1;
         break;
     case RUN_TASK_MACHINE:
+    	update_ankle_dynamics(actx);
+    	update_gait_events(actx);
+//    	if (tm.control_mode == MODE_TORQUE_REPLAY){
+//			int gait_cycle_percent = (int)(100.0*tm.elapsed_samples/prev_stride_tics);
+//			if (gait_cycle_percent > 100){
+//				tm.elapsed_samples = 0.0;
+//			}
+//			setMotorTorque(actx, torque_replay_70kg[gait_cycle_percent]*subject_weight_kg/70.0);
+//
+//		}else if (tm.control_mode == MODE_TORQUE_REPLAY_STANCE){
+//			if (tm.in_swing)
+//				setMotorTorque(actx, 0.0);
+//			else{
+//				int gait_cycle_percent = (int)(100.0*tm.elapsed_samples/prev_stance_tics);
+//				if (gait_cycle_percent < torque_replay_transition_gait_cycle_percent)
+//					setMotorTorque(actx, stance_torque_replay_70kg[gait_cycle_percent]*subject_weight_kg/70.0);
+//				else
+//					setMotorTorque(actx, stance_torque_replay_70kg[torque_replay_transition_gait_cycle_percent]*subject_weight_kg/70.0);
+//			}
+//		}
+//		else{
 
-		update_ankle_dynamics(actx);
-		update_gait_events(actx);
-		update_kinematics(&rigid->mn,&tm);
-		update_statistics_demux(&tm, get_kinematics());
+
+			update_kinematics(&rigid->mn,&tm);
+			update_statistics_demux(&tm, get_kinematics());
 
 
-		if (tm.do_update_learner){
+			if (tm.control_mode == MODE_NOMINAL){
 
-			update_learner_demux();
-		}
+				update_learner_demux();
+			}
 
-		predict_task_demux(&tm, get_kinematics());
+			predict_task_demux(&tm, get_kinematics());
 
-		update_back_estimation_features(&tm, get_kinematics());
-		update_prediction_features(&tm, get_kinematics());
-		if (tm.control_mode == MODE_ADAPTIVE_WITH_LEARNING){
-			tm.current_terrain = get_predictor()->k_pred;
-		}
-		else if (tm.control_mode == MODE_ADAPTIVE_WITH_HEURISTICS){
-				if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_US_THRESH &&
-						get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
-					tm.current_terrain = MODE_USTAIRS;
-				}
-				else if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_DS_THRESH &&
-						get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
-					tm.current_terrain = MODE_DSTAIRS;
-				}
-				else
-				{
-					tm.current_terrain = MODE_FLAT;
-				}
-			}else{
-				tm.current_terrain = tm.control_mode;
-		}
-		terrain_state_machine_demux(&tm, rigid, actx, tm.current_terrain);
+			update_back_estimation_features(&tm, get_kinematics());
+			update_prediction_features(&tm, get_kinematics());
+
+
+			if (tm.control_mode == MODE_ADAPTIVE_WITH_LEARNING){
+				tm.current_terrain = get_predictor()->k_pred;
+			}
+			else if (tm.control_mode == MODE_ADAPTIVE_WITH_HEURISTICS){
+					if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_US_THRESH &&
+							get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
+						tm.current_terrain = MODE_USTAIRS;
+					}
+					else if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_DS_THRESH &&
+							get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
+						tm.current_terrain = MODE_DSTAIRS;
+					}
+					else
+					{
+						tm.current_terrain = MODE_FLAT;
+					}
+				}else{
+					tm.current_terrain = tm.control_mode;
+			}
+			terrain_state_machine_demux(&tm, rigid, actx, tm.current_terrain);
+//		}
 
     	tm.elapsed_samples = tm.elapsed_samples + 1.0;
     	break;

@@ -24,15 +24,12 @@ static struct features_s prevfeats;
 
 
 
+
 static void update_class_sum(){
   int ind = stats.k_est*N_FEATURES;
-//  int ind_max = ind+MAX_FEATURES_START_IND;
-//  int ind_min = ind+MIN_FEATURES_START_IND;
   int ind_rng = ind+RNG_FEATURES_START_IND;
   int ind_fin = ind+FIN_FEATURES_START_IND;
   stats.pop_k[stats.k_est] = stats.pop_k[stats.k_est] + 1.0; //1 flop
-//  sum(&stats.sum_k[ind_max], prevfeats.max, &stats.sum_k[ind_max], N_PREDICTION_SIGNALS); // f/4 flops
-//  sum(&stats.sum_k[ind_min], prevfeats.min, &stats.sum_k[ind_min], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&stats.sum_k[ind_rng], prevfeats.rng, &stats.sum_k[ind_rng], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&stats.sum_k[ind_fin], prevfeats.fin, &stats.sum_k[ind_fin], N_PREDICTION_SIGNALS); // f/4 flops
 
@@ -41,8 +38,6 @@ static void update_class_sum(){
 static void update_overall_sum(){
   assignment(stats.mu, stats.mu_prev, N_FEATURES);// assignment
   stats.pop = stats.pop + 1.0;
-//  sum(&stats.sum[MAX_FEATURES_START_IND], prevfeats.max, &stats.sum[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
-//  sum(&stats.sum[MIN_FEATURES_START_IND], prevfeats.min, &stats.sum[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&stats.sum[RNG_FEATURES_START_IND], prevfeats.rng, &stats.sum[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   sum(&stats.sum[FIN_FEATURES_START_IND], prevfeats.fin, &stats.sum[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS); // f/4 flops
   
@@ -95,8 +90,12 @@ static void reset_statistics(){
 	stats.pop = 1.0;
 
 
+	memset(stats.confusion_matrix, 0, N_CLASSES*N_CLASSES * sizeof(int));
+	memset(stats.mean_accuracies, 0, N_CLASSES * sizeof(float));
+	memset(stats.running_accuracies, 0, N_CLASSES * sizeof(float));
+
   stats.k_est = K_FLAT;
-   stats.k_est_prev = K_FLAT;
+  stats.k_est_prev = K_FLAT;
   stats.updating_statistics_matrices = 1;
   stats.demux_state = STATS_READY_TO_UPDATE_STATISTICS;
   stats.segment = 0;
@@ -122,6 +121,9 @@ static void init_statistics(){
   for (int i = 0; i < N_FEATURES; i++){
     stats.sum_sigma[i*N_FEATURES_p_1] = 1.0;
   }
+  stats.confusion_matrix = (int*)calloc(N_CLASSES*N_CLASSES, sizeof(int));
+  stats.mean_accuracies = (float*)calloc(N_CLASSES, sizeof(float));
+  stats.running_accuracies = (float*)calloc(N_CLASSES, sizeof(float));
 
   //init intermediary matrices
   stats.temp = (float*)calloc(N_FEATURES, sizeof(float));
@@ -201,12 +203,21 @@ static void init_predictor(){
   pred.subsegment = 0;
 }
 
+static void update_confusion_matrix_values(){
+	int confusion_matrix_ind = stats.k_est*N_CLASSES + pred.k_pred;
+	float correctness = (float)(pred.k_pred == stats.k_est);
+	stats.confusion_matrix[confusion_matrix_ind] = stats.confusion_matrix[confusion_matrix_ind] + 1;
+	stats.mean_accuracies[stats.k_est] = (stats.mean_accuracies[stats.k_est]*stats.pop_k[stats.k_est] + correctness)/(stats.pop_k[stats.k_est] + 1);
+	stats.running_accuracies[stats.k_est] = 0.63*stats.running_accuracies[stats.k_est] + 0.37*correctness;
+}
+
 
 void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
     switch (stats.demux_state){
       case STATS_BACK_ESTIMATE: //constant flops
           back_estimate(tm, &stats, kin);
-          tm->est_pred_correct = stats.k_est*100 +  pred.k_pred*10 + (int)(stats.k_est == pred.k_pred);
+          update_confusion_matrix_values();
+
           stats.demux_state = STATS_UPDATE_CLASS_SUM;
       break;
       case STATS_UPDATE_CLASS_SUM: //f flops per cycle
@@ -232,15 +243,11 @@ void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin)
         stats.demux_state = STATS_GET_DEVIATION_FROM_PREV_MEAN;
       break;
       case STATS_GET_DEVIATION_FROM_PREV_MEAN: // f flops per cycle
-//        diff(prevfeats.max, &stats.mu_prev[MAX_FEATURES_START_IND], &stats.x[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
-//        diff(prevfeats.min, &stats.mu_prev[MIN_FEATURES_START_IND], &stats.x[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         diff(prevfeats.rng, &stats.mu_prev[RNG_FEATURES_START_IND], &stats.x[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         diff(prevfeats.fin, &stats.mu_prev[FIN_FEATURES_START_IND], &stats.x[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         stats.demux_state = STATS_GET_DEVIATION_FROM_CURR_MEAN;
       break;
       case STATS_GET_DEVIATION_FROM_CURR_MEAN: // f flops per cycle
-//        diff(prevfeats.max, &stats.mu[MAX_FEATURES_START_IND], &stats.y[MAX_FEATURES_START_IND], N_PREDICTION_SIGNALS);
-//        diff(prevfeats.min, &stats.mu[MIN_FEATURES_START_IND], &stats.y[MIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         diff(prevfeats.rng, &stats.mu[RNG_FEATURES_START_IND], &stats.y[RNG_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         diff(prevfeats.fin, &stats.mu[FIN_FEATURES_START_IND], &stats.y[FIN_FEATURES_START_IND], N_PREDICTION_SIGNALS);
         stats.demux_state = STATS_UPDATE_MEAN_DEVIATION_OUTER_PRODUCT;
@@ -457,28 +464,16 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
       case PRED_PREDICT: //f flops
       {
             int ind = pred.segment*N_FEATURES;
-
-//            if (pred.subsegment == 0){
-//                int ind_max = ind+MAX_FEATURES_START_IND;
-//                int ind_min = ind+MIN_FEATURES_START_IND;
-                
-                pred.score_k[pred.segment] = pred.B[pred.segment];
-//                pred.score_k[pred.segment] += inner_product(&pred.A[ind_max], currfeats.max, N_PREDICTION_SIGNALS);
-//                pred.score_k[pred.segment] += inner_product(&pred.A[ind_min], currfeats.min, N_PREDICTION_SIGNALS);
-//                pred.subsegment++;
-////            }
-////            else{
-                int ind_rng = ind+RNG_FEATURES_START_IND;
-                int ind_fin = ind+FIN_FEATURES_START_IND;
-                pred.score_k[pred.segment] += inner_product(&pred.A[ind_rng], currfeats.rng, N_PREDICTION_SIGNALS);
-                pred.score_k[pred.segment] += inner_product(&pred.A[ind_fin], currfeats.fin, N_PREDICTION_SIGNALS);
-                if (pred.score_k[pred.segment] > pred.max_score){
-                    pred.max_score = pred.score_k[pred.segment];
-                    pred.k_pred = pred.segment;
-                }
-                pred.segment++;
-//                pred.subsegment = 0;
-//            }
+			pred.score_k[pred.segment] = pred.B[pred.segment];
+			int ind_rng = ind+RNG_FEATURES_START_IND;
+			int ind_fin = ind+FIN_FEATURES_START_IND;
+			pred.score_k[pred.segment] += inner_product(&pred.A[ind_rng], currfeats.rng, N_PREDICTION_SIGNALS);
+			pred.score_k[pred.segment] += inner_product(&pred.A[ind_fin], currfeats.fin, N_PREDICTION_SIGNALS);
+			if (pred.score_k[pred.segment] > pred.max_score){
+				pred.max_score = pred.score_k[pred.segment];
+				pred.k_pred = pred.segment;
+			}
+			pred.segment++;
 
             if (pred.segment == N_CLASSES){
               pred.segment = 0;
@@ -489,8 +484,6 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
       break;
       case PRED_UPDATE_PREV_FEATS: //f assignments
           pred.predicting_task = 0;
-//          assignment(currfeats.max, prevfeats.max, N_PREDICTION_SIGNALS);
-//          assignment(currfeats.min, prevfeats.min, N_PREDICTION_SIGNALS);
           assignment(currfeats.rng, prevfeats.rng, N_PREDICTION_SIGNALS);
           assignment(currfeats.fin, prevfeats.fin, N_PREDICTION_SIGNALS);
           pred.demux_state = PRED_READY_TO_PREDICT;

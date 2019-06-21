@@ -34,11 +34,9 @@
 //Copied from matlab pil simulation
 struct taskmachine_s
 {
-    uint8_t initialized;
-    
+
 	int control_mode;
 	int current_terrain;
-	uint8_t do_update_learner;
 
 	
     float elapsed_samples;
@@ -108,6 +106,8 @@ enum Gait_Modes {
     MODE_POSITION = 6,
 	MODE_ADAPTIVE_WITH_LEARNING = 7,
 	MODE_ADAPTIVE_WITH_HEURISTICS = 8,
+	MODE_TORQUE_REPLAY = 9,
+	MODE_TORQUE_REPLAY_STANCE = 10,
 };
 
 enum Gait_Events {
