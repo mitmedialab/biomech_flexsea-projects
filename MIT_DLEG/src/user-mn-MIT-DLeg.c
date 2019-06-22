@@ -43,6 +43,8 @@
 #include "run_main_user_application.h"	// This is where user application functions live
 #include "ui.h"
 
+#include "error_correction.h"
+#include "lookup.h"
 
 //****************************************************************************
 // Variable(s)
@@ -298,6 +300,14 @@ void MITDLegFsm1(void)
 
 					setMotorTorque( &act1, act1.tauDes);
 
+					float output = 0.;
+
+//					lookup1d(&jointTorqueErrorMap, (float) (*rigid1.ex.enc_ang), &output);
+					if( !lookup1d(&jointTorqueErrorMap, ((float) *rigid1.ex.joint_ang), &output) )
+					{
+						rigid1.mn.genVar[9] = (int16_t) (act1.axialForce - output);
+					}
+
 //					setMotorTorqueSEA( &act1, act1.tauDes);
 
 				#elif defined(IS_SWEEP_TEST)
@@ -416,11 +426,11 @@ void updateGenVarOutputs(Act_s *actx)
 	  rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);		// Nm
 	  rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*100.);			// radians/s
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);	// (act1.jointAngleDegrees*1000.);	// deg
-	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
+	  rigid1.mn.genVar[4] = (int16_t) ( ( MOTOR_DIRECTION*(MOTOR_MILLIMETER_PER_TICK + manualInput) *(  (float) ( *rigid1.ex.enc_ang - actx->motorPos0)  ) )*100.0 ); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
 	  rigid1.mn.genVar[5] = (int16_t) (act1.screwLengthDelta*100.0); //(rigid1.ex.strain);
 	  rigid1.mn.genVar[6] = (int16_t) (act1.axialForceLC); //(rigid1.ex.mot_volt);	// mA
 	  rigid1.mn.genVar[7] = (int16_t) (act1.axialForce); //(*rigid1.ex.enc_ang);		// mV, //getDeviceIdIncrementing() ;
-	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(rigid2.ex.mot_current);			// mA
+	  rigid1.mn.genVar[8] = (int16_t) (( act1.c-act1.c0) *100.0); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 #else

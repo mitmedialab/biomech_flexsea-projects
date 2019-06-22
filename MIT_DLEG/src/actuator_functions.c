@@ -230,36 +230,40 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
 //	CAng = M_PI - theta - (MA_TF); 	// angle
 //	static float F = 1.13838855122436;
-	float t_k = 122.0 + manualInput;
+	const float t_k = 122.0;
 	static float t = 46.7;
-	static float f = 42.975;
-	static float f_k = 17.47;
+	static float f = 39.5; //42.975;
+	static float f_k = 17.5;
 
-//	float a2 = f*f + f_k*f_k;
-//	float a = sqrtf(a2);
-//	float b2 = t*t + t_k*t_k;
-//	float b = sqrtf(b2);
+	float a2 = f*f + f_k * f_k;
+	float b2 = t*t + t_k * t_k;
+	float b = sqrtf(b2);
+	float a = sqrtf(a2);
 
-//	float T = atanf(t/t_k);
-//	float F = atanf(f/f_k);
 	float T = atanf(t/t_k);
 	float F = atanf(f/f_k);
 
 
-	float a = 46.39;
-	float a2 = (a*a);
-	float b = 130.6;
-	float b2 = (b*b);
+//	float a = MA_A; //46.39;
+//	float a2 = (a*a);
+//	float b = MA_B; //130.6;
+//	float b2 = (b*b);
 
 
-	CAng = M_PI - theta - (T + F ); 	// angle
-//	c2 = MA_B2PLUSA2 - MA_TWOAB* cosf(CAng);
-	c2 = a2 + b2 + -2.0*a*b*cosf(CAng);
+//	CAng = M_PI - theta - (T + F ); 	// angle
+//	c2 = a2 + b2 + -2.0*a*b*cosf(CAng);
+	CAng = M_PI - theta - (MA_TF ); 	// angle
+	c2 = MA_B2PLUSA2 - MA_TWOAB* cosf(CAng);
 
 	c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
 
-//	projLength = MA_B * sqrtf( 1 - ( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c)  );
-	projLength = b * sqrtf(1.0 -( (a2 - (c2+b2) ) /(-2.0*b*c) ));
+	projLength = MA_B * sqrtf( 1 - powf( ( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c), 2 )  );
+
+
+	float Ainside = ( (a2 - c2 - b2 ) / (-2.0*b*c) );
+	A = acosf( Ainside );
+//	projLength = b * sqrtf(1.0 - (Ainside*Ainside) );
+//	projLength = b * sinf(A);
 
 //    A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) ); //Don't need, this, sqrt is faster than sin(acos())
 //    projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm. sqrt is faster calc
@@ -284,7 +288,7 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*(MOTOR_MILLIMETER_PER_TICK) *( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
+    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*(MOTOR_MILLIMETER_PER_TICK) *(  (float) ( *rigid1.ex.enc_ang - actx->motorPos0)  ) - (c-actx->c0) ) ) );	// [mm]
 
     return projLength/1000.; // [m] output is in meters
 
@@ -726,7 +730,7 @@ void setMotorTorqueSEA(struct act_s *actx, float tauDes)
 
 	int32_t Icalc = (int32_t)  ( (1.0/(MOT_KT)) * motorTor * CURRENT_SCALAR_INIT );
 
-	rigid1.mn.genVar[9] = (int16_t) (Icalc );
+//	rigid1.mn.genVar[9] = (int16_t) (Icalc );
 
 	// set motor position, DO NOT USE, IT'S CRAZY
 	setMotorCurrent( Icalc, DEVICE_CHANNEL);
