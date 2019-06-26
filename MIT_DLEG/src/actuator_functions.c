@@ -220,30 +220,28 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
  */
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
-	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0;
+	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0, cdiff, projLengthSq;
 	static int32_t motorTheta0 = 0.0;
 	static int16_t timerTare = 0;
 
 
-	CAng = M_PI - theta - (MA_TF); 	// angle
-	c2 = MA_B2PLUSA2 - MA_TWOAB* cosf(CAng);
-    c =  sqrtf(c2) ;  // [mm] Expected length of actuator from motor pivot to rotary output arm pivot, based on joint angle.
-
-//    A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) ); //Don't need, this, sqrt is faster than sin(acos())
-//    projLength = (MA_B * sinf(A));	// [mm] project length, r (in docs) of moment arm. sqrt is faster calc
-
-    projLength = MA_B * sqrtf( 1 - ( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c)  );
-    actx->c = c;
+	CAng = M_PI - theta - MA_TF; 	// angle
+	c2 = MA_B2PLUSA2 - MA_TWOAB*cosf(CAng);
+	c = sqrtf(c2);
+	cdiff = c2 - MA_B2MINUSA2;
+	projLengthSq = MA_A_SQ - (cdiff*cdiff)/(4.0*c2);
+	projLength = sqrtf(projLengthSq);
+	actx->c = c;
 
     if (tareState == 1)
     {
     	timerTare++;
     	if (timerTare > 100)
     	{
-			c0 = c;	// save initial length of actuator
-			motorTheta0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Initial Position [counts].
-			actx->c0 = c0;
-			actx->motorPos0 = motorTheta0;
+
+			actx->motorPos0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Initial Position [counts].
+			actx->c0 = c;
+
 
 			tareState = 0;
 			timerTare = 0;

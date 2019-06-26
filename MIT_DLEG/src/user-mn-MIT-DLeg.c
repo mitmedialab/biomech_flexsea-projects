@@ -295,7 +295,7 @@ void MITDLegFsm1(void)
 					}
 
 
-					setMotorTorque( &act1, act1.tauDes);
+//					setMotorTorque( &act1, act1.tauDes);
 
 //					setMotorTorqueSEA( &act1, act1.tauDes);
 
