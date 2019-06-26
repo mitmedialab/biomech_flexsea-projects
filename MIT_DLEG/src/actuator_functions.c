@@ -220,17 +220,24 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
  */
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
-	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0, cdiff, projLengthSq;
+	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0, cdiff, projLengthSq, thetaCnt;
 	static int32_t motorTheta0 = 0.0;
 	static int16_t timerTare = 0;
 
+	thetaCnt = JOINT_ANGLE_DIR * ( JOINT_ZERO_ABS + JOINT_ENC_DIR * ( (float) (*(rigid1.ex.joint_ang)) ) )  * RAD_PER_CNT;;
 
-	CAng = M_PI - theta - MA_TF; 	// angle
+	CAng = M_PI - thetaCnt - MA_TF; 	// angle
 	c2 = MA_B2PLUSA2 - MA_TWOAB*cosf(CAng);
 	c = sqrtf(c2);
-	cdiff = c2 - MA_B2MINUSA2;
-	projLengthSq = MA_A_SQ - (cdiff*cdiff)/(4.0*c2);
-	projLength = sqrtf(projLengthSq);
+////	cdiff = c2 - MA_B2MINUSA2;
+////	projLengthSq = MA_A_SQ - (cdiff*cdiff)/(4.0*c2);
+//	cdiff = MA_A2MINUSB2 - c2;
+//	projLength = MA_B * sqrtf(1 - (cdiff)/(-MA_TWOAB) );
+
+
+    A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
+    projLength = (MA_B * sinf(A)); // [mm] project length, r (in docs) of moment arm.
+
 	actx->c = c;
 
     if (tareState == 1)
@@ -250,7 +257,7 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c-actx->c0) ) ) );	// [mm]
+    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c - actx->c0) ) ) );	// [mm]
 
     return projLength/1000.; // [m] output is in meters
 
