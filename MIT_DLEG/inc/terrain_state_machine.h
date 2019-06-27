@@ -14,6 +14,7 @@
 #define DEFAULT_MAX_SAFE_B_NM_P_RPS 15.0
 #define DEFAULT_SW_K_NM_P_RAD (1.5/RAD_PER_DEG)
 #define DEFAULT_SW_B_NM_P_RPS (0.15/RAD_PER_DEG)
+#define DEFAULT_SW_DELAY_TICS 70.0
 #define DEFAULT_LST_DELAY_TICS 70.0
 
 #define DEFAULT_NOMINAL_K_NM_P_RAD 100.0
@@ -23,65 +24,114 @@
 
 #define DEFAULT_ESW_THETA_RAD 0.0
 
+
+
+//#ifdef RC
 #define DEFAULT_FLAT_HS_THETA_RAD 0.0
-#define DEFAULT_FLAT_HS_K_NM_P_RAD 200.0
+#define DEFAULT_FLAT_HS_K_NM_P_RAD 100.0
 #define DEFAULT_FLAT_LSW_THETA_RAD -0.087
-#define DEFAULT_FLAT_EST_K_NM_P_RAD 86.0
-#define DEFAULT_FLAT_EST_B_NM_P_RPS 8.6
-#define DEFAULT_FLAT_LST_K_NM_P_RAD 250.0
-#define DEFAULT_FLAT_LST_B_NM_P_RPS 8.0
+#define DEFAULT_FLAT_ST_B_NM_P_RPS 10.0
+#define DEFAULT_FLAT_EST_K_NM_P_RAD 300.0
+#define DEFAULT_FLAT_LST_K_NM_P_RAD 200.0
 #define DEFAULT_FLAT_LST_THETA_RAD 0.244
-#define DEFAULT_FLAT_LST_ENGAGEMENT_TQ_NM 30.0
+#define DEFAULT_FLAT_LST_ENGAGEMENT_TQ_NM 20.0
+#define DEFAULT_FLAT_LST_DELAY_TICS 70
 
 #define DEFAULT_URAMP_HS_THETA_RAD -0.19
-#define DEFAULT_URAMP_HS_K_NM_P_RAD 500.0
+#define DEFAULT_URAMP_HS_K_NM_P_RAD 350.0
 #define DEFAULT_URAMP_LSW_THETA_RAD -0.14
-#define DEFAULT_URAMP_EST_K_NM_P_RAD 10.0
-#define DEFAULT_URAMP_EST_B_NM_P_RPS 0.0
-#define DEFAULT_URAMP_LST_K_NM_P_RAD 100.0
-#define DEFAULT_URAMP_LST_B_NM_P_RPS 0.0
+#define DEFAULT_URAMP_ST_B_NM_P_RPS 8.0
+#define DEFAULT_URAMP_EST_K_NM_P_RAD 300.0
+#define DEFAULT_URAMP_LST_K_NM_P_RAD 50.0
 #define DEFAULT_URAMP_LST_THETA_RAD 0.3
-#define DEFAULT_URAMP_LST_ENGAGEMENT_TQ_NM 20.0
+#define DEFAULT_URAMP_LST_ENGAGEMENT_TQ_NM 30.0
+#define DEFAULT_URAMP_LST_DELAY_TICS 70
 
-#define DEFAULT_DRAMP_HS_THETA_RAD -0.08
-#define DEFAULT_DRAMP_HS_K_NM_P_RAD 500.0
+#define DEFAULT_DRAMP_HS_THETA_RAD 0.0
+#define DEFAULT_DRAMP_HS_K_NM_P_RAD 800.0
 #define DEFAULT_DRAMP_LSW_THETA_RAD -0.03
-#define DEFAULT_DRAMP_EST_K_NM_P_RAD 10.0
-#define DEFAULT_DRAMP_EST_B_NM_P_RPS 0.0
+#define DEFAULT_DRAMP_ST_B_NM_P_RPS 8.0
+#define DEFAULT_DRAMP_EST_K_NM_P_RAD 50.0
 #define DEFAULT_DRAMP_LST_K_NM_P_RAD 10.0
-#define DEFAULT_DRAMP_LST_B_NM_P_RPS 0.0
 #define DEFAULT_DRAMP_LST_THETA_RAD 0.0
 #define DEFAULT_DRAMP_LST_ENGAGEMENT_TQ_NM 20.0
+#define DEFAULT_DRAMP_LST_DELAY_TICS 70
 
-#define DEFAULT_USTAIRS_HS_THETA_RAD -0.17
-#define DEFAULT_USTAIRS_HS_K_NM_P_RAD 200.0
-#define DEFAULT_USTAIRS_LSW_THETA_RAD -0.17
-#define DEFAULT_USTAIRS_EST_K_NM_P_RAD 86.0
-#define DEFAULT_USTAIRS_EST_B_NM_P_RPS 8.0
-#define DEFAULT_USTAIRS_LST_K_NM_P_RAD 100.0
-#define DEFAULT_USTAIRS_LST_B_NM_P_RPS 8.0
+#define DEFAULT_USTAIRS_HS_THETA_RAD 0.2
+#define DEFAULT_USTAIRS_HS_K_NM_P_RAD 350.0
+#define DEFAULT_USTAIRS_LSW_THETA_RAD 0.2
+#define DEFAULT_USTAIRS_ST_B_NM_P_RPS 5.0
+#define DEFAULT_USTAIRS_EST_K_NM_P_RAD 50.0
+#define DEFAULT_USTAIRS_LST_K_NM_P_RAD 300.0
 #define DEFAULT_USTAIRS_LST_THETA_RAD 0.26
-#define DEFAULT_USTAIRS_LST_ENGAGEMENT_TQ_NM 30.0
+#define DEFAULT_USTAIRS_LST_ENGAGEMENT_TQ_NM 10.0
+#define DEFAULT_USTAIRS_LST_DELAY_TICS 70
 
-//#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.04
-//#define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 300.0
-//#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.45
-//#define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 100.0
-//#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 10.0
-//#define DEFAULT_DSTAIRS_LST_K_NM_P_RAD 0.0
-//#define DEFAULT_DSTAIRS_LST_B_NM_P_RPS 10.0
-//#define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
-//#define DEFAULT_DSTAIRS_LST_ENGAGEMENT_TQ_NM 20.0
-
-#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.0
-#define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 100.0
-#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.50
+#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.5
+#define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 150.0
+#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.5
+#define DEFAULT_DSTAIRS_ST_B_NM_P_RPS 6.0
 #define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 0.0
-#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 6.0
 #define DEFAULT_DSTAIRS_LST_K_NM_P_RAD 0.0
-#define DEFAULT_DSTAIRS_LST_B_NM_P_RPS 6.0
 #define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
 #define DEFAULT_DSTAIRS_LST_ENGAGEMENT_TQ_NM 20.0
+#define DEFAULT_DSTAIRS_LST_DELAY_TICS 70
+
+//#else
+//
+//#define DEFAULT_FLAT_HS_THETA_RAD 0.0
+//#define DEFAULT_FLAT_HS_K_NM_P_RAD 200.0
+//#define DEFAULT_FLAT_LSW_THETA_RAD -0.087
+//#define DEFAULT_FLAT_EST_K_NM_P_RAD 86.0
+//#define DEFAULT_FLAT_EST_B_NM_P_RPS 8.6
+//#define DEFAULT_FLAT_LST_K_NM_P_RAD 250.0
+//#define DEFAULT_FLAT_LST_B_NM_P_RPS 8.0
+//#define DEFAULT_FLAT_LST_THETA_RAD 0.244
+//#define DEFAULT_FLAT_LST_ENGAGEMENT_TQ_NM 30.0
+//
+//#define DEFAULT_URAMP_HS_THETA_RAD -0.19
+//#define DEFAULT_URAMP_HS_K_NM_P_RAD 500.0
+//#define DEFAULT_URAMP_LSW_THETA_RAD -0.14
+//#define DEFAULT_URAMP_EST_K_NM_P_RAD 10.0
+//#define DEFAULT_URAMP_EST_B_NM_P_RPS 0.0
+//#define DEFAULT_URAMP_LST_K_NM_P_RAD 100.0
+//#define DEFAULT_URAMP_LST_B_NM_P_RPS 0.0
+//#define DEFAULT_URAMP_LST_THETA_RAD 0.3
+//#define DEFAULT_URAMP_LST_ENGAGEMENT_TQ_NM 20.0
+//
+//#define DEFAULT_DRAMP_HS_THETA_RAD -0.08
+//#define DEFAULT_DRAMP_HS_K_NM_P_RAD 500.0
+//#define DEFAULT_DRAMP_LSW_THETA_RAD -0.03
+//#define DEFAULT_DRAMP_EST_K_NM_P_RAD 10.0
+//#define DEFAULT_DRAMP_EST_B_NM_P_RPS 0.0
+//#define DEFAULT_DRAMP_LST_K_NM_P_RAD 10.0
+//#define DEFAULT_DRAMP_LST_B_NM_P_RPS 0.0
+//#define DEFAULT_DRAMP_LST_THETA_RAD 0.0
+//#define DEFAULT_DRAMP_LST_ENGAGEMENT_TQ_NM 20.0
+//
+//#define DEFAULT_USTAIRS_HS_THETA_RAD -0.17
+//#define DEFAULT_USTAIRS_HS_K_NM_P_RAD 200.0
+//#define DEFAULT_USTAIRS_LSW_THETA_RAD -0.17
+//#define DEFAULT_USTAIRS_EST_K_NM_P_RAD 86.0
+//#define DEFAULT_USTAIRS_EST_B_NM_P_RPS 8.0
+//#define DEFAULT_USTAIRS_LST_K_NM_P_RAD 100.0
+//#define DEFAULT_USTAIRS_LST_B_NM_P_RPS 8.0
+//#define DEFAULT_USTAIRS_LST_THETA_RAD 0.26
+//#define DEFAULT_USTAIRS_LST_ENGAGEMENT_TQ_NM 30.0
+//
+//#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.0
+//#define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 100.0
+//#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.50
+//#define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 0.0
+//#define DEFAULT_DSTAIRS_EST_B_NM_P_RPS 6.0
+//#define DEFAULT_DSTAIRS_LST_K_NM_P_RAD 0.0
+//#define DEFAULT_DSTAIRS_LST_B_NM_P_RPS 6.0
+//#define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
+//#define DEFAULT_DSTAIRS_LST_ENGAGEMENT_TQ_NM 20.0
+//#endif
+
+
+
 
 #define DEFAULT_MINIMUM_JERK_TRAJECTORY_TIME 0.2
 #define DEFAULT_MINIMUM_JERK_ANGLE_TOL_RAD 0.05
@@ -102,11 +152,11 @@ void set_nominal_b_Nm_p_rps(float b_Nm_p_rps);
 void set_hard_stop_theta_rad(float hard_stop_theta_rad, int terrain);
 void set_hard_stop_k_Nm_p_rad(float hard_stop_k_Nm_p_rad, int terrain);
 void set_lsw_theta_rad(float lsw_theta_rad, int terrain);
+void set_st_b_Nm_p_rps(float est_b_Nm_p_rps, int terrain);
 void set_est_k_Nm_p_rad(float est_k_Nm_p_rad, int terrain);
-void set_est_b_Nm_p_rps(float est_b_Nm_p_rps, int terrain);
 void set_lst_k_Nm_p_rad(float lst_k_Nm_p_rad, int terrain);
-void set_lst_b_Nm_p_rps(float lst_b_Nm_p_rps, int terrain);
 void set_lst_theta_rad(float lst_theta_rad, int terrain);
+void set_lst_delay_tics(int lst_delay_tics, int terrain);
 void set_lst_engagement_tq_Nm(float lst_engagement_tq_Nm, int terrain);
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int current_terrain);
 void init_terrain_state_machine();
@@ -134,10 +184,9 @@ static struct active_control_params_s
 	float hard_stop_k_Nm_p_rad;
 	
 	float lsw_theta_rad;
+	float st_b_Nm_p_rps;
 	float est_k_Nm_p_rad;
-	float est_b_Nm_p_rps;
 	float lst_k_Nm_p_rad;
-	float lst_b_Nm_p_rps;
 	float lst_theta_rad;
 
 	float lst_engagement_tq_Nm;
@@ -151,14 +200,14 @@ static struct terrain_dependent_control_params_s
 	float* hard_stop_k_Nm_p_rad;
 	
 	float* lsw_theta_rad;
+	float* st_b_Nm_p_rps;
 	float* est_k_Nm_p_rad;
-	float* est_b_Nm_p_rps;
 	float* lst_k_Nm_p_rad;
-	float* lst_b_Nm_p_rps;
 	float* lst_theta_rad;
 
 	float* est_lst_min_theta_rad;
 	float* lst_engagement_tq_Nm;
+	float* lst_delay_tics;
 
 };
 

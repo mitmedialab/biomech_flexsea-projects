@@ -23,7 +23,7 @@
 #ifdef POLETEST
 #define TORQUE_RANGE_THRESH 10.0
 #else
-#define TORQUE_RANGE_THRESH 60.0
+#define TORQUE_RANGE_THRESH 30.0
 #endif
 
 

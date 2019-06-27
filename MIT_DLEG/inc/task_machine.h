@@ -29,7 +29,8 @@
 #define PI 3.1415926536
 #define N_CLASSES 5
 
-#define POLETEST
+//#define POLETEST
+#define RC
 
 //Copied from matlab pil simulation
 struct taskmachine_s
