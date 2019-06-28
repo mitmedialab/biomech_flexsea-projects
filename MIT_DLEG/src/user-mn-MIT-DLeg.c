@@ -123,7 +123,7 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 
 	user_data_1.w[0] = gui_mode;
 
-	switch (gui_mode){		
+	switch (gui_mode){
 	    case GUI_MODE_FL_CONTROL_PARAMS: //0
 	    case GUI_MODE_UR_CONTROL_PARAMS: //1
 	    case GUI_MODE_DR_CONTROL_PARAMS: //2
@@ -312,7 +312,7 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	rigid1.mn.genVar[2] = (int16_t) (tm->aa*SCALE_FACTOR_10000);
 
 	switch (gui_mode){
-		
+
 	    case GUI_MODE_FL_CONTROL_PARAMS://0
 	    case GUI_MODE_UR_CONTROL_PARAMS: //1
 	    case GUI_MODE_DR_CONTROL_PARAMS: //2
@@ -371,7 +371,7 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    	if (gui_sub_mode < 5)
 	    		rigid1.mn.genVar[4] = (int16_t) (100.0*cfeats->rng[gui_sub_mode]);
 	    	else
-	    		rigid1.mn.genVar[4] = (int16_t) (100.0*cfeats->rng[gui_sub_mode]);
+	    		rigid1.mn.genVar[4] = (int16_t) (100.0*cfeats->fin[gui_sub_mode]);
 			rigid1.mn.genVar[5] = (int16_t) (stats->mu[gui_sub_mode]);
 			rigid1.mn.genVar[6] = (int16_t) (stats->mu_k[0+gui_sub_mode]+stats->mu_k[10+gui_sub_mode]+stats->mu_k[20+gui_sub_mode]+stats->mu_k[30+gui_sub_mode]+stats->mu_k[40+gui_sub_mode]);
 			rigid1.mn.genVar[7] = (int16_t) (stats->sum_sigma[0+gui_sub_mode]+stats->mu_k[10+gui_sub_mode]+stats->mu_k[20+gui_sub_mode]+stats->mu_k[30+gui_sub_mode]+stats->mu_k[40+gui_sub_mode]+stats->sum_sigma[50+gui_sub_mode]+stats->mu_k[60+gui_sub_mode]+stats->mu_k[70+gui_sub_mode]+stats->mu_k[80+gui_sub_mode]+stats->mu_k[90+gui_sub_mode]);
@@ -504,7 +504,7 @@ void MITDLegFsm1(void)
     fsmTime++;
 
     // Send genVars values to the GUI
-    updateGenVars(get_task_machine(), get_statistics(), get_kinematics(), get_predictor(), get_control_params(),controlTime);
+    updateGenVars(get_task_machine(), get_statistics(), get_kinematics(), get_predictor(), get_control_params(), get_curr_features(),controlTime);
 
 
     //begin main FSM
