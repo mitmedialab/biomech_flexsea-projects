@@ -372,11 +372,11 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    		rigid1.mn.genVar[4] = (int16_t) (100.0*cfeats->rng[gui_sub_mode]);
 	    	else
 	    		rigid1.mn.genVar[4] = (int16_t) (100.0*cfeats->fin[gui_sub_mode]);
-			rigid1.mn.genVar[5] = (int16_t) (stats->mu[gui_sub_mode]);
-			rigid1.mn.genVar[6] = (int16_t) (stats->mu_k[0+gui_sub_mode]+stats->mu_k[10+gui_sub_mode]+stats->mu_k[20+gui_sub_mode]+stats->mu_k[30+gui_sub_mode]+stats->mu_k[40+gui_sub_mode]);
-			rigid1.mn.genVar[7] = (int16_t) (stats->sum_sigma[0+gui_sub_mode]+stats->mu_k[10+gui_sub_mode]+stats->mu_k[20+gui_sub_mode]+stats->mu_k[30+gui_sub_mode]+stats->mu_k[40+gui_sub_mode]+stats->sum_sigma[50+gui_sub_mode]+stats->mu_k[60+gui_sub_mode]+stats->mu_k[70+gui_sub_mode]+stats->mu_k[80+gui_sub_mode]+stats->mu_k[90+gui_sub_mode]);
-			rigid1.mn.genVar[8] = (int16_t) (pred->A[0+gui_sub_mode]+pred->A[10+gui_sub_mode]+pred->A[20+gui_sub_mode]+pred->A[30+gui_sub_mode]+pred->A[40+gui_sub_mode]);
-			rigid1.mn.genVar[9] = (int16_t) (pred->B[gui_sub_mode]);
+			rigid1.mn.genVar[5] = (int16_t) (100.0*stats->mu[gui_sub_mode]);
+			rigid1.mn.genVar[6] = (int16_t) (100.0*(stats->mu_k[0+gui_sub_mode]+stats->mu_k[10+gui_sub_mode]+stats->mu_k[20+gui_sub_mode]+stats->mu_k[30+gui_sub_mode]+stats->mu_k[40+gui_sub_mode]));
+			rigid1.mn.genVar[7] = (int16_t) (100.0*(stats->sum_sigma[0+gui_sub_mode]+stats->sum_sigma[10+gui_sub_mode]+stats->sum_sigma[20+gui_sub_mode]+stats->sum_sigma[30+gui_sub_mode]+stats->sum_sigma[40+gui_sub_mode]+stats->sum_sigma[50+gui_sub_mode]+stats->sum_sigma[60+gui_sub_mode]+stats->sum_sigma[70+gui_sub_mode]+stats->sum_sigma[80+gui_sub_mode]+stats->sum_sigma[90+gui_sub_mode]));
+			rigid1.mn.genVar[8] = (int16_t) (100.0*(pred->A[0+gui_sub_mode]+pred->A[10+gui_sub_mode]+pred->A[20+gui_sub_mode]+pred->A[30+gui_sub_mode]+pred->A[40+gui_sub_mode]));
+			rigid1.mn.genVar[9] = (int16_t) (100.0*(pred->B[gui_sub_mode]));
 				break;
 	    case GUI_MODE_DYNAMICS: //10
 			rigid1.mn.genVar[3] = (int16_t) (tm->tq_dot*SCALE_FACTOR_100);
@@ -385,7 +385,7 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 			rigid1.mn.genVar[6] = (int16_t) (tm->peak_power_w);
 			rigid1.mn.genVar[7] = (int16_t) (tm->net_work_j*SCALE_FACTOR_100);
 			rigid1.mn.genVar[8] = (int16_t) (tm->power_w);
-			rigid1.mn.genVar[9] = (int16_t) (0);
+			rigid1.mn.genVar[9] = (int16_t) (tm->min_power_w);
 		break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
 			rigid1.mn.genVar[3] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
