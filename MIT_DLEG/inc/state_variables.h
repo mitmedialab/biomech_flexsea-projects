@@ -35,7 +35,8 @@ enum {
     STATE_LATE_STANCE = 5,
     STATE_LATE_STANCE_POWER = 6,
     STATE_EMG_STAND_ON_TOE = 7,
-    STATE_LSW_EMG = 8
+    STATE_LSW_EMG = 8,
+	STATE_MID_STANCE = 9
 };
 
 typedef struct{

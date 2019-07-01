@@ -60,7 +60,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
     static uint32_t timeInState = 0;
     static int8_t passedStanceThresh = 0;
 
-    kneeAnkleStateMachine.onEntrySlaveSmState = kneeAnkleStateMachine.slaveCurrentState; // save the state on entry, assigned to last_currentState on exit
+//    kneeAnkleStateMachine.onEntrySlaveSmState = kneeAnkleStateMachine.slaveCurrentState; // save the state on entry, assigned to last_currentState on exit
 
     //TODO: See if this is reasonable, change state to slave state, unless in early swing. In that case only switch when local state decides to change
 //    if (kneeAnkleStateMachine.currentState != STATE_EARLY_SWING)
@@ -111,7 +111,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
 				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes);
 				if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParams.virtualHardstopEngagementAngle) {
-					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
+//					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
 					passedStanceThresh = 1;
 				}
 			#elif defined(IS_KNEE)
