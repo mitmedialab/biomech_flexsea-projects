@@ -1579,6 +1579,10 @@ void updateSensorValues(struct act_s *actx)
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 	actx->axialForce = getAxialForceEncoderCalc(actx);
 	actx->jointTorque = getJointTorque(actx);
+
+	actx->axialForceLC = getAxialForceLC(actx, zeroLoadCell);
+	actx->jointTorqueLC = getJointTorqueLC(actx);
+
 	updateJointTorqueRate(actx);
 	actx->motorPosRaw = *rigid1.ex.enc_ang;		// [counts]
 	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; // [rad]

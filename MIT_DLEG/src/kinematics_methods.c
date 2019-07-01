@@ -104,7 +104,7 @@ static void update_omega(struct fx_rigid_mn_s* mn){
 }
 
 static void correct_accel_scaling(){
-	kin.accNormSq = kin.aAccX*kin.aAccX + kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
+
 	kin.meanaccNormSq = FILTA*kin.meanaccNormSq + FILTB*kin.accNormSq;
 
 	if (fabs(kin.meanaccNormSq - kin.accNormSq) < MIN_ACCEL_SUMSQR_MEAN_OFFSET_FOR_RESCALING){
@@ -124,6 +124,7 @@ static void update_pose(struct taskmachine_s* tm){
 	update_ankle_translations();
 	float joint_vel_seg_vel_diff = tm->aa_dot - kin.aOmegaX;
 	kin.joint_vel_seg_vel_diff_sq = joint_vel_seg_vel_diff*joint_vel_seg_vel_diff;
+	kin.accNormSq = kin.aAccX*kin.aAccX + kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
 
 	kin.foot_flat = 0;
 	kin.rolling_over_foot = 0;
