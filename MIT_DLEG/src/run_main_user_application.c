@@ -14,15 +14,15 @@
 #define RADS_PER_DEGREE 0.01745
 
 void runMainUserApplication(Act_s *actx){
+	int32_t dPos = 0;
 
-	actx->tauDes = biomCalcImpedance(actx, actx->desiredJointK_f, actx->desiredJointB_f, actx->desiredJointAngleDeg_f);
+	setMotorPosition(dPos, DEVICE_CHANNEL);
 
-#ifdef IS_KNEE
-    actx->tauDes = actx->tauDes - cosf(actx->jointAngle+(15*RADS_PER_DEGREE))*15.5; //15.5 is value determined from experimental testing
-#endif
+	//actx->tauDes = biomCalcImpedance(actx, actx->desiredJointK_f, actx->desiredJointB_f, actx->desiredJointAngleDeg_f);
 
-	if (actx->motorOnFlag) {
-		setMotorTorque(actx, actx->tauDes);
-	}
+
+//	if (actx->motorOnFlag) {
+//    	setMotorTorque(actx, actx->tauDes);
+//	}
 
 }

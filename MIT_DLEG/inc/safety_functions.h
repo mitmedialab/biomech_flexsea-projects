@@ -21,6 +21,7 @@
 #include "flexsea_board.h"
 #include "misc.h"
 #include "user-mn-MIT-DLeg.h"
+#include "global-config.h"
 
 #include "ui.h"
 

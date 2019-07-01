@@ -116,7 +116,7 @@ void setMotorCurrent(int32_t i, uint8_t ch)
 	}
 }
 
-void setMotorPosition(int32_t i, uint8_t ch)
+void z(int32_t i, uint8_t ch)
 {
 	if(writeEx[ch].ctrl == CTRL_POSITION)
 	{
