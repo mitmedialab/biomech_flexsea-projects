@@ -116,15 +116,15 @@ void MITDLegFsm1(void)
 
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
-	  rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); //startedOverLimit;
-	  rigid1.mn.genVar[1] = (int16_t) (emgData[0]);
-	  rigid1.mn.genVar[2] = (int16_t) (emgData[1]);
-	  rigid1.mn.genVar[3] = (int16_t) (emgData[2]);
-	  rigid1.mn.genVar[4] = (int16_t) (emgData[3]);
-	  rigid1.mn.genVar[5] = (int16_t) (emgData[4]);
-	  rigid1.mn.genVar[6] = (int16_t) (emgData[5]);
-	  rigid1.mn.genVar[7] = (int16_t) (*rigid1.ex.joint_ang);
-	  rigid1.mn.genVar[8] = (int16_t) (act1.tauDes*100);
+	  rigid1.mn.genVar[0] = (int16_t) (*rigid1.ex.enc_ang); //startedOverLimit;
+	  rigid1.mn.genVar[1] = (int16_t) (rigid1.ex.strain-31866);
+	  rigid1.mn.genVar[2] = (int16_t) (rigid1.ex.strain+30525);
+//	  rigid1.mn.genVar[3] = (int16_t) (emgData[2]);
+//	  rigid1.mn.genVar[4] = (int16_t) (emgData[3]);
+//	  rigid1.mn.genVar[5] = (int16_t) (emgData[4]);
+//	  rigid1.mn.genVar[6] = (int16_t) (emgData[5]);
+//	  rigid1.mn.genVar[7] = (int16_t) (*rigid1.ex.joint_ang);
+//	  rigid1.mn.genVar[8] = (int16_t) (act1.tauDes*100);
 	  rigid1.mn.genVar[9] = (int16_t) (act1.jointAngleDegrees*100);
 
     //begin main FSM
@@ -150,7 +150,7 @@ void MITDLegFsm1(void)
 			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
 
 				#ifndef NO_DEVICE
-					fsm1State = STATE_FIND_POLES;
+					fsm1State = STATE_INIT_USER_WRITES;
 				#else
 					fsm1State = STATE_DEBUG;
 					///DEBUG TODO CHANGE THIS FOR REAL TESTING
@@ -194,12 +194,15 @@ void MITDLegFsm1(void)
 
 			/*reserve for additional initialization*/
 
-			mitInitCurrentController();		//initialize Current Controller with gains
-//					setControlMode(CTRL_OPEN, 0);		//open control for alternative testing
+//			mitInitCurrentController();		//initialize Current Controller with gains
+			setControlMode(CTRL_POSITION, DEVICE_CHANNEL);		//open control for alternative testing
+			init_position_controller(DEVICE_CHANNEL);
+			setControlGains(40, 0, 15, 0, DEVICE_CHANNEL);
+//			setControlGains(0, 0, 0, 0, DEVICE_CHANNEL);
 
 
 			//absolute torque limit scaling factor TODO: possibly remove
-			act1.safetyTorqueScalar = 1.0;
+//			act1.safetyTorqueScalar = 1.0;
 
 			fsm1State = STATE_MAIN;
 			fsmTime = 0;
@@ -209,18 +212,19 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				//TODO consider changing logic so onentry is only true for one cycle.
-				if (onEntry && fsmTime > DELAY_TICKS_AFTER_FIND_POLES) {
-					act1.currentOpLimit = CURRENT_LIMIT_INIT;
-					onEntry = 0;
-				}
-
-				// Inside here is where user code goes
-				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
-
-					runMainUserApplication(&act1);
-
-				}
+//				//TODO consider changing logic so onentry is only true for one cycle.
+//				if (onEntry && fsmTime > DELAY_TICKS_AFTER_FIND_POLES) {
+//					act1.currentOpLimit = CURRENT_LIMIT_INIT;
+//					onEntry = 0;
+//				}
+//
+//				// Inside here is where user code goes
+//				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
+//
+//					runMainUserApplication(&act1);
+//
+//				}
+				setMotorPosition(-6725, DEVICE_CHANNEL);
 
 				break;
 			}

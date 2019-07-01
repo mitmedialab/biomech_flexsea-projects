@@ -15,6 +15,8 @@
 
 void runMainUserApplication(Act_s *actx){
 
+
+
 	actx->tauDes = biomCalcImpedance(actx, actx->desiredJointK_f, actx->desiredJointB_f, actx->desiredJointAngleDeg_f);
 
 #ifdef IS_KNEE
