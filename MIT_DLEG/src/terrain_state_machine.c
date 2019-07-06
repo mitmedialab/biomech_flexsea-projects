@@ -296,6 +296,11 @@ static float stance_entry_theta_rad = 0.0;
 
 if (terrain_mode == MODE_NOMINAL){
 	set_joint_torque(actx, tm, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps,1.0);
+	if (tm->in_swing){
+		state_machine_demux_state == STATE_LSW;
+	}else{
+		state_machine_demux_state == STATE_LST;
+	}
 	return;
 }else if (terrain_mode == MODE_POSITION){
 	if (mj.enabled){

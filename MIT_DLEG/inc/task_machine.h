@@ -32,6 +32,8 @@
 //#define POLETEST
 #define RC
 
+
+
 //Copied from matlab pil simulation
 struct taskmachine_s
 {
@@ -68,6 +70,7 @@ struct taskmachine_s
     float stance_rom_rad;
     float heelstrike_angle_rad;
     float peak_power_timing_percent;
+    float subject_mass_kg;
 
     float* net_work_error_j_p_kg;
     float* stance_rom_error_rad;
@@ -84,7 +87,7 @@ struct taskmachine_s
 
 };
 
-
+float get_ideal_peak_power();
 struct taskmachine_s* get_task_machine();
 void task_machine_demux(struct rigid_s* rigid, Act_s* act);
 

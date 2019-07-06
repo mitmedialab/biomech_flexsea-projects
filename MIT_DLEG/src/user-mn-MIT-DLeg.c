@@ -385,7 +385,7 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 			rigid1.mn.genVar[6] = (int16_t) (tm->peak_power_w);
 			rigid1.mn.genVar[7] = (int16_t) (tm->net_work_j*SCALE_FACTOR_100);
 			rigid1.mn.genVar[8] = (int16_t) (tm->power_w);
-			rigid1.mn.genVar[9] = (int16_t) (act1.jointTorqueLC*100.0);
+			rigid1.mn.genVar[9] = (int16_t) (get_ideal_peak_power());
 		break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
 			rigid1.mn.genVar[3] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
@@ -461,7 +461,16 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 			rigid1.mn.genVar[8] = (int16_t) (100.0*(pred->A[0+gui_sub_mode]+pred->A[10+gui_sub_mode]+pred->A[20+gui_sub_mode]+pred->A[30+gui_sub_mode]+pred->A[40+gui_sub_mode]));
 			rigid1.mn.genVar[9] = (int16_t) (100.0*(pred->B[gui_sub_mode]));
 			break;
-	    case GUI_MODE_PREDICTOR: //18
+	    case GUI_MODE_STATISTICS_SIMPLE: //20
+			rigid1.mn.genVar[3] = (int16_t) (kin->rot3*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[4] = (int16_t) (cfeats->fin[0]*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[5] = (int16_t) (stats->mu[5]*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[6] = (int16_t) (stats->sum_sigma[55]*1000.0);
+			rigid1.mn.genVar[7] = (int16_t) (stats->pop);
+			rigid1.mn.genVar[8] = (int16_t) (stats->pop_k);
+			rigid1.mn.genVar[9] = (int16_t) (stats->mu_k[5]*SCALE_FACTOR_10000);
+			break;
+	    case GUI_MODE_PREDICTOR: //19
 	    	break;
 	}
 }
