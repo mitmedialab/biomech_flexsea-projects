@@ -68,6 +68,9 @@ static void init_features(){
 }
 
 static void reset_statistics(){
+	stats.k_true = 0;
+	memset(stats.pop_k_true, 0, N_CLASSES * sizeof(float));
+	stats.pop_true = 0;
 
 	memset(stats.mu_k, 0, N_CLASSES*N_FEATURES * sizeof(float));
 	memset(stats.sum_k, 0, N_CLASSES*N_FEATURES * sizeof(float));
@@ -91,8 +94,10 @@ static void reset_statistics(){
 
 
 	memset(stats.confusion_matrix, 0, N_CLASSES*N_CLASSES * sizeof(int));
-	memset(stats.mean_accuracies, 0, N_CLASSES * sizeof(float));
-	memset(stats.running_accuracies, 0, N_CLASSES * sizeof(float));
+	memset(stats.estimation_accuracies, 0, N_CLASSES * sizeof(float));
+	memset(stats.prediction_accuracies, 0, N_CLASSES * sizeof(float));
+	stats.composite_estimation_accuracy = 0.0;
+	stats.composite_prediction_accuracy = 0.0;
 
   stats.k_est = K_FLAT;
   stats.k_est_prev = K_FLAT;
@@ -103,6 +108,9 @@ static void reset_statistics(){
 }
 
 static void init_statistics(){
+  stats.k_true = 0;
+  stats.pop_k_true = (float*)calloc(N_CLASSES, sizeof(float));
+  stats.pop_true = 0;
 
   stats.mu_k = (float*)calloc(N_CLASSES*N_FEATURES, sizeof(float));
   stats.sum_k = (float*)calloc(N_CLASSES*N_FEATURES, sizeof(float));
@@ -122,8 +130,10 @@ static void init_statistics(){
     stats.sum_sigma[i*N_FEATURES_p_1] = 1.0;
   }
   stats.confusion_matrix = (int*)calloc(N_CLASSES*N_CLASSES, sizeof(int));
-  stats.mean_accuracies = (float*)calloc(N_CLASSES, sizeof(float));
-  stats.running_accuracies = (float*)calloc(N_CLASSES, sizeof(float));
+  stats.estimation_accuracies = (float*)calloc(N_CLASSES, sizeof(float));
+  stats.prediction_accuracies = (float*)calloc(N_CLASSES, sizeof(float));
+  stats.composite_estimation_accuracy = 0.0;
+  stats.composite_prediction_accuracy = 0.0;
 
   //init intermediary matrices
   stats.temp = (float*)calloc(N_FEATURES, sizeof(float));
@@ -204,11 +214,16 @@ static void init_predictor(){
 }
 
 static void update_confusion_matrix_values(){
-	int confusion_matrix_ind = stats.k_est*N_CLASSES + pred.k_pred;
-	float correctness = (float)(pred.k_pred == stats.k_est);
-	stats.confusion_matrix[confusion_matrix_ind] = stats.confusion_matrix[confusion_matrix_ind] + 1;
-	stats.mean_accuracies[stats.k_est] = (stats.mean_accuracies[stats.k_est]*stats.pop_k[stats.k_est] + correctness)/(stats.pop_k[stats.k_est] + 1);
-	stats.running_accuracies[stats.k_est] = 0.63*stats.running_accuracies[stats.k_est] + 0.37*correctness;
+
+	float k_est_correctness = (float)(stats.k_est == stats.k_true);
+	float k_pred_correctness = (float)(pred.k_pred == stats.k_true);
+	stats.estimation_accuracies[stats.k_true] = (stats.estimation_accuracies[stats.k_true]*stats.pop_k[stats.k_true] + k_est_correctness)/(stats.pop_k[stats.k_true] + 1.0);
+	stats.prediction_accuracies[stats.k_true] = 0.63*stats.prediction_accuracies[stats.k_true] + 0.37*k_pred_correctness;
+
+	stats.composite_estimation_accuracy = (stats.composite_estimation_accuracy*stats.pop_true + k_est_correctness)/(stats.pop_true + 1.0);
+	stats.composite_prediction_accuracy = 0.63*stats.composite_prediction_accuracy + 0.37*k_pred_correctness;
+	stats.pop_true = stats.pop_true + 1.0;
+
 }
 
 
@@ -217,7 +232,6 @@ void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin)
       case STATS_BACK_ESTIMATE: //constant flops
           back_estimate(tm, &stats, kin);
           update_confusion_matrix_values();
-
           stats.demux_state = STATS_UPDATE_CLASS_SUM;
       break;
       case STATS_UPDATE_CLASS_SUM: //f flops per cycle
@@ -498,8 +512,6 @@ void predict_task_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
       break;
   }
 }
-
-
 
 struct statistics_s* get_statistics(){
   return &stats;

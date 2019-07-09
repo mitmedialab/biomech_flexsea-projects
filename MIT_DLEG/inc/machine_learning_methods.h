@@ -21,41 +21,14 @@ void reset_learning_structs();
 void init_learning_structs();
 
 //Getters
-float get_prediction_accuracy_for_class(int k_est);
-int* get_confusion_matrix_row_for_class(int k_est);
+//int* get_confusion_matrix_row_for_class(int k_est);
 struct statistics_s* get_statistics();
 struct learner_s* get_learner();
 struct predictor_s* get_predictor();
 struct features_s* get_prev_features();
 struct features_s* get_curr_features();
 
-//copied from matlab pil
 enum Prediction_Signals {
-//	ROT3 = 0,
-//	AOMEGAX = 1,
-//	AOMEGAY = 2,
-//	AOMEGAZ = 3,
-//	AACCX = 4,
-//	AACCY = 5,
-//	AACCZ = 6,
-//	AAY = 7,
-//	VAY = 8,
-//	PAY = 9,
-//	AAZ = 10,
-//	VAZ = 11,
-//	PAZ = 12,
-//	SINSQATTACK = 13,
-//	AA = 14,
-//	TQ = 15,
-//	AADOT = 16,
-//	TQDOT = 17,
-//	IAOMEGAX = 18,
-//	IAACCY = 19,
-//	IAACCZ = 20,
-//	DAOMEGAX = 21,
-//	DAACCY = 22,
-//	DAACCZ = 23,
-
 	ROT3 = 0,
 	AOMEGAX = 1,
 	AACCY = 2,
@@ -63,7 +36,6 @@ enum Prediction_Signals {
 	PAZ =4,
 };
 
-//copied from matlab pil
 enum Update_Statistics_States {
 	STATS_BACK_ESTIMATE = 0,
 	STATS_UPDATE_CLASS_SUM = 1,
@@ -77,7 +49,6 @@ enum Update_Statistics_States {
 	STATS_READY_TO_UPDATE_STATISTICS = 9,
 };
 
-//copied from matlab pil
 enum Update_Learner_States {
 	LRN_COPY_MU_K = 0,
 	LRN_COPY_SUM_SIGMA = 1,
@@ -88,7 +59,6 @@ enum Update_Learner_States {
 	LRN_UPDATE_PARAMS = 6,
 };
 
-//copied from matlab pil
 enum Predict_Task_States {
 	PRED_UPDATE_RNG = 0,
 	PRED_UPDATE_FIN = 1,
@@ -97,7 +67,6 @@ enum Predict_Task_States {
 	PRED_READY_TO_PREDICT = 4,
 };
 
-//copied from matlab pil
 struct features_s
 {
 	float* max;
@@ -107,9 +76,15 @@ struct features_s
 };
 
 
-//copied from matlab pil
 struct statistics_s
 {
+	//Ground truth variables
+	int k_true;
+	float* pop_k_true;
+	float pop_true;
+
+
+
 	//Statistical variables
 	float* mu_k;
 	float* sum_k;
@@ -130,9 +105,10 @@ struct statistics_s
 
 	//prediction performance metrics
 	int* confusion_matrix;
-	float* mean_accuracies;
-	float* running_accuracies;
-
+	float* estimation_accuracies;
+	float composite_estimation_accuracy;
+	float* prediction_accuracies;
+	float composite_prediction_accuracy;
 
 	//Segmentation, state,and mutex variables
 	uint8_t updating_statistics_matrices;
@@ -142,7 +118,6 @@ struct statistics_s
 
 };
 
-//copied from matlab pil
 struct learner_s
 {
 	//All variables required for transforming statistical observations into a new classifier/predictor
@@ -163,7 +138,6 @@ struct learner_s
 
 };
 
-//copied from matlab pil
 struct predictor_s
 {
 	//Predictor parameters

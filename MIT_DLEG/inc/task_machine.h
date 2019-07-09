@@ -40,6 +40,9 @@ struct taskmachine_s
 
 	int control_mode;
 	int current_terrain;
+	int trial_type;
+	int learning_enabled;
+	int adaptation_enabled;
 
 	
     float elapsed_samples;
@@ -108,10 +111,11 @@ enum Gait_Modes {
 	MODE_DSTAIRS = 4,
     MODE_NOMINAL = 5,
     MODE_POSITION = 6,
-	MODE_ADAPTIVE_WITH_LEARNING = 7,
-	MODE_ADAPTIVE_WITH_HEURISTICS = 8,
-	MODE_TORQUE_REPLAY = 9,
-	MODE_TORQUE_REPLAY_STANCE = 10,
+//	MODE_ADAPTIVE_NO_LEARNING= 7,
+//	MODE_ADAPTIVE_WITH_LEARNING = 7,
+//	MODE_ADAPTIVE_WITH_HEURISTICS = 8,
+//	MODE_TORQUE_REPLAY = 9,
+//	MODE_TORQUE_REPLAY_STANCE = 10,
 };
 
 enum Gait_Events {

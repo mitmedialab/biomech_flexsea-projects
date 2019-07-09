@@ -272,6 +272,8 @@ static void updateUserWrites(struct taskmachine_s* tm){
 		case GUI_MODE_PREDICTION_ACCURACY: //16
 		case GUI_MODE_STATISTICS: //18
 		case GUI_MODE_PREDICTOR: //19
+		case GUI_MODE_ACCURACY_1: //22
+		case GUI_MODE_ACCURACY_2: //23
 			tm->control_mode = user_data_1.w[1];
 			if (user_data_1.w[2] == 1)
 				reset_learning_structs();
@@ -291,9 +293,11 @@ static void updateUserWrites(struct taskmachine_s* tm){
 			set_ur_slope_thresh_rad(((float)user_data_1.w[6])/10000.0);
 			set_dr_slope_thresh_rad(((float)user_data_1.w[7])/10000.0);
 			break;
-	    case GUI_MODE_TASK_MACHINE: //17
-	    	tm->control_mode = MODE_ADAPTIVE_WITH_LEARNING;
-	    	break;
+	    case GUI_MODE_EXPERIMENTAL: // 21
+	    	tm->trial_type = user_data_1.w[1];
+	    	tm->learning_enabled = user_data_1.w[2];
+			tm->adaptation_enabled = user_data_1.w[3];
+			break;
 
 
 
@@ -443,11 +447,11 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    case GUI_MODE_PREDICTION_ACCURACY: //16
 	    	rigid1.mn.genVar[3] = (int16_t) (stats->k_est);
 			rigid1.mn.genVar[4] = (int16_t) (pred->k_pred);
-			rigid1.mn.genVar[5] = (int16_t) (stats->running_accuracies[0]*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[6] = (int16_t) (stats->running_accuracies[1]*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[7] = (int16_t) (stats->running_accuracies[2]*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[8] = (int16_t) (stats->running_accuracies[3]*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[9] = (int16_t) (stats->running_accuracies[4]*SCALE_FACTOR_10000);
+//			rigid1.mn.genVar[5] = (int16_t) (stats->krunning_accuracies[0]*SCALE_FACTOR_10000);
+//			rigid1.mn.genVar[6] = (int16_t) (stats->running_accuracies[1]*SCALE_FACTOR_10000);
+//			rigid1.mn.genVar[7] = (int16_t) (stats->running_accuracies[2]*SCALE_FACTOR_10000);
+//			rigid1.mn.genVar[8] = (int16_t) (stats->running_accuracies[3]*SCALE_FACTOR_10000);
+//			rigid1.mn.genVar[9] = (int16_t) (stats->running_accuracies[4]*SCALE_FACTOR_10000);
 	    	break;
 	    case GUI_MODE_STATISTICS: //18
 	    	rigid1.mn.genVar[3] = (int16_t) (gui_sub_mode);
@@ -472,6 +476,34 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 			break;
 	    case GUI_MODE_PREDICTOR: //19
 	    	break;
+	    case GUI_MODE_EXPERIMENTAL: // 21
+	    	rigid1.mn.genVar[3] = (int16_t) (kin->pAz*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[4] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[5] = (int16_t) (stats->pop_k_true[0]);
+			rigid1.mn.genVar[6] = (int16_t) (stats->pop_k_true[1]);
+			rigid1.mn.genVar[7] = (int16_t) (stats->pop_k_true[2]);
+			rigid1.mn.genVar[8] = (int16_t) (stats->pop_k_true[3]);
+			rigid1.mn.genVar[9] = (int16_t) (stats->pop_k_true[4]);
+	    	break;
+	    case GUI_MODE_ACCURACY_1: // 22
+	    	rigid1.mn.genVar[0] = (int16_t) (stats->prediction_accuracies[0]*100.0);
+			rigid1.mn.genVar[1] = (int16_t) (stats->prediction_accuracies[1]*100.0);
+			rigid1.mn.genVar[2] = (int16_t) (stats->prediction_accuracies[2]*100.0);
+	    	rigid1.mn.genVar[3] = (int16_t) (stats->prediction_accuracies[3]*100.0);
+			rigid1.mn.genVar[4] = (int16_t) (stats->prediction_accuracies[4]*100.0);
+			rigid1.mn.genVar[5] = (int16_t) (stats->estimation_accuracies[0]*100.0);
+			rigid1.mn.genVar[6] = (int16_t) (stats->estimation_accuracies[1]*100.0);
+			rigid1.mn.genVar[7] = (int16_t) (stats->estimation_accuracies[2]*100.0);
+			rigid1.mn.genVar[8] = (int16_t) (stats->estimation_accuracies[3]*100.0);
+			rigid1.mn.genVar[9] = (int16_t) (stats->estimation_accuracies[4]*100.0);
+	    	break;
+
+	    case GUI_MODE_ACCURACY_2: // 23
+	    	rigid1.mn.genVar[0] = (int16_t) (stats->composite_prediction_accuracy*100.0);
+			rigid1.mn.genVar[1] = (int16_t) (stats->composite_estimation_accuracy*100.0);
+			rigid1.mn.genVar[2] = (int16_t) (stats->pop_true);
+	       	break;
+
 	}
 }
 

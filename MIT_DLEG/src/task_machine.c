@@ -52,6 +52,9 @@ static float aa_dot_inputs[] = {0,0,0};
 //Copied from matlab pil simulation
 static void init_task_machine(){
 	tm.control_mode = MODE_NOMINAL;
+	tm.learning_enabled = 0;
+	tm.adaptation_enabled = 0;
+	tm.trial_type = 0;
 
     tm.elapsed_samples = 0.0;
     tm.latest_foot_off_samples = 10000.0;
@@ -223,7 +226,7 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_statistics_demux(&tm, get_kinematics());
 
 
-		if (tm.control_mode == MODE_NOMINAL){
+		if (tm.learning_enabled){
 
 			update_learner_demux();
 		}
@@ -234,25 +237,11 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_prediction_features(&tm, get_kinematics());
 
 
-		if (tm.control_mode == MODE_ADAPTIVE_WITH_LEARNING){
+		if (tm.adaptation_enabled)
 			tm.current_terrain = get_predictor()->k_pred;
-		}
-		else if (tm.control_mode == MODE_ADAPTIVE_WITH_HEURISTICS){
-				if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_US_THRESH &&
-						get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
-					tm.current_terrain = MODE_USTAIRS;
-				}
-				else if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_DS_THRESH &&
-						get_back_estimator()->curr_stride_paz_thresh_pass_samples <= 200){
-					tm.current_terrain = MODE_DSTAIRS;
-				}
-				else
-				{
-					tm.current_terrain = MODE_FLAT;
-				}
-			}else{
-				tm.current_terrain = tm.control_mode;
-		}
+		else
+			tm.current_terrain = tm.control_mode;
+
 		terrain_state_machine_demux(&tm, rigid, actx, tm.current_terrain);
 
 
