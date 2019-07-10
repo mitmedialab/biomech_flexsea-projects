@@ -12,17 +12,18 @@
 #include "state_variables.h"
 
 #define RADS_PER_DEGREE 0.01745
+#define KNEE_DANGLE_ANGLE 70
 
 void runMainUserApplication(Act_s *actx){
 
 	actx->tauDes = biomCalcImpedance(actx, actx->desiredJointK_f, actx->desiredJointB_f, actx->desiredJointAngleDeg_f);
 
 #ifdef IS_KNEE
-    actx->tauDes = actx->tauDes - cosf(actx->jointAngle+(15*RADS_PER_DEGREE))*15.5; //15.5 is value determined from experimental testing
+//    actx->tauDes = actx->tauDes - cosf(actx->jointAngle+((90-KNEE_DANGLE_ANGLE)*RADS_PER_DEGREE))*((float)user_data_1.w[9]/100.); //15.5 is value determined from experimental testing
 #endif
 
-	if (actx->motorOnFlag) {
+//	if (actx->motorOnFlag) {
 		setMotorTorque(actx, actx->tauDes);
-	}
+//	}
 
 }

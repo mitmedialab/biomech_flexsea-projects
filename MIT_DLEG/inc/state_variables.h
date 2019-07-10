@@ -12,14 +12,14 @@ extern "C" {
 //measured from nominal joint configuration, in degrees
 
 //1. Select joint type
-//#define IS_ANKLE
-#define IS_KNEE
+#define IS_ANKLE
+//#define IS_KNEE
 
 //2. Select device
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
+//#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
 //#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
-//#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
+#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
 //#define NO_DEVICE
 
 //****************************************************************************
