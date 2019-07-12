@@ -297,9 +297,9 @@ static float stance_entry_theta_rad = 0.0;
 if (terrain_mode == MODE_NOMINAL){
 	set_joint_torque(actx, tm, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps,1.0);
 	if (tm->in_swing){
-		state_machine_demux_state == STATE_LSW;
+		state_machine_demux_state = STATE_LSW;
 	}else{
-		state_machine_demux_state == STATE_LST;
+		state_machine_demux_state = STATE_LST;
 	}
 	return;
 }else if (terrain_mode == MODE_POSITION){
@@ -326,11 +326,19 @@ switch (state_machine_demux_state){
 			delay_tics = 0;
 		}
 
-		if (delay_tics < DEFAULT_LST_DELAY_TICS){
+		if (delay_tics < DEFAULT_SW_DELAY_TICS){
 			delay_tics++;
 		}
-
-		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/DEFAULT_LST_DELAY_TICS);
+		if (mj.enabled){
+			if (mj.update_counter < mj.total_trajectory_updates){
+					set_next_theta_for_minimum_jerk(actx);
+					set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
+			}else{
+					set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.0);
+			}
+		}else{
+			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/DEFAULT_SW_DELAY_TICS);
+		}
 
         if (tm->gait_event_trigger == GAIT_EVENT_WINDOW_CLOSE){
         	state_machine_demux_state = STATE_LSW;
@@ -342,11 +350,20 @@ switch (state_machine_demux_state){
     		delay_tics = 0;
     	}
 
-    	if (delay_tics < DEFAULT_LST_DELAY_TICS){
+    	if (delay_tics < DEFAULT_SW_DELAY_TICS){
     		delay_tics++;
     	}
 
-		set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/DEFAULT_LST_DELAY_TICS);
+    	if (mj.enabled){
+    			if (mj.update_counter < mj.total_trajectory_updates){
+    					set_next_theta_for_minimum_jerk(actx);
+    					set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
+    			}else{
+    					set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0, 0.0);
+    			}
+    		}else{
+    			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/DEFAULT_SW_DELAY_TICS);
+    		}
 
     	//Transition condition should be, you have a certain velocity of the ankle joint opposing the direction of the torque??
     	//TODO: make terrain specific transition condition here

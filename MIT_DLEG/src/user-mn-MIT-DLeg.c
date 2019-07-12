@@ -160,7 +160,7 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 			user_data_1.w[3] = (int32_t)(get_control_params()->active.esw_theta_rad*SCALE_FACTOR_10000);
 			user_data_1.w[4] = (int32_t)(get_control_params()->active.sw_k_Nm_p_rad);
 			user_data_1.w[5] = (int32_t)(get_control_params()->active.sw_b_Nm_p_rps);
-			user_data_1.w[6] = (int32_t)(0);
+			user_data_1.w[6] = (int32_t)(get_minimum_jerk_values()->enabled);
 			user_data_1.w[7] = (int32_t)(0);
 			user_data_1.w[8] = (int32_t)(0);
 			user_data_1.w[9] = (int32_t)(0);
@@ -222,7 +222,7 @@ static void initializeUserWrites(struct taskmachine_s* tm){
  * Param: actx(Act_s) - Actuator structure to track sensor values
  * Param: wParams(WalkParams) -
  */
-static void updateUserWrites(struct taskmachine_s* tm){
+static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stats){
 
 	gui_mode_prev = gui_mode;
 	gui_mode = user_data_1.w[0];
@@ -261,7 +261,6 @@ static void updateUserWrites(struct taskmachine_s* tm){
 			set_sw_k_Nm_p_rad((float) user_data_1.w[4]);
 			set_sw_b_Nm_p_rps((float) user_data_1.w[5]);
 			enable_minimum_jerk((uint8_t) user_data_1.w[6]);
-
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL: //7
 		case GUI_MODE_GAIT_EVENTS: //8
@@ -272,8 +271,6 @@ static void updateUserWrites(struct taskmachine_s* tm){
 		case GUI_MODE_PREDICTION_ACCURACY: //16
 		case GUI_MODE_STATISTICS: //18
 		case GUI_MODE_PREDICTOR: //19
-		case GUI_MODE_ACCURACY_1: //22
-		case GUI_MODE_ACCURACY_2: //23
 			tm->control_mode = user_data_1.w[1];
 			if (user_data_1.w[2] == 1)
 				reset_learning_structs();
@@ -294,24 +291,21 @@ static void updateUserWrites(struct taskmachine_s* tm){
 			set_dr_slope_thresh_rad(((float)user_data_1.w[7])/10000.0);
 			break;
 	    case GUI_MODE_EXPERIMENTAL: // 21
-	    	tm->trial_type = user_data_1.w[1];
+	    	//tm->trial_type = user_data_1.w[1];
+	    	stats->k_true = user_data_1.w[1];
 	    	tm->learning_enabled = user_data_1.w[2];
 			tm->adaptation_enabled = user_data_1.w[3];
 			break;
 
-
-
 	}
-
-
 }
 
 static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, struct kinematics_s* kin, struct predictor_s* pred, struct control_params_s* params, struct features_s* cfeats, int controlTime){
 
 	gui_sub_mode = ((int)((float)controlTime/100.0)) % 10;
 
-	int16_t guimode_controlmode_state_inswing = gui_mode*1000 + tm->control_mode*100 + get_walking_state()*10 + stats->k_est;
-	rigid1.mn.genVar[0] = guimode_controlmode_state_inswing;
+	int16_t walkstate_ktrue_kest_kpred = get_walking_state()*1000 + stats->k_true*100 + stats->k_est*10 + pred->k_pred;
+	rigid1.mn.genVar[0] = walkstate_ktrue_kest_kpred;
 	rigid1.mn.genVar[1] = (int16_t) (tm->tq*SCALE_FACTOR_100);
 	rigid1.mn.genVar[2] = (int16_t) (tm->aa*SCALE_FACTOR_10000);
 
@@ -331,6 +325,7 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    	rigid1.mn.genVar[7] = (int16_t)(params->adaptive.lst_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
 	    	rigid1.mn.genVar[8] = (int16_t)(params->adaptive.lst_engagement_tq_Nm[tm->control_mode]);
 	    	rigid1.mn.genVar[9] = (int16_t)(params->adaptive.lst_delay_tics[tm->control_mode]);
+//	    	rigid1.mn.genVar[9] = (int16_t)(get_minimum_jerk_values()->enabled);
 
 		break;
 	    case GUI_MODE_NOM_CONTROL_PARAMS: //5
@@ -383,17 +378,17 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 			rigid1.mn.genVar[9] = (int16_t) (100.0*(pred->B[gui_sub_mode]));
 				break;
 	    case GUI_MODE_DYNAMICS: //10
-			rigid1.mn.genVar[3] = (int16_t) (tm->tq_dot*SCALE_FACTOR_100);
+			rigid1.mn.genVar[3] = (int16_t) (tm->in_swing);
 			rigid1.mn.genVar[4] = (int16_t) (tm->aa_dot*SCALE_FACTOR_100);
 			rigid1.mn.genVar[5] = (int16_t) (tm->aa_dot_15hz_filt*SCALE_FACTOR_100);
-			rigid1.mn.genVar[6] = (int16_t) (tm->peak_power_w);
-			rigid1.mn.genVar[7] = (int16_t) (tm->net_work_j*SCALE_FACTOR_100);
-			rigid1.mn.genVar[8] = (int16_t) (tm->power_w);
-			rigid1.mn.genVar[9] = (int16_t) (get_ideal_peak_power());
+			rigid1.mn.genVar[6] = (int16_t) (tm->net_work_j*SCALE_FACTOR_100);
+			rigid1.mn.genVar[7] = (int16_t) (get_ideal_net_work()*SCALE_FACTOR_100);
+			rigid1.mn.genVar[8] = (int16_t) (tm->power_w*SCALE_FACTOR_100);
+			rigid1.mn.genVar[9] = (int16_t) (get_ideal_peak_power()*SCALE_FACTOR_100);
 		break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
 			rigid1.mn.genVar[3] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[4] = (int16_t) (get_back_estimator()->curr_stride_paz_thresh_pass_samples);
+			rigid1.mn.genVar[4] = (int16_t) (0);
 			rigid1.mn.genVar[5] = (int16_t) (get_back_estimator()->curr_stride_paz_thresh_status);
 			rigid1.mn.genVar[6] = (int16_t) (get_back_estimator()->prev_torque_range*SCALE_FACTOR_100);
 			rigid1.mn.genVar[7] = (int16_t) (kin->aAccZ*SCALE_FACTOR_100);
@@ -447,11 +442,6 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    case GUI_MODE_PREDICTION_ACCURACY: //16
 	    	rigid1.mn.genVar[3] = (int16_t) (stats->k_est);
 			rigid1.mn.genVar[4] = (int16_t) (pred->k_pred);
-//			rigid1.mn.genVar[5] = (int16_t) (stats->krunning_accuracies[0]*SCALE_FACTOR_10000);
-//			rigid1.mn.genVar[6] = (int16_t) (stats->running_accuracies[1]*SCALE_FACTOR_10000);
-//			rigid1.mn.genVar[7] = (int16_t) (stats->running_accuracies[2]*SCALE_FACTOR_10000);
-//			rigid1.mn.genVar[8] = (int16_t) (stats->running_accuracies[3]*SCALE_FACTOR_10000);
-//			rigid1.mn.genVar[9] = (int16_t) (stats->running_accuracies[4]*SCALE_FACTOR_10000);
 	    	break;
 	    case GUI_MODE_STATISTICS: //18
 	    	rigid1.mn.genVar[3] = (int16_t) (gui_sub_mode);
@@ -499,7 +489,7 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    	break;
 
 	    case GUI_MODE_ACCURACY_2: // 23
-	    	rigid1.mn.genVar[0] = (int16_t) (stats->composite_prediction_accuracy*100.0);
+	    	rigid1.mn.genVar[0] = (int16_t) (stats->running_prediction_accuracy*100.0);
 			rigid1.mn.genVar[1] = (int16_t) (stats->composite_estimation_accuracy*100.0);
 			rigid1.mn.genVar[2] = (int16_t) (stats->pop_true);
 	       	break;
@@ -662,7 +652,7 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				updateUserWrites(get_task_machine());
+				updateUserWrites(get_task_machine(), get_statistics());
 
 
 				//DEBUG removed this because joint encoder can't update in locked state.

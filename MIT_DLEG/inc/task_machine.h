@@ -29,8 +29,11 @@
 #define PI 3.1415926536
 #define N_CLASSES 5
 
-//#define POLETEST
-#define RC
+//Specify user
+#define POLETEST
+//#define RC
+//#define JG
+//#define RJ
 
 
 
@@ -90,6 +93,7 @@ struct taskmachine_s
 
 };
 
+float get_ideal_net_work();
 float get_ideal_peak_power();
 struct taskmachine_s* get_task_machine();
 void task_machine_demux(struct rigid_s* rigid, Act_s* act);

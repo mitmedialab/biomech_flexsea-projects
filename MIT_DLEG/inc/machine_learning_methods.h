@@ -108,7 +108,7 @@ struct statistics_s
 	float* estimation_accuracies;
 	float composite_estimation_accuracy;
 	float* prediction_accuracies;
-	float composite_prediction_accuracy;
+	float running_prediction_accuracy;
 
 	//Segmentation, state,and mutex variables
 	uint8_t updating_statistics_matrices;

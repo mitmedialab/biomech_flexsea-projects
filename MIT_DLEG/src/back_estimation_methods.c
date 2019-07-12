@@ -10,21 +10,19 @@
 
 
 #define US_Z_EARLY_MAX_SAMPLES 200
-#define DS_Z_EARLY_MAX_SAMPLES 200
 #define US_Z_EARLY_THRESH_M 0.2
-#define DS_Z_EARLY_THRESH_M -0.04
-#define US_Z_MAX_SAMPLES 300
-#define DS_Z_MAX_SAMPLES 500
-#define US_Z_THRESH_M 0.3
-#define DS_Z_THRESH_M -0.2
+#define DS_Z_EARLY_MAX_SAMPLES 500
+#define DS_Z_EARLY_THRESH_M -0.08
+#define DS_Y_EARLY_THRESH_M 0.42
 #define MAX_STANCE_SAMPLES 1500
 #define UR_GROUND_SLOPE_THRESH_RAD -0.05
 #define DR_GROUND_SLOPE_THRESH_RAD 0.05
-#ifdef POLETEST
-#define TORQUE_RANGE_THRESH 10.0
-#else
+
+//#ifdef POLETEST
+//#define TORQUE_RANGE_THRESH 10.0
+//#else
 #define TORQUE_RANGE_THRESH 30.0
-#endif
+//#endif
 
 
 static struct back_estimator_s be;
@@ -36,20 +34,19 @@ void back_estimate(struct taskmachine_s* tm, struct statistics_s* stats, struct 
 
 	stats->k_est = K_FLAT; 
 
+#ifndef POLETEST
 	if (tm->elapsed_samples > MAX_STANCE_SAMPLES ||
 			be.prev_torque_range < TORQUE_RANGE_THRESH){
 		return;
 	}
+#endif
 
-	if (be.prev_stride_paz_thresh_status == PAZ_PASSED_US_THRESH &&
-			be.prev_stride_paz_thresh_pass_samples < US_Z_EARLY_MAX_SAMPLES){
+	if (be.prev_stride_paz_thresh_status == PAZ_PASSED_US_THRESH){
 		stats->k_est = K_USTAIRS;
 		return;
 	}
 
-	if (be.prev_stride_paz_thresh_status == PAZ_PASSED_DS_THRESH &&
-			be.prev_stride_paz_thresh_pass_samples < DS_Z_EARLY_MAX_SAMPLES &&
-		kin->prev_ground_slope_est < DR_GROUND_SLOPE_THRESH_RAD){
+	if (be.prev_stride_paz_thresh_status == PAZ_PASSED_DS_THRESH){
 		stats->k_est = K_DSTAIRS;
 		return;
 	}
@@ -70,18 +67,18 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 {
 
 	if (be.curr_stride_paz_thresh_status == PAZ_PASSED_NO_THRESH){
-		if (kin->pAz > be.us_z_thresh_m){
+		if (kin->pAz > be.us_z_thresh_m &&
+				tm->elapsed_samples - tm->latest_foot_off_samples < be.us_z_max_samples){
 			be.curr_stride_paz_thresh_status = PAZ_PASSED_US_THRESH;
-			be.curr_stride_paz_thresh_pass_samples = tm->elapsed_samples - tm->latest_foot_off_samples;
-		}else if (kin->pAz < be.ds_z_thresh_m){
-			be.curr_stride_paz_thresh_status = PAZ_PASSED_DS_THRESH;
-			be.curr_stride_paz_thresh_pass_samples = tm->elapsed_samples - tm->latest_foot_off_samples;
+		}else if (kin->pAz < be.ds_z_thresh_m &&
+				kin->pAy < be.ds_y_thresh_m &&
+				tm->elapsed_samples - tm->latest_foot_off_samples < be.ds_z_max_samples){
+			be.curr_stride_paz_thresh_status = PAZ_PASSED_DS_THRESH;;
 		}
 	}
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
 	    be.prev_stride_paz_thresh_status =  be.curr_stride_paz_thresh_status;
-	    be.prev_stride_paz_thresh_pass_samples = be.curr_stride_paz_thresh_pass_samples;
 	    be.prev_stance_samples = tm->latest_foot_off_samples;
 	    be.prev_torque_range = be.max_torque - be.min_torque;
 	    be.max_torque = -FLT_MAX;
@@ -104,15 +101,11 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 //Copied from matlab pil simulation
 void init_back_estimator(){
 
-    be.curr_stride_paz_thresh_status = 0;
-    be.curr_stride_paz_thresh_pass_samples = 0;
-    be.prev_stride_paz_thresh_status = 0;
-    be.prev_stride_paz_thresh_pass_samples = 0;
-
     be.us_z_thresh_m =  US_Z_EARLY_THRESH_M;
 	be.ds_z_thresh_m = DS_Z_EARLY_THRESH_M;
-	be.us_z_max_samples = US_Z_MAX_SAMPLES;
-	be.ds_z_max_samples = DS_Z_MAX_SAMPLES;
+	be.ds_y_thresh_m = DS_Y_EARLY_THRESH_M;
+	be.us_z_max_samples = US_Z_EARLY_MAX_SAMPLES;
+	be.ds_z_max_samples = DS_Z_EARLY_MAX_SAMPLES;
 	be.ur_slope_thresh_rad = UR_GROUND_SLOPE_THRESH_RAD;
 	be.dr_slope_thresh_rad = DR_GROUND_SLOPE_THRESH_RAD;
 

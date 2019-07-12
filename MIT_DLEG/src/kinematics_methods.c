@@ -178,7 +178,7 @@ void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm){
 
 	update_acc(mn);
 	update_omega(mn);
-	//correct_accel_scaling();
+	correct_accel_scaling();
 	update_pose(tm);
 
 }

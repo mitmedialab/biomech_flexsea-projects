@@ -22,12 +22,11 @@ struct back_estimator_s
 {
 
     uint8_t curr_stride_paz_thresh_status;
-    int curr_stride_paz_thresh_pass_samples;
     uint8_t prev_stride_paz_thresh_status;
-    int prev_stride_paz_thresh_pass_samples;
 
     float us_z_thresh_m;
    	float ds_z_thresh_m;
+   	float ds_y_thresh_m;
    	int us_z_max_samples;
    	int ds_z_max_samples;
    	float ur_slope_thresh_rad;
