@@ -119,7 +119,7 @@ static int gui_mode_prev = GUI_MODE_NOM_CONTROL_PARAMS;
 // Macro(s)
 //****************************************************************************
 
-static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
+static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm, struct statistics_s* stats){
 
 	user_data_1.w[0] = gui_mode;
 
@@ -160,8 +160,8 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 			user_data_1.w[3] = (int32_t)(get_control_params()->active.esw_theta_rad*SCALE_FACTOR_10000);
 			user_data_1.w[4] = (int32_t)(get_control_params()->active.sw_k_Nm_p_rad);
 			user_data_1.w[5] = (int32_t)(get_control_params()->active.sw_b_Nm_p_rps);
-			user_data_1.w[6] = (int32_t)(get_minimum_jerk_values()->enabled);
-			user_data_1.w[7] = (int32_t)(0);
+			user_data_1.w[6] = (int32_t)(get_control_params()->active.sw_delay_tics);
+			user_data_1.w[7] = (int32_t)(get_minimum_jerk_values()->enabled);
 			user_data_1.w[8] = (int32_t)(0);
 			user_data_1.w[9] = (int32_t)(0);
 		break;
@@ -176,9 +176,9 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 	    case GUI_MODE_STATISTICS: //18
 	    case GUI_MODE_PREDICTION_ACCURACY: //16
 	    case GUI_MODE_PREDICTOR: //19
-	    	user_data_1.w[1] = tm->control_mode;
+	    	user_data_1.w[1] = (int32_t)(0);
 	    	user_data_1.w[2] = (int32_t)(0);
-			user_data_1.w[3] = (int32_t)(0);
+			user_data_1.w[3] = tm->control_mode;
 			user_data_1.w[4] = (int32_t)(0);
 			user_data_1.w[5] = (int32_t)(0);
 			user_data_1.w[6] = (int32_t)(0);
@@ -188,16 +188,23 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm){
 
 	    break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
-	    	user_data_1.w[1] = tm->control_mode;
-	    	user_data_1.w[2] =  (int32_t) (get_back_estimator()->us_z_thresh_m*10000.0);
-	    	user_data_1.w[3] =  (int32_t) (get_back_estimator()->ds_z_thresh_m*10000.0);
-	    	user_data_1.w[4] =  (int32_t) (get_back_estimator()->us_z_max_samples);
-	    	user_data_1.w[5] =  (int32_t) (get_back_estimator()->ds_z_max_samples);
-	    	user_data_1.w[6] =  (int32_t) (get_back_estimator()->ur_slope_thresh_rad*10000.0);
-	    	user_data_1.w[7] =  (int32_t) (get_back_estimator()->dr_slope_thresh_rad*10000.0);
+	    	user_data_1.w[3] = tm->control_mode;
+	    	user_data_1.w[4] =  (int32_t) (get_back_estimator()->us_z_thresh_m*10000.0);
+	    	user_data_1.w[5] =  (int32_t) (get_back_estimator()->ds_z_thresh_m*10000.0);
+	    	user_data_1.w[6] =  (int32_t) (get_back_estimator()->us_z_max_samples);
+	    	user_data_1.w[7] =  (int32_t) (get_back_estimator()->ds_z_max_samples);
+	    	user_data_1.w[8] =  (int32_t) (get_back_estimator()->ur_slope_thresh_rad*10000.0);
+	    	user_data_1.w[9] =  (int32_t) (get_back_estimator()->dr_slope_thresh_rad*10000.0);
 			break;
 	    case GUI_MODE_TASK_MACHINE: //17
 	    	break;
+	    case GUI_MODE_EXPERIMENTAL: // 21
+			user_data_1.w[3] = tm->control_mode;
+			user_data_1.w[4] = 0;
+			user_data_1.w[5] = stats->k_true;
+			user_data_1.w[6] = tm->learning_enabled;
+			user_data_1.w[7] = tm->adaptation_enabled;
+			break;
 	}
 		
 }
@@ -227,7 +234,7 @@ static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stat
 	gui_mode_prev = gui_mode;
 	gui_mode = user_data_1.w[0];
 	if (gui_mode_prev != gui_mode){
-		syncUserWritesWithCurrentParameterValues(tm);
+		syncUserWritesWithCurrentParameterValues(tm, stats);
 	}
 
 	switch (gui_mode){
@@ -253,14 +260,15 @@ static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stat
 				set_lst_k_Nm_p_rad((float) user_data_1.w[6], tm->control_mode);
 				set_lst_theta_rad((float) user_data_1.w[7]/SCALE_FACTOR_10000, tm->control_mode);
 				set_lst_engagement_tq_Nm((float) user_data_1.w[8], tm->control_mode);
-				set_lst_delay_tics(user_data_1.w[9], tm->control_mode);
+				set_lst_delay_tics((float)user_data_1.w[9], tm->control_mode);
 	    	}
 		break;
 		case GUI_MODE_SW_CONTROL_PARAMS: //6
 			set_esw_theta_rad((float) user_data_1.w[3]/SCALE_FACTOR_10000);
 			set_sw_k_Nm_p_rad((float) user_data_1.w[4]);
 			set_sw_b_Nm_p_rps((float) user_data_1.w[5]);
-			enable_minimum_jerk((uint8_t) user_data_1.w[6]);
+			set_sw_delay_tics((float) user_data_1.w[6]);
+			enable_minimum_jerk((uint8_t) user_data_1.w[7]);
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL: //7
 		case GUI_MODE_GAIT_EVENTS: //8
@@ -271,30 +279,32 @@ static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stat
 		case GUI_MODE_PREDICTION_ACCURACY: //16
 		case GUI_MODE_STATISTICS: //18
 		case GUI_MODE_PREDICTOR: //19
-			tm->control_mode = user_data_1.w[1];
-			if (user_data_1.w[2] == 1)
+			tm->control_mode = user_data_1.w[3];
+			if (user_data_1.w[4] == 1)
 				reset_learning_structs();
 	    break;
 		case GUI_MODE_FEATURES: //14
-			tm->control_mode = user_data_1.w[1];
-			gui_sub_mode = user_data_1.w[2];
-			if (user_data_1.w[2] == 1)
+			tm->control_mode = user_data_1.w[3];
+			if (user_data_1.w[4] == 1)
 				reset_learning_structs();
+			gui_sub_mode = user_data_1.w[5];
 		break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
-	    	tm->control_mode = user_data_1.w[1];
-			set_us_z_thresh_m(((float)user_data_1.w[2])/10000.0);
-			set_ds_z_thresh_m(((float)user_data_1.w[3])/10000.0);
-			set_us_z_max_samples(user_data_1.w[4]);
-			set_ds_z_max_samples(user_data_1.w[5]);
-			set_ur_slope_thresh_rad(((float)user_data_1.w[6])/10000.0);
-			set_dr_slope_thresh_rad(((float)user_data_1.w[7])/10000.0);
+	    	tm->control_mode = user_data_1.w[3];
+			set_us_z_thresh_m(((float)user_data_1.w[4])/10000.0);
+			set_ds_z_thresh_m(((float)user_data_1.w[5])/10000.0);
+			set_us_z_max_samples(user_data_1.w[6]);
+			set_ds_z_max_samples(user_data_1.w[7]);
+			set_ur_slope_thresh_rad(((float)user_data_1.w[8])/10000.0);
+			set_dr_slope_thresh_rad(((float)user_data_1.w[9])/10000.0);
 			break;
 	    case GUI_MODE_EXPERIMENTAL: // 21
-	    	//tm->trial_type = user_data_1.w[1];
-	    	stats->k_true = user_data_1.w[1];
-	    	tm->learning_enabled = user_data_1.w[2];
-			tm->adaptation_enabled = user_data_1.w[3];
+	    	tm->control_mode = user_data_1.w[3];
+	    	if (user_data_1.w[4] == 1)
+				reset_learning_structs();
+	    	stats->k_true = user_data_1.w[5];
+	    	tm->learning_enabled = user_data_1.w[6];
+			tm->adaptation_enabled = user_data_1.w[7];
 			break;
 
 	}
@@ -302,7 +312,7 @@ static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stat
 
 static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, struct kinematics_s* kin, struct predictor_s* pred, struct control_params_s* params, struct features_s* cfeats, int controlTime){
 
-	gui_sub_mode = ((int)((float)controlTime/100.0)) % 10;
+//	gui_sub_mode = ((int)((float)controlTime/100.0)) % 10;
 
 	int16_t walkstate_ktrue_kest_kpred = get_walking_state()*1000 + stats->k_true*100 + stats->k_est*10 + pred->k_pred;
 	rigid1.mn.genVar[0] = walkstate_ktrue_kest_kpred;
@@ -316,35 +326,19 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    case GUI_MODE_DR_CONTROL_PARAMS: //2
 	    case GUI_MODE_US_CONTROL_PARAMS: //3
 	    case GUI_MODE_DS_CONTROL_PARAMS: //4
-	    	rigid1.mn.genVar[1] = (int16_t)(params->adaptive.hard_stop_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
-	    	rigid1.mn.genVar[2] = (int16_t)(params->adaptive.hard_stop_k_Nm_p_rad[tm->control_mode]);
-	    	rigid1.mn.genVar[3] = (int16_t)(params->adaptive.lsw_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
-	    	rigid1.mn.genVar[4] = (int16_t)(params->adaptive.st_b_Nm_p_rps[tm->control_mode]);
-	    	rigid1.mn.genVar[5] = (int16_t)(params->adaptive.est_k_Nm_p_rad[tm->control_mode]);
-	    	rigid1.mn.genVar[6] = (int16_t)(params->adaptive.lst_k_Nm_p_rad[tm->control_mode]);
-	    	rigid1.mn.genVar[7] = (int16_t)(params->adaptive.lst_theta_rad[tm->control_mode]*SCALE_FACTOR_10000);
-	    	rigid1.mn.genVar[8] = (int16_t)(params->adaptive.lst_engagement_tq_Nm[tm->control_mode]);
-	    	rigid1.mn.genVar[9] = (int16_t)(params->adaptive.lst_delay_tics[tm->control_mode]);
-//	    	rigid1.mn.genVar[9] = (int16_t)(get_minimum_jerk_values()->enabled);
-
+	    	for (int i=1; i<=9; i++){
+	    		rigid1.mn.genVar[i] = (int16_t)(user_data_1.w[i]);
+	    	}
 		break;
 	    case GUI_MODE_NOM_CONTROL_PARAMS: //5
-	    	rigid1.mn.genVar[3] = (int16_t)(params->nominal.theta_rad*SCALE_FACTOR_10000);
-	    	rigid1.mn.genVar[4] = (int16_t)(params->nominal.k_Nm_p_rad);
-	    	rigid1.mn.genVar[5] = (int16_t)(params->nominal.b_Nm_p_rps);
-	    	rigid1.mn.genVar[6] = (int16_t) (act1.axialForce*10.0);
-			rigid1.mn.genVar[7] = (int16_t) (act1.linkageMomentArm*100000.0);
-			rigid1.mn.genVar[8] = (int16_t) (act1.jointTorqueLC*10000.0);
-			rigid1.mn.genVar[9] = (int16_t) (act1.jointTorque*10000.0);
+	    	for (int i=3; i<=9; i++){
+				rigid1.mn.genVar[i] = (int16_t)(user_data_1.w[i]);
+			}
 	    break;
 		case GUI_MODE_SW_CONTROL_PARAMS: //6
-			rigid1.mn.genVar[3] = (int16_t) (params->active.esw_theta_rad*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[4] = (int16_t) ((float) ( *rigid1.ex.enc_ang - act1.motorPos0) /10.0);
-			rigid1.mn.genVar[5] = (int16_t) (act1.theta0*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[6] = (int16_t) (act1.jointTorque*SCALE_FACTOR_100);
-			rigid1.mn.genVar[7] = (int16_t) (act1.linkageMomentArm*100000.0);
-			rigid1.mn.genVar[8] = (int16_t) (fabs(tm->aa - act1.thetaDes)*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[9] = (int16_t) (act1.tauDes);
+			for (int i=3; i<=9; i++){
+				rigid1.mn.genVar[i] = (int16_t)(user_data_1.w[i]);
+			}
 		break;
 		case GUI_MODE_ADAPTIVE_CONTROL: //7
 			rigid1.mn.genVar[3] = (int16_t) (pred->k_pred);
@@ -461,19 +455,20 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 			rigid1.mn.genVar[5] = (int16_t) (stats->mu[5]*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[6] = (int16_t) (stats->sum_sigma[55]*1000.0);
 			rigid1.mn.genVar[7] = (int16_t) (stats->pop);
-			rigid1.mn.genVar[8] = (int16_t) (stats->pop_k);
+			rigid1.mn.genVar[8] = (int16_t) (stats->pop_k[0]);
 			rigid1.mn.genVar[9] = (int16_t) (stats->mu_k[5]*SCALE_FACTOR_10000);
 			break;
 	    case GUI_MODE_PREDICTOR: //19
 	    	break;
 	    case GUI_MODE_EXPERIMENTAL: // 21
-	    	rigid1.mn.genVar[3] = (int16_t) (kin->pAz*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[4] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[5] = (int16_t) (stats->pop_k_true[0]);
-			rigid1.mn.genVar[6] = (int16_t) (stats->pop_k_true[1]);
-			rigid1.mn.genVar[7] = (int16_t) (stats->pop_k_true[2]);
-			rigid1.mn.genVar[8] = (int16_t) (stats->pop_k_true[3]);
-			rigid1.mn.genVar[9] = (int16_t) (stats->pop_k_true[4]);
+	    	rigid1.mn.genVar[3] = (int16_t) (user_data_1.w[3]);
+			rigid1.mn.genVar[4] = (int16_t) (user_data_1.w[4]);
+			rigid1.mn.genVar[5] = (int16_t) (user_data_1.w[5]);
+			rigid1.mn.genVar[6] = (int16_t) (user_data_1.w[6]);
+			rigid1.mn.genVar[7] = (int16_t) (user_data_1.w[7]);
+			rigid1.mn.genVar[8] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[9] = (int16_t) (kin->pAz*SCALE_FACTOR_10000);
+
 	    	break;
 	    case GUI_MODE_ACCURACY_1: // 22
 	    	rigid1.mn.genVar[0] = (int16_t) (stats->prediction_accuracies[0]*100.0);
@@ -492,6 +487,11 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    	rigid1.mn.genVar[0] = (int16_t) (stats->running_prediction_accuracy*100.0);
 			rigid1.mn.genVar[1] = (int16_t) (stats->composite_estimation_accuracy*100.0);
 			rigid1.mn.genVar[2] = (int16_t) (stats->pop_true);
+			rigid1.mn.genVar[3] = (int16_t) (stats->pop_k_true[0]);
+			rigid1.mn.genVar[4] = (int16_t) (stats->pop_k_true[1]);
+			rigid1.mn.genVar[5] = (int16_t) (stats->pop_k_true[2]);
+			rigid1.mn.genVar[6] = (int16_t) (stats->pop_k_true[3]);
+			rigid1.mn.genVar[7] = (int16_t) (stats->pop_k_true[4]);
 	       	break;
 
 	}

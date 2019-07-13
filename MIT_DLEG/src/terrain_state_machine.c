@@ -40,7 +40,7 @@ static void init_minimum_jerk_values_s(){
 	mj.update_counter = UINT_MAX;
 	mj.angle_tol_rad = DEFAULT_MINIMUM_JERK_ANGLE_TOL_RAD;
 	mj.trajectory_defined = 0;
-	mj.enabled = 1;
+	mj.enabled = 0;
 
 }
 
@@ -184,6 +184,7 @@ void reset_terrain_state_machine_parameters(){
 	cp.active.esw_theta_rad = DEFAULT_ESW_THETA_RAD;
 	cp.active.sw_k_Nm_p_rad = DEFAULT_SW_K_NM_P_RAD;
 	cp.active.sw_b_Nm_p_rps = DEFAULT_SW_B_NM_P_RPS;
+	cp.active.sw_delay_tics = DEFAULT_SW_DELAY_TICS;
 	cp.active.desired_trajectory_period_s = DEFAULT_DESIRED_TRAJECTORY_PERIOD_S;
 
 	cp.nominal.theta_rad = DEFAULT_NOMINAL_THETA_RAD;
@@ -239,6 +240,11 @@ void set_sw_b_Nm_p_rps(float b_Nm_p_rps){
 	else
 		cp.active.sw_b_Nm_p_rps = b_Nm_p_rps;
 }
+
+void set_sw_delay_tics(float sw_delay_tics){
+	cp.active.sw_delay_tics = sw_delay_tics;
+}
+
 void set_nominal_theta_rad(float theta_rad){
 	cp.nominal.theta_rad = theta_rad;
 }
@@ -282,9 +288,11 @@ void set_lst_engagement_tq_Nm(float lst_engagement_tq_Nm, int terrain){
 	cp.adaptive.lst_engagement_tq_Nm[terrain] = lst_engagement_tq_Nm;
 }
 
-void set_lst_delay_tics(int lst_delay_tics, int terrain){
+void set_lst_delay_tics(float lst_delay_tics, int terrain){
 	cp.adaptive.lst_delay_tics[terrain] = lst_delay_tics;
 }
+
+
 
 
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int terrain_mode){
@@ -293,6 +301,8 @@ static float delay_tics = 0.0;
 static int on_entry = 0;
 static int prev_state_machine_demux_state = STATE_ESW;
 static float stance_entry_theta_rad = 0.0;
+static float prev_esw_theta_rad = 0.0;
+static float prev_sw_delay_tics = 0.0;
 
 if (terrain_mode == MODE_NOMINAL){
 	set_joint_torque(actx, tm, cp.nominal.theta_rad, cp.nominal.k_Nm_p_rad, cp.nominal.b_Nm_p_rps,1.0);
@@ -311,7 +321,18 @@ if (terrain_mode == MODE_NOMINAL){
 				set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.0);
 		}
 	}else{
-		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
+		if (delay_tics < cp.active.sw_delay_tics){
+			delay_tics++;
+		}
+		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps, delay_tics/cp.active.sw_delay_tics);
+
+		if (cp.active.esw_theta_rad != prev_esw_theta_rad ||
+				cp.active.sw_delay_tics != prev_sw_delay_tics){
+			delay_tics = 0;
+		}
+		prev_esw_theta_rad = cp.active.esw_theta_rad;
+		prev_sw_delay_tics = cp.active.sw_delay_tics;
+
 	}
 	return;
 }
@@ -326,7 +347,7 @@ switch (state_machine_demux_state){
 			delay_tics = 0;
 		}
 
-		if (delay_tics < DEFAULT_SW_DELAY_TICS){
+		if (delay_tics < cp.active.sw_delay_tics){
 			delay_tics++;
 		}
 		if (mj.enabled){
@@ -337,7 +358,7 @@ switch (state_machine_demux_state){
 					set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.0);
 			}
 		}else{
-			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/DEFAULT_SW_DELAY_TICS);
+			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/cp.active.sw_delay_tics);
 		}
 
         if (tm->gait_event_trigger == GAIT_EVENT_WINDOW_CLOSE){
@@ -348,9 +369,10 @@ switch (state_machine_demux_state){
     case STATE_LSW:
     	if (on_entry){
     		delay_tics = 0;
+    		mj.trajectory_defined = 0;
     	}
 
-    	if (delay_tics < DEFAULT_SW_DELAY_TICS){
+    	if (delay_tics < cp.active.sw_delay_tics){
     		delay_tics++;
     	}
 
@@ -362,7 +384,7 @@ switch (state_machine_demux_state){
     					set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0, 0.0);
     			}
     		}else{
-    			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/DEFAULT_SW_DELAY_TICS);
+    			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/cp.active.sw_delay_tics);
     		}
 
     	//Transition condition should be, you have a certain velocity of the ankle joint opposing the direction of the torque??
@@ -400,7 +422,7 @@ switch (state_machine_demux_state){
 			delay_tics++;
 		}
 
-    	set_joint_torque_with_hardstop(actx, tm, cp.active.lst_theta_rad, cp.active.lst_k_Nm_p_rad, cp.active.st_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad, delay_tics/((float)cp.active.lst_delay_tics));
+    	set_joint_torque_with_hardstop(actx, tm, cp.active.lst_theta_rad, cp.active.lst_k_Nm_p_rad, cp.active.st_b_Nm_p_rps, cp.active.hard_stop_theta_rad, cp.active.hard_stop_k_Nm_p_rad, delay_tics/cp.active.lst_delay_tics);
 
    	 	if (tm->in_swing){
         	state_machine_demux_state = STATE_ESW;

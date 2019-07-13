@@ -12,12 +12,11 @@
 
 
 #define DEFAULT_MAX_SAFE_B_NM_P_RPS 15.0
-#define DEFAULT_SW_K_NM_P_RAD 150.0
+#define DEFAULT_SW_K_NM_P_RAD 175.0
 #define DEFAULT_SW_B_NM_P_RPS 8.5
-#define DEFAULT_SW_DELAY_TICS 70.0
-#define DEFAULT_SW_DELAY_TICS 70.0
+#define DEFAULT_SW_DELAY_TICS 50.0
 
-#define DEFAULT_NOMINAL_K_NM_P_RAD 100.0
+#define DEFAULT_NOMINAL_K_NM_P_RAD 200.0
 #define DEFAULT_NOMINAL_B_NM_P_RPS 6.0
 #define DEFAULT_NOMINAL_THETA_RAD 0.0
 #define DEFAULT_DESIRED_TRAJECTORY_PERIOD_S 0.250
@@ -35,7 +34,7 @@
 #define DEFAULT_FLAT_LST_K_NM_P_RAD 200.0
 #define DEFAULT_FLAT_LST_THETA_RAD 0.244
 #define DEFAULT_FLAT_LST_ENGAGEMENT_TQ_NM 20.0
-#define DEFAULT_FLAT_LST_DELAY_TICS 70
+#define DEFAULT_FLAT_LST_DELAY_TICS 70.0
 
 #define DEFAULT_URAMP_HS_THETA_RAD -0.19
 #define DEFAULT_URAMP_HS_K_NM_P_RAD 350.0
@@ -45,17 +44,17 @@
 #define DEFAULT_URAMP_LST_K_NM_P_RAD 50.0
 #define DEFAULT_URAMP_LST_THETA_RAD 0.3
 #define DEFAULT_URAMP_LST_ENGAGEMENT_TQ_NM 30.0
-#define DEFAULT_URAMP_LST_DELAY_TICS 70
+#define DEFAULT_URAMP_LST_DELAY_TICS 70.0
 
 #define DEFAULT_DRAMP_HS_THETA_RAD 0.0
 #define DEFAULT_DRAMP_HS_K_NM_P_RAD 800.0
-#define DEFAULT_DRAMP_LSW_THETA_RAD -0.03
+#define DEFAULT_DRAMP_LSW_THETA_RAD 0.0
 #define DEFAULT_DRAMP_ST_B_NM_P_RPS 8.0
 #define DEFAULT_DRAMP_EST_K_NM_P_RAD 50.0
 #define DEFAULT_DRAMP_LST_K_NM_P_RAD 10.0
 #define DEFAULT_DRAMP_LST_THETA_RAD 0.0
 #define DEFAULT_DRAMP_LST_ENGAGEMENT_TQ_NM 20.0
-#define DEFAULT_DRAMP_LST_DELAY_TICS 70
+#define DEFAULT_DRAMP_LST_DELAY_TICS 70.0
 
 #define DEFAULT_USTAIRS_HS_THETA_RAD 0.2
 #define DEFAULT_USTAIRS_HS_K_NM_P_RAD 350.0
@@ -65,17 +64,17 @@
 #define DEFAULT_USTAIRS_LST_K_NM_P_RAD 300.0
 #define DEFAULT_USTAIRS_LST_THETA_RAD 0.26
 #define DEFAULT_USTAIRS_LST_ENGAGEMENT_TQ_NM 10.0
-#define DEFAULT_USTAIRS_LST_DELAY_TICS 70
+#define DEFAULT_USTAIRS_LST_DELAY_TICS 70.0
 
-#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.5
+#define DEFAULT_DSTAIRS_HS_THETA_RAD 0.0
 #define DEFAULT_DSTAIRS_HS_K_NM_P_RAD 150.0
-#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.5
-#define DEFAULT_DSTAIRS_ST_B_NM_P_RPS 6.0
-#define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 0.0
+#define DEFAULT_DSTAIRS_LSW_THETA_RAD 0.55
+#define DEFAULT_DSTAIRS_ST_B_NM_P_RPS 12.0
+#define DEFAULT_DSTAIRS_EST_K_NM_P_RAD 75.0
 #define DEFAULT_DSTAIRS_LST_K_NM_P_RAD 0.0
 #define DEFAULT_DSTAIRS_LST_THETA_RAD 0.0
-#define DEFAULT_DSTAIRS_LST_ENGAGEMENT_TQ_NM 20.0
-#define DEFAULT_DSTAIRS_LST_DELAY_TICS 70
+#define DEFAULT_DSTAIRS_LST_ENGAGEMENT_TQ_NM 1000.0
+#define DEFAULT_DSTAIRS_LST_DELAY_TICS 70.0
 
 //#else
 //
@@ -135,7 +134,7 @@
 
 #define DEFAULT_MINIMUM_JERK_TRAJECTORY_TIME 0.2
 #define DEFAULT_MINIMUM_JERK_ANGLE_TOL_RAD 0.05
-#define MINIMUM_JERK_MAX_MEAN_SPEED_RPS 1.5
+#define MINIMUM_JERK_MAX_MEAN_SPEED_RPS 2.0
 
 int get_walking_state();
 struct minimum_jerk_values_s* get_minimum_jerk_values();
@@ -146,6 +145,7 @@ void enable_minimum_jerk(uint8_t enabled);
 void set_esw_theta_rad(float theta_rad);
 void set_sw_k_Nm_p_rad(float k_Nm_p_rad);
 void set_sw_b_Nm_p_rps(float b_Nm_p_rps);
+void set_sw_delay_tics(float sw_delay_tics);
 void set_nominal_theta_rad(float theta_rad);
 void set_nominal_k_Nm_p_rad(float k_Nm_p_rad);
 void set_nominal_b_Nm_p_rps(float b_Nm_p_rps);
@@ -156,7 +156,7 @@ void set_st_b_Nm_p_rps(float est_b_Nm_p_rps, int terrain);
 void set_est_k_Nm_p_rad(float est_k_Nm_p_rad, int terrain);
 void set_lst_k_Nm_p_rad(float lst_k_Nm_p_rad, int terrain);
 void set_lst_theta_rad(float lst_theta_rad, int terrain);
-void set_lst_delay_tics(int lst_delay_tics, int terrain);
+void set_lst_delay_tics(float lst_delay_tics, int terrain);
 void set_lst_engagement_tq_Nm(float lst_engagement_tq_Nm, int terrain);
 void terrain_state_machine_demux(struct taskmachine_s* tm, struct rigid_s* rigid, Act_s *actx, int current_terrain);
 void init_terrain_state_machine();
@@ -177,6 +177,7 @@ static struct active_control_params_s
 	float sw_k_Nm_p_rad;
 	float sw_b_Nm_p_rps;
 	float desired_trajectory_period_s;
+	float sw_delay_tics;
 	float lst_delay_tics;
 
 	//Terrain dependent params

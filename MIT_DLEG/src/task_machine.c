@@ -114,12 +114,8 @@ static void update_gait_events(Act_s* actx){
           	  return;
           }
 
-          if (fabs(tm.aa - actx->thetaDes) > 0.05)
-        	  return;
-
             //Swing to stance transition condition
-          if (fabs(EXPECTED_SWING_TQ - tm.tq) >= TRANSITION_TQ_THRESH ||
-        		  fabs(tm.tq_dot) >= MAX_SWING_TQ_DOT_NM_HZ){
+          if (fabs(tm.tq_dot) >= MAX_SWING_TQ_DOT_NM_HZ && tm.power_w < 0.0){
 //        	  prev_stride_tics = tm.elapsed_samples;
               tm.elapsed_samples = 0;
               tm.in_swing = 0;
