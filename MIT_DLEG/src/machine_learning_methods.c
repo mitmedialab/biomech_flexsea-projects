@@ -230,7 +230,7 @@ static void update_confusion_matrix_values(){
 void update_statistics_demux(struct taskmachine_s* tm, struct kinematics_s* kin){
     switch (stats.demux_state){
       case STATS_BACK_ESTIMATE: //constant flops
-          back_estimate(tm, &stats, kin);
+          back_estimate(&stats, kin);
           update_confusion_matrix_values();
           if (tm->learning_enabled){
         	  stats.demux_state = STATS_UPDATE_CLASS_SUM;

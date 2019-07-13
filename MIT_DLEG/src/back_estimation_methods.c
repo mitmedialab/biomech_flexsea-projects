@@ -17,25 +17,20 @@
 #define MAX_STANCE_SAMPLES 1500
 #define UR_GROUND_SLOPE_THRESH_RAD -0.05
 #define DR_GROUND_SLOPE_THRESH_RAD 0.05
-
-//#ifdef POLETEST
-//#define TORQUE_RANGE_THRESH 10.0
-//#else
 #define TORQUE_RANGE_THRESH 30.0
-//#endif
 
 
 static struct back_estimator_s be;
 
 
 //copied from matlab pil
-void back_estimate(struct taskmachine_s* tm, struct statistics_s* stats, struct kinematics_s* kin){
+void back_estimate(struct statistics_s* stats, struct kinematics_s* kin){
   
 
 	stats->k_est = K_FLAT; 
 
 #ifndef POLETEST
-	if (tm->elapsed_samples > MAX_STANCE_SAMPLES ||
+	if (be.prev_stance_samples > MAX_STANCE_SAMPLES ||
 			be.prev_torque_range < TORQUE_RANGE_THRESH){
 		return;
 	}

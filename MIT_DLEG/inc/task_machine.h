@@ -30,9 +30,9 @@
 #define N_CLASSES 5
 
 //Specify user
-#define POLETEST
+//#define POLETEST
 //#define RC
-//#define JG
+#define JG
 //#define RJ
 
 
