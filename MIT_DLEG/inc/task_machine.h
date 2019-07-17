@@ -31,13 +31,13 @@
 
 //Specify user
 //#define POLETEST
-//#define RC
-#define JG
-//#define RJ
+//#define USER_RC
+//#define USER_JG
+//#define USER_RJ
+#define USER_AP
 
 
 
-//Copied from matlab pil simulation
 struct taskmachine_s
 {
 
@@ -50,6 +50,7 @@ struct taskmachine_s
 	
     float elapsed_samples;
     float latest_foot_off_samples;
+    float prev_stride_samples;
     uint8_t in_swing;
     uint8_t do_learning_for_curr_stride;
     uint8_t do_learning_for_prev_stride;
@@ -93,8 +94,13 @@ struct taskmachine_s
 
 };
 
+
+
+float get_ideal_peak_gen_power();
+float get_ideal_peak_dis_power();
 float get_ideal_net_work();
-float get_ideal_peak_power();
+float get_ideal_peak_plantar_torque();
+float get_ideal_ankle_angle();
 struct taskmachine_s* get_task_machine();
 void task_machine_demux(struct rigid_s* rigid, Act_s* act);
 
@@ -115,6 +121,7 @@ enum Gait_Modes {
 	MODE_DSTAIRS = 4,
     MODE_NOMINAL = 5,
     MODE_POSITION = 6,
+	MODE_HEURISTIC = 7,
 //	MODE_ADAPTIVE_NO_LEARNING= 7,
 //	MODE_ADAPTIVE_WITH_LEARNING = 7,
 //	MODE_ADAPTIVE_WITH_HEURISTICS = 8,

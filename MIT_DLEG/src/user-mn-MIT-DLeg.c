@@ -119,9 +119,11 @@ static int gui_mode_prev = GUI_MODE_NOM_CONTROL_PARAMS;
 // Macro(s)
 //****************************************************************************
 
-static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm, struct statistics_s* stats){
+static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm, struct statistics_s* stats, struct back_estimator_s* be){
 
 	user_data_1.w[0] = gui_mode;
+
+
 
 	switch (gui_mode){
 	    case GUI_MODE_FL_CONTROL_PARAMS: //0
@@ -188,13 +190,13 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm, s
 
 	    break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
-	    	user_data_1.w[3] = tm->control_mode;
-	    	user_data_1.w[4] =  (int32_t) (get_back_estimator()->us_z_thresh_m*10000.0);
-	    	user_data_1.w[5] =  (int32_t) (get_back_estimator()->ds_z_thresh_m*10000.0);
-	    	user_data_1.w[6] =  (int32_t) (get_back_estimator()->us_z_max_samples);
-	    	user_data_1.w[7] =  (int32_t) (get_back_estimator()->ds_z_max_samples);
-	    	user_data_1.w[8] =  (int32_t) (get_back_estimator()->ur_slope_thresh_rad*10000.0);
-	    	user_data_1.w[9] =  (int32_t) (get_back_estimator()->dr_slope_thresh_rad*10000.0);
+	    	user_data_1.w[3] = (int32_t) (be->ground_slope_offset_rad*SCALE_FACTOR_10000);
+	    	user_data_1.w[4] =  (int32_t) (be->us_z_thresh_m*SCALE_FACTOR_10000);
+	    	user_data_1.w[5] =  (int32_t) (be->us_y_thresh_m*SCALE_FACTOR_10000);
+	    	user_data_1.w[6] =  (int32_t) (be->us_z_max_samples);
+	    	user_data_1.w[7] =  (int32_t) (be->ds_z_thresh_m*SCALE_FACTOR_10000);
+	    	user_data_1.w[8] =  (int32_t) (be->ds_y_thresh_m*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] =  (int32_t) (be->ds_z_max_samples);
 			break;
 	    case GUI_MODE_TASK_MACHINE: //17
 	    	break;
@@ -229,12 +231,12 @@ static void initializeUserWrites(struct taskmachine_s* tm){
  * Param: actx(Act_s) - Actuator structure to track sensor values
  * Param: wParams(WalkParams) -
  */
-static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stats){
+static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stats, struct back_estimator_s* be){
 
 	gui_mode_prev = gui_mode;
 	gui_mode = user_data_1.w[0];
 	if (gui_mode_prev != gui_mode){
-		syncUserWritesWithCurrentParameterValues(tm, stats);
+		syncUserWritesWithCurrentParameterValues(tm, stats, be);
 	}
 
 	switch (gui_mode){
@@ -289,14 +291,15 @@ static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stat
 				reset_learning_structs();
 			gui_sub_mode = user_data_1.w[5];
 		break;
+
 	    case GUI_MODE_BACK_ESTIMATION: //11
-	    	tm->control_mode = user_data_1.w[3];
-			set_us_z_thresh_m(((float)user_data_1.w[4])/10000.0);
-			set_ds_z_thresh_m(((float)user_data_1.w[5])/10000.0);
-			set_us_z_max_samples(user_data_1.w[6]);
-			set_ds_z_max_samples(user_data_1.w[7]);
-			set_ur_slope_thresh_rad(((float)user_data_1.w[8])/10000.0);
-			set_dr_slope_thresh_rad(((float)user_data_1.w[9])/10000.0);
+	    	be->ground_slope_offset_rad = ((float)user_data_1.w[3])/SCALE_FACTOR_10000;
+			be->us_z_thresh_m = ((float)user_data_1.w[4])/SCALE_FACTOR_10000;
+			be->us_y_thresh_m = ((float)user_data_1.w[5])/SCALE_FACTOR_10000;
+			be->us_z_max_samples = user_data_1.w[6];
+			be->ds_z_thresh_m = ((float)user_data_1.w[7])/SCALE_FACTOR_10000;
+			be->ds_y_thresh_m = ((float)user_data_1.w[8])/SCALE_FACTOR_10000;
+			be->ds_z_max_samples = ((float)user_data_1.w[9]);
 			break;
 	    case GUI_MODE_EXPERIMENTAL: // 21
 	    	tm->control_mode = user_data_1.w[3];
@@ -372,22 +375,18 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 			rigid1.mn.genVar[9] = (int16_t) (100.0*(pred->B[gui_sub_mode]));
 				break;
 	    case GUI_MODE_DYNAMICS: //10
-			rigid1.mn.genVar[3] = (int16_t) (tm->in_swing);
-			rigid1.mn.genVar[4] = (int16_t) (tm->aa_dot*SCALE_FACTOR_100);
-			rigid1.mn.genVar[5] = (int16_t) (tm->aa_dot_15hz_filt*SCALE_FACTOR_100);
-			rigid1.mn.genVar[6] = (int16_t) (tm->net_work_j*SCALE_FACTOR_100);
+			rigid1.mn.genVar[3] = (int16_t) (tm->power_w*SCALE_FACTOR_100);
+			rigid1.mn.genVar[4] = (int16_t) (tm->net_work_j*SCALE_FACTOR_100);
+			rigid1.mn.genVar[5] = (int16_t) (get_ideal_peak_gen_power()*SCALE_FACTOR_100);
+			rigid1.mn.genVar[6] = (int16_t) (get_ideal_peak_dis_power()*SCALE_FACTOR_100);
 			rigid1.mn.genVar[7] = (int16_t) (get_ideal_net_work()*SCALE_FACTOR_100);
-			rigid1.mn.genVar[8] = (int16_t) (tm->power_w*SCALE_FACTOR_100);
-			rigid1.mn.genVar[9] = (int16_t) (get_ideal_peak_power()*SCALE_FACTOR_100);
+			rigid1.mn.genVar[8] = (int16_t) (get_ideal_peak_plantar_torque()*SCALE_FACTOR_100);
+			rigid1.mn.genVar[9] = (int16_t) (get_ideal_ankle_angle()*SCALE_FACTOR_10000);
 		break;
 	    case GUI_MODE_BACK_ESTIMATION: //11
-			rigid1.mn.genVar[3] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[4] = (int16_t) (0);
-			rigid1.mn.genVar[5] = (int16_t) (get_back_estimator()->curr_stride_paz_thresh_status);
-			rigid1.mn.genVar[6] = (int16_t) (get_back_estimator()->prev_torque_range*SCALE_FACTOR_100);
-			rigid1.mn.genVar[7] = (int16_t) (kin->aAccZ*SCALE_FACTOR_100);
-			rigid1.mn.genVar[8] = (int16_t) (kin->pAz*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[9] = (int16_t) (stats->k_est);
+	    	for (int i=3; i<=9; i++){
+				rigid1.mn.genVar[i] = (int16_t)(user_data_1.w[i]);
+			}
 			break;
 	    case GUI_MODE_KINEMATICS1: //12
 			rigid1.mn.genVar[3] = (int16_t) (kin->aAccY*SCALE_FACTOR_100);
@@ -463,9 +462,9 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    case GUI_MODE_EXPERIMENTAL: // 21
 	    	rigid1.mn.genVar[3] = (int16_t) (user_data_1.w[3]);
 			rigid1.mn.genVar[4] = (int16_t) (user_data_1.w[4]);
-			rigid1.mn.genVar[5] = (int16_t) (user_data_1.w[5]);
-			rigid1.mn.genVar[6] = (int16_t) (user_data_1.w[6]);
-			rigid1.mn.genVar[7] = (int16_t) (user_data_1.w[7]);
+			rigid1.mn.genVar[5] = (int16_t) (10*user_data_1.w[6]+user_data_1.w[7]);
+			rigid1.mn.genVar[6] = (int16_t) (kin->pAy*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[7] = (int16_t) (kin->rot3*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[8] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[9] = (int16_t) (kin->pAz*SCALE_FACTOR_10000);
 
@@ -652,7 +651,7 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				updateUserWrites(get_task_machine(), get_statistics());
+				updateUserWrites(get_task_machine(), get_statistics(), get_back_estimator());
 
 
 				//DEBUG removed this because joint encoder can't update in locked state.

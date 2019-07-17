@@ -31,8 +31,6 @@
 #define GRAVITY_M_TOL (GRAVITY_MPS2 - STATIC_ACC_NORM_TOL_MPS2)
 #define ACC_NORM_SQ_MAX (GRAVITY_P_TOL*GRAVITY_P_TOL)
 #define ACC_NORM_SQ_MIN (GRAVITY_M_TOL*GRAVITY_M_TOL)
-#define MAX_ROLL_OVER_PITCH 0.1
-#define MIN_ROLL_OVER_PITCH -0.25
 #define TQ_DOT_THRESH_NM_HZ 50
 
 static float aAccX_inputs[] = {0,0};
@@ -54,26 +52,30 @@ static void reset_position_and_velocity(struct taskmachine_s* tm){
     kin.latest_foot_static_samples = tm->elapsed_samples;
 }
 
-static void correct_orientation(){
-	float sintheta = kin.aAccY*GRAVITY_RECIP;
-	kin.rot3 = 0.98*kin.rot3 + 0.02*sintheta;
+static void correct_orientation_and_update_ground_slope(struct taskmachine_s* tm){
+	static float theta_quiet_acc = 0.0;
+	theta_quiet_acc = kin.aAccY*GRAVITY_RECIP;
+	kin.ground_slope_est_sum = kin.ground_slope_est_sum + tm->aa - theta_quiet_acc;
+	kin.roll_over_counter =  kin.roll_over_counter + 1;
+	kin.rot3 = 0.98*kin.rot3 + 0.02*theta_quiet_acc;
 	kin.rot1 = sqrtf(1.0-(kin.rot3*kin.rot3));
 }
 
 static void update_rotation_matrix(){
-	float rotprev1 = kin.rot1;
-	kin.rot3prev = kin.rot3;
+	static float rot1prev, rot3prev;
+	rot1prev = kin.rot1;
+	rot3prev = kin.rot3;
 	kin.rot1 = kin.rot1 - kin.rot3*kin.aOmegaX * SAMPLE_PERIOD_S;
-	kin.rot3 = kin.rot3 + rotprev1*kin.aOmegaX * SAMPLE_PERIOD_S;
+	kin.rot3 = kin.rot3 + rot1prev*kin.aOmegaX * SAMPLE_PERIOD_S;
 
 }
 
 static void update_ankle_translations(){
-	
+	static float aOmegaXSquared, SaAy, SaAz;
 	if (fabs(kin.pAz) < PAZ_MAX){
-		float aOmegaXSquared = kin.aOmegaX*kin.aOmegaX;
-		float SaAy = kin.aAccY - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Y_M - kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_POS_IMU_FRAME_Z_M;
-		float SaAz = kin.aAccZ - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Z_M + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_POS_IMU_FRAME_Y_M;
+		aOmegaXSquared = kin.aOmegaX*kin.aOmegaX;
+		SaAy = kin.aAccY - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Y_M - kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_POS_IMU_FRAME_Z_M;
+		SaAz = kin.aAccZ - aOmegaXSquared*ANKLE_POS_IMU_FRAME_Z_M + kin.daOmegaX*SAMPLE_RATE_HZ*ANKLE_POS_IMU_FRAME_Y_M;
 
 		kin.aAy = kin.rot1*SaAy - kin.rot3*SaAz;
 		kin.aAz = kin.rot3*SaAy + kin.rot1*SaAz - GRAVITY_MPS2;
@@ -96,10 +98,11 @@ static void update_acc( struct fx_rigid_mn_s* mn){
 }
 
 static void update_omega(struct fx_rigid_mn_s* mn){
-	kin.aOmegaXprev = kin.aOmegaX;
+	static float aOmegaXprev;
+	aOmegaXprev = kin.aOmegaX;
 	kin.aOmegaXbias = FILTC*kin.aOmegaXbias - FILTD*kin.aOmegaX;
 	kin.aOmegaX =  GYRO_RPS_PER_LSB * (float) mn->gyro.x + kin.aOmegaXbias;
-	kin.daOmegaX =  kin.aOmegaX - kin.aOmegaXprev;
+	kin.daOmegaX =  kin.aOmegaX - aOmegaXprev;
 
 }
 
@@ -127,17 +130,10 @@ static void update_pose(struct taskmachine_s* tm){
 	kin.accNormSq = kin.aAccX*kin.aAccX + kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
 
 	kin.foot_flat = 0;
-	kin.rolling_over_foot = 0;
 	if (!tm->in_swing){
 		if (kin.accNormSq < ACC_NORM_SQ_MAX &&
 			   kin.accNormSq > ACC_NORM_SQ_MIN){
-		   correct_orientation();
-		}
-		if (kin.rot3 > MIN_ROLL_OVER_PITCH &&
-				kin.rot3 < MAX_ROLL_OVER_PITCH){
-			kin.rolling_over_foot = 1;
-			kin.ground_slope_est_sum = kin.ground_slope_est_sum + tm->aa;
-			kin.roll_over_counter =  kin.roll_over_counter + 1;
+			correct_orientation_and_update_ground_slope(tm);
 		}
 
 		if (kin.joint_vel_seg_vel_diff_sq < JOINT_VEL_SEG_VEL_DIFF_SQ_THRESH_R2PS2 &&
@@ -158,13 +154,13 @@ static void update_pose(struct taskmachine_s* tm){
 
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
+		kin.end_of_stride_pAz = kin.pAz;
 		reset_position_and_velocity(tm);
 		 kin.roll_over_counter = 1;
 		kin.ground_slope_est_sum = 0.0;
 	}
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
-		 kin.prev_ground_slope_est = kin.curr_ground_slope_est;
 		 kin.curr_ground_slope_est = kin.ground_slope_est_sum/((float)kin.roll_over_counter);
 	}
 }
@@ -193,7 +189,6 @@ void init_kinematics(){
     kin.aAccY = 0.0;
     kin.aAccZ = 0.0;
     kin.daOmegaX = 0.0;
-    kin.aOmegaXprev = 0.0;
     kin.rot1 = 0.0;
     kin.rot3 = 0.0;
 
@@ -210,7 +205,6 @@ void init_kinematics(){
     kin.accelQuietSamples = 0;
     kin.meanaccNormSq = 0.0;
     kin.accNormSq = 0.0;
-    kin.rolling_over_foot = 0;
     kin.roll_over_counter = 1;
     kin.ground_slope_est_sum = 0.0;
 
