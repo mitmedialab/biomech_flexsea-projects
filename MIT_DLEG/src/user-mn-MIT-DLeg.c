@@ -463,7 +463,7 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    	rigid1.mn.genVar[3] = (int16_t) (user_data_1.w[3]);
 			rigid1.mn.genVar[4] = (int16_t) (user_data_1.w[4]);
 			rigid1.mn.genVar[5] = (int16_t) (10*user_data_1.w[6]+user_data_1.w[7]);
-			rigid1.mn.genVar[6] = (int16_t) (kin->pAy*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[6] = (int16_t) (act1.jointTorqueLC * 100.0);
 			rigid1.mn.genVar[7] = (int16_t) (kin->rot3*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[8] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[9] = (int16_t) (kin->pAz*SCALE_FACTOR_10000);

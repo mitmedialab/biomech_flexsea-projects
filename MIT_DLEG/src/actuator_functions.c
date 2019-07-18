@@ -399,8 +399,8 @@ static float getJointTorque(struct act_s *actx)
 //	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
 
 	if(torque >= ABS_TORQUE_LIMIT_INIT || torque <= -ABS_TORQUE_LIMIT_INIT) {
-		isSafetyFlag = SAFETY_TORQUE;
-		isTorqueLimit = 1;
+		//isSafetyFlag = SAFETY_TORQUE;
+		//isTorqueLimit = 1;
 	} else {
 		isTorqueLimit = 0;
 	}
@@ -417,8 +417,8 @@ static float getJointTorqueAdj(struct act_s *actx)
 //	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
 
 	if(torque >= ABS_TORQUE_LIMIT_INIT || torque <= -ABS_TORQUE_LIMIT_INIT) {
-		isSafetyFlag = SAFETY_TORQUE;
-		isTorqueLimit = 1;
+//		isSafetyFlag = SAFETY_TORQUE;
+//		isTorqueLimit = 1;
 	} else {
 		isTorqueLimit = 0;
 	}
@@ -435,8 +435,8 @@ static float getJointTorqueLC(struct act_s *actx)
 //	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
 
 	if(torque >= ABS_TORQUE_LIMIT_INIT || torque <= -ABS_TORQUE_LIMIT_INIT) {
-		isSafetyFlag = SAFETY_TORQUE;
-		isTorqueLimit = 1;
+//		isSafetyFlag = SAFETY_TORQUE;
+//		isTorqueLimit = 1;
 	} else {
 		isTorqueLimit = 0;
 	}
@@ -1598,8 +1598,8 @@ void updateSensorValues(struct act_s *actx)
 
 	if(actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT)
 	{
-		isSafetyFlag = SAFETY_TEMP;
-		isTempLimit = 1;
+//		isSafetyFlag = SAFETY_TEMP;
+//		isTempLimit = 1;
 	} else {
 		isTempLimit = 0;
 	}

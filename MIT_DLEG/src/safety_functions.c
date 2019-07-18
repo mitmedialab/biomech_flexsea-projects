@@ -370,6 +370,9 @@ int16_t getSafetyFlags(void) {
  *  check for general errors
  */
 int actuatorIsCorrect() {
+
+	return 1;
+
 	int16_t* devID16 = getDeviceId16();
 
 	// If we are testing devices don't cancel all actions, probably need to be doing tests.
