@@ -7,7 +7,7 @@
 #define TRANSITION_TQ_THRESH 7.0
 #define MIN_STANCE_TQ EXPECTED_SWING_TQ + TRANSITION_TQ_THRESH + 5.0
 #define TRANSITION_POWER_THRESH -0.3
-#define PREDICTION_CUTOFF_SAMPLES 200
+#define PREDICTION_CUTOFF_SAMPLES 100
 #define MAX_SWING_TQ_DOT_NM_HZ 100
 #define MIN_GAIT_PHASE_SAMPLES 250
 
@@ -127,7 +127,7 @@ static void update_gait_events(Act_s* actx){
 
     if (tm.in_swing){
 
-          if (tm.elapsed_samples - tm.latest_foot_off_samples == PREDICTION_CUTOFF_SAMPLES){
+          if (tm.elapsed_samples - tm.latest_foot_off_samples == 100){
               tm.do_learning_for_curr_stride = 1;
               tm.gait_event_trigger = GAIT_EVENT_WINDOW_CLOSE; 
               return;  
@@ -260,29 +260,32 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_statistics_demux(&tm, get_kinematics());
 
 
-		if (tm.learning_enabled){
+//		if (tm.learning_enabled){
+//
+//			update_learner_demux();
+//		}
 
-			update_learner_demux();
-		}
-
-		predict_task_demux(&tm, get_kinematics());
+//		predict_task_demux(&tm, get_kinematics());
 
 		update_back_estimation_features(&tm, get_kinematics());
-		update_prediction_features(&tm, get_kinematics());
+//		update_prediction_features(&tm, get_kinematics());
 
 
 		if (tm.adaptation_enabled)
 			if (tm.control_mode != MODE_HEURISTIC)
 				tm.current_terrain = get_predictor()->k_pred;
 			else{
-				if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_US_THRESH)
+				if (get_back_estimator()->curr_stride_paz_thresh_status == PASSED_US_THRESH)
 					tm.current_terrain = K_USTAIRS;
-				else if (get_back_estimator()->curr_stride_paz_thresh_status == PAZ_PASSED_DS_THRESH)
+				else if (get_back_estimator()->curr_stride_paz_thresh_status == PASSED_DS_THRESH)
 					tm.current_terrain = K_DSTAIRS;
+				else if (get_back_estimator()->curr_stride_paz_thresh_status == PASSED_UR_THRESH)
+					tm.current_terrain = K_URAMP;
+				else if (get_back_estimator()->curr_stride_paz_thresh_status == PASSED_DR_THRESH)
+					tm.current_terrain = K_DRAMP;
 				else
 					tm.current_terrain = K_FLAT;
 			}
-
 		else{
 			if (tm.control_mode != MODE_HEURISTIC)
 				tm.current_terrain = tm.control_mode;
