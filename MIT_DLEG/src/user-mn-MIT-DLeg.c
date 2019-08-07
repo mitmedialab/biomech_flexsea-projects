@@ -189,23 +189,29 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm, s
 			user_data_1.w[9] = (int32_t)(0);
 
 	    break;
-	    case GUI_MODE_BACK_ESTIMATION: //11
+	    case GUI_MODE_BACK_ESTIMATION1: //24
 	    	user_data_1.w[3] = (int32_t) (be->ground_slope_offset_rad*SCALE_FACTOR_10000);
-	    	user_data_1.w[4] =  (int32_t) (be->us_z_thresh_m*SCALE_FACTOR_10000);
-	    	user_data_1.w[5] =  (int32_t) (be->us_y_thresh_m*SCALE_FACTOR_10000);
-	    	user_data_1.w[6] =  (int32_t) (be->us_z_max_samples);
+	    	user_data_1.w[4] =  (int32_t) (be->us_y_thresh_m*SCALE_FACTOR_10000);
+	    	user_data_1.w[5] =  (int32_t) (be->us_z_thresh_m*SCALE_FACTOR_10000);
+	    	user_data_1.w[6] =  (int32_t) (be->ds_y_thresh_m*SCALE_FACTOR_10000);
 	    	user_data_1.w[7] =  (int32_t) (be->ds_z_thresh_m*SCALE_FACTOR_10000);
-	    	user_data_1.w[8] =  (int32_t) (be->ds_y_thresh_m*SCALE_FACTOR_10000);
-	    	user_data_1.w[9] =  (int32_t) (be->ds_z_max_samples);
+	    	user_data_1.w[8] =  (int32_t) (be->ur_z_thresh_m*SCALE_FACTOR_10000);
+	    	user_data_1.w[9] =  (int32_t) (be->dr_z_thresh_m*SCALE_FACTOR_10000);
+			break;
+	    case GUI_MODE_BACK_ESTIMATION2: //25
+			user_data_1.w[3] = (int32_t) (be->ground_slope_bin_size*SCALE_FACTOR_10000);
+//			user_data_1.w[4] =  (int32_t) (be->us_y_thresh_m*SCALE_FACTOR_10000);
+//			user_data_1.w[5] =  (int32_t) (be->us_z_thresh_m*SCALE_FACTOR_10000);
+//			user_data_1.w[6] =  (int32_t) (be->ds_y_thresh_m*SCALE_FACTOR_10000);
+//			user_data_1.w[7] =  (int32_t) (be->ds_z_thresh_m*SCALE_FACTOR_10000);
+//			user_data_1.w[8] =  (int32_t) (be->ur_z_thresh_m*SCALE_FACTOR_10000);
+//			user_data_1.w[9] =  (int32_t) (be->dr_z_thresh_m*SCALE_FACTOR_10000);
 			break;
 	    case GUI_MODE_TASK_MACHINE: //17
 	    	break;
 	    case GUI_MODE_EXPERIMENTAL: // 21
 			user_data_1.w[3] = tm->control_mode;
-			user_data_1.w[4] = 0;
-			user_data_1.w[5] = stats->k_true;
-			user_data_1.w[6] = tm->learning_enabled;
-			user_data_1.w[7] = tm->adaptation_enabled;
+			user_data_1.w[4] = tm->adaptation_enabled;
 			break;
 	}
 		
@@ -232,7 +238,7 @@ static void initializeUserWrites(struct taskmachine_s* tm){
  * Param: wParams(WalkParams) -
  */
 static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stats, struct back_estimator_s* be){
-
+	tm->adaptation_enabled = 0;
 	gui_mode_prev = gui_mode;
 	gui_mode = user_data_1.w[0];
 	if (gui_mode_prev != gui_mode){
@@ -292,22 +298,22 @@ static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stat
 			gui_sub_mode = user_data_1.w[5];
 		break;
 
-	    case GUI_MODE_BACK_ESTIMATION: //11
+	    case GUI_MODE_BACK_ESTIMATION1: //24
+
 	    	be->ground_slope_offset_rad = ((float)user_data_1.w[3])/SCALE_FACTOR_10000;
-			be->us_z_thresh_m = ((float)user_data_1.w[4])/SCALE_FACTOR_10000;
-			be->us_y_thresh_m = ((float)user_data_1.w[5])/SCALE_FACTOR_10000;
-			be->us_z_max_samples = user_data_1.w[6];
+			be->us_y_thresh_m = ((float)user_data_1.w[4])/SCALE_FACTOR_10000;
+			be->us_z_thresh_m = ((float)user_data_1.w[5])/SCALE_FACTOR_10000;
+			be->ds_y_thresh_m = ((float)user_data_1.w[5])/SCALE_FACTOR_10000;
 			be->ds_z_thresh_m = ((float)user_data_1.w[7])/SCALE_FACTOR_10000;
-			be->ds_y_thresh_m = ((float)user_data_1.w[8])/SCALE_FACTOR_10000;
-			be->ds_z_max_samples = ((float)user_data_1.w[9]);
+			be->ur_z_thresh_m = ((float)user_data_1.w[8])/SCALE_FACTOR_10000;
+			be->dr_z_thresh_m = ((float)user_data_1.w[5])/SCALE_FACTOR_10000;
 			break;
+	    case GUI_MODE_BACK_ESTIMATION2: //25
+	    	be->ground_slope_bin_size = ((float)user_data_1.w[3])/SCALE_FACTOR_10000;
+	    	break;
 	    case GUI_MODE_EXPERIMENTAL: // 21
 	    	tm->control_mode = user_data_1.w[3];
-	    	if (user_data_1.w[4] == 1)
-				reset_learning_structs();
-	    	stats->k_true = user_data_1.w[5];
-	    	tm->learning_enabled = user_data_1.w[6];
-			tm->adaptation_enabled = user_data_1.w[7];
+			tm->adaptation_enabled = user_data_1.w[4];
 			break;
 
 	}
@@ -383,8 +389,13 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 			rigid1.mn.genVar[8] = (int16_t) (get_ideal_peak_plantar_torque()*SCALE_FACTOR_100);
 			rigid1.mn.genVar[9] = (int16_t) (get_ideal_ankle_angle()*SCALE_FACTOR_10000);
 		break;
-	    case GUI_MODE_BACK_ESTIMATION: //11
+	    case GUI_MODE_BACK_ESTIMATION1: //24
 	    	for (int i=3; i<=9; i++){
+				rigid1.mn.genVar[i] = (int16_t)(user_data_1.w[i]);
+			}
+			break;
+	    case GUI_MODE_BACK_ESTIMATION2: //25
+			for (int i=3; i<=9; i++){
 				rigid1.mn.genVar[i] = (int16_t)(user_data_1.w[i]);
 			}
 			break;
@@ -462,11 +473,11 @@ static void updateGenVars(struct taskmachine_s* tm, struct statistics_s* stats, 
 	    case GUI_MODE_EXPERIMENTAL: // 21
 	    	rigid1.mn.genVar[3] = (int16_t) (user_data_1.w[3]);
 			rigid1.mn.genVar[4] = (int16_t) (user_data_1.w[4]);
-			rigid1.mn.genVar[5] = (int16_t) (10*user_data_1.w[6]+user_data_1.w[7]);
-			rigid1.mn.genVar[6] = (int16_t) (act1.jointTorqueLC * 100.0);
-			rigid1.mn.genVar[7] = (int16_t) (kin->rot3*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[5] = (int16_t) (act1.jointTorqueLC * 100.0);
+			rigid1.mn.genVar[6] = (int16_t) (kin->pAy*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[7] = (int16_t) (kin->pAz*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[8] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[9] = (int16_t) (kin->pAz*SCALE_FACTOR_10000);
+			rigid1.mn.genVar[9] = (int16_t) (get_back_estimator()->prediction);
 
 	    	break;
 	    case GUI_MODE_ACCURACY_1: // 22

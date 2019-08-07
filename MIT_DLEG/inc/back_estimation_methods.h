@@ -22,9 +22,13 @@ void set_dr_thresh_m(float yval, float zval);
 struct back_estimator_s 
 {
 
-	uint8_t estimation_completed;
-    uint8_t curr_stride_paz_thresh_status;
-    uint8_t prev_stride_paz_thresh_status;
+	uint8_t ready_for_prediction;
+	uint8_t made_prediction;
+	uint8_t slope_thresh_status;
+	uint8_t stepping_backwards;
+	uint8_t passed_vertical_thresh;
+	uint8_t good_trajectory;
+	uint8_t prediction;
     float prev_stance_samples;
     float prev_swing_samples;
     float prev_torque_range;
@@ -42,18 +46,25 @@ struct back_estimator_s
    	float ds_y_thresh_m;
    	float ur_slope_thresh_rad;
    	float dr_slope_thresh_rad;
+   	float ground_slope_bin_size;
    	float ground_slope_offset_rad;
 
 
 
 };
 
-enum Paz_Statuses{
-   PASSED_NO_THRESH = 0,
-   PASSED_UR_THRESH = 1,
-   PASSED_DR_THRESH = 2,
-   PASSED_US_THRESH = 3,
-   PASSED_DS_THRESH = 4,
+//enum Paz_Statuses{
+//   PASSED_NO_THRESH = 0,
+//   PASSED_UR_THRESH = 1,
+//   PASSED_DR_THRESH = 2,
+//   PASSED_US_THRESH = 3,
+//   PASSED_DS_THRESH = 4,
+//};
+
+enum Slope_Statuses{
+	PASSED_NO_SLOPE_THRESH = 0,
+	PASSED_UR_SLOPE_THRESH = 1,
+	PASSED_DR_SLOPE_THRESH = 2,
 };
 
 #endif

@@ -255,43 +255,14 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
     case RUN_TASK_MACHINE:
     	update_ankle_dynamics(actx);
     	update_gait_events(actx);
-
 		update_kinematics(&rigid->mn,&tm);
-		update_statistics_demux(&tm, get_kinematics());
-
-
-//		if (tm.learning_enabled){
-//
-//			update_learner_demux();
-//		}
-
-//		predict_task_demux(&tm, get_kinematics());
-
 		update_back_estimation_features(&tm, get_kinematics());
-//		update_prediction_features(&tm, get_kinematics());
 
 
 		if (tm.adaptation_enabled)
-			if (tm.control_mode != MODE_HEURISTIC)
-				tm.current_terrain = get_predictor()->k_pred;
-			else{
-				if (get_back_estimator()->curr_stride_paz_thresh_status == PASSED_US_THRESH)
-					tm.current_terrain = K_USTAIRS;
-				else if (get_back_estimator()->curr_stride_paz_thresh_status == PASSED_DS_THRESH)
-					tm.current_terrain = K_DSTAIRS;
-				else if (get_back_estimator()->curr_stride_paz_thresh_status == PASSED_UR_THRESH)
-					tm.current_terrain = K_URAMP;
-				else if (get_back_estimator()->curr_stride_paz_thresh_status == PASSED_DR_THRESH)
-					tm.current_terrain = K_DRAMP;
-				else
-					tm.current_terrain = K_FLAT;
-			}
-		else{
-			if (tm.control_mode != MODE_HEURISTIC)
-				tm.current_terrain = tm.control_mode;
-			else
-				tm.current_terrain = MODE_NOMINAL;
-		}
+			tm.current_terrain = get_back_estimator()->prediction;
+		else
+			tm.current_terrain = tm.control_mode;
 
 		terrain_state_machine_demux(&tm, rigid, actx, tm.current_terrain);
 

@@ -85,6 +85,7 @@ static void update_ankle_translations(){
 
 		kin.pAy = kin.pAy + SAMPLE_PERIOD_S*kin.vAy;
 		kin.pAz = kin.pAz + SAMPLE_PERIOD_S*kin.vAz;
+		kin.displacement = sqrtf(kin.pAy*kin.pAy + kin.pAz*kin.pAz);
 	}
 
 }
