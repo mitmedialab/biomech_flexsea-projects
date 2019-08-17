@@ -306,7 +306,7 @@ static void updateUserWrites(struct taskmachine_s* tm, struct statistics_s* stat
 			be->ds_y_thresh_m = ((float)user_data_1.w[5])/SCALE_FACTOR_10000;
 			be->ds_z_thresh_m = ((float)user_data_1.w[7])/SCALE_FACTOR_10000;
 			be->ur_z_thresh_m = ((float)user_data_1.w[8])/SCALE_FACTOR_10000;
-			be->dr_z_thresh_m = ((float)user_data_1.w[5])/SCALE_FACTOR_10000;
+			be->dr_z_thresh_m = ((float)user_data_1.w[9])/SCALE_FACTOR_10000;
 			break;
 	    case GUI_MODE_BACK_ESTIMATION2: //25
 	    	be->ground_slope_bin_size = ((float)user_data_1.w[3])/SCALE_FACTOR_10000;

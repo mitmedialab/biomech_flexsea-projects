@@ -3,16 +3,16 @@
 
 #define UR_Y_EARLY_THRESH_M 0.65
 #define UR_Z_EARLY_THRESH_M 0.13
-#define US_Y_EARLY_THRESH_M 0.18
+#define US_Y_EARLY_THRESH_M 0.2
 #define US_Z_EARLY_THRESH_M 0.2
 #define DR_Y_EARLY_THRESH_M 0.65
 #define DR_Z_EARLY_THRESH_M -0.05
 #define DS_Y_EARLY_THRESH_M 0.45
 #define DS_Z_EARLY_THRESH_M -0.08
 
-#define MAX_STANCE_SAMPLES 1500
+#define MAX_STANCE_SAMPLES 3000
 #define MAX_SWING_SAMPLES 1000
-#define GROUND_SLOPE_OFFSET_RAD -0.05
+#define GROUND_SLOPE_OFFSET_RAD 0.0
 #define GROUND_SLOPE_BIN_SIZE 0.1
 #define UR_GROUND_SLOPE_THRESH_RAD (-GROUND_SLOPE_BIN_SIZE + GROUND_SLOPE_OFFSET_RAD)
 #define DR_GROUND_SLOPE_THRESH_RAD (GROUND_SLOPE_BIN_SIZE + GROUND_SLOPE_OFFSET_RAD)
@@ -20,8 +20,9 @@
 #define DR_PAZ_THRESH_M 0.05
 #define TORQUE_THRESH 30.0
 #define MAX_DISPLACEMENT_THRESH_M 1.7
-#define PAY_GOOD_TRAJECTORY_THRESH_M -0.002
+#define PAY_GOOD_TRAJECTORY_THRESH_M -0.03
 #define PAZ_GOOD_TRAJECTORY_THRESH_M 0.005
+#define STANCE_AOMEGAX_THRESH_RPS -2.0
 
 
 static struct back_estimator_s be;
@@ -58,6 +59,7 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 				be.made_prediction = 1;
 				return;
 			}
+//		}
 		}else{
 			if (be.slope_thresh_status == PASSED_UR_SLOPE_THRESH){
 				be.prediction = K_URAMP;
@@ -67,11 +69,12 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 		}
 
 		if (kin->pAy < be.ds_y_thresh_m){
-			if (kin->pAz < be.ds_z_thresh_m){
+			if (kin->pAz < be.ds_z_thresh_m && tm->elapsed_samples - tm->latest_foot_off_samples < 600){
 				be.prediction = K_DSTAIRS;
 				be.made_prediction = 1;
 				return;
 			}
+//		}
 		}else{
 			if (be.slope_thresh_status == PASSED_DR_SLOPE_THRESH){
 				be.prediction = K_DRAMP;
@@ -82,12 +85,18 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 
 		if (kin->pAy > be.ur_y_thresh_m){
 			be.made_prediction = 1;
-			if (kin->pAz > be.ur_z_thresh_m )
-				be.prediction = K_URAMP;
-			else if (kin->pAz < be.dr_z_thresh_m )
-				be.prediction = K_DRAMP;
-			else
+			if (be.min_stance_aOmegaX < STANCE_AOMEGAX_THRESH_RPS){
+				if (kin->pAz > be.ur_z_thresh_m ){
+					be.prediction = K_URAMP;
+				}
+				else if (kin->pAz < be.dr_z_thresh_m ){
+					be.prediction = K_DRAMP;
+				}else{
+					be.prediction = K_FLAT;
+				}
+			}else{
 				be.prediction = K_FLAT;
+			}
 			return;
 		}
 	}
@@ -100,6 +109,7 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
 	    be.max_torque = -FLT_MAX;
 	    be.min_torque = FLT_MAX;
+	    be.min_stance_aOmegaX = FLT_MAX;
 	    be.ready_for_prediction = 0;
 	}
 
@@ -118,12 +128,12 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 	    }
 
 	    if (kin->curr_ground_slope_est < (-be.ground_slope_bin_size + be.ground_slope_offset_rad) &&
-	    			kin->end_of_stride_pAz > UR_PAZ_THRESH_M){
+	    			kin->end_of_stride_pAz > UR_PAZ_THRESH_M && be.min_stance_aOmegaX < STANCE_AOMEGAX_THRESH_RPS){
 	    	be.slope_thresh_status = PASSED_UR_SLOPE_THRESH;
 	    }
 
 		if (kin->curr_ground_slope_est > (be.ground_slope_bin_size + be.ground_slope_offset_rad) &&
-				kin->end_of_stride_pAz < DR_PAZ_THRESH_M){
+				kin->end_of_stride_pAz < DR_PAZ_THRESH_M && be.min_stance_aOmegaX < STANCE_AOMEGAX_THRESH_RPS){
 			be.slope_thresh_status = PASSED_DR_SLOPE_THRESH;
 		}
 	}
@@ -131,6 +141,7 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 	if (!tm->in_swing){
 		be.max_torque = MAX(be.max_torque, tm->tq);
 		be.min_torque = MIN(be.min_torque, tm->tq);
+		be.min_stance_aOmegaX = MIN(be.min_stance_aOmegaX, kin->aOmegaX);
 	}
 
 }

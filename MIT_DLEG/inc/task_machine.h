@@ -32,10 +32,11 @@
 //Specify user
 //#define POLETEST
 //#define USER_RC
-//#define USER_JG
-#define USER_RJ
+#define USER_JG
+//#define USER_RJ
 //#define USER_AP
-
+//#define USER_NB
+//#define USER_PD
 
 
 struct taskmachine_s

@@ -48,6 +48,7 @@ struct back_estimator_s
    	float dr_slope_thresh_rad;
    	float ground_slope_bin_size;
    	float ground_slope_offset_rad;
+   	float min_stance_aOmegaX;
 
 
 
