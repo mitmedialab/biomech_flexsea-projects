@@ -162,6 +162,8 @@ static void update_pose(struct taskmachine_s* tm){
 	}
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
+		kin.foot_off_pAy = kin.pAy;
+		kin.foot_off_vA = sqrtf(kin.vAy*kin.vAy+kin.vAz*kin.vAz);
 		 kin.curr_ground_slope_est = kin.ground_slope_est_sum/((float)kin.roll_over_counter);
 	}
 }

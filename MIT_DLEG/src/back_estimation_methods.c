@@ -1,14 +1,14 @@
 
 #include "back_estimation_methods.h"
 
-#define UR_Y_EARLY_THRESH_M 0.65
-#define UR_Z_EARLY_THRESH_M 0.13
-#define US_Y_EARLY_THRESH_M 0.2
-#define US_Z_EARLY_THRESH_M 0.2
-#define DR_Y_EARLY_THRESH_M 0.65
-#define DR_Z_EARLY_THRESH_M -0.05
-#define DS_Y_EARLY_THRESH_M 0.45
-#define DS_Z_EARLY_THRESH_M -0.08
+#define RAMP_Y_THRESH_M 0.7
+
+#define UR_Z_THRESH_M 0.17
+#define US_Y_THRESH_M 0.19
+#define US_Z_THRESH_M 0.2
+#define DR_Z_THRESH_M -0.045
+#define DS_Y_THRESH_M 0.4
+#define DS_Z_THRESH_M -0.07
 
 #define MAX_STANCE_SAMPLES 3000
 #define MAX_SWING_SAMPLES 1000
@@ -23,10 +23,12 @@
 #define PAY_GOOD_TRAJECTORY_THRESH_M -0.03
 #define PAZ_GOOD_TRAJECTORY_THRESH_M 0.005
 #define STANCE_AOMEGAX_THRESH_RPS -2.0
+#define FOOT_OFF_PAY_THRESH_M 0.2
 
 
 static struct back_estimator_s be;
 
+static int allow_flat_to_dr_transition = 1;
 
 void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics_s* kin)
 {
@@ -38,7 +40,7 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 		be.passed_vertical_thresh = 1;
 	}
 
-	if (tm->in_swing && !be.stepping_backwards && be.passed_vertical_thresh && !be.made_prediction){
+	if (tm->in_swing && !be.stepping_backwards && be.passed_vertical_thresh && !be.made_prediction && kin->foot_off_pAy < FOOT_OFF_PAY_THRESH_M){
 		be.ready_for_prediction = 1;
 	}else{
 		be.ready_for_prediction = 0;
@@ -53,52 +55,50 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 		}
 		//If we are past horizontal stair ascent thresh, then if ground slope was steep enough or we pass vertical ramp
 		//ascent thresh, identify as ramp ascent.
-		if (kin->pAy < be.us_y_thresh_m){
-			if (kin->pAz > be.us_z_thresh_m){
+		if (kin->pAz > be.us_z_thresh_m){
+			if (kin->pAy < be.us_y_thresh_m){
 				be.prediction = K_USTAIRS;
 				be.made_prediction = 1;
 				return;
 			}
-//		}
-		}else{
-			if (be.slope_thresh_status == PASSED_UR_SLOPE_THRESH){
-				be.prediction = K_URAMP;
-				be.made_prediction = 1;
-				return;
-			}
 		}
 
-		if (kin->pAy < be.ds_y_thresh_m){
-			if (kin->pAz < be.ds_z_thresh_m && tm->elapsed_samples - tm->latest_foot_off_samples < 600){
+		if (kin->pAz < be.ds_z_thresh_m){
+			if (kin->pAy < be.ds_y_thresh_m && tm->elapsed_samples - tm->latest_foot_off_samples < 390.0 && be.max_torque > 35.0){
 				be.prediction = K_DSTAIRS;
 				be.made_prediction = 1;
 				return;
 			}
-//		}
-		}else{
-			if (be.slope_thresh_status == PASSED_DR_SLOPE_THRESH){
-				be.prediction = K_DRAMP;
-				be.made_prediction = 1;
-				return;
-			}
+		}
+
+		if (be.slope_thresh_status == PASSED_UR_SLOPE_THRESH){
+			be.prediction = K_URAMP;
+			be.made_prediction = 1;
+			return;
+		}
+
+		if (be.slope_thresh_status == PASSED_DR_SLOPE_THRESH){
+			be.prediction = K_DRAMP;
+			be.made_prediction = 1;
+			return;
 		}
 
 		if (kin->pAy > be.ur_y_thresh_m){
-			be.made_prediction = 1;
-			if (be.min_stance_aOmegaX < STANCE_AOMEGAX_THRESH_RPS){
-				if (kin->pAz > be.ur_z_thresh_m ){
-					be.prediction = K_URAMP;
-				}
-				else if (kin->pAz < be.dr_z_thresh_m ){
-					be.prediction = K_DRAMP;
-				}else{
-					be.prediction = K_FLAT;
-				}
-			}else{
-				be.prediction = K_FLAT;
+			if (kin->pAz > be.ur_z_thresh_m ){
+				be.made_prediction = 1;
+				be.prediction = K_URAMP;
+				return;
 			}
-			return;
+			if (kin->pAz < be.dr_z_thresh_m && allow_flat_to_dr_transition ){
+				if (allow_flat_to_dr_transition)
+					allow_flat_to_dr_transition = 0;
+				be.made_prediction = 1;
+				be.prediction = K_DRAMP;
+				return;
+			}
+
 		}
+		return;
 	}
 
 	if(tm->elapsed_samples == kin->latest_foot_static_samples){
@@ -109,12 +109,12 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
 	    be.max_torque = -FLT_MAX;
 	    be.min_torque = FLT_MAX;
-	    be.min_stance_aOmegaX = FLT_MAX;
+	    be.max_aa = -FLT_MAX;
 	    be.ready_for_prediction = 0;
 	}
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
-
+		allow_flat_to_dr_transition = 1;
 		be.slope_thresh_status = PASSED_NO_SLOPE_THRESH;
 		be.torque_range = be.max_torque - be.min_torque;
 		be.prediction = K_FLAT;
@@ -128,12 +128,12 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 	    }
 
 	    if (kin->curr_ground_slope_est < (-be.ground_slope_bin_size + be.ground_slope_offset_rad) &&
-	    			kin->end_of_stride_pAz > UR_PAZ_THRESH_M && be.min_stance_aOmegaX < STANCE_AOMEGAX_THRESH_RPS){
+	    		kin->foot_off_vA > 0.8){
 	    	be.slope_thresh_status = PASSED_UR_SLOPE_THRESH;
 	    }
 
 		if (kin->curr_ground_slope_est > (be.ground_slope_bin_size + be.ground_slope_offset_rad) &&
-				kin->end_of_stride_pAz < DR_PAZ_THRESH_M && be.min_stance_aOmegaX < STANCE_AOMEGAX_THRESH_RPS){
+				be.max_aa > 0.08){
 			be.slope_thresh_status = PASSED_DR_SLOPE_THRESH;
 		}
 	}
@@ -141,7 +141,7 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 	if (!tm->in_swing){
 		be.max_torque = MAX(be.max_torque, tm->tq);
 		be.min_torque = MIN(be.min_torque, tm->tq);
-		be.min_stance_aOmegaX = MIN(be.min_stance_aOmegaX, kin->aOmegaX);
+		be.max_aa = MAX(be.max_aa, tm->aa);
 	}
 
 }
@@ -152,14 +152,14 @@ void init_back_estimator(){
 	be.passed_vertical_thresh = 0;
 	be.slope_thresh_status = PASSED_NO_SLOPE_THRESH;
 	be.prediction = K_FLAT;
-    be.ur_z_thresh_m =  UR_Z_EARLY_THRESH_M;
-    be.ur_y_thresh_m =  UR_Y_EARLY_THRESH_M;
-    be.us_z_thresh_m =  US_Z_EARLY_THRESH_M;
-    be.us_y_thresh_m =  US_Y_EARLY_THRESH_M;
-	be.dr_z_thresh_m = DR_Z_EARLY_THRESH_M;
-	be.dr_y_thresh_m = DR_Y_EARLY_THRESH_M;
-	be.ds_z_thresh_m = DS_Z_EARLY_THRESH_M;
-	be.ds_y_thresh_m = DS_Y_EARLY_THRESH_M;
+    be.ur_z_thresh_m =  UR_Z_THRESH_M;
+    be.ur_y_thresh_m =  RAMP_Y_THRESH_M;
+    be.us_z_thresh_m =  US_Z_THRESH_M;
+    be.us_y_thresh_m =  US_Y_THRESH_M;
+	be.dr_z_thresh_m = DR_Z_THRESH_M;
+	be.dr_y_thresh_m = RAMP_Y_THRESH_M;
+	be.ds_z_thresh_m = DS_Z_THRESH_M;
+	be.ds_y_thresh_m = DS_Y_THRESH_M;
 	be.ur_slope_thresh_rad = UR_GROUND_SLOPE_THRESH_RAD;
 	be.dr_slope_thresh_rad = DR_GROUND_SLOPE_THRESH_RAD;
 	be.ground_slope_bin_size = GROUND_SLOPE_BIN_SIZE;

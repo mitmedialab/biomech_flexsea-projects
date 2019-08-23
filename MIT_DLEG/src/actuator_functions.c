@@ -619,7 +619,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 //	//Angle Limit bumpers
 	actx->tauDes = tauDes;
 	float refTorque = tauDes + actuateAngleLimits(actx);
-	actx->tauMeas = actx->jointTorqueLC;
+	actx->tauMeas = actx->jointTorque;
 
 	// Feed Forward term
 //	tauFF = getFeedForwardTerm(refTorque); 	//

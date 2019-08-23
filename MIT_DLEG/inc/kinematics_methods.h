@@ -56,6 +56,9 @@ struct kinematics_s
     uint8_t foot_flat;
     int foot_flat_counter;
 
+    float foot_off_pAy;
+    float foot_off_vA;
+
 };
 
 

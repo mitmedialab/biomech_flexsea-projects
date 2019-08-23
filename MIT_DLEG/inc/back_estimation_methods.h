@@ -35,6 +35,7 @@ struct back_estimator_s
     float torque_range;
     float max_torque;
     float min_torque;
+    float max_aa;
 
     float ur_z_thresh_m;
     float ur_y_thresh_m;
