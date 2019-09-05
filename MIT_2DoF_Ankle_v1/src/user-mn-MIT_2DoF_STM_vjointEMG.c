@@ -105,6 +105,8 @@ uint8_t ankle_2dof_STMjoint_init(void)
 		}
 		else
 		{
+			user_data_1.w[9] = 100; //No cal
+
 			cals[0][0] = MANMIN_LG; // LG
 			cals[1][0] = MANMAX_LG; // LG
 
@@ -133,9 +135,17 @@ uint8_t ankle_2dof_STMjoint_calibration_fsm(void)
     cal_angle_IE = 0;
 
     state_t++;
+
     switch(cal_state)
     {
-        case -1: // Monitor the calibration value
+    	case -2:
+            ret =1;
+            cal_state = 0;
+            next_cal_state =1;
+            user_data_1.w[1] = 0;
+            break;
+
+    	case -1: // Monitor the calibration value
             pfdf_out = 0;
             inev_out = 0;
 
@@ -201,7 +211,7 @@ uint8_t ankle_2dof_STMjoint_calibration_fsm(void)
                 cals[0][2] = basecals_tot[2]/rest_ctr;
                 cals[0][3] = basecals_tot[3]/rest_ctr;
 
-                cal_state = -1;
+                cal_state = -2;
                 state_t = -1;
             }
 
@@ -281,16 +291,18 @@ uint8_t ankle_2dof_STMjoint_calibration_fsm(void)
 uint8_t ankle_2dof_STMjoint_EMG_fsm(void)
 {
     static uint32_t state_t = 0;
-    static int8_t fsm_state = 0;
+//    static int8_t fsm_state = 0; //no calibration
+	static int8_t fsm_state = 1; // calibration
+
     static uint8_t state_transition=0;
 
     state_t++;
 
-    if(user_data_1.w[9] == 1)
-    {
-        fsm_state =1;
-        user_data_1.w[9] = 0;
-    }
+//    if(user_data_1.w[9] == 1)
+//    {
+//        fsm_state =1;
+//        user_data_1.w[9] = 0;
+//    }
 
     get_EMG();
     switch(fsm_state)

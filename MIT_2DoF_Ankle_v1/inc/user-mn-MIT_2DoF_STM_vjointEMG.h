@@ -42,7 +42,7 @@
 //Constants for tuning the controller
 
 #define AUTOCAL					1
-#define LEFTY					1
+#define LEFTY					0
 
 #define VIRTUALFIELD			0
 #define DFDAMPING				5 //Keep below 6
@@ -54,8 +54,8 @@
 #define PFDFSTIFFGAIN			100
 #define DPONTHRESH				0.1
 
-#define INTORQUEGAIN			40//40
-#define EVTORQUEGAIN			40
+#define INTORQUEGAIN			48//40
+#define EVTORQUEGAIN			35
 #define INEVSTIFFGAIN			10
 #define IEONTHRESH				0.1
 
