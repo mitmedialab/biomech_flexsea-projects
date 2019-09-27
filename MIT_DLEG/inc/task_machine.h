@@ -3,14 +3,13 @@
 
 #include "flexsea_user_structs.h"
 #include "kinematics_methods.h"
-#include "machine_learning_methods.h"
-#include "back_estimation_methods.h"
 #include "user-mn-MIT-DLeg.h"
 #include <stdio.h>
 #include <math.h>
 #include <float.h>
 #include "terrain_state_machine.h"
 #include "filtering_methods.h"
+#include "heuristic_methods.h"
 #include "state_variables.h"
 
 

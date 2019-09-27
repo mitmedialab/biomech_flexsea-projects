@@ -6,7 +6,6 @@
 #include <float.h>
 #include "task_machine.h"
 #include "kinematics_methods.h"
-#include "machine_learning_methods.h"
 
 void back_estimate(struct taskmachine_s* tm, struct kinematics_s* kin, struct statistics_s* stats);
 void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics_s* kin);
