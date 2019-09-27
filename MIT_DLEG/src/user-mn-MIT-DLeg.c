@@ -119,7 +119,7 @@ static int gui_mode_prev = GUI_MODE_NOM_CONTROL_PARAMS;
 // Macro(s)
 //****************************************************************************
 
-static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm,  struct back_estimator_s* be){
+static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm,  struct heuristics_s* be){
 
 	user_data_1.w[0] = gui_mode;
 
@@ -207,7 +207,7 @@ static void initializeUserWrites(struct taskmachine_s* tm){
  * Param: actx(Act_s) - Actuator structure to track sensor values
  * Param: wParams(WalkParams) -
  */
-static void updateUserWrites(struct taskmachine_s* tm, struct back_estimator_s* be){
+static void updateUserWrites(struct taskmachine_s* tm, struct heuristics_s* be){
 	tm->adaptation_enabled = 0;
 	gui_mode_prev = gui_mode;
 	gui_mode = user_data_1.w[0];
@@ -270,7 +270,7 @@ static void updateUserWrites(struct taskmachine_s* tm, struct back_estimator_s* 
 	}
 }
 
-static void updateGenVars(struct taskmachine_s* tm, struct kinematics_s* kin, struct control_params_s* params, int controlTime, struct back_estimator_s* be){
+static void updateGenVars(struct taskmachine_s* tm, struct kinematics_s* kin, struct control_params_s* params, int controlTime, struct heuristics_s* be){
 
 //	gui_sub_mode = ((int)((float)controlTime/100.0)) % 10;
 
@@ -303,11 +303,6 @@ static void updateGenVars(struct taskmachine_s* tm, struct kinematics_s* kin, st
 	    case GUI_MODE_DYNAMICS: //10
 			rigid1.mn.genVar[3] = (int16_t) (tm->power_w*SCALE_FACTOR_100);
 			rigid1.mn.genVar[4] = (int16_t) (tm->net_work_j*SCALE_FACTOR_100);
-			rigid1.mn.genVar[5] = (int16_t) (get_ideal_peak_gen_power()*SCALE_FACTOR_100);
-			rigid1.mn.genVar[6] = (int16_t) (get_ideal_peak_dis_power()*SCALE_FACTOR_100);
-			rigid1.mn.genVar[7] = (int16_t) (get_ideal_net_work()*SCALE_FACTOR_100);
-			rigid1.mn.genVar[8] = (int16_t) (get_ideal_peak_plantar_torque()*SCALE_FACTOR_100);
-			rigid1.mn.genVar[9] = (int16_t) (get_ideal_ankle_angle()*SCALE_FACTOR_10000);
 		break;
 	    case GUI_MODE_BACK_ESTIMATION1: //24
 	    	for (int i=3; i<=9; i++){
@@ -360,7 +355,7 @@ static void updateGenVars(struct taskmachine_s* tm, struct kinematics_s* kin, st
 			rigid1.mn.genVar[6] = (int16_t) (kin->pAy*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[7] = (int16_t) (kin->pAz*SCALE_FACTOR_10000);
 			rigid1.mn.genVar[8] = (int16_t) (kin->curr_ground_slope_est*SCALE_FACTOR_10000);
-			rigid1.mn.genVar[9] = (int16_t) (get_back_estimator()->prediction);
+			rigid1.mn.genVar[9] = (int16_t) (get_heuristics()->prediction);
 
 	    	break;
 
@@ -408,7 +403,7 @@ void MITDLegFsm1(void)
     fsmTime++;
 
     // Send genVars values to the GUI
-    updateGenVars(get_task_machine(),get_kinematics(), get_control_params(), controlTime, get_back_estimator());
+    updateGenVars(get_task_machine(),get_kinematics(), get_control_params(), controlTime, get_heuristics());
 
 
     //begin main FSM
@@ -522,7 +517,7 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				updateUserWrites(get_task_machine(), get_back_estimator());
+				updateUserWrites(get_task_machine(), get_heuristics());
 
 
 				//DEBUG removed this because joint encoder can't update in locked state.

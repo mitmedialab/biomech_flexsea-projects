@@ -8,9 +8,9 @@
 #include "kinematics_methods.h"
 
 void back_estimate(struct taskmachine_s* tm, struct kinematics_s* kin, struct statistics_s* stats);
-void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics_s* kin);
-void init_back_estimator();
-struct back_estimator_s*  get_back_estimator();
+void update_heuristics(struct taskmachine_s* tm, struct kinematics_s* kin);
+void init_heuristics();
+struct heuristics_s*  get_heuristics();
 void set_ur_slope_thresh_rad(float val);
 void set_dr_slope_thresh_rad(float val);
 void set_us_thresh_m(float yval, float zval);
@@ -18,7 +18,7 @@ void set_ur_thresh_m(float yval, float zval);
 void set_ds_thresh_m(float yval, float zval);
 void set_dr_thresh_m(float yval, float zval);
 
-struct back_estimator_s 
+struct heuristics_s
 {
 
 	uint8_t ready_for_prediction;

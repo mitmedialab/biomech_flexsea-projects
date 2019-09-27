@@ -42,7 +42,6 @@ static void init_task_machine(){
     tm.passed_min_stance_tq = 0;
 
     tm.gait_event_trigger = 0;  
-    tm.reset_back_estimator_trigger = 0;
     tm.stride_classified = 0;
 
     tm.tq = 0.0;
@@ -146,8 +145,6 @@ static void update_ankle_dynamics(Act_s* actx)
     tm.tq_dot = filter_second_order_butter_50hz(SAMPLE_RATE_HZ*(tm.tq - tm.tq_prev), &tq_dot_outputs[0], &tq_dot_inputs[0]);
     tm.aa_dot = filter_second_order_butter_50hz(SAMPLE_RATE_HZ*(tm.aa - tm.aa_prev), &aa_dot_outputs[0], &aa_dot_inputs[0]);
 
-   tm.aa_dot_15hz_filt = filter_fourth_order_butter_15hz( tm.aa_dot, &aa_dot_15hz_filt_outputs[0], &aa_dot_15hz_filt_inputs[0]);
-
     tm.power_w = tm.tq*tm.aa_dot;
     tm.net_work_j = tm.net_work_j + tm.power_w*SAMPLE_PERIOD_S;
 	if (tm.peak_power_w < tm.power_w){
@@ -164,21 +161,6 @@ struct taskmachine_s* get_task_machine(){
   return &tm;
 }
 
-float get_ideal_peak_gen_power(){
-	return ideal_peak_gen_power_w_per_kg[tm.current_terrain];
-}
-float get_ideal_peak_dis_power(){
-	return ideal_peak_dis_power_w_per_kg[tm.current_terrain];
-}
-float get_ideal_net_work(){
-	return ideal_net_work_j_per_kg[tm.current_terrain];
-}
-float get_ideal_peak_plantar_torque(){
-	return ideal_peak_plantar_tq_nm_per_kg[tm.current_terrain];
-}
-float get_ideal_ankle_angle(){
-	return ideal_foot_strike_ang_rad[tm.current_terrain];
-}
 
 void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 
@@ -186,7 +168,7 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
   switch (task_machine_demux_state){
     case INIT_TASK_MACHINE:
         init_task_machine();
-        init_back_estimator();
+        init_heuristics();
         task_machine_demux_state = INIT_KINEMATICS;
     break;
     case INIT_KINEMATICS:
@@ -201,11 +183,11 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
     	update_ankle_dynamics(actx);
     	update_gait_events(actx);
 		update_kinematics(&rigid->mn,&tm);
-		update_back_estimation_features(&tm, get_kinematics());
+		update_heuristics(&tm, get_kinematics());
 
 
 		if (tm.adaptation_enabled)
-			tm.current_terrain = get_back_estimator()->prediction;
+			tm.current_terrain = get_heuristics()->prediction;
 		else
 			tm.current_terrain = tm.control_mode;
 

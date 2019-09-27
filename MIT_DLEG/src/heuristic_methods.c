@@ -25,10 +25,10 @@
 #define STANCE_AOMEGAX_THRESH_RPS -2.0
 
 
-static struct back_estimator_s be;
+static struct heuristics_s be;
 
 
-void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics_s* kin)
+void update_heuristics(struct taskmachine_s* tm, struct kinematics_s* kin)
 {
 
 	if (kin->pAy < PAY_GOOD_TRAJECTORY_THRESH_M){
@@ -146,7 +146,7 @@ void update_back_estimation_features(struct taskmachine_s* tm, struct kinematics
 
 }
 
-void init_back_estimator(){
+void init_heuristics(){
 	be.ready_for_prediction = 0;
 	be.stepping_backwards = 0;
 	be.passed_vertical_thresh = 0;
@@ -168,7 +168,7 @@ void init_back_estimator(){
 
 }
 
-struct back_estimator_s*  get_back_estimator(){
+struct heuristics_s*  get_heuristics(){
   return &be;
 }
 

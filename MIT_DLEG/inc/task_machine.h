@@ -57,7 +57,6 @@ struct taskmachine_s
     uint8_t passed_min_stance_tq;
 
     uint8_t gait_event_trigger;  
-    uint8_t reset_back_estimator_trigger;
     uint8_t stride_classified;
 
     float tq;
@@ -95,12 +94,6 @@ struct taskmachine_s
 };
 
 
-
-float get_ideal_peak_gen_power();
-float get_ideal_peak_dis_power();
-float get_ideal_net_work();
-float get_ideal_peak_plantar_torque();
-float get_ideal_ankle_angle();
 struct taskmachine_s* get_task_machine();
 void task_machine_demux(struct rigid_s* rigid, Act_s* act);
 
@@ -122,11 +115,6 @@ enum Gait_Modes {
     MODE_NOMINAL = 5,
     MODE_POSITION = 6,
 	MODE_HEURISTIC = 7,
-//	MODE_ADAPTIVE_NO_LEARNING= 7,
-//	MODE_ADAPTIVE_WITH_LEARNING = 7,
-//	MODE_ADAPTIVE_WITH_HEURISTICS = 8,
-//	MODE_TORQUE_REPLAY = 9,
-//	MODE_TORQUE_REPLAY_STANCE = 10,
 };
 
 enum Gait_Events {
