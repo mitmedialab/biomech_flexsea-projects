@@ -53,13 +53,6 @@ struct heuristics_s
 
 };
 
-//enum Paz_Statuses{
-//   PASSED_NO_THRESH = 0,
-//   PASSED_UR_THRESH = 1,
-//   PASSED_DR_THRESH = 2,
-//   PASSED_US_THRESH = 3,
-//   PASSED_DS_THRESH = 4,
-//};
 
 enum Slope_Statuses{
 	PASSED_NO_SLOPE_THRESH = 0,

@@ -163,7 +163,7 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm,  
 			user_data_1.w[4] = (int32_t)(get_control_params()->active.sw_k_Nm_p_rad);
 			user_data_1.w[5] = (int32_t)(get_control_params()->active.sw_b_Nm_p_rps);
 			user_data_1.w[6] = (int32_t)(get_control_params()->active.sw_delay_tics);
-			user_data_1.w[7] = (int32_t)(get_minimum_jerk_values()->enabled);
+			user_data_1.w[7] = (int32_t)(0);
 			user_data_1.w[8] = (int32_t)(0);
 			user_data_1.w[9] = (int32_t)(0);
 		break;
@@ -246,7 +246,6 @@ static void updateUserWrites(struct taskmachine_s* tm, struct heuristics_s* be){
 			set_sw_k_Nm_p_rad((float) user_data_1.w[4]);
 			set_sw_b_Nm_p_rps((float) user_data_1.w[5]);
 			set_sw_delay_tics((float) user_data_1.w[6]);
-			enable_minimum_jerk((uint8_t) user_data_1.w[7]);
 		break;
 
 	    case GUI_MODE_BACK_ESTIMATION1: //24

@@ -8,7 +8,6 @@
 static int state_machine_demux_state = STATE_EARLY_SWING;
 
 static struct control_params_s cp;
-static struct minimum_jerk_values_s mj;
 
 static void init_adaptive_control_params_s()
 {
@@ -26,73 +25,6 @@ static void init_adaptive_control_params_s()
 	cp.adaptive.lst_delay_tics = (float*)calloc(N_CLASSES,sizeof(int));
 
 
-}
-
-static void init_minimum_jerk_values_s(){
-	mj.params = (float*)calloc(6, sizeof(float));
-	mj.T = (float*)calloc(6, sizeof(float));
-	mj.T[0] = 1.0;
-	mj.T[1] = DEFAULT_MINIMUM_JERK_TRAJECTORY_TIME;
-	mj.T[2] = mj.T[1]*mj.T[1];
-	mj.T[3] = mj.T[2]*mj.T[1];
-	mj.T[4] = mj.T[3]*mj.T[1];
-	mj.T[5] = mj.T[4]*mj.T[1];
-	mj.update_counter = UINT_MAX;
-	mj.angle_tol_rad = DEFAULT_MINIMUM_JERK_ANGLE_TOL_RAD;
-	mj.trajectory_defined = 0;
-	mj.enabled = 0;
-
-}
-
-static float set_minimum_jerk_trajectory_params(Act_s* actx, float theta_target, float theta_dot_target, float theta_ddot_target, float desired_trajectory_period_s){
-
-	float distance_to_target_rads = fabs(theta_target - actx->jointAngle);
-
-	float trajectory_period_s;
-	
-	if (distance_to_target_rads > MINIMUM_JERK_MAX_MEAN_SPEED_RPS * desired_trajectory_period_s ){
-		trajectory_period_s = distance_to_target_rads / MINIMUM_JERK_MAX_MEAN_SPEED_RPS;
-	}else{
-		trajectory_period_s = desired_trajectory_period_s;
-	}
-
-	mj.theta_target  = theta_target;
-	mj.theta_dot_target = theta_dot_target;
-	mj.theta_ddot_target = theta_ddot_target;
-	
-	set_minimum_jerk_trajectory_period(trajectory_period_s);
-
-	
-
-	mj.params[0] = actx->jointAngle;
-	mj.params[1] = actx->jointVel;
-	mj.params[2] = 0.0;
-
-	float b3 = mj.theta_target - actx->jointAngle - mj.T[1]*mj.params[1] - 0.5*mj.T[2]*mj.params[2];
-	float b4 = mj.theta_dot_target - mj.params[1] - mj.T[1]*mj.params[2];
-	float b5 = mj.theta_ddot_target - mj.params[2];
-
-	mj.params[3] = (10.0/mj.T[3])*b3 + (-4.0/mj.T[2])*b4 + (0.5/mj.T[1])*b5;
-	mj.params[4] = (-15.0/mj.T[4])*b3 + (7.0/mj.T[3])*b4 + (-1.0/mj.T[2])*b5;
-	mj.params[5] = (6.0/mj.T[5])*b3 + (-3.0/mj.T[4])*b4 + (0.5/mj.T[3])*b5;
-
-	mj.update_counter = 0;
-	mj.total_trajectory_updates =(uint)(mj.T[1] * 1000.0); //TODO: put the actual variable for sampling rate here
-}
-
-static void set_next_theta_for_minimum_jerk(Act_s* actx){
-
-	// if (fabs(mj.des_theta - actx->jointAngle) < mj.angle_tol_rad)
-	mj.update_counter++;
-
-	float t = (float)(mj.update_counter)/1000.0;
-	float t2 = t*t;
-	float t3 = t2*t;
-	float t4 = t3*t;
-	float t5 = t4*t;
-
-	mj.des_theta = mj.params[0] + mj.params[1]*t + mj.params[2]*t2 + mj.params[3]*t3 +
-		mj.params[4]*t4 + mj.params[5]*t5;
 }
 
 static void set_joint_torque(Act_s* actx, struct taskmachine_s* tm, float des_theta, float k, float b, float scale_factor) {
@@ -197,34 +129,14 @@ void reset_terrain_state_machine_parameters(){
 void init_terrain_state_machine(){
 	init_adaptive_control_params_s();
 	reset_terrain_state_machine_parameters();
-	init_minimum_jerk_values_s();
 }
 
 int get_walking_state(){
 	return state_machine_demux_state;
 }
 
-struct minimum_jerk_values_s* get_minimum_jerk_values(){
-	return &mj;
-}
 struct control_params_s* get_control_params(){
 	return &cp;
-}
-
-void set_minimum_jerk_trajectory_period(float T){
-	mj.T[1] = T;
-	mj.T[2] = mj.T[1]*mj.T[1];
-	mj.T[3] = mj.T[2]*mj.T[1];
-	mj.T[4] = mj.T[3]*mj.T[1];
-	mj.T[5] = mj.T[4]*mj.T[1];
-}
-
-void set_minimum_jerk_angle_tol_rad(float angle_tol_rad){
-	mj.angle_tol_rad = angle_tol_rad;
-}
-
-void enable_minimum_jerk(uint8_t enabled){
-	mj.enabled = enabled;
 }
 
 void set_esw_theta_rad(float theta_rad){
@@ -313,27 +225,18 @@ if (terrain_mode == MODE_NOMINAL){
 	}
 	return;
 }else if (terrain_mode == MODE_POSITION){
-	if (mj.enabled){
-		if (mj.update_counter < mj.total_trajectory_updates){
-				set_next_theta_for_minimum_jerk(actx);
-				set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
-		}else{
-				set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.0);
-		}
-	}else{
-		if (delay_tics < cp.active.sw_delay_tics){
-			delay_tics++;
-		}
-		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps, delay_tics/cp.active.sw_delay_tics);
-
-		if (cp.active.esw_theta_rad != prev_esw_theta_rad ||
-				cp.active.sw_delay_tics != prev_sw_delay_tics){
-			delay_tics = 0;
-		}
-		prev_esw_theta_rad = cp.active.esw_theta_rad;
-		prev_sw_delay_tics = cp.active.sw_delay_tics;
-
+	if (delay_tics < cp.active.sw_delay_tics){
+		delay_tics++;
 	}
+	set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps, delay_tics/cp.active.sw_delay_tics);
+
+	if (cp.active.esw_theta_rad != prev_esw_theta_rad ||
+			cp.active.sw_delay_tics != prev_sw_delay_tics){
+		delay_tics = 0;
+	}
+	prev_esw_theta_rad = cp.active.esw_theta_rad;
+	prev_sw_delay_tics = cp.active.sw_delay_tics;
+
 	return;
 }
 
@@ -343,23 +246,13 @@ switch (state_machine_demux_state){
 	case STATE_ESW:
 		if (on_entry){
 			sample_counter = 0;
-			mj.trajectory_defined = 0;
 			delay_tics = 0;
 		}
 
 		if (delay_tics < cp.active.sw_delay_tics){
 			delay_tics++;
 		}
-		if (mj.enabled){
-			if (mj.update_counter < mj.total_trajectory_updates){
-					set_next_theta_for_minimum_jerk(actx);
-					set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
-			}else{
-					set_minimum_jerk_trajectory_params(actx, cp.active.esw_theta_rad, 0.0, 0.0, 0.0);
-			}
-		}else{
-			set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/cp.active.sw_delay_tics);
-		}
+		set_joint_torque(actx, tm, cp.active.esw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/cp.active.sw_delay_tics);
 
         if (tm->gait_event_trigger == GAIT_EVENT_WINDOW_CLOSE){
         	state_machine_demux_state = STATE_LSW;
@@ -369,23 +262,12 @@ switch (state_machine_demux_state){
     case STATE_LSW:
     	if (on_entry){
     		delay_tics = 0;
-    		mj.trajectory_defined = 0;
     	}
 
     	if (delay_tics < cp.active.sw_delay_tics){
     		delay_tics++;
     	}
-
-    	if (mj.enabled){
-    			if (mj.update_counter < mj.total_trajectory_updates){
-    					set_next_theta_for_minimum_jerk(actx);
-    					set_joint_torque(actx, tm, mj.des_theta, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,1.0);
-    			}else{
-    					set_minimum_jerk_trajectory_params(actx, cp.active.lsw_theta_rad, 0.0, 0.0, 0.0);
-    			}
-    		}else{
-    			set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/cp.active.sw_delay_tics);
-    		}
+    	set_joint_torque(actx, tm, cp.active.lsw_theta_rad, cp.active.sw_k_Nm_p_rad, cp.active.sw_b_Nm_p_rps,delay_tics/cp.active.sw_delay_tics);
 
     	//Transition condition should be, you have a certain velocity of the ankle joint opposing the direction of the torque??
     	//TODO: make terrain specific transition condition here
