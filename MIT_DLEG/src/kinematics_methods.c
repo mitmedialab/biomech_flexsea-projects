@@ -14,7 +14,7 @@
 #define ANKLE_POS_IMU_FRAME_X_M 0.0  //Frontal axis (medial->lateral)
 #define ANKLE_POS_IMU_FRAME_Y_M -0.00445  //Longitudinal axis (bottom->top)
 #define ANKLE_POS_IMU_FRAME_Z_M -0.0605  //Sagittal axis (back->front)
-//#define ACCEL_MPS2_PER_LSB  (GRAVITY_MPS2 / ACCEL_LSB_PER_G)
+
 #define ACCEL_MPS2_PER_LSB 0.0012283 //Actual value different (but consistently so) from accelerometer documentation.
 #define N_ACCEL_MPS2_PER_LSB (-1.0*ACCEL_MPS2_PER_LSB)
 #define GYRO_RPS_PER_LSB (RAD_PER_DEG / GYRO_LSB_PER_DPS)
@@ -52,15 +52,17 @@ static void reset_position_and_velocity(struct taskmachine_s* tm){
     kin.latest_foot_static_samples = tm->elapsed_samples;
 }
 
+//Correct orientation using accelerometers, and update the ground slope.
 static void correct_orientation_and_update_ground_slope(struct taskmachine_s* tm){
 	static float theta_quiet_acc = 0.0;
 	theta_quiet_acc = kin.aAccY*GRAVITY_RECIP;
 	kin.ground_slope_est_sum = kin.ground_slope_est_sum + tm->aa - theta_quiet_acc;
-	kin.roll_over_counter =  kin.roll_over_counter + 1;
+	kin.ground_slope_estimation_counter =  kin.ground_slope_estimation_counter + 1;
 	kin.rot3 = 0.98*kin.rot3 + 0.02*theta_quiet_acc;
 	kin.rot1 = sqrtf(1.0-(kin.rot3*kin.rot3));
 }
 
+//Update 2D rotation matrix using gyroscopes only.
 static void update_rotation_matrix(){
 	static float rot1prev, rot3prev;
 	rot1prev = kin.rot1;
@@ -70,6 +72,7 @@ static void update_rotation_matrix(){
 
 }
 
+//Update 2D ankle translations and the displacement from starting point.
 static void update_ankle_translations(){
 	static float aOmegaXSquared, SaAy, SaAz;
 	if (fabs(kin.pAz) < PAZ_MAX){
@@ -92,12 +95,14 @@ static void update_ankle_translations(){
 
 
 
+//Gets low pass filtered 3D accelerations
 static void update_acc( struct fx_rigid_mn_s* mn){
 	kin.aAccX =  filter_first_order_butter_20hz(kin.aAccXYZscaling * (float) mn->accel.x, &aAccX_outputs[0], &aAccX_inputs[0]);
 	kin.aAccY =  filter_first_order_butter_20hz(kin.aAccXYZscaling * (float) mn->accel.z, &aAccY_outputs[0], &aAccY_inputs[0]);
 	kin.aAccZ =  filter_first_order_butter_20hz(-1.0*kin.aAccXYZscaling * (float) mn->accel.y, &aAccZ_outputs[0], &aAccZ_inputs[0]);
 }
 
+//Gets high pass filtered sagittal plane angular velocity
 static void update_omega(struct fx_rigid_mn_s* mn){
 	static float aOmegaXprev;
 	aOmegaXprev = kin.aOmegaX;
@@ -107,6 +112,8 @@ static void update_omega(struct fx_rigid_mn_s* mn){
 
 }
 
+//Resets scale factor on acceleration calculations using a sufficiently long period where accel signals are quiet.
+//This typically occurs during static standing.
 static void correct_accel_scaling(){
 
 	kin.meanaccNormSq = FILTA*kin.meanaccNormSq + FILTB*kin.accNormSq;
@@ -123,20 +130,29 @@ static void correct_accel_scaling(){
 	}
 }
 
+//Updates sagittal shank rotation, ankle translations, and ground slope.
 static void update_pose(struct taskmachine_s* tm){
 	update_rotation_matrix();
 	update_ankle_translations();
+
+	//Get the difference between segment velocity and ankle joint velocity and use this as an indicator of
+	//foot-flat if this value is below a certain threshold during stance.
 	float joint_vel_seg_vel_diff = tm->aa_dot - kin.aOmegaX;
 	kin.joint_vel_seg_vel_diff_sq = joint_vel_seg_vel_diff*joint_vel_seg_vel_diff;
+
+	//Get acc norm for use in determining a quiet enough point to use the accelerometers to correct the orientation estimate.
 	kin.accNormSq = kin.aAccX*kin.aAccX + kin.aAccY*kin.aAccY + kin.aAccZ*kin.aAccZ;
 
 	kin.foot_flat = 0;
 	if (!tm->in_swing){
+
+		//If acceleration is quiet use it to correct orientation and update the ground slope.
 		if (kin.accNormSq < ACC_NORM_SQ_MAX &&
 			   kin.accNormSq > ACC_NORM_SQ_MIN){
 			correct_orientation_and_update_ground_slope(tm);
 		}
 
+		//If the difference between joint and segment velocity is small, set foot-flat to 1.
 		if (kin.joint_vel_seg_vel_diff_sq < JOINT_VEL_SEG_VEL_DIFF_SQ_THRESH_R2PS2 &&
 			tm->tq_dot > TQ_DOT_THRESH_NM_HZ){
 			kin.foot_flat = 1;
@@ -148,6 +164,7 @@ static void update_pose(struct taskmachine_s* tm){
 		kin.foot_flat_counter = 0;
 	}
 
+
 	if (kin.foot_flat_counter > MIN_SAMPLES_FOR_FOOT_FLAT){
 		reset_position_and_velocity(tm);
 	}
@@ -157,12 +174,12 @@ static void update_pose(struct taskmachine_s* tm){
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
 		kin.end_of_stride_pAz = kin.pAz;
 		reset_position_and_velocity(tm);
-		 kin.roll_over_counter = 1;
+		 kin.ground_slope_estimation_counter = 1;
 		kin.ground_slope_est_sum = 0.0;
 	}
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
-		 kin.curr_ground_slope_est = kin.ground_slope_est_sum/((float)kin.roll_over_counter);
+		 kin.curr_ground_slope_est = kin.ground_slope_est_sum/((float)kin.ground_slope_estimation_counter);
 	}
 }
 
@@ -170,7 +187,7 @@ static void update_pose(struct taskmachine_s* tm){
 
 
 
-
+//Takes the raw IMU measurements and uses them to update ankle joint translations and ground slope.
 void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm){
 
 	update_acc(mn);
@@ -206,7 +223,7 @@ void init_kinematics(){
     kin.accelQuietSamples = 0;
     kin.meanaccNormSq = 0.0;
     kin.accNormSq = 0.0;
-    kin.roll_over_counter = 1;
+    kin.ground_slope_estimation_counter = 1;
     kin.ground_slope_est_sum = 0.0;
 
     kin.joint_vel_seg_vel_diff_sq = 0.0;

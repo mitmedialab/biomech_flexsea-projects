@@ -119,6 +119,8 @@ static int gui_mode_prev = GUI_MODE_NOM_CONTROL_PARAMS;
 // Macro(s)
 //****************************************************************************
 
+
+//Update the current user writes whenever you transition gui modes.
 static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm,  struct heuristics_s* be){
 
 	user_data_1.w[0] = gui_mode;
@@ -187,6 +189,7 @@ static void syncUserWritesWithCurrentParameterValues(struct taskmachine_s* tm,  
 		
 }
 
+//Initialize gui_mode and control_mode to MODE_NOMINAL and corresponding user write values.
 static void initializeUserWrites(struct taskmachine_s* tm){
 	gui_mode = GUI_MODE_NOM_CONTROL_PARAMS;
 	tm->control_mode = MODE_NOMINAL;
@@ -202,11 +205,7 @@ static void initializeUserWrites(struct taskmachine_s* tm){
 	user_data_1.w[9] = (int32_t)(0);
 }
 
-/*
- * Updates the Input values based off of user data
- * Param: actx(Act_s) - Actuator structure to track sensor values
- * Param: wParams(WalkParams) -
- */
+//Define several gui_modes which you can set by setting user_write_0 any time you are in plan gui.
 static void updateUserWrites(struct taskmachine_s* tm, struct heuristics_s* be){
 	tm->adaptation_enabled = 0;
 	gui_mode_prev = gui_mode;
@@ -217,12 +216,12 @@ static void updateUserWrites(struct taskmachine_s* tm, struct heuristics_s* be){
 
 	switch (gui_mode){
 
-	    case GUI_MODE_FL_CONTROL_PARAMS: //0
-	    case GUI_MODE_UR_CONTROL_PARAMS: //1
-	    case GUI_MODE_DR_CONTROL_PARAMS: //2
-	    case GUI_MODE_US_CONTROL_PARAMS: //3
-	    case GUI_MODE_DS_CONTROL_PARAMS: //4
-	    case GUI_MODE_NOM_CONTROL_PARAMS: //5
+	    case GUI_MODE_FL_CONTROL_PARAMS: //0, use for steady state level ground control
+	    case GUI_MODE_UR_CONTROL_PARAMS: //1, use for steady state ramp ascent control
+	    case GUI_MODE_DR_CONTROL_PARAMS: //2, use for steady state ramp descent control
+	    case GUI_MODE_US_CONTROL_PARAMS: //3, use for steady state stair ascent control
+	    case GUI_MODE_DS_CONTROL_PARAMS: //4, use for steady state stair descent control
+	    case GUI_MODE_NOM_CONTROL_PARAMS: //5, use for steady state nominal (one-state spring-damper) control
 	    case GUI_MODE_DYNAMICS: //10
 	    	if (tm->control_mode == MODE_NOMINAL)
 	    	{
@@ -269,12 +268,13 @@ static void updateUserWrites(struct taskmachine_s* tm, struct heuristics_s* be){
 	}
 }
 
+//Update the genvars depending on what the gui mode is.
 static void updateGenVars(struct taskmachine_s* tm, struct kinematics_s* kin, struct control_params_s* params, int controlTime, struct heuristics_s* be){
 
 //	gui_sub_mode = ((int)((float)controlTime/100.0)) % 10;
 
-	int16_t walkstate_ktrue_kest_kpred = get_walking_state()*1000 +  be->prediction;
-	rigid1.mn.genVar[0] = walkstate_ktrue_kest_kpred;
+	int16_t state_pred = get_walking_state()*1000 +  be->prediction;
+	rigid1.mn.genVar[0] = state_pred;
 	rigid1.mn.genVar[1] = (int16_t) (tm->tq*SCALE_FACTOR_100);
 	rigid1.mn.genVar[2] = (int16_t) (tm->aa*SCALE_FACTOR_10000);
 

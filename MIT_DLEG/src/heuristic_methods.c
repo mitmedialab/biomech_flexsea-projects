@@ -27,7 +27,7 @@
 
 static struct heuristics_s be;
 
-
+//Use measurements and associated thresholds to determine what the current walking terrain is.
 void update_heuristics(struct taskmachine_s* tm, struct kinematics_s* kin)
 {
 
@@ -38,6 +38,7 @@ void update_heuristics(struct taskmachine_s* tm, struct kinematics_s* kin)
 		be.passed_vertical_thresh = 1;
 	}
 
+	//Only predict a non-level-ground terrain if certain conditions are met.
 	if (tm->in_swing && !be.stepping_backwards && be.passed_vertical_thresh && !be.made_prediction){
 		be.ready_for_prediction = 1;
 	}else{
@@ -46,20 +47,21 @@ void update_heuristics(struct taskmachine_s* tm, struct kinematics_s* kin)
 
 	if (be.ready_for_prediction){
 
+		//Conclude level ground if displacement is really big or a lot of time has passed in swing.
 		if (kin->displacement > MAX_DISPLACEMENT_THRESH_M ||
 			tm->elapsed_samples - tm->latest_foot_off_samples > MAX_SWING_SAMPLES){
 			be.made_prediction = 1;
 			return;
 		}
-		//If we are past horizontal stair ascent thresh, then if ground slope was steep enough or we pass vertical ramp
-		//ascent thresh, identify as ramp ascent.
+
+		//Heuristic rules
+
 		if (kin->pAy < be.us_y_thresh_m){
 			if (kin->pAz > be.us_z_thresh_m){
 				be.prediction = K_USTAIRS;
 				be.made_prediction = 1;
 				return;
 			}
-//		}
 		}else{
 			if (be.slope_thresh_status == PASSED_UR_SLOPE_THRESH){
 				be.prediction = K_URAMP;
@@ -83,6 +85,7 @@ void update_heuristics(struct taskmachine_s* tm, struct kinematics_s* kin)
 			}
 		}
 
+		//Optional heuristics for identifying the first stride transitioning onto a ramp. Works about half the time.
 		if (kin->pAy > be.ur_y_thresh_m){
 			be.made_prediction = 1;
 			if (be.min_stance_aOmegaX < STANCE_AOMEGAX_THRESH_RPS){
@@ -101,17 +104,20 @@ void update_heuristics(struct taskmachine_s* tm, struct kinematics_s* kin)
 		}
 	}
 
+
 	if(tm->elapsed_samples == kin->latest_foot_static_samples){
 		 be.passed_vertical_thresh = 0;
 		 be.stepping_backwards = 0;
 	}
 
+	//Reset certain max/min values at foot strike.
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_ON){
 	    be.max_torque = -FLT_MAX;
 	    be.min_torque = FLT_MAX;
 	    be.min_stance_aOmegaX = FLT_MAX;
 	    be.ready_for_prediction = 0;
 	}
+
 
 	if (tm->gait_event_trigger == GAIT_EVENT_FOOT_OFF){
 
@@ -127,6 +133,8 @@ void update_heuristics(struct taskmachine_s* tm, struct kinematics_s* kin)
 	    	return;
 	    }
 
+	    //if passed a certain slope thresh and rolled over the foot with sufficient rotational velocity, identify
+	    //as ramp ascent/descent.
 	    if (kin->curr_ground_slope_est < (-be.ground_slope_bin_size + be.ground_slope_offset_rad) &&
 	    			kin->end_of_stride_pAz > UR_PAZ_THRESH_M && be.min_stance_aOmegaX < STANCE_AOMEGAX_THRESH_RPS){
 	    	be.slope_thresh_status = PASSED_UR_SLOPE_THRESH;

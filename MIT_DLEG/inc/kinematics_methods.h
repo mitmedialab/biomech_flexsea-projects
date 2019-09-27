@@ -28,7 +28,7 @@ struct kinematics_s
     //Ground slope estimation variables
     float curr_ground_slope_est;
     float ground_slope_est_sum;
-    int roll_over_counter;
+    int ground_slope_estimation_counter;
 
     //IMU scaling/bias variables
 	float aOmegaXbias;

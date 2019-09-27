@@ -38,9 +38,7 @@
 //****************************************************************************
 #include "global-config.h"
 #include "main.h"
-//#include "user-mn-MIT-EMG.h"
 #include "actuator_functions.h"
-//#include "walking_state_machine.h"
 #include "walking_knee_ankle_state_machine.h"
 #include "state_variables.h"
 #include "cmd-ActPack.h"
