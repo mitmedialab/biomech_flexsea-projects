@@ -51,7 +51,6 @@ extern "C" {
 
 #ifdef INCLUDE_UPROJ_MIT_DLEG
 #include "state_variables.h"
-#include "walking_knee_ankle_state_machine.h"
 extern WalkingStateMachine kneeAnkleStateMachine;
 extern Act_s act1, act2;
 #endif

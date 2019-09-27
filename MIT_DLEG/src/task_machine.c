@@ -3,10 +3,10 @@
 #include "task_machine.h"
 
  //Gait event thresholds
-#define EXPECTED_SWING_TQ 0.0
-#define TRANSITION_TQ_THRESH 7.0
-#define MIN_STANCE_TQ EXPECTED_SWING_TQ + TRANSITION_TQ_THRESH + 5.0
-#define TRANSITION_POWER_THRESH -0.3
+#define EXPECTED_SWING_TQ_NM 0.0
+#define TRANSITION_TQ_THRESH_NM 7.0
+#define MIN_STANCE_TQ_NM EXPECTED_SWING_TQ_NM + TRANSITION_TQ_THRESH_NM + 5.0
+#define TRANSITION_POWER_THRESH_W -0.3
 #define PREDICTION_CUTOFF_SAMPLES 100
 #define MAX_SWING_TQ_DOT_NM_HZ 100
 #define MIN_GAIT_PHASE_SAMPLES 250
@@ -26,7 +26,6 @@ static float aa_dot_outputs[] = {0,0,0};
 static float aa_dot_inputs[] = {0,0,0};
 
 
-//Copied from matlab pil simulation
 static void init_task_machine(){
 	tm.control_mode = MODE_NOMINAL;
 	tm.learning_enabled = 0;
@@ -37,8 +36,6 @@ static void init_task_machine(){
     tm.latest_foot_off_samples = 10000.0;
     tm.prev_stride_samples = 0.0;
     tm.in_swing = 0;
-    tm.do_learning_for_curr_stride = 0;
-    tm.do_learning_for_prev_stride = 0;
     tm.passed_min_stance_tq = 0;
 
     tm.gait_event_trigger = 0;  
@@ -68,25 +65,21 @@ static void init_task_machine(){
 }
 
 
-
+//Determines whether we are in swing or in stance in a way that performs well across terrains.
 static void update_gait_events(Act_s* actx){
 
     tm.gait_event_trigger = GAIT_EVENT_DEFAULT;
 
     if (tm.in_swing){
 
-          if (tm.elapsed_samples - tm.latest_foot_off_samples == 100){
-              tm.do_learning_for_curr_stride = 1;
-              tm.gait_event_trigger = GAIT_EVENT_WINDOW_CLOSE; 
-              return;  
-          }
-
+          //Prevent transition to stance until certain time has elapsed.
           if(tm.elapsed_samples - tm.latest_foot_off_samples < MIN_GAIT_PHASE_SAMPLES){
           	  return;
           }
 
-            //Swing to stance transition condition
-          if (fabs(tm.tq_dot) >= MAX_SWING_TQ_DOT_NM_HZ && tm.power_w < TRANSITION_POWER_THRESH){
+          //To transition to stance, detect a high absolute tq derivative and a significant negative power
+          // (negative power important to prevent triggering stance when servoing in free space).
+          if (fabs(tm.tq_dot) >= MAX_SWING_TQ_DOT_NM_HZ && tm.power_w < TRANSITION_POWER_THRESH_W){
         	  tm.prev_stride_samples = tm.elapsed_samples;
               tm.elapsed_samples = 0;
               tm.in_swing = 0;
@@ -95,20 +88,23 @@ static void update_gait_events(Act_s* actx){
           }
     }else{
 
+    	//Prevent transition to swing until certain time has elapsed.
     	if (tm.elapsed_samples < MIN_GAIT_PHASE_SAMPLES){
 			return;
     	}
-		if (tm.tq > MIN_STANCE_TQ){
+
+    	//Require passing a certain minimum tq value before transition to stance is allowed.
+		if (tm.tq > MIN_STANCE_TQ_NM){
 			tm.passed_min_stance_tq = 1;
 		}
 
-
-		if (fabs(EXPECTED_SWING_TQ - tm.tq) < TRANSITION_TQ_THRESH &&
+		//To transition to swing, torque has to be within proximity to a defined swing baseline (here it is
+		//EXPECTED_SWING_TQ_NM). This is currently a variable because with encoder-based tq sensing sometimes
+		//there is drift in the baseline. Most of the time EXPECTED_SWING_TQ_NM = 0 though.
+		if (fabs(EXPECTED_SWING_TQ_NM - tm.tq) < TRANSITION_TQ_THRESH_NM &&
 		  tm.passed_min_stance_tq){
 			tm.in_swing = 1;
 			tm.latest_foot_off_samples = tm.elapsed_samples;
-			tm.do_learning_for_prev_stride = tm.do_learning_for_curr_stride;
-			tm.do_learning_for_curr_stride = 0;
 			tm.gait_event_trigger = GAIT_EVENT_FOOT_OFF;
 			tm.stride_classified = 0;
 		}
@@ -116,18 +112,7 @@ static void update_gait_events(Act_s* actx){
 
 }
 
-#if defined(NO_DEVICE)
-static void simulate_ankle_torque(){
-	static int stride_iterator = 0;
-  tqraw = example_stride_tq[stride_iterator];
-  aaraw = example_stride_aa[stride_iterator];
-  stride_iterator++;
-  if (stride_iterator == 1431)
-    stride_iterator = 0;
-}
-#endif
-
-
+//Calculates ankle power and work, resetting work at the beginning of every stance period.
 static void update_ankle_dynamics(Act_s* actx)
 {
     tm.tq_prev = tm.tq;
@@ -162,6 +147,11 @@ struct taskmachine_s* get_task_machine(){
 }
 
 
+//Main task machine loop. Handles all of the main functionality of Roman's terrain
+//adaptive control system including estimating ankle dynamics, updating gait events,
+//calculating kinematics and ground slope, using these measurements to
+//heuristically determine the terrain, and then actuating the appropriate controller
+//for the given terrain.
 void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 
   
@@ -186,6 +176,8 @@ void task_machine_demux(struct rigid_s* rigid, Act_s* actx){
 		update_heuristics(&tm, get_kinematics());
 
 
+		//Use this switch to be in either terrain adaptive mode or just default to one steady-state controller. Depends
+		//on which gui_mode you are in.
 		if (tm.adaptation_enabled)
 			tm.current_terrain = get_heuristics()->prediction;
 		else

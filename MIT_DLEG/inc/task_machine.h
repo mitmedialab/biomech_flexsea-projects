@@ -52,8 +52,6 @@ struct taskmachine_s
     float latest_foot_off_samples;
     float prev_stride_samples;
     uint8_t in_swing;
-    uint8_t do_learning_for_curr_stride;
-    uint8_t do_learning_for_prev_stride;
     uint8_t passed_min_stance_tq;
 
     uint8_t gait_event_trigger;  
@@ -87,9 +85,6 @@ struct taskmachine_s
     bool stance_rom_within_bounds;
     bool heelstrike_angle_within_bounds;
     bool peak_power_timing_within_bounds;
-
-
-    int est_pred_correct; //used as combined variable holding k_est (hundreds), k_pred (tens), and correctness (ones). ex. 441 or 430
 
 };
 
