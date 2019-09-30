@@ -247,7 +247,9 @@ void MITDLegFsm1(void)
 //			initSGFilt();		// Savitsky-Golay
 //			initSGVelFilt();
 
-			mitInitCurrentController();		//initialize Current Controller with gains
+			mitInitOpenController();		//initialize Open Controller
+
+//			mitInitCurrentController();		//initialize Current Controller with gains
 //			mitInitPositionController();	// try initialize position controller
 
 
@@ -417,8 +419,8 @@ void updateGenVarOutputs(Act_s *actx)
 	  rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle*100.);	// (act1.jointAngleDegrees*1000.);	// deg
 	  rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0); //(act2.jointTorque*100.);  // (*rigid1.ex.enc_ang_vel);		// comes in as rad/s, //(act2.jointTorque*100.);
 	  rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang - actx->motorPos0); // //(rigid1.ex.strain);
-	  rigid1.mn.genVar[6] = (int16_t) (act1.axialForceLC); //(rigid1.ex.mot_volt);	// mA
-	  rigid1.mn.genVar[7] = (int16_t) (act1.axialForce); //(*rigid1.ex.enc_ang);		// mV, //getDeviceIdIncrementing() ;
+//	  rigid1.mn.genVar[6] = (int16_t) (act1.axialForceLC); //(rigid1.ex.mot_volt);	// mA
+//	  rigid1.mn.genVar[7] = (int16_t) (act1.axialForce); //(*rigid1.ex.enc_ang);		// mV, //getDeviceIdIncrementing() ;
 	  rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); //(rigid2.ex.mot_current);			// mA
 #ifdef IS_KNEE
 	  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV

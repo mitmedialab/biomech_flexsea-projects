@@ -621,11 +621,10 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	//Apply Notch filter after compensator
 //	tauC = getNotchFilter(tauC);
 
-	tauCCombined = tauC + tauFF + DOB;
-
 	// Disturbance Observer
 //	DOB = getDOB(tauCCombined, actx->tauMeas); // send it back for next round
 
+	tauCCombined = tauC + tauFF + DOB;
 //	rigid1.mn.genVar[8] = (int16_t) (tauCCombined*100.0);
 
 	// motor current signal
@@ -633,6 +632,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	Icalc = ( 1.0/(MOT_KT * N ) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
+
+	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (actx->motorVel * MOT_KT) ) ); //+ (actx->motCurrDt * MOT_L)
 
 	//DEBUG todo: check if you want to use this, or some other friction compensation methods
 //	I = I + noLoadCurrent(I);	// Include current required to get moving
@@ -650,11 +651,17 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
-	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+
 #endif
+
 	//variables used in cmd-rigid offset 5, for multipacket
 	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
 	rigid1.mn.userVar[6] = actx->tauDes*1000;
+	rigid1.mn.genVar[6] = (int16_t) (V);
+	rigid1.mn.genVar[7] = (int16_t) (I);
+
 }
 
 /*
@@ -1287,7 +1294,8 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 	float V = (I * MOT_R) * voltageGain + ( MOT_KT_TOT * actx->motorVel * velGain) + (actx->motCurrDt * MOT_L * indGain ); // [V] this caused major problems? ==> ;
 
 	int32_t ImA = (int32_t) ( I * CURRENT_SCALAR_INIT );
-	int32_t VmV = (int32_t) ( V * CURRENT_SCALAR_INIT );
+	int32_t VmV = (int32_t) ( CURRENT_SCALAR_INIT * ( (ImA * MOT_R*1.732) + (actx->motorVel * MOT_KT) ) ); //+ (actx->motCurrDt * MOT_L)
+
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 //	if (I > actx->currentOpLimit)
