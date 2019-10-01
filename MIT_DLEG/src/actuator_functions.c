@@ -1291,11 +1291,13 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 
 	// motor current signal
 	float I = ( 1.0/(MOT_KT * N ) * actx->tauDes );		// [A]
-	float V = (I * MOT_R) * voltageGain + ( MOT_KT_TOT * actx->motorVel * velGain) + (actx->motCurrDt * MOT_L * indGain ); // [V] this caused major problems? ==> ;
+//	float V = (I * MOT_R) * voltageGain + ( MOT_KT_TOT * actx->motorVel * velGain) + (actx->motCurrDt * MOT_L * indGain ); // [V] this caused major problems? ==> ;
 
 	int32_t ImA = (int32_t) ( I * CURRENT_SCALAR_INIT );
-	int32_t VmV = (int32_t) ( CURRENT_SCALAR_INIT * ( (ImA * MOT_R*1.732) + (actx->motorVel * MOT_KT) ) ); //+ (actx->motCurrDt * MOT_L)
+	int32_t VmV = (int32_t) ( CURRENT_SCALAR_INIT * ( (I * MOT_R*1.732) + (actx->motorVel * MOT_KT) ) ); //+ (actx->motCurrDt * MOT_L)
 
+	rigid1.mn.genVar[6] = (int16_t) (VmV);
+	rigid1.mn.genVar[7] = (int16_t) (ImA);
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 //	if (I > actx->currentOpLimit)

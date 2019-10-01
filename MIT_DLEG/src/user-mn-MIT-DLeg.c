@@ -317,8 +317,8 @@ void MITDLegFsm1(void)
 						act1.tauDes = tor;
 					}
 
-//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
-					setMotorTorque( &act1, act1.tauDes);
+					setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
+//					setMotorTorque( &act1, act1.tauDes);
 
 				#else
 					if ( fmod(controlTime,10) == 0 )
