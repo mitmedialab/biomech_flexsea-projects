@@ -11,6 +11,7 @@ extern "C" {
 //#include "user-mn-MIT-EMG.h"
 #include "spline_functions.h"
 #include "free_ankle_EMG.h"
+#include "torque_replay.h"
 
 //****************************************************************************
 // Definition(s):
@@ -78,7 +79,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 	    if (kneeAnkleStateMachine.currentState == STATE_EARLY_SWING  || kneeAnkleStateMachine.currentState == STATE_LATE_SWING)
 	    {
 //	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
-	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.currentState;
+	    	//kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.currentState;
 	    	// do nothing, stay in current state.
 	    } else
 	    {
