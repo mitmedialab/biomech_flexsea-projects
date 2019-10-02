@@ -122,9 +122,6 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
         {
 			if (isTransitioning && !passedStanceThresh) {
 				ankleWalkParams.scaleFactor = 1.0;
-//					ankleGainsEst.k1 = ankleWalkParams.earlyStanceK0;
-//				ankleGainsEst.thetaDes = actx->jointAngleDegrees;	// used by updateImpedanceParams, if in use, could be turned off.
-	//			updateImpedanceParams(actx, &ankleWalkParams);	//Todo: Probably want to bring this back to ease into stance, though Hugh prefers a stiff ankle - why it was removed
 				passedStanceThresh = 0;
 
 				#ifdef USE_EMG
@@ -189,12 +186,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
 
 				//Linear ramp to push off, pickup where hardstop leftoff, use stiffness ankleGainsLst to get us to target point.
-//				actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);  // drops off after zero when hardstop goes away
-//				actx->tauDes = ankleWalkParams.lspEntryTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);	//too much power, needs to trail off
-				float thetaTransition = (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics)*ankleGainsLst.thetaDes;	// ramp thetaDes from current position to desired position
-
-				actx->tauDes = getImpedanceTorque(actx, ankleWalkParams.virtualHardstopK, ankleGainsLst.b, thetaTransition);
-
+				actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);  // drops off after zero when hardstop goes away
 
 				//Late Stance Power transition vectors
 					//todo: Should there be a way to jump back into early_stance in the event of running?
@@ -219,16 +211,10 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			}
 
 			#ifdef IS_ANKLE
-				// Cubic Spline NOT WORKING; UNTESTED
-//				calcCubicSpline(&cubicSpline);
-//				ankleGainsEsw.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
-//				rigid1.mn.genVar[9] = (int16_t) (getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, cubicSpline.Y)*100.0); //new thetaDes after cubic spline
 
 				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
 
 				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes && timeInState >= ESW_TO_LSW_DELAY)
-//				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes || timeInState >= ESW_TO_LSW_DELAY)
-//				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes)
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
 				}
@@ -245,12 +231,6 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				}
 
 			#endif
-
-			//Early Swing transition vectors
-//			if (timeInState >= 200) {
-//				kneeAnkleStateMachine.currentState = STATE_LATE_SWING;      //Transition occurs even if the early swing motion is not finished
-//			}
-			//Transition occurs when toe swings up or time elapsed
 
 			break; // case STATE_EARLY_SWING
         }
@@ -298,7 +278,6 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			#elif defined(IS_KNEE)
 				float angleTracking = actx->jointAngleDegrees;
 				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, angleTracking);
-//				actx->tauDes = getImpedanceTorque(actx, kneeGainsLsw.k1, kneeGainsLsw.b, kneeGainsLsw.thetaDes);
 				if(timeInState > LSW_TO_EST_DELAY)
 				{
 					if ( (actx->jointAngleDegrees <= kneeGainsLsw.thetaDes) || (kneeAnkleStateMachine.onEntrySlaveSmState == STATE_EARLY_STANCE) )
@@ -326,21 +305,6 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 
 }
-
-///** Impedance Control Torque
-//	Calculates desired torque based on impedance gain parameters
-//
-//	Param: gainParams(GainParams) - struct with all the state's impedance parameters
-//	Param: actx(Act_s) - Actuator structure to track sensor values
-//	Param: wParams(WalkParams) - Parameters relating to walking states
-//    Return: float desired torque at joint in NEWTON-METERS
-//*/
-//float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams) {
-//
-//	return gainParams.k1 * (gainParams.thetaDes - actx->jointAngleDegrees) \
-//         - gainParams.b * actx.jointVelDegrees ;
-//}
-
 
 
 //

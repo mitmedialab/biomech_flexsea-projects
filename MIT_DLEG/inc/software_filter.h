@@ -65,6 +65,7 @@ float filterJointVelocityButterworth(float inputVal);
 float filterJointAngleOutputButterworth(float inputVal);
 
 float filterTorqueEncButterworth(float inputVal);
+float filterMotorCommandButterworth(float inputVal);
 
 float testingFilter(float input);
 float testingVelFilter(float input);

@@ -635,6 +635,9 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (actx->motorVel * MOT_KT) ) ); //+ (actx->motCurrDt * MOT_L)
 
+	V = (int32_t) (filterMotorCommandButterworth( (float) V ) );
+
+
 	//DEBUG todo: check if you want to use this, or some other friction compensation methods
 //	I = I + noLoadCurrent(I);	// Include current required to get moving
 

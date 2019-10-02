@@ -224,7 +224,6 @@ void MITDLegFsm1(void)
 
 		case STATE_INITIALIZE_SENSORS:
 
-//			setMotorNeutralPosition(&act1);	// initialize to define motor initial position
 			//todo check this is okay
 			zeroLoadCell = 1;	// forces getAxialForce() to zero the load cell again. this is kinda sketchy using a global variable.
 			isEnabledUpdateSensors = 1;
@@ -244,13 +243,9 @@ void MITDLegFsm1(void)
 
 			//Initialize Filters for Torque Sensing
 			initSoftFIRFilt();	// Initialize software filter
-//			initSGFilt();		// Savitsky-Golay
-//			initSGVelFilt();
 
 			mitInitOpenController();		//initialize Open Controller
-
 //			mitInitCurrentController();		//initialize Current Controller with gains
-//			mitInitPositionController();	// try initialize position controller
 
 
 			//Set userwrites to initial values
@@ -280,7 +275,6 @@ void MITDLegFsm1(void)
 					 ****************************************/
 				#if defined(IS_ACTUATOR_TESTING)
 
-//					tor = getImpedanceTorque(&act1, inputK, inputB, inputTheta);
 					// Try running impedance update slower than torque controller.
 					if ( fmod(controlTime,10) == 0 )
 					{
@@ -299,15 +293,14 @@ void MITDLegFsm1(void)
 
 					setMotorTorque( &act1, act1.tauDes);
 
-//					setMotorTorqueSEA( &act1, act1.tauDes);
-
 				#elif defined(IS_SWEEP_TEST)
 					float omega = 2*freq * 2 * M_PI;
 					float thetaLocal = torqueSystemIDFrequencySweep( omega, fsmTime, amplitude, dcBias, noiseAmp, begin);
-//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 0);
+//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
 					act1.tauDes = getImpedanceTorque(&act1, 2.0, 0.005, thetaLocal);
 					setMotorTorque( &act1, act1.tauDes);
-				#elif defined(IS_SWEEP_CHIRP_TEST)
+
+					#elif defined(IS_SWEEP_CHIRP_TEST)
 
 					tor = torqueSystemIDFrequencySweepChirp(freq, freqFinal, freqSweepTime, amplitude, dcBias, noiseAmp, chirpType, begin);
 
@@ -317,8 +310,8 @@ void MITDLegFsm1(void)
 						act1.tauDes = tor;
 					}
 
-					setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
-//					setMotorTorque( &act1, act1.tauDes);
+//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
+					setMotorTorque( &act1, act1.tauDes);
 
 				#else
 					if ( fmod(controlTime,10) == 0 )
@@ -389,7 +382,6 @@ void MITDLegFsm2(void)
 			packAndSend(P_AND_S_DEFAULT, FLEXSEA_MANAGE_2, mitDlegInfo, SEND_TO_SLAVE);
 
 			//Reset KEEP/CHANGE once set:
-			//if(writeEx[0].setGains == CHANGE){writeEx[0].setGains = KEEP;}
 			if(writeEx[1].setGains == CHANGE){writeEx[1].setGains = KEEP;}
 
 		}

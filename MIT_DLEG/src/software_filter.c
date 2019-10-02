@@ -453,6 +453,23 @@
 		return yvT[2];
 	}
 
+	//fc=15hz
+	float filterMotorCommandButterworth(float inputVal)
+	{
+
+		static float xvT[3]={0,0,0};
+		static float yvT[3]={0,0,0};
+
+		xvT[0] = xvT[1];
+		xvT[1] = xvT[2];
+		xvT[2] = inputVal;
+		yvT[0] = yvT[1];
+		yvT[1] = yvT[2];
+		yvT[2] = 1.77374445515908*yvT[1] - 0.800084509789504*yvT[0] + 0.00650963562958534*xvT[2] + 0.0130192712591707*xvT[1] + 0.00650963562958534*xvT[0];
+		return yvT[2];
+	}
+
+
 
 	#ifdef SOFT_FILTER_TORQ_IIR_20HZ
 		/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
@@ -650,184 +667,7 @@
 		}
 	#endif //end 15Hz
 
-	/*
-	 * Savitzky-Golay Filter - NOT WORKING
-	 */
 
-//	#define SG_FILT5
-//#define SG_FILT7
-//
-//	#ifdef SG_FILT5
-//
-//		#define SG_SAMPLE_SIZE  5
-//		#define SG_GAIN  0.0285714285714286	// 1/35
-//		static float sGFilter[SG_SAMPLE_SIZE] = {
-//				-3, 12, 17, 12, -3
-//		};
-//
-//	#endif
-//
-//		#ifdef SG_FILT7
-//
-//		#define SG_SAMPLE_SIZE  7
-//		#define SG_GAIN  0.047619048	// 1/21
-//		static float sGFilter[SG_SAMPLE_SIZE] = {
-//				-2, 3, 6, 7, 6, 3 ,-2
-//		};
-//
-//	#endif
-//
-//
-//
-//
-//	float testingFilter(float input)
-//	{
-//	#define numSamp SG_SAMPLE_SIZE
-//		static int16_t M = (numSamp-1)/2;
-//		static float x[numSamp] = {0, 0, 0, 0, 0};
-//		float y=0.0;
-//
-//		x[M-3] = x[M-2];
-//		x[M-2] = x[M-1];
-//		x[M-1] = x[M];
-//		x[M] = x[M+1];
-//		x[M+1] = x[M+2];
-//		x[M+2] = x[M+3];
-//		x[M+3] = input;
-//
-////		for(int i = 0; i<numSamp-2; i++)
-////		{
-////			x[i] = x[i+1];
-////		}
-////		x[numSamp-1] = input;
-//
-//		for(int i = -M; i<M; i++)
-//		{
-//			y = y + x[M+i]*sGFilter[M+i]*SG_GAIN;
-////			y = y + x[M+i];
-//		}
-////		y = (y/numSamp);
-////		x[numSamp-1] = y;
-//		return y;
-//	}
-//
-//
-//	static float sGFiltBuffer[SG_SAMPLE_SIZE];
-//	static float sGFiltOutput;
-//	static int16_t sGIndex;
-
-//	void initSGFilt(void)
-//	{
-////		memset(sGFiltBuffer, 0, SG_SAMPLE_SIZE*4);	// initialize input blocks
-////		sGFiltOutput = 0;							// initialize output
-////		sGIndex = 0;								// initialize index
-//	}
-//
-//	float runSgFilt(float inputVal)
-//	{
-//		float result = 0;
-//		int16_t i = 0;
-//
-//		// Update the Filter History from reverse, incrementing saved values up one
-//		for ( i = SG_SAMPLE_SIZE-1; i > 1; i--)
-//		{
-//			sGFiltBuffer[i-1] = sGFiltBuffer[i];
-//		}
-//
-//		sGFiltBuffer[SG_SAMPLE_SIZE-1] = inputVal;		// load new value into bottom of index
-//
-//		for (i = 0; i < SG_SAMPLE_SIZE;  i++)
-//		{
-//			result += SG_GAIN*( sGFilter[i] * sGFiltBuffer[i] );
-//		}
-//
-//		sGFiltBuffer[(SG_SAMPLE_SIZE-1)/2] = result;
-//
-//
-////		// filter the input using the accumulator
-////		for (i = 0; i < SG_SAMPLE_SIZE;  i++)
-////		{
-////			result += SG_GAIN * ( sGFilter[SG_SAMPLE_SIZE-1-i] * sGFiltBuffer[i] );
-////		}
-////
-////		// Update the Filter History from reverse, incrementing saved values up one
-////		for ( i = SG_SAMPLE_SIZE-1; i > 0; i--)
-////		{
-////			sGFiltBuffer[i] = sGFiltBuffer[i-1];
-////		}
-//
-//		return result;
-//	}
-////
-//#define SG_VEL_FILT
-//
-//	#ifdef SG_VEL_FILT // Passband 10Hz, Stopband 500Hz
-//
-//		#define SG_VEL_SAMPLE_SIZE  5
-//		#define SG_VEL_GAIN         83.3333333333333	// 1/(12*Ts)
-//		static float sGVelFilter[SG_VEL_SAMPLE_SIZE] = {
-//				1, -8, 0, 8, -1
-//		};
-//
-//	#endif
-//
-//	static float sGVelFiltBuffer[SG_VEL_SAMPLE_SIZE];
-//	static float sGVelFiltOutput;
-//	static int16_t sGVelIndex;
-//
-//
-//	float testingVelFilter(float input)
-//		{
-//		#define numSamp 5
-//			static int16_t M = (numSamp-1)/2;
-//			static float x[numSamp] = {0, 0, 0, 0, 0};
-//			float y=0.0;
-//
-//			x[M-2] = x[M-1];
-//			x[M-1] = x[M];
-//			x[M] = x[M+1];
-//			x[M+1] = x[M+2];
-//			x[M+2] = input;
-//
-//			for(int i = -M; i<M; i++)
-//			{
-//				y = y + x[M+i]*sGVelFilter[M+i]*SG_VEL_GAIN;
-//			}
-//	//		y = (y/numSamp);
-////			x[numSamp-1] = y;
-//			return y;
-//
-//
-//		}
-//
-//
-//	void initSGVelFilt(void)
-//	{
-//		memset(sGVelFiltBuffer, 0, SG_VEL_SAMPLE_SIZE*4);	// initialize input blocks
-//		sGVelFiltOutput = 0;							// initialize output
-//		sGVelIndex = 0;								// initialize index
-//	}
-//
-//	float runSgVelFilt(float inputVal)
-//	{
-//		float result = 0;
-//		int16_t i = 0;
-//		sGVelFiltBuffer[0] = inputVal;		// load new value into bottom of index
-//
-//		// filter the input using the accumulator
-//		for (i = 0; i < SG_VEL_SAMPLE_SIZE;  i++)
-//		{
-//			result += SG_VEL_GAIN * ( sGVelFilter[SG_VEL_SAMPLE_SIZE-1-i] * sGVelFiltBuffer[i] );
-//		}
-//
-//		// Update the Filter History from reverse, incrementing saved values up one
-//		for ( i = SG_VEL_SAMPLE_SIZE-1; i > 0; i--)
-//		{
-//			sGVelFiltBuffer[i] = sGVelFiltBuffer[i-1];
-//		}
-//
-//		return result;
-//	}
 
 
 
