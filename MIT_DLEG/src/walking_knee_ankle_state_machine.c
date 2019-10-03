@@ -168,22 +168,19 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx) {
 	        case STATE_EARLY_SWING: //3
 	        {
 				//Put anything you want to run ONCE during state entry.
-				if (isTransitioning) {
+				if (isTransitioning)
+				{
 					ankleWalkParams.virtualHardstopTq = 0.0;
-
-					// initialize cubic spline params once
-					initializeCubicSplineParams(&cubicSpline, actx, ankleWalkParams.ankleGainsEsw, splineTime); // last parameter is res_factor (delta X - time)
 				}
-
-				// Cubic Spline
-				calcCubicSpline(&cubicSpline);
-				ankleWalkParams.ankleGainsEsw.thetaDes = cubicSpline.Y; //new thetaDes after cubic spline
 
 				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParams.ankleGainsEsw);
 
 				if(timeInState >= ESW_TO_LSW_DELAY)
 				{
-					kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;//STATE_LATE_SWING;
+					if(fabs(actx->tauMeas) >= fabs(GENTLE_HEELSTRIKE_TORQUE_THRESH) )
+					{
+						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;//STATE_LATE_SWING;
+					}
 				}
 
 				break; // case STATE_EARLY_SWING
