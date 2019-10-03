@@ -23,11 +23,11 @@ TorqueRep torqueRep;
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-GainParams ankleGainsEst = {2.5, 0.0, 0.18, -5.0};	// may want to increase this damping, at least.
-GainParams ankleGainsMst = {2.5, 0.0, 0.18, 0.0};	// may want to increase this damping, at least.
-GainParams ankleGainsLst = {4.0, 0.0, 0.18, 10.0};
-GainParams ankleGainsEsw = {1.5, 0.0, 0.18, -5.0};
-GainParams ankleGainsLsw = {1.5, 0.0, 0.18, -5.0};
+//GainParams ankleGainsEst = {2.5, 0.0, 0.18, -5.0};	// may want to increase this damping, at least.
+//GainParams ankleGainsMst = {2.5, 0.0, 0.18, 0.0};	// may want to increase this damping, at least.
+//GainParams ankleGainsLst = {4.0, 0.0, 0.18, 10.0};
+//GainParams ankleGainsEsw = {1.5, 0.0, 0.18, -5.0};
+//GainParams ankleGainsLsw = {1.5, 0.0, 0.18, -5.0};
 
 GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
@@ -65,11 +65,11 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
     static uint32_t timeInState = 0;
     static int8_t passedStanceThresh = 0;
 
-    ankleGainsMst = ankleGainsEst;
+//    ankleGainsMst = ankleGainsEst;
 //    ankleGainsLsw = ankleGainsEsw;
-    ankleGainsLsw.k1 = ankleGainsEsw.k1;
+//    ankleGainsLsw.k1 = ankleGainsEsw.k1;
 
-    kneeGainsMst = kneeGainsEst;
+//    kneeGainsMst = kneeGainsEst;
 //    kneeGainsLsw = kneeGainsEst;
 
 
@@ -162,7 +162,9 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				if(checkImpedanceMode(&torqueRep))
 				{
 					updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
-					actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes) + getImpedanceTorque(actx, ankleGainsEMG.k1, ankleGainsEMG.b, ankleGainsEMG.thetaDes);
+//					actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes) + getImpedanceTorque(actx, ankleGainsEMG.k1, ankleGainsEMG.b, ankleGainsEMG.thetaDes);
+					actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParams.ankleGainsEst);
+
 
 					if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParams.virtualHardstopEngagementAngle)
 					{
@@ -211,7 +213,8 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
         		// Transition occurs based on reaching torque threshold. (future: update this threshold based on speed)
 
 				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);	// Bring in
-				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
+//				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
+				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParams.ankleGainsMst);
 
     			// Stance transition vectors, only go into next state. This is a stable place to be.
 
@@ -242,8 +245,8 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
 
 				//Linear ramp to push off, pickup where hardstop leftoff, use stiffness ankleGainsLst to get us to target point.
-				actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);  // drops off after zero when hardstop goes away
-
+//				actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);  // drops off after zero when hardstop goes away
+				actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorqueParams(actx, &ankleWalkParams.ankleGainsLst);  // drops off after zero when hardstop goes away
 				//Late Stance Power transition vectors
 				//todo: Should there be a way to jump back into early_stance in the event of running?
 				if ( (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) && (timeInState > LST_TO_ESW_DELAY )) //&& (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -1.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
@@ -269,10 +272,11 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 			#ifdef IS_ANKLE
 
-				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
+//				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
+				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParams.ankleGainsEsw);
 				torqueRep.time_swing++;
 
-				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes && timeInState >= ESW_TO_LSW_DELAY)
+				if(actx->jointAngleDegrees <= ankleWalkParams.ankleGainsEsw.thetaDes && timeInState >= ESW_TO_LSW_DELAY)
 				{
 					kneeAnkleStateMachine.currentState = STATE_LATE_SWING;
 				}
@@ -300,7 +304,8 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 			#ifdef IS_ANKLE
 
-				actx->tauDes = getImpedanceTorque(actx, ankleGainsLsw.k1, ankleGainsLsw.b, ankleGainsLsw.thetaDes);
+//				actx->tauDes = getImpedanceTorque(actx, ankleGainsLsw.k1, ankleGainsLsw.b, ankleGainsLsw.thetaDes);
+				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParams.ankleGainsLsw);
 
 				torqueRep.time_swing++;
 
@@ -327,7 +332,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 						torqueRep.time_swing = 0;
 					}
 					// Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
-					else if ( actx->jointTorque < GENTLE_HEELSTRIKE_TORQUE_THRESH && actx->jointAngleDegrees <= (ankleGainsEst.thetaDes + 1.0) )
+					else if ( actx->jointTorque < GENTLE_HEELSTRIKE_TORQUE_THRESH && actx->jointAngleDegrees <= (ankleWalkParams.ankleGainsEst.thetaDes + 1.0) )
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParams.transitionId = 2;
@@ -393,10 +398,10 @@ void updateImpedanceParams(Act_s *actx, WalkParams *wParams) {
 
 	wParams->scaleFactor = wParams->scaleFactor * wParams->earlyStanceDecayConstant;
 
-    ankleGainsEst.k1 = wParams->earlyStanceKF + wParams->scaleFactor * (wParams->earlyStanceK0 - wParams->earlyStanceKF);
+	wParams->ankleGainsEst.k1 = wParams->earlyStanceKF + wParams->scaleFactor * (wParams->earlyStanceK0 - wParams->earlyStanceKF);
 
-    if (actx->jointAngleDegrees < ankleGainsEst.thetaDes) {
-    	ankleGainsEst.thetaDes = actx->jointAngleDegrees;
+    if (actx->jointAngleDegrees < wParams->ankleGainsEst.thetaDes) {
+    	wParams->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
     }
 }
 

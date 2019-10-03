@@ -51,6 +51,7 @@ void setMotorNeutralPosition(struct act_s *actx);
 //Control outputs
 float biomCalcImpedance(Act_s *actx, float k1, float b, float theta_set); 	// returns a desired joint torque, then use setMotorTorque() to get the motor to do its magic
 float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet);	// Returns a Torque Value
+float getImpedanceTorqueParams(Act_s *actx, GainParams *gParams);	// Returns a Torque Value
 float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet, float k2);	// Returns a Torque Value
 void  setMotorTorque(struct act_s *actx, float tor_d);
 void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des, int8_t motorControl);

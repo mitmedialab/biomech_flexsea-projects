@@ -46,7 +46,7 @@ extern "C" {
 // 4. Turn off things if necessary.
 //#define NO_DEVICE				// use if not connected to an actuator or any hardware. Note to get Device ID use getDeviceIdIncrementing()
 //#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
-//#define NO_POWER				// testing control signals, do not use setMotorcurrent()
+#define NO_POWER				// testing control signals, do not use setMotorcurrent()
 
 //5. Select peripheral options
 //#define USE_EMG
@@ -116,7 +116,7 @@ typedef struct{
 #define NUM_STATES				8
 #define NUM_IMPEDANCE_TERMS		4
 
-typedef struct{
+typedef struct gainParams{
 
 	float k1;
 	float k2;
@@ -217,6 +217,13 @@ typedef struct walkParams {
 	float pffRampTics;
 	int16_t transitionId;
 	float lstPGDelTics;
+
+	GainParams ankleGainsEst;
+	GainParams ankleGainsMst;
+	GainParams ankleGainsLst;
+	GainParams ankleGainsEsw;
+	GainParams ankleGainsLsw;
+
 
 	//biom early stance value
 	float scaleFactor;

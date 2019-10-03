@@ -1128,6 +1128,23 @@ float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet)
 	return k1 * (thetaDelta ) - b*actx->jointVelDegrees;
 }
 
+// Preferred Nomenclature Impedance Command
+/*
+ * Simple Impedance Controller
+ * Param:	actx(struct act_s) - Actuator structure to track sensor values
+ * Param:	thetaSet(float) - desired theta in DEGREES
+ * Param:	k1(float) - impedance parameter
+ * Param:	b(float) - impedance parameter
+ * return: 	torD(float) -  desired torque
+ */
+float getImpedanceTorqueParams(Act_s *actx, GainParams *gParams)
+{
+	float thetaDelta = filterJointAngleOutputButterworth(gParams->thetaDes - actx->jointAngleDegrees);
+	return gParams->k1 * (thetaDelta ) - gParams->b*actx->jointVelDegrees;
+}
+
+
+
 //Used for testing purposes. See state_machine
 /*
  * Quadratic Impedance Controller
