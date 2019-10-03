@@ -1544,7 +1544,7 @@ float torqueSystemIDPRBS(void)
 }
 
 
-float getActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testInput)
+float setActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testInput)
 {
 	float tor = 0.0;
 	if ( fabs(testInput->inputTorq) > 0)

@@ -58,7 +58,7 @@ extern "C" {
 // torque replay
 #define IS_TORQUE_REPLAY
 
-enum {
+enum walkingStateModes{
 
 	STATE_INIT = -2,
 	STATE_IDLE = -1,
@@ -76,7 +76,7 @@ enum {
     STATE_LSW_EMG = 8
 };
 
-enum {
+enum guiExperimentMode{
 	// Define different experiments,
 	// these specify which controls to run and what input/outputs
 	// used by user_data_1.w[0]
@@ -93,12 +93,13 @@ enum {
 	EXP_KNEE_WALKING_FSM			= 5,	// NOT IN USE RIGHT NOW.
 };
 
-enum {
+enum guiWalkingParameterVariableUpdates{
 	// Walking Controller User Inputs
 	// Change mode for what set of inputs you want to use
 	// used by user_data_1.w[1]
-	USER_INPUT_ANKLE_ORIGINAL		= 0,
-	USER_INPUT_ANKLE_IMPEDANCE		= 1
+	USER_INPUT_ANKLE_NOMINAL		= 0,
+	USER_INPUT_ANKLE_ORIGINAL		= 1,
+	USER_INPUT_ANKLE_IMPEDANCE		= 2
 };
 
 typedef struct{
@@ -164,6 +165,7 @@ typedef struct act_s
     int32_t desiredVoltage; // desired current from getMotorCurrent() [mV]
     int32_t currentOpLimit; // current throttling limit [mA]
     int16_t safetyFlag;		// todo: consider if necessary
+    int8_t  initializedSettings;	// True if settings have been set for whatever testing mode
 
     float torqueKp;
     float torqueKi;
@@ -198,6 +200,7 @@ typedef struct walkParams {
     float earlyStanceB;
     float earlyStanceDecayConstant;
     float virtualHardstopK;
+    float virtualHardstopB;
     float virtualHardstopEngagementAngle;
     float neutralPosition;
 

@@ -125,6 +125,8 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
         		torqueRep.previous_swing_period = 400.0;  	// [ms]
         		torqueRep.torqueScalingFactor = 0.1; 		// adjust maximum torque output
         		torqueRep.entry_replay = 0;					// verify if we were already running torque replay
+    			torqueRep.begin = 0;
+
 
         		for(int i=0; i<TRAJ_SIZE; i++)
         		{
@@ -457,6 +459,11 @@ float torqueTracking(TorqueRep *torqueRep)
 	return torqueRep->tauDes;
 }
 
+
+void setTorqueAnklePassive(Act_s *actx, WalkParams *wParams)
+{ // simulate a passive actuator, just a damped spring
+	actx->tauDes = getImpedanceTorque(actx, wParams->virtualHardstopK, wParams->virtualHardstopB, wParams->virtualHardstopEngagementAngle);
+}
 
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE

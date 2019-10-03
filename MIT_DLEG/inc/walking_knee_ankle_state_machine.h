@@ -63,8 +63,7 @@ extern Act_s act1, act2;
 //****************************************************************************
 
 void setKneeAnkleFlatGroundFSM(Act_s *actx);
-void setAnklePassiveDeviceFSM(Act_s *actx);
-
+void setTorqueAnklePassive(Act_s *actx, WalkParams *wParams);
 
 //****************************************************************************
 // Static Functions:
