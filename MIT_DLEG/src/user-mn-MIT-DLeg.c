@@ -78,6 +78,7 @@ uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
 int8_t onEntry = 0;
 Act_s act1, act2;
 ActTestSettings act1TestInput;
+TorqueRep torqueRep;
 
 // EXTERNS
 #if defined(IS_ANKLE)
@@ -93,6 +94,9 @@ ActTestSettings act1TestInput;
 	extern GainParams kneeGainsEsw;
 	extern GainParams kneeGainsLsw;
 #endif
+
+
+
 
 extern uint8_t calibrationFlags, calibrationNew;
 extern int32_t currentOpLimit;
@@ -251,7 +255,7 @@ void MITDLegFsm1(void)
 			//Set userwrites to initial values
 			ankleWalkParams.initializedStateMachineVariables = 0;
 			if (!ankleWalkParams.initializedStateMachineVariables){
-				initializeUserWrites(&act1, &ankleWalkParams);
+				initializeUserWrites(&act1, &ankleWalkParams, &torqueRep);
 				ankleWalkParams.initializedStateMachineVariables = 1;
 				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
 			}
@@ -264,7 +268,7 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				updateUserWrites(&act1, &ankleWalkParams, &act1TestInput);
+				updateUserWrites(&act1, &ankleWalkParams, &act1TestInput, &torqueRep);
 
 
 				//DEBUG removed this because joint encoder can't update in locked state.
@@ -340,7 +344,7 @@ void MITDLegFsm1(void)
 
 			break;
 
-        	default:
+		default:
 			//Handle exceptions here
 			break;
 	}
@@ -441,7 +445,8 @@ void updateGenVarOutputs(Act_s *actx)
  * Param: actx(Act_s) - Actuator structure to track sensor values
  * Param: wParams(WalkParams) - walking parameters structure
  */
-void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet){
+void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet, TorqueRep *torqueRep)
+{
   
 	experimentTask 			= ( (int16_t) (user_data_1.w[0] ) );	// Select what experiment
 	int16_t userWriteMode 	= ( (int16_t) (user_data_1.w[1] ) ); // Select what inputs you need
@@ -467,7 +472,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 						ankleGainsEsw.thetaDes					= ( (float) user_data_1.w[9] ) / 100.0;	// [Deg]
 						break;
 					}
-					case USER_INPUT_ANKLE_IMPEDANCE:
+					case USER_INPUT_ANKLE_IMPEDANCE: // NOT SET UP YET update impedance parameters
 					{
 						//						ankleGainsLsw.thetaDes					= ( (float) user_data_1.w[0] ) /100.0;	// [milliseconds]
 //						wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
@@ -522,6 +527,8 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 		}
 		case EXP_ANKLE_WALKING_TORQUE_REPLAY:	// Testing Actuator Control Parameters
 		{
+			torqueRep->begin			= ( (int8_t) user_data_1.w[2] );
+			torqueRep->torqueScalingFactor = ( (float) (user_data_1.w[3] / 100 ) );
 			break;
 		}
 		case EXP_ACTUATOR_TESTING:	// Testing Actuator Control Parameters
@@ -540,16 +547,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 			break;
 
 		}
-//		case EXP_IS_SWEEP_TEST:
-//		{
-//			act1TestSet->begin									= ( (int8_t) user_data_1.w[0] ) ;
-//			act1TestSet->freq									= ( (float) user_data_1.w[1] ) /100.0;
-//			act1TestSet->amplitude								= ( (float) user_data_1.w[2] ) /100.0;
-//			act1TestSet->dcBias									= ( (float) user_data_1.w[3] ) /100.0;
-//			act1TestSet->noiseAmp								= ( (float) user_data_1.w[4] ) /100.0;
-//
-//			break;
-//		}
+
 		case EXP_IS_SWEEP_CHIRP_TEST:
 		{
 			act1TestSet->begin									= ( (int16_t) user_data_1.w[2] ) ;
@@ -575,7 +573,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
  * Param: actx(Act_s) - Actuator structure to track sensor values
  * Param: wParams(WalkParams) -
  */
-void initializeUserWrites(Act_s *actx, WalkParams *wParams)
+void initializeUserWrites(Act_s *actx, WalkParams *wParams, TorqueRep *torqueRep)
 {
 
 //	experimentTask 			= -3;	// Select what experiment
@@ -608,6 +606,15 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams)
 			user_data_1.w[6] = (int32_t) 0;//actx->torqueKi;
 			user_data_1.w[7] = (int32_t) 0;//actx->torqueKd;
 			user_data_1.w[8] = (int32_t) 0;
+			break;
+		}
+		case EXP_ANKLE_WALKING_TORQUE_REPLAY:	// Testing Actuator Control Parameters
+		{
+			torqueRep->begin = 0;
+			torqueRep->entry_replay = 0;
+			torqueRep->torqueScalingFactor = 0.1;
+			user_data_1.w[2] = (int32_t) torqueRep->begin;
+			user_data_1.w[3] = (int32_t) torqueRep->torqueScalingFactor;
 			break;
 		}
 

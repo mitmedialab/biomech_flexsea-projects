@@ -11,6 +11,7 @@ extern "C" {
 //#include "user-mn-MIT-EMG.h"
 #include "spline_functions.h"
 #include "free_ankle_EMG.h"
+#include "torque_replay.h"
 
 //****************************************************************************
 // Definition(s):
@@ -18,6 +19,7 @@ extern "C" {
 WalkingStateMachine kneeAnkleStateMachine;
 WalkParams ankleWalkParams, kneeWalkParams;
 CubicSpline cubicSpline;
+TorqueRep torqueRep;
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
@@ -78,7 +80,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 	    if (kneeAnkleStateMachine.currentState == STATE_EARLY_SWING  || kneeAnkleStateMachine.currentState == STATE_LATE_SWING)
 	    {
 //	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.slaveCurrentState;
-	    	kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.currentState;
+	    	//kneeAnkleStateMachine.currentState = kneeAnkleStateMachine.currentState;
 	    	// do nothing, stay in current state.
 	    } else
 	    {
@@ -114,12 +116,29 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
         		actx->tauDes = 0.0;
 			#endif
 
-        	kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;	// enter into early stance, this has stability.
+			#ifdef IS_TORQUE_REPLAY
+        		torqueRep.time_stance = 0.0;
+        		torqueRep.standard_stance_period = 555.0; 	// [ms]
+        		torqueRep.previous_stance_period = 555.0; 	// [ms]
+        		torqueRep.time_swing = 0.0;
+        		torqueRep.standard_swing_period = 400.0;  	// [ms]
+        		torqueRep.previous_swing_period = 400.0;  	// [ms]
+        		torqueRep.torqueScalingFactor = 0.1; 		// adjust maximum torque output
+        		torqueRep.entry_replay = 0;					// verify if we were already running torque replay
+
+        		for(int i=0; i<TRAJ_SIZE; i++)
+        		{
+        			torqueRep.torque_traj_mscaled[i] = torque_traj[i] + ((USER_MASS - 70.0)*massGains[i]);
+        		}
+			#endif
+
+        	kneeAnkleStateMachine.currentState = STATE_LATE_SWING;	// enter into early stance, this has stability. good idea for torque replay? might be better late swing
 
             break;
         }
-        case STATE_EARLY_STANCE:
+        case STATE_EARLY_STANCE: // check impedance mode in here - only stance state for torque replay (goes directly to early swing)
         {
+
 			if (isTransitioning && !passedStanceThresh) {
 				ankleWalkParams.scaleFactor = 1.0;
 				passedStanceThresh = 0;
@@ -130,24 +149,53 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			}
 
 			#ifdef IS_ANKLE
+
 				#ifdef USE_EMG
 				updateVirtualJoint(&ankleGainsEMG);
   	  	  	  	#endif //USE_EMG
 
-				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
-				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes) + getImpedanceTorque(actx, ankleGainsEMG.k1, ankleGainsEMG.b, ankleGainsEMG.thetaDes);
 
-				if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParams.virtualHardstopEngagementAngle) {
-					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
-					passedStanceThresh = 1;
+				// Check impedance mode, length of swing will turn off torque replay
+				// True goes into normal walking controller, False goes into TorqueReplay
+				if(checkImpedanceMode(&torqueRep))
+				{
+					updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
+					actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes) + getImpedanceTorque(actx, ankleGainsEMG.k1, ankleGainsEMG.b, ankleGainsEMG.thetaDes);
 
+					if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParams.virtualHardstopEngagementAngle)
+					{
+						kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
+						passedStanceThresh = 1;
+					}
+				} else {
+
+					torqueRep.entry_replay = 1;	// let's us know we're in torqueReplay mode
+
+					actx->tauDes = torqueTracking(&torqueRep);	//this is where teh magic happens, generate torque profile
+
+					torqueRep.time_stance++;	// stance timer
+
+					if ( (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) && (timeInState > LST_TO_ESW_DELAY ) )
+					{
+						kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;
+						torqueRep.previous_stance_period = torqueRep.time_stance;
+						torqueRep.time_stance = 0.0;
+					}
 				}
+
+				// transition to early swing
+				//Late Stance Power transition vectors
+				//todo: Should there be a way to jump back into early_stance in the event of running?
+
+
 			#elif defined(IS_KNEE)
 				actx->tauDes = getImpedanceTorque(actx, kneeGainsEst.k1, kneeGainsEst.b, kneeGainsEst.thetaDes);
 			#endif
 
 			break;
         }
+
+
         case STATE_MID_STANCE: //1
         {
 			if (isTransitioning) {
@@ -155,11 +203,16 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			}
 
 			#ifdef IS_ANKLE
-        		updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);	// Bring in
-        		actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
+
 
     			// Stance transition vectors, only go into next state. This is a stable place to be.
         		// Transition occurs based on reaching torque threshold. (future: update this threshold based on speed)
+
+				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);	// Bring in
+				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
+
+    			// Stance transition vectors, only go into next state. This is a stable place to be.
+
     			if (actx->jointTorque > ankleWalkParams.lspEngagementTorque) {
     				kneeAnkleStateMachine.currentState = STATE_LATE_STANCE_POWER;
     			}
@@ -183,13 +236,14 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 					ankleWalkParams.samplesInLSP++;
 				}
 
+
 				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
 
 				//Linear ramp to push off, pickup where hardstop leftoff, use stiffness ankleGainsLst to get us to target point.
 				actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);  // drops off after zero when hardstop goes away
 
 				//Late Stance Power transition vectors
-					//todo: Should there be a way to jump back into early_stance in the event of running?
+				//todo: Should there be a way to jump back into early_stance in the event of running?
 				if ( (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) && (timeInState > LST_TO_ESW_DELAY )) //&& (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -1.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
 				{
 					kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;
@@ -200,6 +254,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
             break;
         }
+
         case STATE_EARLY_SWING: //3
         {
 			//Put anything you want to run ONCE during state entry.
@@ -207,12 +262,13 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				ankleWalkParams.virtualHardstopTq = 0.0;
 
 				// initialize cubic spline params once
-				initializeCubicSplineParams(&cubicSpline, actx, ankleGainsEsw, splineTime); // last parameter is res_factor (delta X - time)
+//				initializeCubicSplineParams(&cubicSpline, actx, ankleGainsEsw, splineTime); // last parameter is res_factor (delta X - time)
 			}
 
 			#ifdef IS_ANKLE
 
 				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
+				torqueRep.time_swing++;
 
 				if(actx->jointAngleDegrees <= ankleGainsEsw.thetaDes && timeInState >= ESW_TO_LSW_DELAY)
 				{
@@ -242,7 +298,9 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
 			#ifdef IS_ANKLE
 
-				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
+				actx->tauDes = getImpedanceTorque(actx, ankleGainsLsw.k1, ankleGainsLsw.b, ankleGainsLsw.thetaDes);
+
+				torqueRep.time_swing++;
 
 				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 				if(timeInState > LSW_TO_EST_DELAY) {
@@ -253,23 +311,35 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 //						kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParams.transitionId = 0;
+
+						torqueRep.previous_swing_period = torqueRep.time_swing;
+						torqueRep.time_swing = 0;
 					}
 					// Late Swing -> Early Stance (hard heal strike)
 					else if ( fabs(actx->jointTorque) > HARD_HEELSTRIKE_TORQUE_THRESH && fabs(actx->jointTorqueRate) > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH)
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParams.transitionId = 1;
+
+						torqueRep.previous_swing_period = torqueRep.time_swing;
+						torqueRep.time_swing = 0;
 					}
 					// Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
 					else if ( actx->jointTorque < GENTLE_HEELSTRIKE_TORQUE_THRESH && actx->jointAngleDegrees <= (ankleGainsEst.thetaDes + 1.0) )
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParams.transitionId = 2;
+
+						torqueRep.previous_swing_period = torqueRep.time_swing;
+						torqueRep.time_swing = 0;
 					}
 					else if ( fabs(actx->jointTorque) > GENTLE_HEELSTRIKE_TORQUE_THRESH)
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParams.transitionId = 3;
+
+						torqueRep.previous_swing_period = torqueRep.time_swing;
+						torqueRep.time_swing = 0;
 					}
 					//TODO: might want to go into an idle state of some sort, check how this works.
 
@@ -339,6 +409,52 @@ void updateAnkleVirtualHardstopTorque(Act_s *actx, WalkParams *wParams) {
 	} else {
 		wParams->virtualHardstopTq = 0.0;
 	}
+}
+
+// torque replay functions
+int8_t checkImpedanceMode(TorqueRep *torqueRep){
+	// include user writing for setting impedance mode
+
+	if( (torqueRep->previous_swing_period >= IMPEDANCE_MODE_THRESHOLD) && (torqueRep->entry_replay == 1) )
+	{ // Check that you were in TorqueReplay, but slowed down so turn off
+		return 1; // might add an user write to switch to impedance mode
+	}
+	else if ( ( torqueRep->previous_swing_period <= torqueRep->standard_swing_period ) && torqueRep->begin)
+	{ // Get up to speed before turning on TorqueReplay
+		return 0;
+	}
+	else
+	{ // Torque replay is running.
+		return 0;
+	}
+}
+
+
+float torqueTracking(TorqueRep *torqueRep)
+{	// Replay a torque profile
+	if(torqueRep->previous_stance_period > torqueRep->standard_stance_period)
+	{
+		torqueRep->previous_stance_period = torqueRep->standard_stance_period;
+	}
+
+	torqueRep->speedFactor = (1.0 - (float) ( torqueRep->previous_stance_period / torqueRep->standard_stance_period ) )*100.0;
+	torqueRep->percent = torqueRep->time_stance / torqueRep->previous_stance_period;
+
+	if(torqueRep->percent > 1.0)
+	{
+		torqueRep->percent = 1.0;
+	}
+
+	torqueRep->index = round( torqueRep->percent * (float) TRAJ_SIZE );
+
+	if( torqueRep->index > 1000 )
+	{
+		torqueRep->index = 1000;
+	}
+
+	torqueRep->tauDes = torqueRep->torqueScalingFactor * ( torqueRep->torque_traj_mscaled[torqueRep->index] + ( torqueRep->speedFactor*speedGains[torqueRep->index] ) );
+
+	return torqueRep->tauDes;
 }
 
 

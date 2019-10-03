@@ -74,8 +74,8 @@ void MITDLegFsm2(void);
 
 
 //User writes/reads
-void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet);
-void initializeUserWrites(Act_s *actx, WalkParams *wParams);
+void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet, TorqueRep *torqueRep);
+void initializeUserWrites(Act_s *actx, WalkParams *wParams, TorqueRep *torqueRep);
 void updateGenVarOutputs(Act_s *actx);
 
 //****************************************************************************

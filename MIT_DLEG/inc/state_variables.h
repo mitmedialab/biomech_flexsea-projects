@@ -6,6 +6,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <torque_replay.h>
 
 
 //Joint Type: activate one of these for joint limit angles.
@@ -17,6 +18,7 @@ extern "C" {
 
 //#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
 #define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this if using Knee, ankle is slave
+
 
 /* //Phasing out these modes now moving to use userWrite[0] to command this.
 *	//#define IS_ACTUATOR_TESTING 		// Used when testing actuators, ie manually setting impedance values
@@ -53,6 +55,8 @@ extern "C" {
 // Structure(s):
 //****************************************************************************
 
+// torque replay
+#define IS_TORQUE_REPLAY
 
 enum {
 
@@ -245,6 +249,7 @@ typedef struct cubicSpline{
 	float b22;
 } CubicSpline;
 
+
 typedef struct actTestSettings {
 	float freqInput 	;
 	float freqRad 		;
@@ -264,6 +269,25 @@ typedef struct actTestSettings {
 	float noiseAmp;
 
 } ActTestSettings;
+
+// torque replay variables
+typedef struct TorqueRep{
+	float tauDes;
+	float time_stance;
+	float standard_stance_period;
+	float previous_stance_period;
+	float time_swing;
+	float standard_swing_period;
+	float previous_swing_period;
+	float speedFactor;
+	float percent;
+	float torqueScalingFactor;	// User defined scaling value
+	float torque_traj_mscaled[TRAJ_SIZE];
+	int16_t index;
+	int8_t entry_replay;	// Turns off first time torque replay is working.
+	int8_t begin;
+} TorqueRep;
+
 
 //****************************************************************************
 // Shared variable(s)

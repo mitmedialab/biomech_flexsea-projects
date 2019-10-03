@@ -22,7 +22,7 @@ extern "C" {
 //****************************************************************************
 
 #define LST_TO_ESW_DELAY              			 80  	//
-#define ESW_TO_LSW_DELAY              			 100    // Transition time: 2->3 in ms (orig 200)
+#define ESW_TO_LSW_DELAY              			 80    // Transition time: 2->3 in ms (orig 200)
 #define LSW_TO_EST_DELAY						 100	// transition to early stance
 
 #define LSW_TO_EMG_DELAY						 1000	// transition into EMG freespace
