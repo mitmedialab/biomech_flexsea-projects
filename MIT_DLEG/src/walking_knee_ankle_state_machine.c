@@ -172,7 +172,7 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx) {
 					ankleWalkParams.virtualHardstopTq = 0.0;
 
 					// initialize cubic spline params once
-					initializeCubicSplineParams(&cubicSpline, actx, ankleGainsEsw, splineTime); // last parameter is res_factor (delta X - time)
+					initializeCubicSplineParams(&cubicSpline, actx, ankleWalkParams.ankleGainsEsw, splineTime); // last parameter is res_factor (delta X - time)
 				}
 
 				// Cubic Spline
