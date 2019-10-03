@@ -42,9 +42,9 @@ float indGain = 1.73;	// tested
 
 //torque gain values
 // ARE THESE WORKING? CHECK THAT THEY'RE NOT BEING OVERWRITTEN BY USERWRITES!!!
-float torqueKp = TORQ_KP_INIT;
-float torqueKi = TORQ_KI_INIT;
-float torqueKd = TORQ_KD_INIT;
+//float torqueKp = TORQ_KP_INIT;
+//float torqueKi = TORQ_KI_INIT;
+//float torqueKd = TORQ_KD_INIT;
 float errorKi = 0.0;
 
 //Work on Joint Angle Limits
@@ -75,6 +75,7 @@ struct diffarr_s jntAngClks;		//maybe used for velocity and accel calcs.
 //****************************************************************************
 // Method(s)
 //****************************************************************************
+
 
 /**
  * The ADC reads the motor Temp sensor - MCP9700 T0-92.
@@ -606,14 +607,14 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->tauMeas = actx->jointTorque;
 
 	// Feed Forward term
-//	tauFF = getFeedForwardTerm(refTorque); 	//
-//
-//	// LPF Reference term to compensate for FF delay
+//	tauFF = actx->controlFF * getFeedForwardTerm(refTorque);
+
+	//	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);
 
 	// Compensator
 	//PID around joint torque
-	tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
+	tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas, actx);
 
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
 //	tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
@@ -629,13 +630,13 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	// motor current signal
 	N = actx->linkageMomentArm * N_SCREW;	// gear ratio
-	Icalc = ( 1.0/(MOT_KT * N ) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
+	Icalc = ( 1.0/(MOT_KT * N * N_ETA) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
 
 	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (actx->motorVel * MOT_KT) ) ); //+ (actx->motCurrDt * MOT_L)
 
-	V = (int32_t) (filterMotorCommandButterworth( (float) V ) );
+//	V = (int32_t) (filterMotorCommandButterworth( (float) V ) ); // try filtering the output to be less noisy
 
 
 	//DEBUG todo: check if you want to use this, or some other friction compensation methods
@@ -651,7 +652,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	}
 
 	actx->desiredCurrent = I; 	// demanded mA
-
+	actx->desiredVoltage = V;
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
 //	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
@@ -662,8 +663,6 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	//variables used in cmd-rigid offset 5, for multipacket
 	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
 	rigid1.mn.userVar[6] = actx->tauDes*1000;
-	rigid1.mn.genVar[6] = (int16_t) (V);
-	rigid1.mn.genVar[7] = (int16_t) (I);
 
 }
 
@@ -696,7 +695,7 @@ void setMotorTorqueSEA(struct act_s *actx, float tauDes)
 
 	// Compensator
 	//PID around motor torque
-	float tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas);
+	float tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas, actx);
 
 	float tauCCombined = tauC + tauFF;
 
@@ -855,8 +854,8 @@ float getFeedForwardTerm(float refTorque)
 //					+ 87.2661742636883*u[k] + -174.297460197009*u[k-1] + 87.04828130771*u[k-2];
 
 	//fc = 30; Workign well
-	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
-					+ 184.694944687829*u[k] + -368.892758757167*u[k-1] + 184.233784017135*u[k-2];
+//	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
+//					+ 184.694944687829*u[k] + -368.892758757167*u[k-1] + 184.233784017135*u[k-2];
 
 //	//fc = 30; // updated plant
 //	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
@@ -865,6 +864,12 @@ float getFeedForwardTerm(float refTorque)
 //	//fc = 30; //updated plant, no spring, no damping
 //	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
 //					+ 184.467062409284 *u[k] + -368.934124818568*u[k-1] + 184.467062409284*u[k-2];
+
+	//fc = 20; New Voltage Control Model
+	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
+					+ 156.499749745744*u[k] + -309.88200358926*u[k-1] + 153.400847073617*u[k-2];
+
+
 	return ( y[k] );
 }
 
@@ -1034,7 +1039,7 @@ float getDobLpf(float refTorque)
  * input:	Act_s structure
  * return:	desired torque signal to motor
  */
-float getCompensatorPIDOutput(float refTorque, float sensedTorque)
+float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 {
 
 	static float tauErrLast = 0.0, tauErrInt = 0.0;
@@ -1050,7 +1055,7 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque)
 
 	// If there is no Integral Windup problem continue integrating error
 	// Don't let integral wind-up without a controller.
-	if (~tauErrIntWindup && (torqueKi != 0) )
+	if (~tauErrIntWindup && (actx->torqueKi != 0) )
 	{
 		tauErrInt = tauErrInt + tauErr;				// [Nm]
 	} else
@@ -1071,7 +1076,7 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque)
 //		tauErrInt = 0.0;
 //	}
 
-	float tauC = tauErr*torqueKp + tauErrDot*torqueKd + tauErrInt*torqueKi;	// torq Compensator
+	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator
 
 	//Saturation limit on Torque
 	tauCOutput = tauC;
@@ -1142,17 +1147,25 @@ float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet
 /*
  *  Initialize Current controller on Execute, Set initial gains.
  */
-void mitInitCurrentController(void) {
+void mitInitCurrentController(Act_s *actx) {
 
-	act1.currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
+	actx->torqueKp = CURRENT_TORQ_KP_INIT;
+	actx->torqueKi = CURRENT_TORQ_KI_INIT;
+	actx->torqueKd = CURRENT_TORQ_KD_INIT;
+
+	actx->currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
 	setControlMode(CTRL_CURRENT, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
 	setControlGains(ACTRL_I_KP_INIT, ACTRL_I_KI_INIT, ACTRL_I_KD_INIT, 0, DEVICE_CHANNEL);
 }
 
-void mitInitOpenController(void) {
+void mitInitOpenController( Act_s *actx) {
 
-	act1.currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
+	actx->torqueKp = VOLTAGE_TORQ_KP_INIT;
+	actx->torqueKi = VOLTAGE_TORQ_KI_INIT;
+	actx->torqueKd = VOLTAGE_TORQ_KD_INIT;
+
+	actx->currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
 
 	setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;
@@ -1224,47 +1237,7 @@ void mitInitPositionController(void) {
 //	return 0;
 //}
 
-/*
- *  TODO:find out what this function does and how its used
- *  Param:	val(int32_t) - current value given
- *  Return: average(float) - e rolling average of all previous and current values
- */
-static float windowSmoothJoint(int32_t val) {
-	#define JOINT_WINDOW_SIZE 5
 
-	static int8_t index = -1;
-	static float window[JOINT_WINDOW_SIZE];
-	static float average = 0;
-
-
-	index = (index + 1) % JOINT_WINDOW_SIZE;
-	average -= window[index]/JOINT_WINDOW_SIZE;
-	window[index] = (float) val;
-	average += window[index]/JOINT_WINDOW_SIZE;
-
-	return average;
-}
-
-/*
- *  TODO:find out what this function does and how its used
- *  Param:	val(int32_t) -
- *  Return: average(float) -
- */
-static float windowSmoothAxial(float val) {
-	#define AXIAL_WINDOW_SIZE 5
-
-	static int8_t index = -1;
-	static float window[AXIAL_WINDOW_SIZE];
-	static float average = 0;
-
-
-	index = (index + 1) % AXIAL_WINDOW_SIZE;
-	average -= window[index]/AXIAL_WINDOW_SIZE;
-	window[index] = val;
-	average += window[index]/AXIAL_WINDOW_SIZE;
-
-	return average;
-}
 
 
 /*
@@ -1316,7 +1289,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 		case 0: // current control
 			if(isTransition)
 			{
-				mitInitCurrentController();
+				mitInitCurrentController(actx);
 				isTransition = 0;
 			}
 			setMotorCurrent( ImA , DEVICE_CHANNEL);	// send current [mA] command to comm buffer to Execute
@@ -1328,7 +1301,7 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 		case 1:	// voltage control
 			if(isTransition)
 			{
-				mitInitOpenController();
+				mitInitOpenController(actx);
 				isTransition = 0;
 			}
 			setMotorVoltage( VmV, DEVICE_CHANNEL); // consider open volt control
@@ -1571,6 +1544,29 @@ float torqueSystemIDPRBS(void)
 }
 
 
+float getActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testInput)
+{
+	float tor = 0.0;
+	if ( fabs(testInput->inputTorq) > 0)
+	{
+		tor = testInput->inputTorq;
+	}
+	else
+	{
+		tor = getImpedanceTorque(&act1, testInput->inputK, testInput->inputB, testInput->inputTheta);
+	}
+	actx->tauDes = tor;
+	return tor;
+}
+
+float getTorqueSystemIDFrequencySweepChirp( struct actTestSettings *testInput)
+{
+	float tor = torqueSystemIDFrequencySweepChirp( testInput->freq,
+						testInput->freqFinal, testInput->freqSweepTime,
+						testInput->amplitude, testInput->dcBias, testInput->noiseAmp,
+						testInput->chirpType, testInput->begin);
+	return tor;
+}
 
 //****************************************************************************
 // Private Function(s)
@@ -1611,11 +1607,55 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->safetyFlag = getSafetyFlags(); //todo: I don't think this is in use anymore MC
 
-	if(actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT)
+	if (actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT )
 	{
 		isSafetyFlag = SAFETY_TEMP;
 		isTempLimit = 1;
-	} else {
+	} else
+	{
 		isTempLimit = 0;
 	}
+}
+
+
+/*
+ *  TODO:find out what this function does and how its used
+ *  Param:	val(int32_t) - current value given
+ *  Return: average(float) - e rolling average of all previous and current values
+ */
+static float windowSmoothJoint(int32_t val) {
+	#define JOINT_WINDOW_SIZE 5
+
+	static int8_t index = -1;
+	static float window[JOINT_WINDOW_SIZE];
+	static float average = 0;
+
+
+	index = (index + 1) % JOINT_WINDOW_SIZE;
+	average -= window[index]/JOINT_WINDOW_SIZE;
+	window[index] = (float) val;
+	average += window[index]/JOINT_WINDOW_SIZE;
+
+	return average;
+}
+
+/*
+ *  TODO:find out what this function does and how its used
+ *  Param:	val(int32_t) -
+ *  Return: average(float) -
+ */
+static float windowSmoothAxial(float val) {
+	#define AXIAL_WINDOW_SIZE 5
+
+	static int8_t index = -1;
+	static float window[AXIAL_WINDOW_SIZE];
+	static float average = 0;
+
+
+	index = (index + 1) % AXIAL_WINDOW_SIZE;
+	average -= window[index]/AXIAL_WINDOW_SIZE;
+	window[index] = val;
+	average += window[index]/AXIAL_WINDOW_SIZE;
+
+	return average;
 }

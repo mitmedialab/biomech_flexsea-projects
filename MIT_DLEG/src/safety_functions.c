@@ -518,7 +518,7 @@ void handleSafetyConditions(Act_s *actx) {
 		case MODE_ENABLED:
 			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
 			{
-				mitInitCurrentController();
+				mitInitCurrentController(actx);
 
 			}
 			break;

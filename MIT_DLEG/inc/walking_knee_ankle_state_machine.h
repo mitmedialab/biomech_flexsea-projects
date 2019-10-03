@@ -56,19 +56,21 @@ extern WalkParams ankleWalkParams;
 extern WalkingStateMachine kneeAnkleStateMachine;
 extern Act_s act1, act2;
 
+//extern int16_t experimentTask; // used to determine what state machine we're running.
+
 //****************************************************************************
 // Prototype(s):
 //****************************************************************************
 
 void setKneeAnkleFlatGroundFSM(Act_s *actx);
-//void setKneeAnkleFlatGroundFSM(Act_s *ankleAct, Act_s *kneeAct);
+void setAnklePassiveDeviceFSM(Act_s *actx);
+
 
 //****************************************************************************
 // Static Functions:
 //****************************************************************************
 
 void updateImpedanceParams(Act_s *actx, WalkParams *wParams);
-//float calcJointTorque(GainParams gainParams, Act_s *actx, WalkParams *wParams);
 void updateAnkleVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
 
 

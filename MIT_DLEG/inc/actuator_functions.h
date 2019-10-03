@@ -39,9 +39,9 @@
 
 // Initialization
 int8_t 	findPoles(void);
-void   	mitInitCurrentController(void);
-void	mitInitOpenController(void);
-void mitInitPositionController(void);
+void   	mitInitCurrentController(Act_s *actx);
+void	mitInitOpenController(Act_s *actx);
+void 	mitInitPositionController(void);
 
 
 // Sensor values
@@ -54,7 +54,7 @@ float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet);	// Ret
 float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet, float k2);	// Returns a Torque Value
 void  setMotorTorque(struct act_s *actx, float tor_d);
 void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des, int8_t motorControl);
-float getCompensatorPIDOutput(float refTorque, float sensedTorque);
+float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *act1);
 
 float getFeedForwardTerm(float refTorque);
 float getReferenceLPF(float refTorque);
@@ -65,6 +65,9 @@ float getDOB(float refTorque, float measTorque);
 float getDobLpf(float refTorque);
 float getDoBInv(float refTorque);
 
+float getActuatorTestingTorque(Act_s *actx, ActTestSettings* testInput);
+float getTorqueSystemIDFrequencySweepChirp( ActTestSettings *testInput);
+
 
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp, int16_t begin);
@@ -74,7 +77,6 @@ float torqueSystemIDPRBS(void);
 bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output); // integral term anti-windup clamp check
 float actuateAngleLimits(Act_s *actx);	// apply virtual spring/damper on angle limits
 int32_t noLoadCurrent(float desCurr);
-
 
 
 #define WINDOW_SIZE 10

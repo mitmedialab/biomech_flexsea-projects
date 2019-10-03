@@ -17,9 +17,13 @@ extern "C" {
 
 //#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
 #define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this if using Knee, ankle is slave
-//#define IS_ACTUATOR_TESTING 		// Used when testing actuators, ie manually setting impedance values
-//#define IS_SWEEP_TEST
-//#define IS_SWEEP_CHIRP_TEST			// For system ID experiments.
+
+/* //Phasing out these modes now moving to use userWrite[0] to command this.
+*	//#define IS_ACTUATOR_TESTING 		// Used when testing actuators, ie manually setting impedance values
+*	//#define IS_SWEEP_TEST
+*	//#define IS_SWEEP_CHIRP_TEST			// For system ID experiments.
+*/
+
 
 //2. Set Subproject if necessary.
 // go to ../inc/user-mn.h
@@ -27,8 +31,8 @@ extern "C" {
 // set SUBPROJECT_B <- Don't forget to set this for the ankle if using Knee, ankle is slave
 
 //3. Select device
-#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-//#define DEVICE_TF08_A02		// Define specific actuator configuration. Knee 01
+//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+#define DEVICE_TF08_A02		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
 //#define DEVICE_M14			// Standalone motor for testbench
@@ -66,6 +70,31 @@ enum {
 
 	STATE_EMG_STAND_ON_TOE = 7,
     STATE_LSW_EMG = 8
+};
+
+enum {
+	// Define different experiments,
+	// these specify which controls to run and what input/outputs
+	// used by user_data_1.w[0]
+	EXP_ACTUATOR_TESTING			= -3,
+	EXP_IS_SWEEP_CHIRP_TEST			= -2,
+	EXP_IS_SWEEP_TEST				= -1,
+
+	EXP_USER_CODE					= 0,
+
+	EXP_ANKLE_PASSIVE 				= 1,	// ACT AS JUST A SPRING ELEMENT
+	EXP_ANKLE_WALKING_FSM 			= 2,	// FINITE-STATE MACHINE CONTROLLER
+	EXP_ANKLE_WALKING_BIOM_FSM 		= 3,	// SIMULATE A BIOM WITH NO DORSIFLEXION
+	EXP_ANKLE_WALKING_TORQUE_REPLAY = 4,		// REPLAY TORQUE
+	EXP_KNEE_WALKING_FSM			= 5,	// NOT IN USE RIGHT NOW.
+};
+
+enum {
+	// Walking Controller User Inputs
+	// Change mode for what set of inputs you want to use
+	// used by user_data_1.w[1]
+	USER_INPUT_ANKLE_ORIGINAL		= 0,
+	USER_INPUT_ANKLE_IMPEDANCE		= 1
 };
 
 typedef struct{
@@ -128,8 +157,14 @@ typedef struct act_s
     int32_t motCurr;		// motor current [mA]
     int32_t motCurrDt;		// di/dt change in motor current [mA]
     int32_t desiredCurrent; // desired current from getMotorCurrent() [mA]
+    int32_t desiredVoltage; // desired current from getMotorCurrent() [mV]
     int32_t currentOpLimit; // current throttling limit [mA]
     int16_t safetyFlag;		// todo: consider if necessary
+
+    float torqueKp;
+    float torqueKi;
+    float torqueKd;
+    float controlFF;
 
     //following are multipacket specific
     int8_t motorOnFlag;
@@ -181,6 +216,7 @@ typedef struct walkParams {
 
 } WalkParams;
 
+
 typedef struct cubicSpline{
 	float xi1; // x initial
 	float xInt1; // x intermediate
@@ -208,6 +244,26 @@ typedef struct cubicSpline{
 	float b12;
 	float b22;
 } CubicSpline;
+
+typedef struct actTestSettings {
+	float freqInput 	;
+	float freqRad 		;
+	float inputTheta 	;
+	float inputK 		;
+	float inputB 		;
+	float inputTorq 	;
+	int8_t currentOrVoltage ;
+
+	int16_t begin;
+	float freq	;
+	float freqFinal;
+	float freqSweepTime	;
+	int16_t chirpType;
+	float amplitude;
+	float dcBias;
+	float noiseAmp;
+
+} ActTestSettings;
 
 //****************************************************************************
 // Shared variable(s)

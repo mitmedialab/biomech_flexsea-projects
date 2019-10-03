@@ -307,6 +307,10 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 }
 
 
+void setAnklePassiveDeviceFSM(Act_s *actx){
+
+}
+
 //
 /** This ramps down the Stiffness of early stance K, picking up the user and bringing them up to ankleGainsEst.thetaDes
     NOTE/TODO: Hugh may prefer much more stiffness here, this ramps down teh stiffness.

@@ -53,6 +53,7 @@ extern struct act_s act1, act2;	//define actuator structure shared
 extern int8_t isEnabledUpdateSensors;
 
 
+
 //****************************************************************************
 // Structure(s)
 //****************************************************************************
@@ -73,7 +74,7 @@ void MITDLegFsm2(void);
 
 
 //User writes/reads
-void updateUserWrites(Act_s *actx, WalkParams *wParams);
+void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet);
 void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 void updateGenVarOutputs(Act_s *actx);
 

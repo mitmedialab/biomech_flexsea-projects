@@ -16,7 +16,7 @@
 
 
 
-void run_main_user_application(Act_s *actx);
+void runMainUserApplication(Act_s *actx);
 
 #endif
 
