@@ -308,7 +308,8 @@ void MITDLegFsm1(void)
 						}
 						case EXP_ANKLE_WALKING_FSM:
 						{
-							setKneeAnkleFlatGroundFSM(&act1);
+//							setKneeAnkleFlatGroundFSM(&act1);
+							setSimpleAnkleFlatGroundFSM(&act1);
 							break;
 						}
 						case EXP_ANKLE_WALKING_BIOM_FSM:
@@ -550,17 +551,43 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 						case USER_INPUT_ANKLE_IMPEDANCE: //2
 						{// NOT SET UP YET update impedance parameters
 							//						ankleGainsLsw.thetaDes					= ( (float) user_data_1.w[0] ) /100.0;	// [milliseconds]
-	//						wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[1] ) /100.0;	// [Deg]
-							wParams->virtualHardstopK 				= ( (float) user_data_1.w[2] ) /100.0;	// [Nm/deg]
-							wParams->lspEngagementTorque 			= ( (float) user_data_1.w[3] ) /100.0; 	// [Nm] Late stance power, torque threshhold
-							wParams->lstPGDelTics 					= ( (float) user_data_1.w[4] ); 		// ramping rate
-							wParams->ankleGainsEst.k1						= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
-							wParams->ankleGainsEst.b		 					= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
-							wParams->ankleGainsLst.thetaDes 					= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/s]
-							wParams->ankleGainsEsw.k1			 			= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
-							wParams->ankleGainsEsw.thetaDes					= ( (float) user_data_1.w[9] ) / 100.0;	// [Deg]
+							wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[2] ) /100.0;	// [Deg]
+							wParams->virtualHardstopK 				= ( (float) user_data_1.w[3] ) /100.0;	// [Nm/deg]
+							wParams->lspEngagementTorque 			= ( (float) user_data_1.w[4] ) /100.0; 	// [Nm] Late stance power, torque threshhold
+							wParams->lstPGDelTics 					= ( (float) user_data_1.w[5] ); 		// ramping rate
+							wParams->ankleGainsEst.k1				= ( (float) user_data_1.w[6] ) / 100.0;	// [Nm/deg]
+							wParams->ankleGainsEst.b		 		= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
+							wParams->ankleGainsLst.thetaDes 		= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/s]
+							wParams->ankleGainsEsw.k1			 	= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/deg]
+
 							break;
 						}
+						case USER_INPUT_ANKLE_STANCE: //3
+						{// NOT SET UP YET update impedance parameters
+							//						ankleGainsLsw.thetaDes					= ( (float) user_data_1.w[0] ) /100.0;	// [milliseconds]
+							wParams->ankleGainsEst.k1				= ( (float) user_data_1.w[2] ) / 100.0;	// [Nm/deg]
+							wParams->ankleGainsEst.b		 		= ( (float) user_data_1.w[3] ) / 100.0;	// [Deg]
+							wParams->ankleGainsEst.thetaDes	 		= ( (float) user_data_1.w[4] ) / 100.0;	// [Deg]
+							wParams->ankleGainsMst.k1				= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
+							wParams->ankleGainsMst.b		 		= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
+							wParams->ankleGainsMst.thetaDes		 	= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
+							wParams->ankleGainsLst.k1				= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/deg]
+							wParams->ankleGainsLst.b		 		= ( (float) user_data_1.w[9] ) / 100.0;	// [Deg]
+							break;
+						}
+
+						case USER_INPUT_ANKLE_SWING: //4
+						{// NOT SET UP YET update impedance parameters
+							//						ankleGainsLsw.thetaDes					= ( (float) user_data_1.w[0] ) /100.0;	// [milliseconds]
+							wParams->ankleGainsEsw.k1				= ( (float) user_data_1.w[2] ) / 100.0;	// [Nm/deg]
+							wParams->ankleGainsEsw.b		 		= ( (float) user_data_1.w[3] ) / 100.0;	// [Deg]
+							wParams->ankleGainsEsw.thetaDes	 		= ( (float) user_data_1.w[4] ) / 100.0;	// [Deg]
+							wParams->ankleGainsLsw.k1				= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
+							wParams->ankleGainsLsw.b		 		= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
+							wParams->ankleGainsLsw.thetaDes	 		= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
+							break;
+						}
+
 						default:
 						{
 							break;
@@ -696,8 +723,8 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, TorqueRep *torqueRep
 			wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
 
 			wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
-			wParams->virtualHardstopK				= 3.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
-			wParams->lspEngagementTorque 			= 25.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
+			wParams->virtualHardstopK				= 4.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
+			wParams->lspEngagementTorque 			= 50.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
 			wParams->lstPGDelTics 					= 100.0;	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
 
 			wParams->ankleGainsEst.k1 = 2.5;

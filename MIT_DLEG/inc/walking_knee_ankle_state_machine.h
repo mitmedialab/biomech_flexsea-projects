@@ -21,8 +21,8 @@ extern "C" {
 // Definition(s):
 //****************************************************************************
 
-#define LST_TO_ESW_DELAY              			 80  	//
-#define ESW_TO_LSW_DELAY              			 80    // Transition time: 2->3 in ms (orig 200)
+#define LST_TO_ESW_DELAY              			 100  	//
+#define ESW_TO_LSW_DELAY              			 200    // Transition time: 2->3 in ms (orig 200)
 #define LSW_TO_EST_DELAY						 100	// transition to early stance
 
 #define LSW_TO_EMG_DELAY						 1000	// transition into EMG freespace
@@ -64,6 +64,7 @@ extern Act_s act1, act2;
 
 void setKneeAnkleFlatGroundFSM(Act_s *actx);
 void setTorqueAnklePassive(Act_s *actx, WalkParams *wParams);
+void setSimpleAnkleFlatGroundFSM(Act_s *actx);
 
 //****************************************************************************
 // Static Functions:

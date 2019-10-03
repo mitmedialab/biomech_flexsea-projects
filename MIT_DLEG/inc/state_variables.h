@@ -33,8 +33,8 @@ extern "C" {
 // set SUBPROJECT_B <- Don't forget to set this for the ankle if using Knee, ankle is slave
 
 //3. Select device
-//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-#define DEVICE_TF08_A02		// Define specific actuator configuration. Knee 01
+#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+//#define DEVICE_TF08_A02		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
 //#define DEVICE_M14			// Standalone motor for testbench
@@ -46,7 +46,7 @@ extern "C" {
 // 4. Turn off things if necessary.
 //#define NO_DEVICE				// use if not connected to an actuator or any hardware. Note to get Device ID use getDeviceIdIncrementing()
 //#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
-#define NO_POWER				// testing control signals, do not use setMotorcurrent()
+//#define NO_POWER				// testing control signals, do not use setMotorcurrent()
 
 //5. Select peripheral options
 //#define USE_EMG
@@ -99,8 +99,12 @@ enum guiWalkingParameterVariableUpdates{
 	// used by user_data_1.w[1]
 	USER_INPUT_ANKLE_NOMINAL		= 0,
 	USER_INPUT_ANKLE_ORIGINAL		= 1,
-	USER_INPUT_ANKLE_IMPEDANCE		= 2
+	USER_INPUT_ANKLE_IMPEDANCE		= 2,
+	USER_INPUT_ANKLE_STANCE			= 3,
+	USER_INPUT_ANKLE_SWING			= 4
+
 };
+
 
 typedef struct{
     int8_t 	 currentState;
