@@ -225,6 +225,7 @@ typedef struct TorqueRep{
 	float torque_traj_mscaled[TRAJ_SIZE];
 	int16_t index;
 	int8_t impedance_mode;
+	int8_t entry_replay;
 } TorqueRep;
 
 //****************************************************************************

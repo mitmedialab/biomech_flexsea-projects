@@ -117,22 +117,23 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			#endif
 
 			#ifdef IS_TORQUE_REPLAY
-        		torqueRep.impedance_mode = 1; // TODO: check if set here or userWrite?
+        		torqueRep.impedance_mode = 1; // TODO: check if set here or userWrite? might be a good safety idea to set it as an user write
         		torqueRep.time_stance = 0.0;
         		torqueRep.standar_stance_period = 600.0; // TODO: verify this
         		torqueRep.previous_stance_period = 600.0; // TODO: verify this
         		torqueRep.time_swing = 0.0;
-        		torqueRep.previous_swing_period = 400.0; // TODO: verify this
+        		torqueRep.previous_swing_period = 400.0; // TODO: verify this, should be the standard swing period
         		torqueRep.torqueGain = 1.0; // TODO: should be an userWrite
+        		torqueRep.entry_replay = 0;
         		for(int i=0; i<TRAJ_SIZE; i++){
         			torqueRep.torque_traj_mscaled[i] = torque_traj[i] + ((USER_MASS - 70.0)*massGains[i]); }
 			#endif
 
-        	kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;	// enter into early stance, this has stability.
+        	kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;	// enter into early stance, this has stability. good idea for torque replay? might be better late swing
 
             break;
         }
-        case STATE_EARLY_STANCE: // check impedance mode in here
+        case STATE_EARLY_STANCE: // check impedance mode in here - only stance state for torque replay (goes directly to early swing)
         {
 
 			if (isTransitioning && !passedStanceThresh) {
@@ -156,21 +157,37 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 				if(checkImpedanceMode(&torqueRep)){
 					updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
 					actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes) + getImpedanceTorque(actx, ankleGainsEMG.k1, ankleGainsEMG.b, ankleGainsEMG.thetaDes);
+					// if walking slower, change to impedance mode
+					if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParams.virtualHardstopEngagementAngle) {
+						kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
+						passedStanceThresh = 1;
+					}
 				} else {
+					// is it necessary in here? updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
+					torqueRep.entry_replay = 1;
 					actx->tauDes = torqueTracking(&torqueRep);
 					torqueRep.time_stance++;
+					if ( (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) && (timeInState > LST_TO_ESW_DELAY )) //&& (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -1.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
+					{
+						kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;
+						// passedStanceThresh = 1; necessary here?
+						torqueRep.previous_stance_period = torqueRep.time_stance;
+						torqueRep.time_stance = 0.0;
+					}
 				}
 
-				if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParams.virtualHardstopEngagementAngle) {
-					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
-					passedStanceThresh = 1;
-				}
+				// transition to early swing
+				//Late Stance Power transition vectors
+				//todo: Should there be a way to jump back into early_stance in the event of running?
+
 			#elif defined(IS_KNEE)
 				actx->tauDes = getImpedanceTorque(actx, kneeGainsEst.k1, kneeGainsEst.b, kneeGainsEst.thetaDes);
 			#endif
 
 			break;
         }
+
+
         case STATE_MID_STANCE: //1
         {
 			if (isTransitioning) {
@@ -178,16 +195,11 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 			}
 
 			#ifdef IS_ANKLE
-				if(checkImpedanceMode(&torqueRep)){
-					updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);	// Bring in
-					actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
-				} else {
-					actx->tauDes = torqueTracking(&torqueRep);
-					torqueRep.time_stance++;
-				}
+
+				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);	// Bring in
+				actx->tauDes = ankleWalkParams.virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
 
     			// Stance transition vectors, only go into next state. This is a stable place to be.
-
     			if (actx->jointTorque > ankleWalkParams.lspEngagementTorque) {
     				kneeAnkleStateMachine.currentState = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
     			}
@@ -211,23 +223,16 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 					ankleWalkParams.samplesInLSP++;
 				}
 
-				if(checkImpedanceMode(&torqueRep)){
-					updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
-					//Linear ramp to push off
-					actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);
-				} else{
-					actx->tauDes = torqueTracking(&torqueRep); //TODO: return float
-					torqueRep.time_stance++;
-				}
 
+				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParams);
+				//Linear ramp to push off
+				actx->tauDes = ankleWalkParams.virtualHardstopTq + (ankleWalkParams.samplesInLSP/ankleWalkParams.lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);
 
 				//Late Stance Power transition vectors
-					//todo: Should there be a way to jump back into early_stance in the event of running?
+				//todo: Should there be a way to jump back into early_stance in the event of running?
 				if ( (abs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) && (timeInState > LST_TO_ESW_DELAY )) //&& (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -1.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
 				{
 					kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;
-					torqueRep.previous_stance_period = torqueRep.time_stance;
-					torqueRep.time_stance = 0.0;
 				}
 			#elif defined(IS_KNEE)
 				actx->tauDes = getImpedanceTorque(actx, kneeGainsLst.k1, kneeGainsLst.b, kneeGainsLst.thetaDes);
@@ -235,6 +240,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx) {
 
             break;
         }
+
         case STATE_EARLY_SWING: //3
         {
 			//Put anything you want to run ONCE during state entry.
@@ -412,7 +418,7 @@ void updateAnkleVirtualHardstopTorque(Act_s *actx, WalkParams *wParams) {
 // torque replay functions
 int8_t checkImpedanceMode(TorqueRep *torqueRep){
 	// include user writing for setting impedance mode
-	if(torqueRep->previous_swing_period >= IMPEDANCE_MODE_THRESHOLD) return 1;
+	if((torqueRep->previous_swing_period >= IMPEDANCE_MODE_THRESHOLD) && (torqueRep->entry_replay == 1)) return 1; // might add an user write to switch to impedance mode
 	//else if (userWrite[])
 	else return 0;
 }
