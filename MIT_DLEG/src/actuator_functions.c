@@ -606,11 +606,15 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	float refTorque = tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
+	N = actx->linkageMomentArm * N_SCREW;	// gear ratio
+
 	// Feed Forward term
 //	tauFF = actx->controlFF * getFeedForwardTerm(refTorque);
+	tauFF = actx->tauDes ;
+	float tauFFMotor = 0; //(MOT_J * actx->motorAcc);// + (MOT_B * actx->motorVel);
 
 	//	// LPF Reference term to compensate for FF delay
-	refTorque = getReferenceLPF(refTorque);
+//	refTorque = getReferenceLPF(refTorque);
 
 	// Compensator
 	//PID around joint torque
@@ -629,12 +633,12 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 //	rigid1.mn.genVar[8] = (int16_t) (tauCCombined*100.0);
 
 	// motor current signal
-	N = actx->linkageMomentArm * N_SCREW;	// gear ratio
-	Icalc = ( 1.0/(MOT_KT * N * N_ETA) * tauCCombined  );	// Multiplier CURRENT_SCALAR_INIT to get to mA from Amps
+
+	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/N) + tauFFMotor ) );	// Reflect torques to Motor level
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
 
-	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (actx->motorVel * MOT_KT) ) ); //+ (actx->motCurrDt * MOT_L)
+	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (actx->controlScaler * Icalc * MOT_R*1.732) + (actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
 
 //	V = (int32_t) (filterMotorCommandButterworth( (float) V ) ); // try filtering the output to be less noisy
 
@@ -655,8 +659,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->desiredVoltage = V;
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
-//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+//	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
 #endif
 
@@ -1181,6 +1185,7 @@ void mitInitOpenController( Act_s *actx) {
 	actx->torqueKp = VOLTAGE_TORQ_KP_INIT;
 	actx->torqueKi = VOLTAGE_TORQ_KI_INIT;
 	actx->torqueKd = VOLTAGE_TORQ_KD_INIT;
+	actx->controlScaler = 1.0;
 
 	actx->currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
 

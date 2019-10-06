@@ -33,8 +33,8 @@ extern "C" {
 // set SUBPROJECT_B <- Don't forget to set this for the ankle if using Knee, ankle is slave
 
 //3. Select device
-#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-//#define DEVICE_TF08_A02		// Define specific actuator configuration. Knee 01
+//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
+#define DEVICE_TF08_A02		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
 //#define DEVICE_M14			// Standalone motor for testbench
@@ -90,7 +90,8 @@ enum guiExperimentMode{
 	EXP_ANKLE_WALKING_FSM 			= 2,	// FINITE-STATE MACHINE CONTROLLER
 	EXP_ANKLE_WALKING_BIOM_FSM 		= 3,	// SIMULATE A BIOM WITH NO DORSIFLEXION
 	EXP_ANKLE_WALKING_TORQUE_REPLAY = 4,		// REPLAY TORQUE
-	EXP_KNEE_WALKING_FSM			= 5,	// NOT IN USE RIGHT NOW.
+	EXP_ANKLE_WALKING_QUASIPASSIVE 	= 5,	// QUASI-PASSIVE (TWO SPRING) MODE
+	EXP_KNEE_WALKING_FSM			= 6 	// NOT IN USE RIGHT NOW.
 };
 
 enum guiWalkingParameterVariableUpdates{
@@ -103,6 +104,11 @@ enum guiWalkingParameterVariableUpdates{
 	USER_INPUT_ANKLE_STANCE			= 3,
 	USER_INPUT_ANKLE_SWING			= 4
 
+};
+
+enum guiActuatorTestingVariableUpdates{
+	EXP_ACT_CONTROL_PARAM_MAIN		= 0,
+	EXP_ACT_CONTROL_PARAM_SECOND	= 1
 };
 
 
@@ -171,10 +177,12 @@ typedef struct act_s
     int16_t safetyFlag;		// todo: consider if necessary
     int8_t  initializedSettings;	// True if settings have been set for whatever testing mode
 
+    // Controls Related
     float torqueKp;
     float torqueKi;
     float torqueKd;
     float controlFF;
+    float controlScaler;
 
     //following are multipacket specific
     int8_t motorOnFlag;

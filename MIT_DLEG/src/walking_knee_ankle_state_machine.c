@@ -658,6 +658,10 @@ void setTorqueAnklePassive(Act_s *actx, WalkParams *wParams)
 	actx->tauDes = getImpedanceTorque(actx, wParams->virtualHardstopK, wParams->virtualHardstopB, wParams->virtualHardstopEngagementAngle);
 }
 
+void setTorqueQuasiPassive(Act_s *actx, WalkParams *wParams)
+{ // simulate a quasi-passive actuator, two springs, one for heelstrike, one for mid-stance.
+	actx->tauDes = 0; //
+}
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
 
