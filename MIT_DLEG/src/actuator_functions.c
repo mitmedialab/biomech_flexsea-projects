@@ -608,13 +608,15 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
-	// Feed Forward term
-//	tauFF = actx->controlFF * getFeedForwardTerm(refTorque);
-	tauFF = actx->tauDes ;
-	float tauFFMotor = 0; //(MOT_J * actx->motorAcc);// + (MOT_B * actx->motorVel);
-
 	//	// LPF Reference term to compensate for FF delay
-//	refTorque = getReferenceLPF(refTorque);
+	refTorque = getReferenceLPF(refTorque);
+
+	// Feed Forward term
+//	tauFF = getFeedForwardTerm(refTorque);
+	tauFF = refTorque; //actx->tauDes ;
+	float tauFFMotor = -(MOT_J * actx->motorAcc) + -(MOT_B * actx->motorVel);
+
+
 
 	// Compensator
 	//PID around joint torque
