@@ -611,12 +611,12 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	//	// LPF Reference term to compensate for FF delay
 	refTorque = getReferenceLPF(refTorque);
 
+	actx->tauDes = refTorque;
+
 	// Feed Forward term
 //	tauFF = getFeedForwardTerm(refTorque);
-	tauFF = refTorque; //actx->tauDes ;
-	float tauFFMotor = -(MOT_J * actx->motorAcc) + -(MOT_B * actx->motorVel);
-
-
+	tauFF = refTorque;
+	float tauFFMotor = -(MOT_J * actx->motorAcc); // Compensate rotor inertia.
 
 	// Compensator
 	//PID around joint torque
@@ -640,7 +640,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
 
-	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (actx->controlScaler * Icalc * MOT_R*1.732) + (actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
+	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
 
 //	V = (int32_t) (filterMotorCommandButterworth( (float) V ) ); // try filtering the output to be less noisy
 

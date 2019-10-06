@@ -688,7 +688,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 						actx->torqueKp						= ( (float) user_data_1.w[5] ) /1000.0;
 						actx->torqueKi						= ( (float) user_data_1.w[6] ) /1000.0;
 						actx->torqueKd						= ( (float) user_data_1.w[7] ) /1000.0;
-						act1TestSet->inputTorq				= ( (float) user_data_1.w[8] ) /100.0;
+						actx->controlFF						= ( (float) user_data_1.w[8] ) /100.0;
 						actx->controlScaler					= ( (float) user_data_1.w[9] ) /100.0;
 						break;
 					}
