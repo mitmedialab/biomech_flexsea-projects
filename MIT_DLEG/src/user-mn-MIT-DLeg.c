@@ -253,8 +253,8 @@ void MITDLegFsm1(void)
 			//Initialize Filters for Torque Sensing
 			initSoftFIRFilt();	// Initialize software filter
 
-//			mitInitOpenController(&act1);		//initialize Open Controller
-			mitInitCurrentController(&act1);		//initialize Current Controller with gains
+			mitInitOpenController(&act1);		//initialize Open Controller
+//			mitInitCurrentController(&act1);		//initialize Current Controller with gains
 
 
 			//Set userwrites to initial values

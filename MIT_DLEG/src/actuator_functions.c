@@ -640,7 +640,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
 
-	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
+	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (1.5 * actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
 
 //	V = (int32_t) (filterMotorCommandButterworth( (float) V ) ); // try filtering the output to be less noisy
 
@@ -661,8 +661,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	actx->desiredVoltage = V;
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
-	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-//	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
 #endif
 
