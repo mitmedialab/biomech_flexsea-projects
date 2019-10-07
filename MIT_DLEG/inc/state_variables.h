@@ -51,6 +51,9 @@ extern "C" {
 //5. Select peripheral options
 //#define USE_EMG
 
+//6. Specify User Walking Parameters (if applicable)
+#define SUBJECT_001
+
 //****************************************************************************
 // Structure(s):
 //****************************************************************************
@@ -138,11 +141,16 @@ typedef struct gainParams{
 // Actuator structure to track sensor values, initially built for the TF08 style actuator
 typedef struct act_s
 {
-    float jointAngle;
+    float jointAngle;		// [rad]
     float jointAngleDegrees;
-    float jointVel;
+    float jointVel;			// [rad/s]
     float jointVelDegrees;
-    float jointAcc;
+    float jointAcc;			// [rad/s/s]
+    float jointPower;		// [watts]
+    float jointEnergy;		// [J]
+
+    float efficiencyInstant; //
+
     float linkageMomentArm;
     float axialForce;		// actively used force measurement.
     float axialForceTF;		// calculated or transfer function force measurement
@@ -171,9 +179,16 @@ typedef struct act_s
     int16_t motTemp;		// motor temperature [C]
     int32_t motCurr;		// motor current [mA]
     int32_t motCurrDt;		// di/dt change in motor current [mA]
+
+    float motorPower;		// [W]
+    float motorEnergy;	// [J]
+
     int32_t desiredCurrent; // desired current from getMotorCurrent() [mA]
     int32_t desiredVoltage; // desired current from getMotorCurrent() [mV]
     int32_t currentOpLimit; // current throttling limit [mA]
+
+    int32_t stanceTimer;	// [cycle counts]
+
     int16_t safetyFlag;		// todo: consider if necessary
     int8_t  initializedSettings;	// True if settings have been set for whatever testing mode
 
@@ -181,9 +196,10 @@ typedef struct act_s
     float torqueKp;
     float torqueKi;
     float torqueKd;
-    float controlFF;
-    float controlScaler;
+    float controlFF;		// used for testing parameter requirements, not used normally
+    float controlScaler;	// used for testing parameter requirements, not used normally
 
+    /* MULTIPACKET BELOW */
     //following are multipacket specific
     int8_t motorOnFlag;
 	int8_t mapWritten;
@@ -229,6 +245,13 @@ typedef struct walkParams {
 	float pffRampTics;
 	int16_t transitionId;
 	float lstPGDelTics;
+
+	uint32_t timerInStance;
+	uint32_t timerInStanceLast;
+
+	uint32_t timerInSwing;			// track counts in swing
+	uint32_t timerInSwingLast;		// track counts in swing from last swing phase
+	uint32_t swingTrajectoryTimer;	// how long to ramp into position.
 
 	GainParams ankleGainsEst;
 	GainParams ankleGainsMst;

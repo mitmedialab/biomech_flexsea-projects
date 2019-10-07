@@ -1569,7 +1569,7 @@ float torqueSystemIDPRBS(void)
 
 
 float setActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testInput)
-{
+{ // Used to test actuator
 	float tor = 0.0;
 	if ( fabs(testInput->inputTorq) > 0)
 	{
@@ -1617,6 +1617,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->jointTorque = getJointTorque(actx);
 
 	updateJointTorqueRate(actx);
+	actx->jointPower = (actx->jointTorque * actx->jointVel); // [W]
 
 	actx->motorPosRaw = *rigid1.ex.enc_ang;		// [counts]
 
@@ -1624,10 +1625,16 @@ void updateSensorValues(struct act_s *actx)
 	actx->motorVel =  ( (float) *rigid1.ex.enc_ang_vel ) * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
 
+
 	actx->regTemp = rigid1.re.temp;
 	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
 	actx->motCurr = rigid1.ex.mot_current;
 	actx->motCurrDt = getMotorCurrentDt(actx);
+
+	actx->motorPower = ( (float) (rigid1.ex.mot_current * rigid1.ex.mot_volt) ) * 0.000001; // [W]
+	actx->motorEnergy = actx->motorEnergy + actx->motorPower/1000.0;	// [J]
+
+	actx->efficiencyInstant = actx->jointPower / ( (actx->motorPower) );
 
 	actx->safetyFlag = getSafetyFlags(); //todo: I don't think this is in use anymore MC
 

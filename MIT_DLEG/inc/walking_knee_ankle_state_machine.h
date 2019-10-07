@@ -31,8 +31,8 @@ extern "C" {
 #define JNT_ORIENT								-JOINT_ANGLE_DIR	// 				JOINT_ANGLE_DIR is defined in user-mn-MIT-DLeg-2dof
 
 #define K_VIRTUAL_HARDSTOP_NM_P_DEG				 7.13				// Nm/deg		Stiffness of virtual hardstop mimicking BiOM physical hardstop
-#define HARD_HEELSTRIKE_TORQUE_THRESH           -5 					// -80 Nm       Foot-strike detector
-#define GENTLE_HEELSTRIKE_TORQUE_THRESH           -3 				// -80 Nm       Foot-strike detector
+#define HARD_HEELSTRIKE_TORQUE_THRESH           -5 					//  Nm       Foot-strike detector
+#define GENTLE_HEELSTRIKE_TORQUE_THRESH         -3 				//  Nm       Foot-strike detector
 #define HARD_HEELSTRIKE_TORQ_RATE_THRESH        -600 * JNT_ORIENT	// Nm/sec       Foot-strike detector                          			3->4
 #define GENTLE_TOESTRIKE_THRESH					 3
 #define HARD_TOESTRIKE_TORQUE_THRESH			 70.0				// [Nm] TODO: needs to be update for each user
@@ -52,7 +52,7 @@ extern GainParams ankleGainsLsw;
 extern GainParams ankleGainsEst;
 extern GainParams ankleGainsLst;
 
-extern WalkParams ankleWalkParams;
+extern WalkParams *ankleWalkParams;
 extern WalkingStateMachine kneeAnkleStateMachine;
 extern Act_s act1, act2;
 
@@ -62,9 +62,10 @@ extern Act_s act1, act2;
 // Prototype(s):
 //****************************************************************************
 
-void setKneeAnkleFlatGroundFSM(Act_s *actx);
+void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx);
 void setTorqueAnklePassive(Act_s *actx, WalkParams *wParams);
-void setSimpleAnkleFlatGroundFSM(Act_s *actx);
+void setTorqueQuasiPassive(Act_s *act1, WalkParams *wParams);
+void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx);
 
 //****************************************************************************
 // Static Functions:
