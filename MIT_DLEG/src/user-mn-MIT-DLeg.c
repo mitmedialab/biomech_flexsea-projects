@@ -754,34 +754,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, TorqueRep *torqueRep
 		}
 		case EXP_ANKLE_WALKING_FSM: //2
 		{
-//			wParams->earlyStanceK0 = 6.2;
-//			wParams->earlyStanceKF = 0.1;
-//			wParams->earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT;
-//
-//			wParams->virtualHardstopEngagementAngle = 0.0;	//user_data_1.w[1] = 0	  [deg]
-//			wParams->virtualHardstopK				= 4.5;	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
-//			wParams->lspEngagementTorque 			= 50.0;	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
-//			wParams->lstPGDelTics 					= 70.0;	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
-//
-//			wParams->ankleGainsEst.k1 = 0.0;
-//			wParams->ankleGainsEst.b = 0.18;
-//			wParams->ankleGainsEst.thetaDes = 0.0;
-//
-//			wParams->ankleGainsMst.k1 = 2.5;
-//			wParams->ankleGainsMst.b = 0.18;
-//			wParams->ankleGainsMst.thetaDes = 0.0;
-//
-//			wParams->ankleGainsLst.k1 = 4.5;
-//			wParams->ankleGainsLst.b = 0.12;
-//			wParams->ankleGainsLst.thetaDes = 14.0;
-//
-//			wParams->ankleGainsEsw.k1 = 1.5;
-//			wParams->ankleGainsEsw.b = 0.18;
-//			wParams->ankleGainsEsw.thetaDes = -8.0;
-//
-//			wParams->ankleGainsLsw.k1 = 1.5;
-//			wParams->ankleGainsLsw.b = 0.18;
-//			wParams->ankleGainsLsw.thetaDes = -8.0;
+
 
 			user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK  *100.0 );
 			user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque  *100.0 );
