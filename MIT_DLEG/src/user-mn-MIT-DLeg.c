@@ -38,7 +38,7 @@
 #include "user-mn-MIT-DLeg.h"
 #include "actuator_functions.h"
 #include "safety_functions.h"
-//#include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
+//#include "walking_state_machine.h"	// OLD Included to allow UserWrites to update walking machine controller.
 #include "walking_knee_ankle_state_machine.h"
 #include "run_main_user_application.h"	// This is where user application functions live
 #include "ui.h"
@@ -82,11 +82,11 @@ TorqueRep torqueRep;
 
 // EXTERNS
 #if defined(IS_ANKLE)
-	extern GainParams ankleGainsEst;
-	extern GainParams ankleGainsMst;
-	extern GainParams ankleGainsLst;
-	extern GainParams ankleGainsEsw;
-	extern GainParams ankleGainsLsw;
+//	extern GainParams ankleGainsEst;
+//	extern GainParams ankleGainsMst;
+//	extern GainParams ankleGainsLst;
+//	extern GainParams ankleGainsEsw;
+//	extern GainParams ankleGainsLsw;
 	extern WalkParams subjectAnkleWalkParams;
 #elif defined(IS_KNEE)
 	extern GainParams kneeGainsEst;
@@ -104,9 +104,9 @@ extern int32_t currentOpLimit;
 extern int8_t zeroLoadCell; 		// used for zeroing the load cell.
 extern int8_t isEnabledUpdateSensors;
 
-extern float torqueKp;
-extern float torqueKi;
-extern float torqueKd;
+//extern float torqueKp;
+//extern float torqueKi;
+//extern float torqueKd;
 
 
 
@@ -754,17 +754,86 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, TorqueRep *torqueRep
 		}
 		case EXP_ANKLE_WALKING_FSM: //2
 		{
+			user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK  		*100.0 );
+			user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque  	*100.0 );
+			user_data_1.w[4] =  (int32_t) ( wParams->lstPGDelTics 				   );
+			user_data_1.w[5] =  (int32_t) ( wParams->ankleGainsLst.thetaDes *100.0 );
+			user_data_1.w[6] =  (int32_t) ( wParams->ankleGainsLst.b 		*100.0 );
+			user_data_1.w[7] =  (int32_t) ( wParams->ankleGainsLsw.k1 		*100.0 );
+			user_data_1.w[8] =  (int32_t) ( wParams->ankleGainsLsw.b 		*100.0 );
+			user_data_1.w[9] =  (int32_t) ( wParams->ankleGainsEst.k1 		*100.0 );
 
+			#ifdef IS_ANKLE
+				switch (userWriteMode)
+				{
+					case USER_INPUT_ANKLE_ORIGINAL:	//1
+					{	// Mostly original inputs
+						 user_data_1.w[2] = (int32_t) (  wParams->virtualHardstopK 		 *100.0);
+						 user_data_1.w[3] = (int32_t) (  wParams->lspEngagementTorque 	 *100.0);
+						 user_data_1.w[4] = (int32_t) (  wParams->lstPGDelTics  		 	   );
+						 user_data_1.w[5] = (int32_t) (  wParams->ankleGainsLst.thetaDes *100.0);
+						 user_data_1.w[6] = (int32_t) (  wParams->ankleGainsLst.b 		 *100.0);
+						 user_data_1.w[7] = (int32_t) (  wParams->ankleGainsLsw.k1 		 *100.0);
+						 user_data_1.w[8] = (int32_t) (  wParams->ankleGainsLsw.b 		 *100.0);
+						 user_data_1.w[9] = (int32_t) (  wParams->ankleGainsEst.k1 		 *100.0);
+						break;
+					}
+					case USER_INPUT_ANKLE_IMPEDANCE: //2
+					{//
+						user_data_1.w[2] = (int32_t) (  wParams->virtualHardstopEngagementAngle *100.0); 	// [Deg]
+						user_data_1.w[3] = (int32_t) (  wParams->virtualHardstopK 				*100.0); 	// [Nm/deg]
+						user_data_1.w[4] = (int32_t) (  wParams->lspEngagementTorque 			*100.0); 	// [Nm] Late stance power, torque threshhold
+						user_data_1.w[5] = (int32_t) (  wParams->lstPGDelTics 					      ); 	// ramping rate
+						user_data_1.w[6] = (int32_t) (  wParams->ankleGainsEst.k1				*100.0); 	// [Nm/deg]
+						user_data_1.w[7] = (int32_t) (  wParams->ankleGainsEst.b		 		*100.0); 	// [Deg]
+						user_data_1.w[8] = (int32_t) (  wParams->ankleGainsLst.thetaDes 		*100.0); 	// [Nm/s]
+						user_data_1.w[9] = (int32_t) (  wParams->ankleGainsEsw.k1			 	*100.0); 	// [Nm/deg]
 
-			user_data_1.w[2] =  (int32_t) ( wParams->virtualHardstopK  *100.0 );
-			user_data_1.w[3] =  (int32_t) ( wParams->lspEngagementTorque  *100.0 );
-			user_data_1.w[4] =  (int32_t) ( wParams->lstPGDelTics *100.0 );
-			user_data_1.w[5] =  (int32_t) ( wParams->ankleGainsLst.thetaDes *100.0);
-			user_data_1.w[6] =  (int32_t) ( wParams->ankleGainsLst.b *100.0 );
-			user_data_1.w[7] =  (int32_t) ( wParams->ankleGainsLsw.k1 *100.0 );
-			user_data_1.w[8] =  (int32_t) ( wParams->ankleGainsLsw.b *100.0 );
-			user_data_1.w[9] =  (int32_t) ( wParams->ankleGainsEst.k1 *100.0 );
+						break;
+					}
+					case USER_INPUT_ANKLE_STANCE: //3
+					{//
+						user_data_1.w[2] = (int32_t) ( wParams->ankleGainsEst.k1		*100.0); // [Nm/deg]
+						user_data_1.w[3] = (int32_t) ( wParams->ankleGainsEst.b		 	*100.0); // [Nm/s]
+						user_data_1.w[4] = (int32_t) ( wParams->ankleGainsEst.thetaDes	*100.0); // [Deg]
+						user_data_1.w[5] = (int32_t) ( wParams->ankleGainsMst.k1		*100.0); // [Nm/deg]
+						user_data_1.w[6] = (int32_t) ( wParams->ankleGainsMst.b		 	*100.0); // [Nm/s]
+						user_data_1.w[7] = (int32_t) ( wParams->ankleGainsLst.k1		*100.0); // [Nm/deg]
+						user_data_1.w[8] = (int32_t) ( wParams->ankleGainsLst.b			*100.0); // [Nm/s]
+						user_data_1.w[9] = (int32_t) ( wParams->ankleGainsLst.thetaDes	*100.0); // [Deg]
+						break;
+					}
+
+					case USER_INPUT_ANKLE_SWING: //4
+					{//
+						user_data_1.w[2] = (int32_t) ( wParams->ankleGainsEsw.k1		*100.0); // [Nm/deg]
+						user_data_1.w[3] = (int32_t) ( wParams->ankleGainsEsw.b		 	*100.0); // [Nm/s]
+						user_data_1.w[4] = (int32_t) ( wParams->ankleGainsEsw.thetaDes	*100.0); // [Deg]
+						user_data_1.w[5] = (int32_t) ( wParams->ankleGainsLsw.k1		*100.0); // [Nm/deg]
+						user_data_1.w[6] = (int32_t) ( wParams->ankleGainsLsw.b		 	*100.0); // [Nm/s]
+						user_data_1.w[7] = (int32_t) ( wParams->ankleGainsLsw.thetaDes	*100.0); // [Nm/deg]
+						user_data_1.w[8] = (int32_t) ( wParams->swingTrajectoryTimer		  ); //
+						user_data_1.w[9] = (int32_t) ( 0 );
+						break;
+					}
+
+					default:
+					{
+						user_data_1.w[2] =  (int32_t) ( 0 );
+						user_data_1.w[3] =  (int32_t) ( 0 );
+						user_data_1.w[4] =  (int32_t) ( 0 );
+						user_data_1.w[5] =  (int32_t) ( 0 );
+						user_data_1.w[6] =  (int32_t) ( 0 );
+						user_data_1.w[7] =  (int32_t) ( 0 );
+						user_data_1.w[8] =  (int32_t) ( 0 );
+						user_data_1.w[9] =  (int32_t) ( 0 );
+						break;
+					}
+
+				}
+			#endif
 			break;
+
 		}
 		case EXP_ANKLE_PASSIVE: //1
 		{

@@ -346,7 +346,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
             break;
         }
-        case STATE_EARLY_STANCE: // check impedance mode in here - only stance state for torque replay (goes directly to early swing)
+        case STATE_EARLY_STANCE://0 // check impedance mode in here - only stance state for torque replay (goes directly to early swing)
         {
 
 			if (isTransitioning && !passedStanceThresh) {
