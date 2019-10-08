@@ -98,46 +98,84 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 					passedStanceThresh = 0;
 					ankleWalkParamx->timerInStance = 0;
 					ankleWalkParamx->timerInSwingLast = ankleWalkParamx->timerInSwing;
-					isTransitioning = 0;
+
+
+					storedVirtualHardstopEngagementAngle = ankleWalkParamx->virtualHardstopEngagementAngle; // store the original setting
+					storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
+/* BEGIN EXPERIMENTAL */
+					// Don't jump to position, adjust position.
+					// NOT WORKING YET. KEEP TRYING -- i think we need to update Est.thetaDes also with joint angle, also check direction of vel etc.
+					if( ankleWalkParamx->virtualHardstopEngagementAngle + actx->jointAngleDegrees < 0 )
+					{
+						if ( actx->jointVelDegrees < 0 )
+						{ // Toe-striking, dorsiflexing happening (ie toe touch, running)
+							ankleWalkParamx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;		// Set current pos as desired
+							ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
+						}
+					}
 
 				}
 
 				ankleWalkParamx->timerInStance++;
 
-				// Don't jump to position, adjust position.
-				// NOT WORKING YET. KEEP TRYING -- i think we need to update Est.thetaDes also with joint angle, also check direction of vel etc.
-				if( ankleWalkParamx->virtualHardstopEngagementAngle + JNT_ORIENT*actx->jointAngleDegrees < 0 )
-				{
-					if ( actx->jointVelDegrees < 0 )
-					{ // dorsiflexing happening (ie toe touch, running)
-						storedVirtualHardstopEngagementAngle = ankleWalkParamx->virtualHardstopEngagementAngle; // store the original setting
-						storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
-
-						ankleWalkParamx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;		// Set current pos as desired
-						ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
-						updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
-					}
-					else if ( actx->jointVelDegrees > 0 )
-					{
-						storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
+				if( ankleWalkParamx->virtualHardstopEngagementAngle + actx->jointAngleDegrees < 0 )
+				{// Don't jump to position, adjust position.
+					if ( actx->jointVelDegrees > 0 )
+					{ // heel-striking, plantarflexing happening
 						if( actx->jointAngleDegrees < storedEstThetaDesAngle)
 						{
 							ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
 						}
 
 						ankleWalkParamx->virtualHardstopTq = 0;
+					}
+					else
+					{
+						ankleWalkParamx->virtualHardstopEngagementAngle = storedVirtualHardstopEngagementAngle;
+						updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
 
 					}
-				}
-				else
+				} else
 				{
-					ankleWalkParamx->virtualHardstopEngagementAngle = storedVirtualHardstopEngagementAngle;
 					updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
 
 				}
 
-				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
 
+//				// Don't jump to position, adjust position.
+//				// NOT WORKING YET. KEEP TRYING -- i think we need to update Est.thetaDes also with joint angle, also check direction of vel etc.
+//				if( ankleWalkParamx->virtualHardstopEngagementAngle + actx->jointAngleDegrees < 0 )
+//				{
+//					if ( actx->jointVelDegrees < 0 )
+//					{ // Toe-striking, dorsiflexing happening (ie toe touch, running)
+//						storedVirtualHardstopEngagementAngle = ankleWalkParamx->virtualHardstopEngagementAngle; // store the original setting
+//						storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
+//
+//						ankleWalkParamx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;		// Set current pos as desired
+//						ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
+//						updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
+//					}
+//					else if ( actx->jointVelDegrees > 0 )
+//					{ // heel-striking, plantarflexing happening
+//						storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
+//						if( actx->jointAngleDegrees < storedEstThetaDesAngle)
+//						{
+//							ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
+//						}
+//
+//						ankleWalkParamx->virtualHardstopTq = 0;
+//
+//					}
+//				}
+//				else
+//				{
+//					ankleWalkParamx->virtualHardstopEngagementAngle = storedVirtualHardstopEngagementAngle;
+//					updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
+//
+//				}
+
+//				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
+/* END EXPERIMENTAL */
 				actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsEst);
 
 				//Early Stance transition vectors
