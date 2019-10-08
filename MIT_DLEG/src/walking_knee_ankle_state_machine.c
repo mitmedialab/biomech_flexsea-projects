@@ -71,18 +71,18 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
 	    switch (kneeAnkleStateMachine.currentState) {
 
-	        case STATE_IDLE:
+	        case STATE_IDLE: //-1
 	        {
 	        	//error handling here (should never be in STATE_IDLE by the time you get here)
 	            break;
 	        }
-	        case STATE_INIT:
+	        case STATE_INIT: //-2
 	        {
-	        	kneeAnkleStateMachine.currentState = STATE_LATE_SWING;	// enter into early stance, this has stability. good idea for torque replay? might be better late swing
+	        	kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;	// enter into early stance, this has stability. good idea for torque replay? might be better late swing
 
 	            break;
 	        }
-	        case STATE_EARLY_STANCE: // check impedance mode in here - only stance state for torque replay (goes directly to early swing)
+	        case STATE_EARLY_STANCE: //0 check impedance mode in here - only stance state for torque replay (goes directly to early swing)
 	        {
 
 				if (isTransitioning) {
@@ -161,7 +161,7 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 					ankleWalkParamx->samplesInLSP++;
 				}
 
-				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParamx);
+				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
 
 					//Linear ramp to push off, pickup where hardstop leftoff, use stiffness ankleGainsLst to get us to target point.
 					actx->tauDes = ankleWalkParamx->virtualHardstopTq + (ankleWalkParamx->samplesInLSP/ankleWalkParamx->lstPGDelTics) * getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsLst);  // drops off after zero when hardstop goes away
@@ -369,7 +369,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 				// True goes into normal walking controller, False goes into TorqueReplay
 //				if(checkImpedanceMode(&torqueRep))
 //				{
-					updateAnkleVirtualHardstopTorque(actx, &ankleWalkParamx);
+					updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
 //					actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes) + getImpedanceTorque(actx, ankleGainsEMG.k1, ankleGainsEMG.b, ankleGainsEMG.thetaDes);
 					actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsEst);
 
@@ -419,7 +419,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
     			// Stance transition vectors, only go into next state. This is a stable place to be.
         		// Transition occurs based on reaching torque threshold. (future: update this threshold based on speed)
 
-				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParamx);	// Bring in
+				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);	// Bring in
 //				actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
 				actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsMst);
 
@@ -448,7 +448,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 					ankleWalkParamx->samplesInLSP++;
 				}
 
-				updateAnkleVirtualHardstopTorque(actx, &ankleWalkParamx);
+				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
 
 				//Linear ramp to push off, pickup where hardstop leftoff, use stiffness ankleGainsLst to get us to target point.
 //				actx->tauDes = ankleWalkParamx->virtualHardstopTq + (ankleWalkParamx->samplesInLSP/ankleWalkParamx->lstPGDelTics) * getImpedanceTorque(actx, ankleGainsLst.k1, ankleGainsLst.b, ankleGainsLst.thetaDes);  // drops off after zero when hardstop goes away

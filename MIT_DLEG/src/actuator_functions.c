@@ -1568,7 +1568,7 @@ float torqueSystemIDPRBS(void)
 }
 
 
-float setActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testInput)
+void setActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testInput)
 { // Used to test actuator
 	float tor = 0.0;
 	if ( fabs(testInput->inputTorq) > 0)
@@ -1580,7 +1580,6 @@ float setActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testI
 		tor = getImpedanceTorque(&act1, testInput->inputK, testInput->inputB, testInput->inputTheta);
 	}
 	actx->tauDes = tor;
-	return tor;
 }
 
 float getTorqueSystemIDFrequencySweepChirp( struct actTestSettings *testInput)

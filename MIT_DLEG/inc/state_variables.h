@@ -52,7 +52,7 @@ extern "C" {
 //#define USE_EMG
 
 //6. Specify User Walking Parameters (if applicable)
-#define SUBJECT_001
+#define SUBJECT_012
 
 //****************************************************************************
 // Structure(s):
@@ -83,6 +83,7 @@ enum guiExperimentMode{
 	// Define different experiments,
 	// these specify which controls to run and what input/outputs
 	// used by user_data_1.w[0]
+	EXP_RESET_DEVICE				= -99,
 	EXP_ACTUATOR_TESTING			= -3,
 	EXP_IS_SWEEP_CHIRP_TEST			= -2,
 	EXP_IS_SWEEP_TEST				= -1,
@@ -230,6 +231,9 @@ typedef struct walkParams {
     float virtualHardstopK;
     float virtualHardstopB;
     float virtualHardstopEngagementAngle;
+    float passiveVirtualHardstopK;
+    float passiveVirtualHardstopB;
+    float passiveVirtualHardstopEngagementAngle;
     float neutralPosition;
 
     int8_t initializedStateMachineVariables;

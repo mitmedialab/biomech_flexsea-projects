@@ -66,7 +66,7 @@ float getDOB(float refTorque, float measTorque);
 float getDobLpf(float refTorque);
 float getDoBInv(float refTorque);
 
-float setActuatorTestingTorque(Act_s *actx, ActTestSettings *testInput);
+void  setActuatorTestingTorque(Act_s *actx, ActTestSettings *testInput);
 float getTorqueSystemIDFrequencySweepChirp( ActTestSettings *testInput);
 
 
