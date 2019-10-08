@@ -54,6 +54,22 @@ float runSoftFirFilt(float inputVal);
 void initCircularSoftFIRFilt(void);
 float runCircularSoftFirFilt(float inputVal);
 
+float filterButterworth30Hz(float inputVal);
+float filterButterworth50Hz(float inputVal);
+float filterTorqueButterworth(float inputVal);
+float filterEncoderTorqueButterworth(float inputVal);
+float filterTorqueDerivativeButterworth(float inputVal);
+float filterJointAngleButterworth(float inputVal);
+float filterJointAngleLimitOutputButterworth(float inputVal);
+float filterJointVelocityButterworth(float inputVal);
+float filterJointAngleOutputButterworth(float inputVal);
+
+float filterTorqueEncButterworth(float inputVal);
+float filterMotorCommandButterworth(float inputVal);
+
+float testingFilter(float input);
+float testingVelFilter(float input);
+
 //****************************************************************************
 // Definition(s):
 //****************************************************************************

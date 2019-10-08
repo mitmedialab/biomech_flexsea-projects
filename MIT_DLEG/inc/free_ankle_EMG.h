@@ -16,77 +16,89 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 *****************************************************************************
-	[Lead developer] Jean-Francois Duval, jfduval at dephy dot com.
+	[Lead developer] Luke Mooney, lmooney at dephy dot com.
 	[Origin] Based on Jean-Francois Duval's work at the MIT Media Lab
 	Biomechatronics research group <http://biomech.media.mit.edu/>
-	[Contributors] Matthew Carney, mcarney at mit dot edu, Tony Shu, tonyshu at mit dot edu
+	[Contributors]
 *****************************************************************************
-	[This file] MIT DARPA Leg Main FSM
-*****************************************************************************
-	[Change log] (Convention: YYYY-MM-DD | author | comment)
-	* 2018-02-24 | jfduval | New release
+	[This file] user_ankle_2dof: EMG FSM functions
 ****************************************************************************/
 
-#if defined INCLUDE_UPROJ_MIT_DLEG || defined BOARD_TYPE_FLEXSEA_PLAN
-#if defined BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
+#include "main.h"
+#include "state_variables.h"
 
-#ifndef INC_MIT_DLEG
-#define INC_MIT_DLEG
+#ifdef BOARD_TYPE_FLEXSEA_MANAGE
+
+#ifndef INC_EMG_FREE_H
+#define INC_EMG_FREE_H
+
+//****************************************************************************
+// EASY ACCESS
+//****************************************************************************
+
+//HANDLE EMG FROM SEONG
+#define GAIN_LG					1.0
+#define GAIN_TA					1.0
+#define EMG_IN_MAX				10000
+#define EMG_IN_MAX_CONTACT		20000
+
+//Constants for tuning the controller
+#define PF_TORQUE_GAIN			120 	//40
+#define DF_TORQUE_GAIN			60		//40
+#define PFDF_STIFF_GAIN			1.0
+#define DP_ON_THRESH			0.1
+
+#define COCON_THRESH			0.2 //co-contraction threshold (high for Hugh)
+
+
+//VIRTUAL DYNAMIC JOINT PARAMS
+#define VIRTUAL_K				0.85
+#define VIRTUAL_B				0.1
+#define VIRTUAL_J				0.0025
+
+#define ROBOT_K					2.0
+#define ROBOT_B					0.05
+#define BASELINE_K				0.15
+
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
-#include "global-config.h"
-#include "main.h"
-//#include "user-mn-MIT-EMG.h"
-#include "actuator_functions.h"
-//#include "walking_state_machine.h"
-#include "walking_knee_ankle_state_machine.h"
-#include "state_variables.h"
-#include "cmd-ActPack.h"
 
 
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
-extern struct act_s act1, act2;	//define actuator structure shared
-extern int8_t isEnabledUpdateSensors;
-
-
-
-//****************************************************************************
-// Structure(s)
-//****************************************************************************
+extern int32_t EMGavgs[2];
+extern float PFDF_state[3];
+extern float equilibriumAngle;
+extern float emgInMax;
+extern float dpOnThresh;
+extern float LGact;
+extern float TAact;
 
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
-void initMITDLeg(void);
-void MITDLegFsm1(void);
-void MITDLegFsm2(void);
 
-//****************************************************************************
-// Private Function Prototype(s):
-//****************************************************************************
-
-
-//Main FSMs
-
-
-//User writes/reads
-void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet, TorqueRep *torqueRep);
-void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet, TorqueRep *torqueRep);
-void updateGenVarOutputs(Act_s *actx, WalkParams *wParams);
+void updateVirtualJoint(GainParams* pgains);
+void resetVirtualJoint(float theta, float dtheta, float robotK);
+void get_EMG(void);
+void interpret_EMG (float k, float b, float J);
+void RK4_SIMPLE(float dtheta, float domega, float* cur_state);
+int16_t windowSmoothEMG0(int16_t val);
+int16_t windowSmoothEMG1(int16_t val);
 
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
 
 
+//****************************************************************************
+// Structure(s)
+//****************************************************************************
 
 
+#endif	//INC_EMG_FSM_H
 
-#endif	//INC_MIT_DLEG
-
-#endif 	//BOARD_TYPE_FLEXSEA_MANAGE || BOARD_TYPE_FLEXSEA_MANAGE
-#endif //INCLUDE_UPROJ_MIT_DLEG || BOARD_TYPE_FLEXSEA_MANAGE
+#endif 	//BOARD_TYPE_FLEXSEA_MANAGE

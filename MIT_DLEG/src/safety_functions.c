@@ -203,7 +203,6 @@ static void checkTemperatureBounds(Act_s *actx) {
 static void checkJointAngleBounds(Act_s *actx) {
 	if (errorConditions[ERROR_JOINT_ENCODER]) {
 		errorConditions[WARNING_JOINTANGLE_SOFT] = SENSOR_INVALID;
-		errorConditions[WARNING_JOINTANGLE_SOFT] = SENSOR_INVALID;
 	} else {
 		//soft angle check
 		if (actx->jointAngleDegrees <= JOINT_MIN_SOFT_DEGREES) {
@@ -251,7 +250,7 @@ static void actuatePassiveMode(Act_s *actx){
 	}
 
 	//todo: Ramp position from current position to neutral motor position
-	setMotorPosition(actx->motorPosNeutral, DEVICE_CHANNEL);
+	setMotorPosition(actx->motorPos0, DEVICE_CHANNEL);
 
 }
 
@@ -518,11 +517,13 @@ void handleSafetyConditions(Act_s *actx) {
 		case MODE_ENABLED:
 			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
 			{
-				mitInitCurrentController();
+				mitInitCurrentController(actx);
+
 			}
 			break;
 	}
 	lastMotorMode = motorMode;
+
 #endif // NO_DEVICE || NO_ACTUATOR
 }
 

@@ -34,6 +34,7 @@ void checkSafeties(Act_s *actx);
 void handleSafetyConditions(Act_s *actx); //renamed from safetyFailure(void)
 int16_t getSafetyFlags(void);
 
+
 void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status);
 void clearLEDStatus(void);
 void overrideLED(uint8_t r, uint8_t g, uint8_t b);
