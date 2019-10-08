@@ -82,15 +82,16 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
 	            break;
 	        }
-	        case STATE_EARLY_STANCE: //0 check impedance mode in here - only stance state for torque replay (goes directly to early swing)
-	        {
+	        case STATE_EARLY_STANCE: //0
+	        { // check impedance mode in here - only stance state for torque replay (goes directly to early swing)
 
 				if (isTransitioning) {
 
 					ankleWalkParamx->scaleFactor = 1.0;
+//					ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->earlyStanceK0;
+//					ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
 
-					ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->earlyStanceK0;
-					ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;	//note, this might be a key thingy
+//					ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;	//note, this might be a key thingy
 
 					passedStanceThresh = 0;
 					ankleWalkParamx->timerInStance = 0;
@@ -101,6 +102,9 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 				ankleWalkParamx->timerInStance++;
 
 				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
+//				updateImpedanceParams(actx, ankleWalkParamx);
+
+
 				actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsEst);
 
 				//Early Stance transition vectors
@@ -370,7 +374,6 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 //				if(checkImpedanceMode(&torqueRep))
 //				{
 					updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
-//					actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorque(actx, ankleGainsEst.k1, ankleGainsEst.b, ankleGainsEst.thetaDes) + getImpedanceTorque(actx, ankleGainsEMG.k1, ankleGainsEMG.b, ankleGainsEMG.thetaDes);
 					actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsEst);
 
 					if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParamx->virtualHardstopEngagementAngle)
@@ -478,7 +481,6 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
 			#ifdef IS_ANKLE
 
-//				actx->tauDes = getImpedanceTorque(actx, ankleGainsEsw.k1, ankleGainsEsw.b, ankleGainsEsw.thetaDes);
 				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsEsw);
 				torqueRep.time_swing++;
 

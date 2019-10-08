@@ -24,7 +24,7 @@
 		.lspEngagementTorque 			= 50.0,	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
 		.lstPGDelTics 					= 70.0,	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
 
-		.ankleGainsEst.k1 				= 0.0,
+		.ankleGainsEst.k1 				= 2.0,
 		.ankleGainsEst.b 		        = 0.18,
 		.ankleGainsEst.thetaDes         = 0.0,
 
@@ -46,8 +46,13 @@
 
 		.passiveVirtualHardstopEngagementAngle  = 0.0,
 		.passiveVirtualHardstopK 				= 6.5,
-		.passiveVirtualHardstopB 				= 0.15
+		.passiveVirtualHardstopB 				= 0.18,
 
+		.biomVirtualHardstopEngagementAngle  	= 0.0,
+		.biomVirtualHardstopK 					= 10.0,
+		.biomVirtualHardstopB 					= 0.18,
+		.biomAnkleGainsThetaDesEsw         = 0.0,
+		.biomAnkleGainsThetaDesLsw         = 0.0
 	};
 #elif defined(SUBJECT_013)
 	WalkParams subjectAnkleWalkParams =
@@ -82,7 +87,11 @@
 
 		.passiveVirtualHardstopEngagementAngle  = 0.0,
 		.passiveVirtualHardstopK 				= 6.5,
-		.passiveVirtualHardstopB 				= 0.15
+		.passiveVirtualHardstopB 				= 0.18,
+
+		.biomVirtualHardstopEngagementAngle  	= 0.0,
+		.biomVirtualHardstopK 					= 10.0,
+		.biomVirtualHardstopB 					= 0.18
 	};
 #endif
 
