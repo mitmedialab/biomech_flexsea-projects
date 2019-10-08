@@ -53,6 +53,7 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 	static int8_t isTransitioning = 0;
 	static uint32_t timeInState = 0;
 	static int8_t passedStanceThresh = 0;
+	static float storedVirtualHardstopEngagementAngle;
 
     kneeAnkleStateMachine.onEntrySmState = kneeAnkleStateMachine.currentState; // save the state on entry, assigned to last_currentState on exit
 	actx->tauDes = 0.0;
@@ -101,9 +102,29 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
 				ankleWalkParamx->timerInStance++;
 
-				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
-//				updateImpedanceParams(actx, ankleWalkParamx);
+				// Don't jump to position, adjust position.
+				// NOT WORKING YET. KEEP TRYING -- i think we need to update Est.thetaDes also with joint angle, also check direction of vel etc.
+//				if( ankleWalkParamx->virtualHardstopEngagementAngle + actx->jointAngleDegrees < 0 )
+//				{
+//					if ( actx->jointVelDegrees < 0 )
+//					{
+//						storedVirtualHardstopEngagementAngle = ankleWalkParamx->virtualHardstopEngagementAngle; // store the original setting
+//						ankleWalkParamx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;		// Set current pos as desired
+//						updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
+//					}
+//					else if ( actx->jointVelDegrees < 0 )
+//					{
+//						ankleWalkParamx->virtualHardstopTq = 0;
+//					}
+//				}
+//				else
+//				{
+//					ankleWalkParamx->virtualHardstopEngagementAngle = storedVirtualHardstopEngagementAngle;
+//					updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
+//
+//				}
 
+				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
 
 				actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsEst);
 
@@ -114,6 +135,7 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
 				if (actx->jointTorque > ankleWalkParamx->lspEngagementTorque) {
 					kneeAnkleStateMachine.currentState = STATE_LATE_STANCE_POWER;      //Transition occurs even if the early swing motion is not finished
+					ankleWalkParamx->virtualHardstopEngagementAngle = storedVirtualHardstopEngagementAngle; // restore the original setting
 				}
 
 				break;
