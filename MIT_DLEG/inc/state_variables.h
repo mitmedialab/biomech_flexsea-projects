@@ -130,6 +130,25 @@ typedef struct{
 #define NUM_STATES				8
 #define NUM_IMPEDANCE_TERMS		4
 
+typedef struct rampParam{
+// Store values for ramping torque from one place to the next
+	// If you ramp K
+	float kCurrent;
+	float kInit;
+	float kFinal;
+	float kNew;
+
+	//If you ramp theta
+	float thetaCurrent;
+	float thetaInit;
+	float thetaFinal;
+
+	float torqueCurrent;
+
+	uint32_t deltaTime;
+	uint32_t runningTimer;
+} RampParam;
+
 typedef struct gainParams{
 
 	float k1;
@@ -137,7 +156,10 @@ typedef struct gainParams{
 	float b;
 	float thetaDes;
 
+	RampParam kParam;
+
 } GainParams;
+
 
 // Actuator structure to track sensor values, initially built for the TF08 style actuator
 typedef struct act_s
@@ -277,6 +299,18 @@ typedef struct walkParams {
 
 } WalkParams;
 
+
+
+typedef struct kTransitionParams{
+// not sure this is in use
+	float kInit;
+	float kFinal;
+	float deltaT;
+	float timer;
+	float thetaSet;
+	float thetaCurr;
+
+}KTransitionParams;
 
 typedef struct cubicSpline{
 	float xi1; // x initial

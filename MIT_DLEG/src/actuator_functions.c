@@ -624,28 +624,17 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
 //	tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
 
-	//Apply Notch filter after compensator
-//	tauC = getNotchFilter(tauC);
-
 	// Disturbance Observer
 //	DOB = getDOB(tauCCombined, actx->tauMeas); // send it back for next round
 
 	tauCCombined = tauC + tauFF + DOB;
-//	rigid1.mn.genVar[8] = (int16_t) (tauCCombined*100.0);
 
 	// motor current signal
-
 	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/N) + tauFFMotor ) );	// Reflect torques to Motor level
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
 
 	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (VOLTAGE_KT_SCALER * actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
-
-//	V = (int32_t) (filterMotorCommandButterworth( (float) V ) ); // try filtering the output to be less noisy
-
-
-	//DEBUG todo: check if you want to use this, or some other friction compensation methods
-//	I = I + noLoadCurrent(I);	// Include current required to get moving
 
 	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
@@ -658,6 +647,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	actx->desiredCurrent = I; 	// demanded mA
 	actx->desiredVoltage = V;
+
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
 //	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
@@ -1052,7 +1042,6 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	static float tauCCombined = 0.0, tauCOutput = 0.0;
 
 	// Error is torque at the joint
-//	float tauErr = actx->tauDes - actx->tauMeas;		// [Nm]
 	float tauErr = refTorque - sensedTorque;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
 	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot);	// apply filter to Derivative
