@@ -89,57 +89,57 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
 				if (isTransitioning) {
 
-					ankleWalkParamx->scaleFactor = 1.0;
-//					ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->earlyStanceK0;
-//					ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
-
-//					ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;	//note, this might be a key thingy
-
-					passedStanceThresh = 0;
-					ankleWalkParamx->timerInStance = 0;
-					ankleWalkParamx->timerInSwingLast = ankleWalkParamx->timerInSwing;
-
-
 					storedVirtualHardstopEngagementAngle = ankleWalkParamx->virtualHardstopEngagementAngle; // store the original setting
 					storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
-/* BEGIN EXPERIMENTAL */
-					// Don't jump to position, adjust position.
-					// NOT WORKING YET. KEEP TRYING -- i think we need to update Est.thetaDes also with joint angle, also check direction of vel etc.
-					if( ankleWalkParamx->virtualHardstopEngagementAngle + actx->jointAngleDegrees < 0 )
-					{
-						if ( actx->jointVelDegrees < 0 )
-						{ // Toe-striking, dorsiflexing happening (ie toe touch, running)
-							ankleWalkParamx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;		// Set current pos as desired
-							ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
-						}
-					}
+
+					ankleWalkParamx->scaleFactor = 1.0;
+					ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->earlyStanceK0;
+					ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
+
+//					passedStanceThresh = 0;
+//					ankleWalkParamx->timerInStance = 0;
+//					ankleWalkParamx->timerInSwingLast = ankleWalkParamx->timerInSwing;
+//
+//
+//
+//					/* BEGIN EXPERIMENTAL */
+//					// Don't jump to position, adjust position.
+//					// NOT WORKING YET. KEEP TRYING -- i think we need to update Est.thetaDes also with joint angle, also check direction of vel etc.
+//					if( ankleWalkParamx->virtualHardstopEngagementAngle + actx->jointAngleDegrees < 0 )
+//					{
+//						if ( actx->jointVelDegrees < 0 )
+//						{ // Toe-striking, dorsiflexing happening (ie toe touch, running)
+//							ankleWalkParamx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;		// Set current pos as desired
+//							ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
+//						}
+//					}
 
 				}
 
 				ankleWalkParamx->timerInStance++;
 
-				if( ankleWalkParamx->virtualHardstopEngagementAngle + actx->jointAngleDegrees < 0 )
-				{// Don't jump to position, adjust position.
-					if ( actx->jointVelDegrees > 0 )
-					{ // heel-striking, plantarflexing happening
-						if( actx->jointAngleDegrees < storedEstThetaDesAngle)
-						{
-							ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
-						}
-
-						ankleWalkParamx->virtualHardstopTq = 0;
-					}
-					else
-					{
-						ankleWalkParamx->virtualHardstopEngagementAngle = storedVirtualHardstopEngagementAngle;
-						updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
-
-					}
-				} else
-				{
-					updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
-
-				}
+//				if( ankleWalkParamx->virtualHardstopEngagementAngle + actx->jointAngleDegrees < 0 )
+//				{// Don't jump to position, adjust position.
+//					if ( actx->jointVelDegrees > 0 )
+//					{ // heel-striking, plantarflexing happening
+//						if( actx->jointAngleDegrees < storedEstThetaDesAngle)
+//						{
+//							ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
+//						}
+//
+//						ankleWalkParamx->virtualHardstopTq = 0;
+//					}
+//					else
+//					{
+//						ankleWalkParamx->virtualHardstopEngagementAngle = storedVirtualHardstopEngagementAngle;
+//						updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
+//
+//					}
+//				} else
+//				{
+//					updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
+//
+//				}
 
 
 //				// Don't jump to position, adjust position.
@@ -174,8 +174,11 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 //
 //				}
 
-//				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
 /* END EXPERIMENTAL */
+
+				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
+				updateImpedanceParams(actx, ankleWalkParamx);
+
 				actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsEst);
 
 				//Early Stance transition vectors
@@ -193,31 +196,25 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
 
 	        case STATE_MID_STANCE: //1
-	        { //skipping this for now.
-//				if (isTransitioning) {
-//
-//				}
-//
-//				#ifdef IS_ANKLE
-//
-//
-//	    			// Stance transition vectors, only go into next state. This is a stable place to be.
-//	        		// Transition occurs based on reaching torque threshold. (future: update this threshold based on speed)
-//
-//					updateAnkleVirtualHardstopTorque(actx, &ankleWalkParamx);	// Bring in
-//	//				actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorque(actx, ankleGainsMst.k1, ankleGainsMst.b, ankleGainsMst.thetaDes);
-//					actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsMst);
-//
-//	    			// Stance transition vectors, only go into next state. This is a stable place to be.
-//
-//	    			if (actx->jointTorque > ankleWalkParamx->lspEngagementTorque) {
-//	    				kneeAnkleStateMachine.currentState = STATE_LATE_STANCE_POWER;
-//	    			}
-//
-//				#elif defined(IS_KNEE)
-//	        		actx->tauDes = getImpedanceTorque(actx, kneeGainsMst.k1, kneeGainsMst.b, kneeGainsMst.thetaDes);
-//				#endif
-//
+	        { // This is where parallel spring come sin
+				if (isTransitioning) {
+
+				}
+
+				#ifdef IS_ANKLE
+					updateAnkleVirtualHardstopTorque(actx, &ankleWalkParamx);	// Bring in
+					actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsMst);
+
+					// Stance transition vectors, only go into next state. This is a stable place to be.
+					// Transition occurs based on reaching torque threshold. (future: update this threshold based on speed)
+	    			if (actx->jointTorque > ankleWalkParamx->lspEngagementTorque) {
+	    				kneeAnkleStateMachine.currentState = STATE_LATE_STANCE_POWER;
+	    			}
+
+				#elif defined(IS_KNEE)
+	        		actx->tauDes = getImpedanceTorque(actx, kneeGainsMst.k1, kneeGainsMst.b, kneeGainsMst.thetaDes);
+				#endif
+
 				ankleWalkParamx->timerInStance++;
 
 	        	break;
