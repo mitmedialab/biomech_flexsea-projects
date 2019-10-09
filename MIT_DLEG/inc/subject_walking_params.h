@@ -24,9 +24,10 @@
 		.lspEngagementTorque 			= 50.0,	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
 		.lstPGDelTics 					= 70.0,	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
 
-		.ankleGainsEst.k1 				= 2.0,
+		.ankleGainsEst.k1 				= 2.5,
 		.ankleGainsEst.b 		        = 0.18,
 		.ankleGainsEst.thetaDes         = 0.0,
+		.ankleGainsEst.kParam.deltaTime = 1,
 
 		.ankleGainsMst.k1	 	        = 2.5,
 		.ankleGainsMst.b 		        = 0.18,

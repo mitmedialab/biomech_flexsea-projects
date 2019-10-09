@@ -73,6 +73,8 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx);
 
 void updateImpedanceParams(Act_s *actx, WalkParams *wParams);
 void updateAnkleVirtualHardstopTorque(Act_s *actx, WalkParams *wParams);
+void updateStiffnessRampDTheta(Act_s *actx, RampParam *rampParamx);
+void updateStiffnessRampDt(RampParam *rampParamx);
 
 
 
