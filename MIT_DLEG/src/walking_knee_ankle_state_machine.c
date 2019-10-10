@@ -29,16 +29,16 @@ TorqueRep torqueRep;
 //GainParams ankleGainsEsw = {1.5, 0.0, 0.18, -5.0};
 //GainParams ankleGainsLsw = {1.5, 0.0, 0.18, -5.0};
 
-GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
+//GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
 float splineTime = 100.0;
 
 //Knee, Positive Knee Flexion
-GainParams kneeGainsEst = {2.5, 0.0, 0.15, 10.0};
-GainParams kneeGainsMst = {2.5, 0.0, 0.15, 10.0};	// {2.5, 0.0, 0.1, 10.0};
-GainParams kneeGainsLst = {1.0, 0.0, 0.15, 30.0};	// {2.5, 0.0, 0.1, 15.0};
-GainParams kneeGainsEsw = {2.5, 0.0, 0.15, 30.0}; // GainParams kneeGainsEsw = {1.5, 0.0, 0.1, 50.0};
-GainParams kneeGainsLsw = {2.5, 0.0, 0.15, 10.0};
+//GainParams kneeGainsEst = {2.5, 0.0, 0.15, 10.0};
+//GainParams kneeGainsMst = {2.5, 0.0, 0.15, 10.0};	// {2.5, 0.0, 0.1, 10.0};
+//GainParams kneeGainsLst = {1.0, 0.0, 0.15, 30.0};	// {2.5, 0.0, 0.1, 15.0};
+//GainParams kneeGainsEsw = {2.5, 0.0, 0.15, 30.0}; // GainParams kneeGainsEsw = {1.5, 0.0, 0.1, 50.0};
+//GainParams kneeGainsLsw = {2.5, 0.0, 0.15, 10.0};
 
 
 
@@ -52,7 +52,7 @@ GainParams kneeGainsLsw = {2.5, 0.0, 0.15, 10.0};
 void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 	static int8_t isTransitioning = 0;
 	static uint32_t timeInState = 0;
-	static int8_t passedStanceThresh = 0;
+//	static int8_t passedStanceThresh = 0;
 	static int8_t passedStanceThreshEst = 0;
 	static int8_t lastPassedStanceThreshEst = 0;
 	static float storedVirtualHardstopEngagementAngle;
@@ -308,7 +308,7 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 	Param: actx(Act_s)
 
 	ptorqueDes pointer to float meant to be updated with desired torque TODO:find out what this is
-*/ //void setKneeAnkleFlatGroundFSM(Act_s *actx);
+*/
 
 void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
@@ -397,15 +397,15 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 				ankleWalkParamx->scaleFactor = 1.0;
 				passedStanceThresh = 0;
 
-				#ifdef USE_EMG
-				resetVirtualJoint(actx->jointAngleDegrees,0,0);
-				#endif //USE_EMG
+//				#ifdef USE_EMG
+//				resetVirtualJoint(actx->jointAngleDegrees,0,0);
+//				#endif //USE_EMG
 			}
 
 			#ifdef IS_ANKLE
-				#ifdef USE_EMG
-				updateVirtualJoint(&ankleGainsEMG);
-  	  	  	  	#endif //USE_EMG
+//				#ifdef USE_EMG
+//				updateVirtualJoint(&ankleGainsEMG);
+//  	  	  	  	#endif //USE_EMG
 
 
 				// Check impedance mode, length of swing will turn off torque replay
