@@ -1061,7 +1061,7 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 		// 2) test, don't test for sign of error, just if saturated. // locks up more, slower response
 		// 3) test, set Ki = 0; this seems dangerous, rather know what this is doing.
 		// 4) test, try a scalar on the error => tauErrInt = tauErrInt + errorKi * (tauCOutput - tauCCombined); // this seemed unstable, not driving the right direction
-		tauErrInt = 0.0;	// this is reasonably stable.
+//		tauErrInt = 0.0;	// this is reasonably stable.
 	}
 
 //	//anti hunting for Integral term, if we're not moving, don't worry about it.
