@@ -6,7 +6,6 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include <torque_replay.h>
 
 
 //Joint Type: activate one of these for joint limit angles.
@@ -366,6 +365,7 @@ typedef struct actTestSettings {
 // torque replay variables
 typedef struct TorqueRep{
 	float tauDes;
+	float tauDesPlot;
 	float time_stance;
 	float standard_stance_period;
 	float previous_stance_period;
@@ -375,7 +375,7 @@ typedef struct TorqueRep{
 	float speedFactor;
 	float percent;
 	float torqueScalingFactor;	// User defined scaling value
-	float torque_traj_mscaled[TRAJ_SIZE];
+	//float torque_traj_mscaled[TRAJ_SIZE];
 	int16_t index;
 	int8_t entry_replay;	// Turns off first time torque replay is working.
 	int8_t begin;

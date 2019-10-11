@@ -20,6 +20,7 @@ WalkingStateMachine kneeAnkleStateMachine;
 WalkParams *ankleWalkParams, kneeWalkParams;
 CubicSpline cubicSpline;
 TorqueRep torqueRep;
+float torque_traj_mscaled[TRAJ_SIZE]; // global variable
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
 // Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
@@ -379,7 +380,7 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
         		for(int i=0; i<TRAJ_SIZE; i++)
         		{
-        			torqueRep.torque_traj_mscaled[i] = torque_traj[i] + ((USER_MASS - 70.0)*massGains[i]);
+        			torque_traj_mscaled[i] = torque_traj[i] + ((USER_MASS - 70.0)*massGains[i]);
         		}
 			#endif
 
@@ -682,7 +683,7 @@ void setAnkleTorqueReplay(Act_s *actx, WalkParams *ankleWalkParamx){
 
 				for(int i=0; i<TRAJ_SIZE; i++)
 				{
-					torqueRep.torque_traj_mscaled[i] = torque_traj[i] + ((USER_MASS - 70.0)*massGains[i]);
+					torque_traj_mscaled[i] = torque_traj[i] + ((USER_MASS - 70.0)*massGains[i]);
 				}
 
 				break;
@@ -995,6 +996,7 @@ int8_t checkImpedanceMode(TorqueRep *torqueRep){
 	}
 	else
 	{ // impedance mode
+		torqueRep->entry_replay = 0;
 		return 1;
 	}
 
@@ -1018,12 +1020,14 @@ float torqueTracking(TorqueRep *torqueRep)
 
 	torqueRep->index = round( torqueRep->percent * (float) TRAJ_SIZE );
 
-	if( torqueRep->index > 862 )
+	if( torqueRep->index > MAX_TRAJ_INDEX )
 	{
-		torqueRep->index = 862;
+		torqueRep->index = MAX_TRAJ_INDEX;
 	}
 
-	torqueRep->tauDes = torqueRep->torqueScalingFactor * ( torqueRep->torque_traj_mscaled[torqueRep->index] + ( torqueRep->speedFactor*speedGains[torqueRep->index] ) );
+	torqueRep->tauDes = torqueRep->torqueScalingFactor * ( torque_traj_mscaled[torqueRep->index] + ( torqueRep->speedFactor*speedGains[torqueRep->index] ) );
+
+	torqueRep->tauDesPlot = ( torque_traj_mscaled[torqueRep->index] + ( torqueRep->speedFactor*speedGains[torqueRep->index] ) ); // full torque profile
 
 	return torqueRep->tauDes;
 }
