@@ -82,18 +82,10 @@ TorqueRep torqueRep;
 
 // EXTERNS
 #if defined(IS_ANKLE)
-//	extern GainParams ankleGainsEst;
-//	extern GainParams ankleGainsMst;
-//	extern GainParams ankleGainsLst;
-//	extern GainParams ankleGainsEsw;
-//	extern GainParams ankleGainsLsw;
+
 	extern WalkParams subjectAnkleWalkParams;
 #elif defined(IS_KNEE)
-	extern GainParams kneeGainsEst;
-	extern GainParams kneeGainsMst;
-	extern GainParams kneeGainsLst;
-	extern GainParams kneeGainsEsw;
-	extern GainParams kneeGainsLsw;
+	extern WalkParams subjectKneeWalkParams;
 #endif
 
 
@@ -284,9 +276,6 @@ void MITDLegFsm1(void)
 				//DEBUG removed this because joint encoder can't update in locked state.
 //				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
 
-
-//				if ( fmod(controlTime,9) == 0 )
-//				{
 					switch (experimentTask)
 					{
 
@@ -328,6 +317,12 @@ void MITDLegFsm1(void)
 
 							break;
 						}
+						case EXP_ANKLE_WALKING_TORQUE_REPLAY: //4
+						{
+							setAnkleTorqueReplay(&act1, ankleWalkParams);
+							break;
+						}
+
 						case EXP_ANKLE_WALKING_QUASIPASSIVE: //5
 						{// Quasi-passive controller, two springs, one for controlled PF, & one for controlled DF
 							setTorqueQuasiPassive(&act1, ankleWalkParams);
@@ -359,9 +354,6 @@ void MITDLegFsm1(void)
 							act1.tauDes = 0.0;
 						}
 					}
-//					controlTime = 0;	// reset the controlTime timer
-//				} //end if control time
-
 
 				// Do not command power if we're running a no-power mode.
 				// Manually turn on OpenLoop control if necessary
@@ -370,10 +362,6 @@ void MITDLegFsm1(void)
 					setMotorTorque( &act1, act1.tauDes);
 //					setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
 //				#endif
-
-
-
-//				}
 
 				controlTime++;
 
@@ -518,7 +506,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsLst.b 		      *100.0);
 					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsLsw.k1 		  *100.0);
 					rigid1.mn.genVar[8] = (int16_t) ( wParams->ankleGainsLsw.b 		      *100.0);
-//					rigid1.mn.genVar[9] = (int16_t) ( wParams->ankleGainsEst.k1 		  *100.0);
 					break;
 				}
 				case USER_INPUT_ANKLE_IMPEDANCE: //2
@@ -530,7 +517,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[6] = (int16_t) (  wParams->ankleGainsLst.thetaDes 			*100.0); 	// [Nm/deg]
 					rigid1.mn.genVar[7] = (int16_t) (  wParams->ankleGainsLst.k1		 		*100.0); 	// [Deg]
 					rigid1.mn.genVar[8] = (int16_t) (  wParams->ankleGainsLst.b					*100.0); 	// [Nm/s]
-//					rigid1.mn.genVar[9] = (int16_t) (  wParams->ankleGainsEsw.k1			 	*100.0); 	// [Nm/deg]
 					break;
 				}
 				case USER_INPUT_ANKLE_STANCE: //3
@@ -542,7 +528,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsMst.b		 		*100.0);
 					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsLst.k1			 	*100.0);
 					rigid1.mn.genVar[8] = (int16_t) ( wParams->ankleGainsLst.b				*100.0);
-//					rigid1.mn.genVar[9] = (int16_t) ( wParams->ankleGainsLst.thetaDes		*100.0);
 					break;
 				}
 
@@ -555,7 +540,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsLsw.b		 		*100.0);
 					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsLsw.thetaDes	 	*100.0);
 					rigid1.mn.genVar[8] = (int16_t) ( wParams->swingTrajectoryTimer	 		*100.0);
-//					rigid1.mn.genVar[9] = (int16_t) ( 0                               		*100.0);
 					break;
 				}
 
@@ -569,7 +553,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					 rigid1.mn.genVar[6] = (int16_t) (0);
 					 rigid1.mn.genVar[7] = (int16_t) (experimentTask);
 					 rigid1.mn.genVar[8] = (int16_t) (userWriteMode);
-//					 rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState);
 					break;
 				}
 			}
@@ -590,7 +573,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsLst.b 		      *100.0);
 					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsLsw.k1 		  *100.0);
 					rigid1.mn.genVar[8] = (int16_t) ( wParams->ankleGainsLsw.b 		      *100.0);
-//					rigid1.mn.genVar[9] = (int16_t) ( wParams->ankleGainsEst.k1 		  *100.0);
 					break;
 				}
 				case USER_INPUT_ANKLE_IMPEDANCE: //2
@@ -602,7 +584,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[6] = (int16_t) (  wParams->ankleGainsLst.thetaDes 			*100.0); 	// [Nm/deg]
 					rigid1.mn.genVar[7] = (int16_t) (  wParams->ankleGainsLst.k1		 		*100.0); 	// [Deg]
 					rigid1.mn.genVar[8] = (int16_t) (  wParams->ankleGainsLst.b					*100.0); 	// [Nm/s]
-//					rigid1.mn.genVar[9] = (int16_t) (  wParams->ankleGainsEsw.k1			 	*100.0); 	// [Nm/deg]
 					break;
 				}
 				case USER_INPUT_ANKLE_STANCE: //3
@@ -614,7 +595,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsMst.b		 		*100.0);
 					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsLst.k1			 	*100.0);
 					rigid1.mn.genVar[8] = (int16_t) ( wParams->ankleGainsLst.b				*100.0);
-//					rigid1.mn.genVar[9] = (int16_t) ( wParams->ankleGainsLst.thetaDes		*100.0);
 					break;
 				}
 
@@ -627,7 +607,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsLsw.b		 		*100.0);
 					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsLsw.thetaDes	 	*100.0);
 					rigid1.mn.genVar[8] = (int16_t) ( wParams->swingTrajectoryTimer	 		*100.0);
-//					rigid1.mn.genVar[9] = (int16_t) ( 0                               		*100.0);
 					break;
 				}
 
@@ -641,13 +620,93 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					 rigid1.mn.genVar[6] = (int16_t) (0);
 					 rigid1.mn.genVar[7] = (int16_t) (experimentTask);
 					 rigid1.mn.genVar[8] = (int16_t) (userWriteMode);
-//					 rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState);
 					break;
 				}
 			}
 
 			break;
 		}
+
+		case EXP_ANKLE_WALKING_TORQUE_REPLAY: //4
+		{ // Replay Torque is same walking as FSM, but replaces stance with Torque Replay
+			rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState);		// Always output state during walking
+			switch(userWriteMode)
+			{
+				case USER_INPUT_ANKLE_ORIGINAL:	//1
+				{	// Mostly original inputs
+					rigid1.mn.genVar[2] = (int16_t) ( wParams->virtualHardstopK 		  *100.0);
+					rigid1.mn.genVar[3] = (int16_t) ( wParams->lspEngagementTorque 	      *100.0);
+					rigid1.mn.genVar[4] = (int16_t) ( wParams->lstPGDelTics  			  	    );
+					rigid1.mn.genVar[5] = (int16_t) ( wParams->ankleGainsLst.thetaDes     *100.0);
+					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsLst.b 		      *100.0);
+					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsLsw.k1 		  *100.0);
+					rigid1.mn.genVar[8] = (int16_t) ( wParams->ankleGainsLsw.b 		      *100.0);
+					break;
+				}
+				case USER_INPUT_ANKLE_IMPEDANCE: //2
+				{//
+					rigid1.mn.genVar[2] = (int16_t) (  wParams->virtualHardstopEngagementAngle 	*100.0); 	// [Deg]
+					rigid1.mn.genVar[3] = (int16_t) (  wParams->virtualHardstopK 				*100.0); 	// [Nm/deg]
+					rigid1.mn.genVar[4] = (int16_t) (  wParams->lspEngagementTorque 			*100.0); 	// [Nm] Late stance power
+					rigid1.mn.genVar[5] = (int16_t) (  wParams->lstPGDelTics 					      ); 	// ramping rate
+					rigid1.mn.genVar[6] = (int16_t) (  wParams->ankleGainsLst.thetaDes 			*100.0); 	// [Nm/deg]
+					rigid1.mn.genVar[7] = (int16_t) (  wParams->ankleGainsLst.k1		 		*100.0); 	// [Deg]
+					rigid1.mn.genVar[8] = (int16_t) (  wParams->ankleGainsLst.b					*100.0); 	// [Nm/s]
+					break;
+				}
+				case USER_INPUT_ANKLE_STANCE: //3
+				{//
+					rigid1.mn.genVar[2] = (int16_t) ( wParams->ankleGainsEst.k1				*100.0);
+					rigid1.mn.genVar[3] = (int16_t) ( wParams->ankleGainsEst.b		 		*100.0);
+					rigid1.mn.genVar[4] = (int16_t) ( wParams->ankleGainsEst.thetaDes	 	*100.0);
+					rigid1.mn.genVar[5] = (int16_t) ( wParams->ankleGainsMst.k1				*100.0);
+					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsMst.b		 		*100.0);
+					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsLst.k1			 	*100.0);
+					rigid1.mn.genVar[8] = (int16_t) ( wParams->ankleGainsLst.b				*100.0);
+					break;
+				}
+
+				case USER_INPUT_ANKLE_SWING: //4
+				{//
+					rigid1.mn.genVar[2] = (int16_t) ( wParams->ankleGainsEsw.k1				*100.0);
+					rigid1.mn.genVar[3] = (int16_t) ( wParams->ankleGainsEsw.b		 		*100.0);
+					rigid1.mn.genVar[4] = (int16_t) ( wParams->ankleGainsEsw.thetaDes	 	*100.0);
+					rigid1.mn.genVar[5] = (int16_t) ( wParams->ankleGainsLsw.k1				*100.0);
+					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsLsw.b		 		*100.0);
+					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsLsw.thetaDes	 	*100.0);
+					rigid1.mn.genVar[8] = (int16_t) ( wParams->swingTrajectoryTimer	 		*100.0);
+					break;
+				}
+
+				case USER_INPUT_ANKLE_TORQUE_REPLAY: //5
+				{//
+					rigid1.mn.genVar[2] = (int16_t) ( torqueRep.begin						  	);	//1 go, 0 off
+					rigid1.mn.genVar[3] = (int16_t) ( torqueRep.torqueScalingFactor 	* 100.0	);  // percent total torque to replay
+					rigid1.mn.genVar[4] = (int16_t) ( torqueRep.previous_swing_period		  	);	// [ms]
+					rigid1.mn.genVar[5] = (int16_t) ( torqueRep.previous_stance_period			);  //[ms]
+					rigid1.mn.genVar[6] = (int16_t) ( act1.jointTorque*100.						);
+					rigid1.mn.genVar[7] = (int16_t) ( act1.tauDes*100.0							);
+					rigid1.mn.genVar[8] = (int16_t) ( torqueRep.entry_replay				);
+					break;
+				}
+
+				default:
+				{
+					 rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);
+					 rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*10000.);
+					 rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);
+					 rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0);
+					 rigid1.mn.genVar[5] = (int16_t) (0);
+					 rigid1.mn.genVar[6] = (int16_t) (0);
+					 rigid1.mn.genVar[7] = (int16_t) (experimentTask);
+					 rigid1.mn.genVar[8] = (int16_t) (userWriteMode);
+					break;
+				}
+			}
+
+			break;
+		}
+
 		default:
 		{
 			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	*100.	);			// Nm
@@ -847,8 +906,82 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 
 			case EXP_ANKLE_WALKING_TORQUE_REPLAY: //4
 			{// Testing Actuator Control Parameters
-				torqueRep->begin			= ( (int8_t) user_data_1.w[2] );
-				torqueRep->torqueScalingFactor = ( (float) (user_data_1.w[3] / 100 ) );
+
+				switch (userWriteMode)
+				{
+					case USER_INPUT_ANKLE_ORIGINAL:	//1
+					{	// Mostly original inputs
+						wParams->virtualHardstopK 		        = ( (float) user_data_1.w[2] ) / 100.0 ;
+						wParams->lspEngagementTorque 	        = ( (float) user_data_1.w[3] ) / 100.0 ;
+						wParams->lstPGDelTics  			        = ( (float) user_data_1.w[4] ) 		   ;
+						wParams->ankleGainsLst.thetaDes         = ( (float) user_data_1.w[5] ) /100.0;
+						wParams->ankleGainsLst.b 		        = ( (float) user_data_1.w[6] ) /100.0;
+						wParams->ankleGainsLsw.k1 		        = ( (float) user_data_1.w[7] ) /100.0;
+						wParams->ankleGainsLsw.b 		        = ( (float) user_data_1.w[8] ) /100.0;
+						wParams->ankleGainsEst.k1 		        = ( (float) user_data_1.w[9] ) /100.0;
+
+						break;
+					}
+					case USER_INPUT_ANKLE_IMPEDANCE: //2
+					{//
+						wParams->virtualHardstopEngagementAngle = ( (float) user_data_1.w[2] ) /100.0;	// [Deg]
+						wParams->virtualHardstopK 				= ( (float) user_data_1.w[3] ) /100.0;	// [Nm/deg]
+						wParams->lspEngagementTorque 			= ( (float) user_data_1.w[4] ) /100.0; 	// [Nm] Late stance power, torque threshhold
+						wParams->lstPGDelTics 					= ( (float) user_data_1.w[5] )		 ;	// ramping rate
+						wParams->ankleGainsLst.thetaDes 		= ( (float) user_data_1.w[6] ) / 100.0;	// [Nm/deg]
+						wParams->ankleGainsLst.k1		 		= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
+						wParams->ankleGainsLst.b				= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/s]
+						wParams->ankleGainsEsw.k1			 	= ( (float) user_data_1.w[9] ) / 100.0;	// [Nm/deg]
+
+						break;
+					}
+					case USER_INPUT_ANKLE_STANCE: //3
+					{//
+						wParams->ankleGainsEst.k1				= ( (float) user_data_1.w[2] ) / 100.0;	// [Nm/deg]
+						wParams->ankleGainsEst.b		 		= ( (float) user_data_1.w[3] ) / 100.0;	// []
+						wParams->ankleGainsEst.thetaDes	 		= ( (float) user_data_1.w[4] ) / 100.0;	// [Deg]
+						wParams->ankleGainsMst.k1				= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
+						wParams->ankleGainsMst.b		 		= ( (float) user_data_1.w[6] ) / 100.0;	// [Nm/s]
+						wParams->ankleGainsLst.k1			 	= ( (float) user_data_1.w[7] ) / 100.0;	// [Nm/deg]
+						wParams->ankleGainsLst.b				= ( (float) user_data_1.w[8] ) / 100.0;	// [Nm/s]
+						wParams->ankleGainsLst.thetaDes			= ( (float) user_data_1.w[9] ) / 100.0;	// [Deg]
+						break;
+					}
+
+					case USER_INPUT_ANKLE_SWING: //4
+					{//
+						wParams->ankleGainsEsw.k1				= ( (float) user_data_1.w[2] ) / 100.0;	// [Nm/deg]
+						wParams->ankleGainsEsw.b		 		= ( (float) user_data_1.w[3] ) / 100.0;	// [Deg]
+						wParams->ankleGainsEsw.thetaDes	 		= ( (float) user_data_1.w[4] ) / 100.0;	// [Deg]
+						wParams->ankleGainsLsw.k1				= ( (float) user_data_1.w[5] ) / 100.0;	// [Nm/deg]
+						wParams->ankleGainsLsw.b		 		= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
+						wParams->ankleGainsLsw.thetaDes	 		= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
+						wParams->swingTrajectoryTimer	 		= ( (float) user_data_1.w[8] ) 		  ;	// [counts (ms)]
+						break;
+					}
+
+					case USER_INPUT_ANKLE_TORQUE_REPLAY: //5
+					{//
+						torqueRep->begin						= ( (int8_t) user_data_1.w[2] 		   ); // 1 starts, 0 turns off torque replay and goes into normal walking modes
+						torqueRep->torqueScalingFactor 			= ( (float) (user_data_1.w[3] ) / 100.0 ); // Overall scaler for safety
+
+						torqueRep->standard_swing_period		= ( (float) user_data_1.w[4] ) 		  ;	// [ms]
+						torqueRep->standard_stance_period		= ( (float) user_data_1.w[5] ) 		  ;	// [ms]
+
+//						wParams->ankleGainsLsw.b		 		= ( (float) user_data_1.w[6] ) / 100.0;	// [Deg]
+//						wParams->ankleGainsLsw.thetaDes	 		= ( (float) user_data_1.w[7] ) / 100.0;	// [Deg]
+//						wParams->swingTrajectoryTimer	 		= ( (float) user_data_1.w[8] ) 		  ;	// [counts (ms)]
+						break;
+					}
+					default:
+					{
+						break;
+					}
+
+				}
+
+
+
 				break;
 			}
 			case EXP_ACTUATOR_TESTING: //-3
@@ -1004,6 +1137,20 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 						break;
 					}
 
+					case USER_INPUT_ANKLE_TORQUE_REPLAY: //5
+					{//
+						user_data_1.w[2] = (int32_t) ( torqueRep->begin						  	); // 1 starts, 0 turns off torque replay and goes into normal walking modes
+						user_data_1.w[3] = (int32_t) ( torqueRep->torqueScalingFactor 	*100.0	); // Overall scaler for safety
+
+						user_data_1.w[4] = (int32_t) ( torqueRep->standard_swing_period		  	); // [Deg]
+						user_data_1.w[5] = (int32_t) ( torqueRep->standard_stance_period			); // [Nm/deg]
+
+						user_data_1.w[6] = (int32_t) ( wParams->ankleGainsLsw.b		 	*100.0	); // [Nm/s]
+						user_data_1.w[7] = (int32_t) ( wParams->ankleGainsLsw.thetaDes	*100.0	); // [Nm/deg]
+						user_data_1.w[8] = (int32_t) ( wParams->swingTrajectoryTimer		  	); //
+						break;
+					}
+
 					default:
 					{
 						 user_data_1.w[2] = (int32_t) (  wParams->virtualHardstopK 		 *100.0);
@@ -1100,8 +1247,15 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 		}
 		case EXP_ANKLE_WALKING_TORQUE_REPLAY: //4
 		{// Testing Actuator Control Parameters
-			user_data_1.w[2] = (int32_t) torqueRep->begin;
-			user_data_1.w[3] = (int32_t) torqueRep->torqueScalingFactor;
+			user_data_1.w[2] = (int32_t) ( torqueRep->begin						   );
+			user_data_1.w[3] = (int32_t) ( torqueRep->torqueScalingFactor	*100.0 );
+
+
+			user_data_1.w[4] = (int32_t) ( torqueRep->standard_swing_period		  	); // [ms]
+			user_data_1.w[5] = (int32_t) ( torqueRep->standard_stance_period		); // [ms]
+
+
+
 			break;
 		}
 		case EXP_ACTUATOR_TESTING: //-3

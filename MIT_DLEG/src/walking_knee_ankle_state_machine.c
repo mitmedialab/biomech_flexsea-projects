@@ -630,7 +630,12 @@ void setKneeAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 }
 
 // torque replay function
-void setAnkleTorqueRepkay(Act_s *actx, WalkParams *ankleWalkParamx){
+void setAnkleTorqueReplay(Act_s *actx, WalkParams *ankleWalkParamx){
+	/*
+	 * Uses standard Walking FSM, in early-stance make transition to Torque Replay mode
+	 * If previous stance is above a set threshold. Basic walking speed is 1.25m/s,
+	 * speed factor should allow us to scale faster than that, not slower.
+	 */
 	static int8_t isTransitioning = 0;
 	static uint32_t timeInState = 0;
 	static int8_t passedStanceThresh = 0;
@@ -993,7 +998,7 @@ float torqueTracking(TorqueRep *torqueRep)
 		torqueRep->previous_stance_period = torqueRep->standard_stance_period;
 	}
 
-	torqueRep->speedFactor = (1.0 - (float) ( torqueRep->previous_stance_period / torqueRep->standard_stance_period ) )*100.0;
+	torqueRep->speedFactor = (1.0 - ( torqueRep->previous_stance_period / torqueRep->standard_stance_period ) )*100.0;
 	torqueRep->percent = torqueRep->time_stance / torqueRep->previous_stance_period;
 
 	if(torqueRep->percent > 1.0)
