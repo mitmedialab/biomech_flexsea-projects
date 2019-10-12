@@ -1366,7 +1366,7 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 
 
 	if(nonLinearKParamx->earlyLateFlag == 0)
-	{
+	{ // Mid-Stance Controlled Dorsiflexion, going into Powered Plantarflexion
 		for(int16_t i = 0; i < NONL_TRAJ_SIZE; i++)
 		{
 			if ( ( actx->jointAngleDegrees > ascAngle[i]  ) &&  ( actx->jointAngleDegrees <= ascAngle[NONL_TRAJ_MAX_INDEX] ) )
@@ -1380,7 +1380,7 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 			}
 		}
 	} else if (nonLinearKParamx->earlyLateFlag == 1)
-	{
+	{ // Late Stance, powered pushoff going into toe-off,
 		for(int16_t i = NONL_TRAJ_MAX_INDEX; i >= 0; i--)
 		{
 			if ( ( actx->jointAngleDegrees < descAngle[i]  ) &&  ( actx->jointAngleDegrees >= descAngle[0] ) ) // change in here, was: [NONL_TRAJ_MAX_INDEX]
