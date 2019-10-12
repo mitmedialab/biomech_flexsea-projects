@@ -985,24 +985,10 @@ void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx){
 			}
 			case STATE_INIT: //-2
 			{
+				// non-linear stiffness variable init, if needed
+
 				kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;	// enter into early stance, this has stability. good idea for torque replay? might be better late swing
 
-				//-----------------------------------------------------------------------------------------------------------
-				torqueRep.time_stance = 0.0;
-				torqueRep.standard_stance_period = 555.0; 	// [ms]
-				torqueRep.previous_stance_period = 555.0; 	// [ms]
-				torqueRep.time_swing = 0.0;
-				torqueRep.standard_swing_period = 400.0;  	// [ms]
-				torqueRep.previous_swing_period = 400.0;  	// [ms]
-				torqueRep.torqueScalingFactor = 0.1; 		// adjust maximum torque output
-				torqueRep.entry_replay = 0;					// verify if we were already running torque replay
-				torqueRep.begin = 0;
-
-				for(int i=0; i<TRAJ_SIZE; i++)
-				{
-					torque_traj_mscaled[i] = torque_traj[i] + ((USER_MASS - 70.0)*massGains[i]);
-				}
-				// -----------------------------------------------------------------------------------------------------
 
 				break;
 			}
@@ -1383,9 +1369,10 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 			{ // values are increasing, so if we get above it we're done.
 				ascAngleIndex = i;
 				i = TRAJ_SIZE; // end loop
-			} else if (actx->jointAngleDegrees >= ascAngle[TRAJ_MAX_INDEX] - TRAJ_ANGLE_END_TOLERANCE )
+			} else if (actx->jointAngleDegrees >= (ascAngle[TRAJ_MAX_INDEX] - TRAJ_ANGLE_END_TOLERANCE) )
 			{ // jump into descending mode
 				earlyLateFlag = 1;
+				i = TRAJ_SIZE;
 			}
 		}
 	} else if (earlyLateFlag == 1)
