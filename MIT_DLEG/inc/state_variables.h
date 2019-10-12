@@ -76,7 +76,8 @@ enum walkingStateModes{
 
 	STATE_EMG_STAND_ON_TOE = 7,
     STATE_LSW_EMG = 8,
-	STATE_TORQUE_REPLAY = 9
+	STATE_TORQUE_REPLAY = 9,
+	STATE_NONLINEAR_STIFF = 10
 };
 
 enum guiExperimentMode{
