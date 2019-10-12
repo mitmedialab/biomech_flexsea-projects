@@ -21,6 +21,7 @@ WalkingStateMachine kneeAnkleStateMachine;
 WalkParams *ankleWalkParams, kneeWalkParams;
 CubicSpline cubicSpline;
 TorqueRep torqueRep;
+NonLinearK nonLinearKParams;
 float torque_traj_mscaled[TRAJ_SIZE]; // global variable
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
@@ -947,7 +948,7 @@ void setAnkleTorqueReplay(Act_s *actx, WalkParams *ankleWalkParamx){
 }
 
 // non-linear stiffness Walking State Machine function
-void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx){
+void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx, NonLinearK *nonLinearKParamx){
 	/*
 	 * Uses standard Walking FSM, in early-stance make transition to Torque Replay mode
 	 * If previous stance is above a set threshold. Basic walking speed is 1.25m/s,
@@ -986,9 +987,12 @@ void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx){
 			case STATE_INIT: //-2
 			{
 				// non-linear stiffness variable init, if needed
+				nonLinearKParamx->ascAngleIndex	= 0;
+				nonLinearKParamx->descAngleIndex = NONL_TRAJ_MAX_INDEX;
+				nonLinearKParamx->earlyLateFlag	= 0;
+				nonLinearKParamx->stiffnessCurrentVal =ankleWalkParamx->ankleGainsNonLinear.k1;
 
 				kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;	// enter into early stance, this has stability. good idea for torque replay? might be better late swing
-
 
 				break;
 			}
@@ -1210,7 +1214,7 @@ void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx){
 
 				//TODO If this doesn't work, try outputting torque value directly.
 				//NOTE: STATE CHANGE HAPPENS INSIDE THIS FUNCTION
-				ankleWalkParamx->ankleGainsNonLinear.k1 = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine);
+				ankleWalkParamx->ankleGainsNonLinear.k1 = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine, nonLinearKParamx);
 
 				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsNonLinear);
 
@@ -1352,58 +1356,58 @@ void updateStiffnessRampDTheta(Act_s *actx, RampParam *rampParamx)
 }
 
 
-float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachine *stateMachine)
+float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachine *stateMachine, NonLinearK *nonLinearKParamx)
 {	// lookup stiffness based on joint angle
 
-	static int16_t ascAngleIndex = 0;
-	static int16_t descAngleIndex = 0;
-	static float stiffnessCurrentVal = 0.0;
-	static int8_t earlyLateFlag = 0;
+//	static int16_t ascAngleIndex = 0;
+//	static int16_t descAngleIndex = 0;
+//	static float stiffnessCurrentVal = 0.0;
+//	static int8_t earlyLateFlag = 0;
 
 
-	if(earlyLateFlag == 0)
+	if(nonLinearKParamx->earlyLateFlag == 0)
 	{
 		for(int16_t i = 0; i < NONL_TRAJ_SIZE; i++)
 		{
 			if ( ( actx->jointAngleDegrees > ascAngle[i]  ) &&  ( actx->jointAngleDegrees <= ascAngle[NONL_TRAJ_MAX_INDEX] ) )
 			{ // values are increasing, so if we get above it we're done.
-				ascAngleIndex = i;
+				nonLinearKParamx->ascAngleIndex = i;
 				i = NONL_TRAJ_SIZE; // end loop
 			} else if (actx->jointAngleDegrees >= (ascAngle[NONL_TRAJ_MAX_INDEX] - NONL_TRAJ_ANGLE_END_TOLERANCE) )
 			{ // jump into descending mode
-				earlyLateFlag = 1;
+				nonLinearKParamx->earlyLateFlag = 1;
 				i = NONL_TRAJ_SIZE;
 			}
 		}
-	} else if (earlyLateFlag == 1)
+	} else if (nonLinearKParamx->earlyLateFlag == 1)
 	{
 		for(int16_t i = NONL_TRAJ_MAX_INDEX; i >= 0; i--)
 		{
 			if ( ( actx->jointAngleDegrees < descAngle[i]  ) &&  ( actx->jointAngleDegrees >= descAngle[0] ) ) // change in here, was: [NONL_TRAJ_MAX_INDEX]
 			{ // values are increasing, so if we get above it we're done.
-				descAngleIndex = i;
+				nonLinearKParamx->descAngleIndex = i;
 				i = -1; // end loop
 			} else if (actx->jointAngleDegrees <= ascAngle[0] + NONL_TRAJ_ANGLE_END_TOLERANCE )
 			{ // end state
-				earlyLateFlag = 0;
+				nonLinearKParamx->earlyLateFlag = 0;
 				stateMachine->currentState = STATE_EARLY_SWING;
 			}
 		}
 	}
 
 
-	if (earlyLateFlag == 0)
+	if (nonLinearKParamx->earlyLateFlag == 0)
 	{
-		stiffnessCurrentVal = ascTorque[ascAngleIndex] / (ascAngle[NONL_TRAJ_MAX_INDEX] - ascAngle[ascAngleIndex]);
+		nonLinearKParamx->stiffnessCurrentVal = ascTorque[nonLinearKParamx->ascAngleIndex] / (ascAngle[NONL_TRAJ_MAX_INDEX] - ascAngle[nonLinearKParamx->ascAngleIndex]);
 		wParams->ankleGainsNonLinear.thetaDes = ascAngle[NONL_TRAJ_MAX_INDEX];
 	}
-	else if (earlyLateFlag ==1)
+	else if (nonLinearKParamx->earlyLateFlag ==1)
 	{
-		stiffnessCurrentVal = descTorque[descAngleIndex] / ( descAngle[descAngleIndex] - descAngle[0] );
+		nonLinearKParamx->stiffnessCurrentVal = descTorque[nonLinearKParamx->descAngleIndex] / ( descAngle[nonLinearKParamx->descAngleIndex] - descAngle[0] );
 		wParams->ankleGainsNonLinear.thetaDes = descAngle[0];
 	}
 
-	return stiffnessCurrentVal;
+	return nonLinearKParamx->stiffnessCurrentVal;
 }
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE

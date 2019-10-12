@@ -51,7 +51,8 @@ extern "C" {
 //#define USE_EMG
 
 //6. Specify User Walking Parameters (if applicable)
-#define SUBJECT_012
+//#define SUBJECT_012
+#define SUBJECT_002
 
 //****************************************************************************
 // Structure(s):
@@ -111,7 +112,8 @@ enum guiWalkingParameterVariableUpdates{
 	USER_INPUT_ANKLE_STANCE			= 3,
 	USER_INPUT_ANKLE_SWING			= 4,
 	USER_INPUT_ANKLE_TORQUE_REPLAY  = 5,
-	USER_INPUT_ANKLE_NONLINEAR_K	= 6
+	USER_INPUT_ANKLE_NONLINEAR_K	= 6,
+	USER_INPUT_ANKLE_NONLINEAR_K1	= 7
 
 };
 
@@ -385,6 +387,16 @@ typedef struct TorqueRep{
 	int8_t entry_replay;	// Turns off first time torque replay is working.
 	int8_t begin;
 } TorqueRep;
+
+
+// nonlinear K control
+typedef struct nonLinearK {
+	int16_t ascAngleIndex;
+	int16_t descAngleIndex;
+	float stiffnessCurrentVal;
+	int8_t earlyLateFlag;
+
+} NonLinearK;
 
 //****************************************************************************
 // Shared variable(s)
