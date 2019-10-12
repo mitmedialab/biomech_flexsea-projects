@@ -1363,27 +1363,27 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 
 	if(earlyLateFlag == 0)
 	{
-		for(int16_t i = 0; i < TRAJ_SIZE; i++)
+		for(int16_t i = 0; i < NONL_TRAJ_SIZE; i++)
 		{
-			if ( ( actx->jointAngleDegrees > ascAngle[i]  ) &&  ( actx->jointAngleDegrees <= ascAngle[TRAJ_MAX_INDEX] ) )
+			if ( ( actx->jointAngleDegrees > ascAngle[i]  ) &&  ( actx->jointAngleDegrees <= ascAngle[NONL_TRAJ_MAX_INDEX] ) )
 			{ // values are increasing, so if we get above it we're done.
 				ascAngleIndex = i;
-				i = TRAJ_SIZE; // end loop
-			} else if (actx->jointAngleDegrees >= (ascAngle[TRAJ_MAX_INDEX] - TRAJ_ANGLE_END_TOLERANCE) )
+				i = NONL_TRAJ_SIZE; // end loop
+			} else if (actx->jointAngleDegrees >= (ascAngle[NONL_TRAJ_MAX_INDEX] - NONL_TRAJ_ANGLE_END_TOLERANCE) )
 			{ // jump into descending mode
 				earlyLateFlag = 1;
-				i = TRAJ_SIZE;
+				i = NONL_TRAJ_SIZE;
 			}
 		}
 	} else if (earlyLateFlag == 1)
 	{
-		for(int16_t i = TRAJ_MAX_INDEX; i >= 0; i--)
+		for(int16_t i = NONL_TRAJ_MAX_INDEX; i >= 0; i--)
 		{
-			if ( ( actx->jointAngleDegrees < descAngle[i]  ) &&  ( actx->jointAngleDegrees >= descAngle[TRAJ_MAX_INDEX] ) )
+			if ( ( actx->jointAngleDegrees < descAngle[i]  ) &&  ( actx->jointAngleDegrees >= descAngle[0] ) ) // change in here, was: [NONL_TRAJ_MAX_INDEX]
 			{ // values are increasing, so if we get above it we're done.
 				descAngleIndex = i;
 				i = -1; // end loop
-			} else if (actx->jointAngleDegrees <= ascAngle[0] + TRAJ_ANGLE_END_TOLERANCE )
+			} else if (actx->jointAngleDegrees <= ascAngle[0] + NONL_TRAJ_ANGLE_END_TOLERANCE )
 			{ // end state
 				earlyLateFlag = 0;
 				stateMachine->currentState = STATE_EARLY_SWING;
@@ -1394,8 +1394,8 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 
 	if (earlyLateFlag == 0)
 	{
-		stiffnessCurrentVal = ascTorque[ascAngleIndex] / (ascAngle[TRAJ_MAX_INDEX] - ascAngle[ascAngleIndex]);
-		wParams->ankleGainsNonLinear.thetaDes = ascAngle[TRAJ_MAX_INDEX];
+		stiffnessCurrentVal = ascTorque[ascAngleIndex] / (ascAngle[NONL_TRAJ_MAX_INDEX] - ascAngle[ascAngleIndex]);
+		wParams->ankleGainsNonLinear.thetaDes = ascAngle[NONL_TRAJ_MAX_INDEX];
 	}
 	else if (earlyLateFlag ==1)
 	{
