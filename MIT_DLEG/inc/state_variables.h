@@ -96,7 +96,9 @@ enum guiExperimentMode{
 	EXP_ANKLE_WALKING_BIOM_FSM 		= 3,	// SIMULATE A BIOM WITH NO DORSIFLEXION
 	EXP_ANKLE_WALKING_TORQUE_REPLAY = 4,		// REPLAY TORQUE
 	EXP_ANKLE_WALKING_QUASIPASSIVE 	= 5,	// QUASI-PASSIVE (TWO SPRING) MODE
-	EXP_KNEE_WALKING_FSM			= 6 	// NOT IN USE RIGHT NOW.
+	EXP_ANKLE_WALKING_NONLINEAR_K 	= 6,	// NONLINEAR STIFFNESS, BIOINSPIRED REPLAY MODE
+	EXP_KNEE_WALKING_FSM			= 7 	// NOT IN USE RIGHT NOW.
+
 };
 
 enum guiWalkingParameterVariableUpdates{
@@ -108,7 +110,8 @@ enum guiWalkingParameterVariableUpdates{
 	USER_INPUT_ANKLE_IMPEDANCE		= 2,
 	USER_INPUT_ANKLE_STANCE			= 3,
 	USER_INPUT_ANKLE_SWING			= 4,
-	USER_INPUT_ANKLE_TORQUE_REPLAY  = 5
+	USER_INPUT_ANKLE_TORQUE_REPLAY  = 5,
+	USER_INPUT_ANKLE_NONLINEAR_K	= 6
 
 };
 
@@ -294,6 +297,7 @@ typedef struct walkParams {
 	GainParams ankleGainsLst;
 	GainParams ankleGainsEsw;
 	GainParams ankleGainsLsw;
+	GainParams ankleGainsNonLinear;
 
 
 	//biom early stance value

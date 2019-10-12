@@ -946,8 +946,8 @@ void setAnkleTorqueReplay(Act_s *actx, WalkParams *ankleWalkParamx){
 
 }
 
-// non-linear stiffness function
-void setAnkleNonLinearStiff(Act_s *actx, WalkParams *ankleWalkParamx){
+// non-linear stiffness Walking State Machine function
+void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx){
 	/*
 	 * Uses standard Walking FSM, in early-stance make transition to Torque Replay mode
 	 * If previous stance is above a set threshold. Basic walking speed is 1.25m/s,
@@ -1091,35 +1091,7 @@ void setAnkleNonLinearStiff(Act_s *actx, WalkParams *ankleWalkParamx){
 			case STATE_MID_STANCE: //1
 			{ // This is where parallel spring comes in
 
-				if(checkImpedanceMode(&torqueRep))
-				{
-					if (isTransitioning)
-					{
-						// if we land at a new position (ie running or inclines) just go from there.
-						storedVirtualHardstopEngagementAngle = ankleWalkParamx->virtualHardstopEngagementAngle;
-						if ( actx->jointAngleDegrees < ankleWalkParamx->virtualHardstopEngagementAngle )
-						{
-							ankleWalkParamx->virtualHardstopEngagementAngle = actx->jointAngleDegrees;
-						}
-
-					}
-					ankleWalkParamx->timerInStance++;
-
-					updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
-
-					actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsMst);
-
-					// Stance transition vectors, only go into next state. This is a stable place to be.
-					// Transition occurs based on reaching torque threshold. (future: update this threshold based on speed)
-					if (actx->jointTorque > ankleWalkParamx->lspEngagementTorque) {
-						kneeAnkleStateMachine.currentState = STATE_LATE_STANCE_POWER;
-						ankleWalkParamx->virtualHardstopEngagementAngle = storedVirtualHardstopEngagementAngle; // put back orig value.
-					}
-				}
-				else
-				{
-					kneeAnkleStateMachine.currentState = STATE_NONLINEAR_STIFF;
-				}
+				kneeAnkleStateMachine.currentState = STATE_NONLINEAR_STIFF;
 
 
 				break;
@@ -1249,9 +1221,12 @@ void setAnkleNonLinearStiff(Act_s *actx, WalkParams *ankleWalkParamx){
 			case STATE_NONLINEAR_STIFF: // 10
 			{
 				// search in lookup tables function here
-				//actx->jointAngleDegrees
 
+				//TODO If this doesn't work, try outputting torque value directly.
+				//NOTE: STATE CHANGE HAPPENS INSIDE THIS FUNCTION
+				ankleWalkParamx->ankleGainsNonLinear.k1 = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine);
 
+				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsNonLinear);
 
 				break;
 			}
@@ -1388,6 +1363,60 @@ void updateStiffnessRampDTheta(Act_s *actx, RampParam *rampParamx)
 	rampParamx->thetaInit = rampParamx->thetaCurrent;
 	rampParamx->kCurrent = rampParamx->kInit * ( actx->jointAngleDegrees -  rampParamx->thetaInit)
 											/ ( actx->jointAngleDegrees -  rampParamx->thetaFinal );
+}
+
+
+float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachine *stateMachine)
+{	// lookup stiffness based on joint angle
+
+	static int16_t ascAngleIndex = 0;
+	static int16_t descAngleIndex = 0;
+	static float stiffnessCurrentVal = 0.0;
+	static int8_t earlyLateFlag = 0;
+
+
+	if(earlyLateFlag == 0)
+	{
+		for(int16_t i = 0; i < TRAJ_SIZE; i++)
+		{
+			if ( ( actx->jointAngleDegrees > ascAngle[i]  ) &&  ( actx->jointAngleDegrees <= ascAngle[TRAJ_MAX_INDEX] ) )
+			{ // values are increasing, so if we get above it we're done.
+				ascAngleIndex = i;
+				i = TRAJ_SIZE; // end loop
+			} else if (actx->jointAngleDegrees >= ascAngle[TRAJ_MAX_INDEX] - TRAJ_ANGLE_END_TOLERANCE )
+			{ // jump into descending mode
+				earlyLateFlag = 1;
+			}
+		}
+	} else if (earlyLateFlag == 1)
+	{
+		for(int16_t i = TRAJ_MAX_INDEX; i >= 0; i--)
+		{
+			if ( ( actx->jointAngleDegrees < descAngle[i]  ) &&  ( actx->jointAngleDegrees >= descAngle[TRAJ_MAX_INDEX] ) )
+			{ // values are increasing, so if we get above it we're done.
+				descAngleIndex = i;
+				i = -1; // end loop
+			} else if (actx->jointAngleDegrees <= ascAngle[0] + TRAJ_ANGLE_END_TOLERANCE )
+			{ // end state
+				earlyLateFlag = 0;
+				stateMachine->currentState = STATE_EARLY_SWING;
+			}
+		}
+	}
+
+
+	if (earlyLateFlag == 0)
+	{
+		stiffnessCurrentVal = ascTorque[ascAngleIndex] / (ascAngle[TRAJ_MAX_INDEX] - ascAngle[ascAngleIndex]);
+		wParams->ankleGainsNonLinear.thetaDes = ascAngle[TRAJ_MAX_INDEX];
+	}
+	else if (earlyLateFlag ==1)
+	{
+		stiffnessCurrentVal = descTorque[descAngleIndex] / ( descAngle[descAngleIndex] - descAngle[0] );
+		wParams->ankleGainsNonLinear.thetaDes = descAngle[0];
+	}
+
+	return stiffnessCurrentVal;
 }
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE

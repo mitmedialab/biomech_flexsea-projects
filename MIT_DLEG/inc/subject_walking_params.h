@@ -53,7 +53,12 @@
 		.biomVirtualHardstopK 					= 10.0,
 		.biomVirtualHardstopB 					= 0.18,
 		.biomAnkleGainsThetaDesEsw         = 0.0,
-		.biomAnkleGainsThetaDesLsw         = 0.0
+		.biomAnkleGainsThetaDesLsw         = 0.0,
+
+		.ankleGainsNonLinear.k1 		= 1.0,
+		.ankleGainsNonLinear.b 			= 0.18,
+		.ankleGainsNonLinear.thetaDes 	= 1.0
+
 	};
 #elif defined(SUBJECT_013)
 	WalkParams subjectAnkleWalkParams =

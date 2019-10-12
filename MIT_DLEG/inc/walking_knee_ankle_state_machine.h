@@ -67,7 +67,9 @@ void setTorqueAnklePassive(Act_s *actx, WalkParams *wParams);
 void setTorqueQuasiPassive(Act_s *act1, WalkParams *wParams);
 void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx);
 void setAnkleTorqueReplay(Act_s *actx, WalkParams *ankleWalkParamx);
-void setAnkleNonLinearStiff(Act_s *actx, WalkParams *ankleWalkParamx);
+void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx);
+float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachine *stateMachine);
+
 
 //****************************************************************************
 // Static Functions:
