@@ -302,6 +302,7 @@ typedef struct walkParams {
 	GainParams ankleGainsLsw;
 	GainParams ankleGainsNonLinear;
 
+	float userMass;
 
 	//biom early stance value
 	float scaleFactor;
