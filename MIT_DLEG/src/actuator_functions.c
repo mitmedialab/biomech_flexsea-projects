@@ -593,6 +593,13 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	float N=0.0, Icalc=0.0;
 	static float DOB = 0.0;
 
+	//Saturation limit on Torque
+	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
+		tauCCombined = ABS_TORQUE_LIMIT_INIT;
+	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
+		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
+	}
+
 
 //	//Angle Limit bumpers
 	actx->tauDes = tauDes;
@@ -623,12 +630,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	tauCCombined = tauC + tauFF + DOB;
 
-	//Saturation limit on Torque
-	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
-		tauCCombined = ABS_TORQUE_LIMIT_INIT;
-	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
-		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
-	}
+
 
 
 	// motor current signal
