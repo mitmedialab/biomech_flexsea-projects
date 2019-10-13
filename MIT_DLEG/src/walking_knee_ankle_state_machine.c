@@ -1400,7 +1400,7 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 	if (nonLinearKParamx->earlyLateFlag == 0)
 	{
 		nonLinearKParamx->stiffnessCurrentVal = fabs( ascTorque[nonLinearKParamx->ascAngleIndex] / (ascAngle[NONL_TRAJ_MAX_INDEX] - ascAngle[nonLinearKParamx->ascAngleIndex]) );
-		wParams->ankleGainsNonLinear.thetaDes = ascAngle[NONL_TRAJ_MAX_INDEX];
+		wParams->ankleGainsNonLinear.thetaDes = ascAngle[0];
 	}
 	else if (nonLinearKParamx->earlyLateFlag ==1)
 	{
