@@ -20,9 +20,9 @@
 		.earlyStanceKF = 0.1,
 		.earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT,
 		.virtualHardstopEngagementAngle = 0.0,	//user_data_1.w[1] = 0	  [deg]
-		.virtualHardstopK				= 6.5,	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
-		.lspEngagementTorque 			= 65.0,	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
-		.lstPGDelTics 					= 50.0,	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
+		.virtualHardstopK				= 8.0,	//user_data_1.w[2] = 650 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
+		.lspEngagementTorque 			= 75.0,	//user_data_1.w[3] = 6500 [Nm]	// What triggers pushoff
+		.lstPGDelTics 					= 20.0,	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
 
 		.ankleGainsEst.k1 				= 1.0,
 		.ankleGainsEst.b 		        = 0.18,
