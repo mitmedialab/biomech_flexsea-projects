@@ -396,6 +396,7 @@ typedef struct nonLinearK {
 	int16_t descAngleIndex;
 	float stiffnessCurrentVal;
 	int8_t earlyLateFlag;
+	float torqueStiff;
 
 } NonLinearK;
 

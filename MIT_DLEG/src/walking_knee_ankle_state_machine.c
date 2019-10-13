@@ -1214,9 +1214,10 @@ void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx, 
 
 				//TODO If this doesn't work, try outputting torque value directly.
 				//NOTE: STATE CHANGE HAPPENS INSIDE THIS FUNCTION
-				ankleWalkParamx->ankleGainsNonLinear.k1 = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine, nonLinearKParamx);
+				//ankleWalkParamx->ankleGainsNonLinear.k1 = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine, nonLinearKParamx);
 
-				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsNonLinear);
+				//actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsNonLinear);
+				actx->tauDes = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine, nonLinearKParamx);
 
 				break;
 			}
@@ -1399,16 +1400,22 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 
 	if (nonLinearKParamx->earlyLateFlag == 0)
 	{
-		nonLinearKParamx->stiffnessCurrentVal = fabs( ascTorque[nonLinearKParamx->ascAngleIndex] / (ascAngle[NONL_TRAJ_MAX_INDEX] - ascAngle[nonLinearKParamx->ascAngleIndex]) );
-		wParams->ankleGainsNonLinear.thetaDes = ascAngle[0];
+		//nonLinearKParamx->stiffnessCurrentVal = fabs( ascTorque[nonLinearKParamx->ascAngleIndex] / (ascAngle[NONL_TRAJ_MAX_INDEX] - ascAngle[nonLinearKParamx->ascAngleIndex]) );
+		//wParams->ankleGainsNonLinear.thetaDes = ascAngle[0];
+
+		// just output torque value
+		nonLinearKParamx->torqueStiff = ascTorque[nonLinearKParamx->ascAngleIndex];
 	}
 	else if (nonLinearKParamx->earlyLateFlag ==1)
 	{
-		nonLinearKParamx->stiffnessCurrentVal = fabs( descTorque[nonLinearKParamx->descAngleIndex] / ( descAngle[nonLinearKParamx->descAngleIndex] - descAngle[0] ) );
-		wParams->ankleGainsNonLinear.thetaDes = descAngle[0];
+		//nonLinearKParamx->stiffnessCurrentVal = fabs( descTorque[nonLinearKParamx->descAngleIndex] / ( descAngle[nonLinearKParamx->descAngleIndex] - descAngle[0] ) );
+		//wParams->ankleGainsNonLinear.thetaDes = descAngle[0];
+		// just output torque value
+		nonLinearKParamx->torqueStiff = descTorque[nonLinearKParamx->descAngleIndex];
 	}
 
-	return nonLinearKParamx->stiffnessCurrentVal;
+	//return nonLinearKParamx->stiffnessCurrentVal;
+	return nonLinearKParamx->torqueStiff;
 }
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
