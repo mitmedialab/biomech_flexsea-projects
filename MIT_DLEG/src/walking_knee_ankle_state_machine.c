@@ -1404,14 +1404,14 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 		//wParams->ankleGainsNonLinear.thetaDes = ascAngle[0];
 
 		// just output torque value
-		nonLinearKParamx->torqueStiff = ascTorque[nonLinearKParamx->ascAngleIndex];
+		nonLinearKParamx->torqueStiff = wParams->userMass * ascTorque[nonLinearKParamx->ascAngleIndex];
 	}
 	else if (nonLinearKParamx->earlyLateFlag ==1)
 	{
 		//nonLinearKParamx->stiffnessCurrentVal = fabs( descTorque[nonLinearKParamx->descAngleIndex] / ( descAngle[nonLinearKParamx->descAngleIndex] - descAngle[0] ) );
 		//wParams->ankleGainsNonLinear.thetaDes = descAngle[0];
 		// just output torque value
-		nonLinearKParamx->torqueStiff = descTorque[nonLinearKParamx->descAngleIndex];
+		nonLinearKParamx->torqueStiff = wParams->userMass * descTorque[nonLinearKParamx->descAngleIndex];
 	}
 
 	//return nonLinearKParamx->stiffnessCurrentVal;
