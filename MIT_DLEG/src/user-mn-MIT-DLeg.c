@@ -189,6 +189,8 @@ void MITDLegFsm1(void)
 					fsm1State = STATE_FIND_POLES;
 				#endif
 				act1.currentOpLimit = CURRENT_LIMIT_INIT;
+				act1.voltageOpLimit = ABS_VOLTAGE_LIMIT;
+
 				onEntry = 1;
 
 				// If Master, enable Comm's, if Slave Do not need to turn it on.
@@ -335,6 +337,7 @@ void MITDLegFsm1(void)
 						case EXP_ANKLE_WALKING_NONLINEAR_K: //6
 						{
 							setAnkleNonLinearStiffWalkingFSM(&act1, ankleWalkParams, &nonLinearKParams);
+							act1.tauDes = act1.safetyTorqueScalar * act1.tauDes;
 							break;
 						}
 
@@ -367,7 +370,8 @@ void MITDLegFsm1(void)
 				// Manually turn on OpenLoop control if necessary
 //				#if !defined(NO_POWER)
 
-					setMotorTorque( &act1, act1.safetyTorqueScalar * act1.tauDes);
+					setMotorTorque( &act1,  act1.tauDes);
+
 //					setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
 //				#endif
 
@@ -1147,7 +1151,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[5] = (int16_t) ( nonLinearKParams.ascAngleIndex			);
 					rigid1.mn.genVar[6] = (int16_t) ( nonLinearKParams.descAngleIndex			);
 					rigid1.mn.genVar[7] = (int16_t) ( nonLinearKParams.earlyLateFlag			);
-					rigid1.mn.genVar[8] = (int16_t) ( nonLinearKParams.earlyLateFlag			);
+					rigid1.mn.genVar[8] = (int16_t) ( 0			);
 
 					break;
 				}
@@ -1158,7 +1162,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					 rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);
 					 rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0);
 					 rigid1.mn.genVar[5] = (int16_t) (0);
-					 rigid1.mn.genVar[6] = (int16_t) (0);
+					 rigid1.mn.genVar[6] = (int16_t) (act1.safetyTorqueScalar);
 					 rigid1.mn.genVar[7] = (int16_t) (experimentTask);
 					 rigid1.mn.genVar[8] = (int16_t) (userWriteMode);
 					break;

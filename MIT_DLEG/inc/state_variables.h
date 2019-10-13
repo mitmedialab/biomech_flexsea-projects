@@ -216,6 +216,7 @@ typedef struct act_s
     int32_t desiredCurrent; // desired current from getMotorCurrent() [mA]
     int32_t desiredVoltage; // desired current from getMotorCurrent() [mV]
     int32_t currentOpLimit; // current throttling limit [mA]
+    int32_t voltageOpLimit; // maximum allowable voltage.
 
     int32_t stanceTimer;	// [cycle counts]
 

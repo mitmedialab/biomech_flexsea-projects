@@ -645,6 +645,14 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 		I = -actx->currentOpLimit;
 	}
 
+	if (V > actx->voltageOpLimit)
+	{
+		V = actx->voltageOpLimit;
+	} else if (V < -actx->voltageOpLimit)
+	{
+		V = -actx->voltageOpLimit;
+	}
+
 	actx->desiredCurrent = I; 	// demanded mA
 	actx->desiredVoltage = V;
 
