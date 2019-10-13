@@ -398,6 +398,7 @@ typedef struct nonLinearK {
 	float stiffnessCurrentVal;
 	int8_t earlyLateFlag;
 	float torqueStiff;
+	int8_t currentWalkingState;
 
 } NonLinearK;
 

@@ -636,9 +636,6 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
 
-	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (VOLTAGE_KT_SCALER * actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
-
-	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
 	{
 		I = actx->currentOpLimit;
@@ -646,6 +643,12 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	{
 		I = -actx->currentOpLimit;
 	}
+
+
+	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (VOLTAGE_KT_SCALER * actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
+
+	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+
 
 	if (V > actx->voltageOpLimit)
 	{

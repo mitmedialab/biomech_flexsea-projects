@@ -1138,7 +1138,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[4] = (int16_t) ( act1.tauDes							*100.0);
                     rigid1.mn.genVar[5] = (int16_t) ( wParams->ankleGainsNonLinear.k1		*100.0	);
 					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsNonLinear.b		*100.0	);
-					rigid1.mn.genVar[7] = (int16_t) ( wParams->ankleGainsNonLinear.thetaDes	*100.0	);
+					rigid1.mn.genVar[7] = (int16_t) ( nonLinearKParams.earlyLateFlag				);
 					rigid1.mn.genVar[8] = (int16_t) ( act1.safetyTorqueScalar	 			*100.0	);
 					break;
 				}

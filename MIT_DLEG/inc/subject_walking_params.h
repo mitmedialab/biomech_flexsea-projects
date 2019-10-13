@@ -64,7 +64,6 @@
 	WalkParams subjectAnkleWalkParams =
 	{
 		.userMass		= 75,			//kg
-
 		.earlyStanceK0 = 6.2,
 		.earlyStanceKF = 0.1,
 		.earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT,

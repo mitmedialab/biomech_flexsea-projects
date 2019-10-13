@@ -1215,10 +1215,15 @@ void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx, 
 				//TODO If this doesn't work, try outputting torque value directly.
 				//NOTE: STATE CHANGE HAPPENS INSIDE THIS FUNCTION
 				//ankleWalkParamx->ankleGainsNonLinear.k1 = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine, nonLinearKParamx);
-
 				//actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsNonLinear);
+
+				//initialize our current state.
+				nonLinearKParamx->currentWalkingState = kneeAnkleStateMachine.currentState;
+
 				actx->tauDes = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine, nonLinearKParamx);
 
+				//update current state from above function.
+				kneeAnkleStateMachine.currentState = nonLinearKParamx->currentWalkingState;
 				break;
 			}
 
@@ -1360,11 +1365,9 @@ void updateStiffnessRampDTheta(Act_s *actx, RampParam *rampParamx)
 float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachine *stateMachine, NonLinearK *nonLinearKParamx)
 {	// lookup stiffness based on joint angle, Joint orientation is Dorsi is (-) angle
 
-	static int16_t ascAngleIndex = 0;
-	static int16_t descAngleIndex = 0;
-//	static float stiffnessCurrentVal = 0.0;
-//	static int8_t earlyLateFlag = 0;
-
+	// reset these indices for each time.
+	nonLinearKParamx->ascAngleIndex = 0;
+	nonLinearKParamx->descAngleIndex = NONL_TRAJ_MAX_INDEX;
 
 	if(nonLinearKParamx->earlyLateFlag == 0)
 	{ // Mid-Stance Controlled Dorsiflexion, going into Powered Plantarflexion,
@@ -1373,7 +1376,6 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 			if ( ( ascAngle[i] < actx->jointAngleDegrees ) &&  ( actx->jointAngleDegrees >= ascAngle[NONL_TRAJ_MAX_INDEX] ) )
 			{ // values are increasing, so if we get above it we're done.
 				nonLinearKParamx->ascAngleIndex = i;
-				ascAngleIndex = i;
 				i = NONL_TRAJ_SIZE; // end loop
 			} else if (actx->jointAngleDegrees <= (ascAngle[NONL_TRAJ_MAX_INDEX] + NONL_TRAJ_ANGLE_END_TOLERANCE) )
 			{ // jump into descending mode
@@ -1392,7 +1394,7 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 			} else if (actx->jointAngleDegrees >= ascAngle[0] - NONL_TRAJ_ANGLE_END_TOLERANCE )
 			{ // end state
 				nonLinearKParamx->earlyLateFlag = 0;
-				stateMachine->currentState = STATE_EARLY_SWING;
+				nonLinearKParamx->currentWalkingState = STATE_EARLY_SWING;
 			}
 		}
 	}
