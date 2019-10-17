@@ -1220,10 +1220,19 @@ void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx, 
 				//initialize our current state.
 				nonLinearKParamx->currentWalkingState = kneeAnkleStateMachine.currentState;
 
-				actx->tauDes = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine, nonLinearKParamx);
+				if ( (actx->jointAngleDegrees > ascAngle[0]) && (nonLinearKParamx->earlyLateFlag == 0) )
+				{ // try to prevent over plantarflexion during thist state.
+					ankleWalkParamx->ankleGainsNonLinear.thetaDes 	= ascAngle[0];
 
-				//update current state from above function.
-				kneeAnkleStateMachine.currentState = nonLinearKParamx->currentWalkingState;
+					actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsNonLinear);
+
+				} else
+				{
+					actx->tauDes = getNonlinearStiffness(actx, ankleWalkParamx, &kneeAnkleStateMachine, nonLinearKParamx);
+
+					//update current state from above function.
+					kneeAnkleStateMachine.currentState = nonLinearKParamx->currentWalkingState;
+				}
 				break;
 			}
 
