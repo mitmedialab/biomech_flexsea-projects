@@ -337,7 +337,7 @@ void MITDLegFsm1(void)
 						case EXP_ANKLE_WALKING_NONLINEAR_K: //6
 						{
 							setAnkleNonLinearStiffWalkingFSM(&act1, ankleWalkParams, &nonLinearKParams);
-							act1.tauDes = act1.safetyTorqueScalar * act1.tauDes;
+//							act1.tauDes = act1.safetyTorqueScalar * act1.tauDes;
 							break;
 						}
 
@@ -736,6 +736,9 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 
 				case USER_INPUT_ANKLE_NONLINEAR_K: //6
 				{//
+
+					user_data_1.w[5]  = (int32_t) (wParams->userMass 						);
+
 
 					user_data_1.w[8]  = (int32_t) (actx->safetyTorqueScalar			* 100.0	);
 					break;
@@ -1136,7 +1139,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 					rigid1.mn.genVar[2] = (int16_t) ( nonLinearKParams.ascAngleIndex			 );
 					rigid1.mn.genVar[3] = (int16_t) ( act1.jointAngleDegrees				*100.);
 					rigid1.mn.genVar[4] = (int16_t) ( act1.tauDes							*100.0);
-                    rigid1.mn.genVar[5] = (int16_t) ( wParams->ankleGainsNonLinear.k1		*100.0	);
+                    rigid1.mn.genVar[5] = (int16_t) ( wParams->userMass							);
 					rigid1.mn.genVar[6] = (int16_t) ( wParams->ankleGainsNonLinear.b		*100.0	);
 					rigid1.mn.genVar[7] = (int16_t) ( nonLinearKParams.earlyLateFlag				);
 					rigid1.mn.genVar[8] = (int16_t) ( act1.safetyTorqueScalar	 			*100.0	);
@@ -1505,8 +1508,8 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 					case USER_INPUT_ANKLE_NONLINEAR_K: //6
 					{//
 
+						wParams->userMass						= ( (float) user_data_1.w[5] );
 						wParams->ankleGainsNonLinear.b			= ( (float) user_data_1.w[6] ) 	/ 100.0;
-
 						actx->safetyTorqueScalar				= ( (float) user_data_1.w[8] ) 	/ 100.0;
 						break;
 					}
