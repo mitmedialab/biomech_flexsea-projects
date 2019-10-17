@@ -1522,7 +1522,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 			{// Testing Actuator Control Parameters
 				switch (userWriteMode)
 				{
-					case EXP_ACT_CONTROL_PARAM_MAIN:
+					case EXP_ACT_CONTROL_PARAM_MAIN: //0
 					{
 						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
 						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;
@@ -1534,7 +1534,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 						actx->controlFF						= ( (float) user_data_1.w[9] ) /100.0;
 						break;
 					}
-					case EXP_ACT_CONTROL_PARAM_SECOND:
+					case EXP_ACT_CONTROL_PARAM_SECOND: //1
 					{
 						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
 						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;
