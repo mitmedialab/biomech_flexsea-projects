@@ -1003,7 +1003,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 
 			break;
 		}
-
 		case EXP_ANKLE_WALKING_TORQUE_REPLAY: //4
 		{ // Replay Torque is same walking as FSM, but replaces stance with Torque Replay
 			rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState);		// Always output state during walking
@@ -1183,7 +1182,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes		*100.0	); 			//
 			rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang - actx->motorPos0); //
 			rigid1.mn.genVar[6] = (int16_t) (act1.desiredCurrent);	 				//
-			rigid1.mn.genVar[7] = (int16_t) (act1.desiredVoltage); 					//
+			rigid1.mn.genVar[7] = (int16_t) (getDeviceIdIncrementing()	); 			// Outputs Device ID, stepping through each number
 			rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); 	//
 			#ifdef IS_KNEE
 				  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
