@@ -156,7 +156,7 @@ void MITDLegFsm1(void)
     fsmTime++;
 
     // Send genVars values to the GUI
-    updateGenVarOutputs(&act1, ankleWalkParams);
+    updateGenVarOutputs(&act1, ankleWalkParams, &act1TestInput);
 
     //begin main FSM
 	switch(fsm1State)
@@ -248,21 +248,21 @@ void MITDLegFsm1(void)
 			/*reserve for additional initialization*/
 
 			//Initialize Filters for Torque Sensing
-			initSoftFIRFilt();	// Initialize software filter
+//			initSoftFIRFilt();	// Initialize software filter
 
-			mitInitOpenController(&act1);		//initialize Open Controller
+//			mitInitOpenController(&act1);		//initialize Open Controller
 //			mitInitCurrentController(&act1);		//initialize Current Controller with gains
 
 
 			//Set userwrites to initial values
-			ankleWalkParams = &subjectAnkleWalkParams;
-			ankleWalkParams->initializedStateMachineVariables = 0;
-			if (!ankleWalkParams->initializedStateMachineVariables){
-
-				initializeUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
-				ankleWalkParams->initializedStateMachineVariables = 1;
-				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
-			}
+//			ankleWalkParams = &subjectAnkleWalkParams;
+//			ankleWalkParams->initializedStateMachineVariables = 0;
+//			if (!ankleWalkParams->initializedStateMachineVariables){
+//
+//				initializeUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
+//				ankleWalkParams->initializedStateMachineVariables = 1;
+//				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
+//			}
 
 			fsm1State = STATE_MAIN;
 			fsmTime = 0;
@@ -274,108 +274,7 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
-				updateUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
 
-
-				//DEBUG removed this because joint encoder can't update in locked state.
-//				if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
-
-					switch (experimentTask)
-					{
-
-						case EXP_ACTUATOR_TESTING://-3
-						{// Testing Actuator Control Parameters
-							setActuatorTestingTorque(&act1, &act1TestInput);//getImpedanceTorque(&act1, act1TestInput.inputK, act1TestInput.inputB, act1TestInput.inputTheta);
-							break;
-						}
-
-						case EXP_IS_SWEEP_CHIRP_TEST://-2
-						{// System ID tests
-							act1.tauDes = getTorqueSystemIDFrequencySweepChirp( &act1TestInput);
-							break;
-						}
-
-						case EXP_ANKLE_PASSIVE: //1
-						{// Simulate just a spring foot
-							setTorqueAnklePassive(&act1, ankleWalkParams);
-							break;
-						}
-						case EXP_ANKLE_WALKING_FSM: //2
-						{// Walking Controller
-//							setKneeAnkleFlatGroundFSM(&act1);
-							setSimpleAnkleFlatGroundFSM(&act1, ankleWalkParams);
-							break;
-						}
-
-						case EXP_ANKLE_WALKING_BIOM_FSM: //3
-						{// Biom controller, limited Dorsiflexion
-							// USES SAME INPUTS AS EXP_ANKLE_WALKING_FSM
-
-							// Set Biom settings to Walking Controller, all else the same.
-							ankleWalkParams->virtualHardstopEngagementAngle = ankleWalkParams->biomVirtualHardstopEngagementAngle;
-							ankleWalkParams->virtualHardstopK				= ankleWalkParams->biomVirtualHardstopK ;
-							ankleWalkParams->ankleGainsEsw.thetaDes			= ankleWalkParams->biomAnkleGainsThetaDesEsw;
-							ankleWalkParams->ankleGainsLsw.thetaDes			= ankleWalkParams->biomAnkleGainsThetaDesLsw;
-
-							setSimpleAnkleFlatGroundFSM(&act1, ankleWalkParams);
-
-							break;
-						}
-						case EXP_ANKLE_WALKING_TORQUE_REPLAY: //4
-						{
-							setAnkleTorqueReplay(&act1, ankleWalkParams);
-							break;
-						}
-
-						case EXP_ANKLE_WALKING_QUASIPASSIVE: //5
-						{// Quasi-passive controller, two springs, one for controlled PF, & one for controlled DF
-							setTorqueQuasiPassive(&act1, ankleWalkParams);
-							act1.tauDes = 0;
-							break;
-						}
-
-						case EXP_ANKLE_WALKING_NONLINEAR_K: //6
-						{
-							setAnkleNonLinearStiffWalkingFSM(&act1, ankleWalkParams, &nonLinearKParams);
-//							act1.tauDes = act1.safetyTorqueScalar * act1.tauDes;
-							break;
-						}
-
-						/****************************************
-						 *  Below here is where user code goes
-						 ****************************************/
-						case EXP_USER_CODE: //0
-						{
-							runMainUserApplication(&act1);
-							act1.tauDes = 0.0;
-							break;
-						}
-						/****************************************
-						 *  Above here is where user code goes
-						 ****************************************/
-						case EXP_RESET_DEVICE: //-99
-						{
-							act1.tauDes = 0.0;
-							fsm1State = STATE_FIND_POLES;
-							break;
-						}
-						default:
-						{
-							// do not update from userwrites
-							act1.tauDes = 0.0;
-						}
-					}
-
-				// Do not command power if we're running a no-power mode.
-				// Manually turn on OpenLoop control if necessary
-//				#if !defined(NO_POWER)
-
-					setMotorTorque( &act1,  act1.tauDes);
-
-//					setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
-//				#endif
-
-				controlTime++;
 
 				break;
 			}
@@ -473,6 +372,74 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 			user_data_1.w[9] =  (int32_t) ( 0 );
 			break;
 		}
+
+		case EXP_ACTUATOR_TESTING: //-3
+		{// Testing Actuator Control Parameters
+
+			switch (userWriteMode)
+			{
+				default:
+				{
+					user_data_1.w[2] = (int32_t) ( 0 );
+					user_data_1.w[3] = (int32_t) ( 0 );
+					user_data_1.w[4] = (int32_t) ( 0 );
+					user_data_1.w[5] = (int32_t) ( actx->torqueKp * 1000.0);
+					user_data_1.w[6] = (int32_t) ( actx->torqueKi * 1000.0);
+					user_data_1.w[7] = (int32_t) ( actx->torqueKd * 1000.0);
+					user_data_1.w[8] = (int32_t) ( 0 );
+					break;
+				}
+				case EXP_ACT_CONTROL_PARAM_DEFAULT: //0
+				{
+					user_data_1.w[2] = (int32_t) ( 0 );
+					user_data_1.w[3] = (int32_t) ( 0 );
+					user_data_1.w[4] = (int32_t) ( 0 );
+					user_data_1.w[5] = (int32_t) ( actx->torqueKp * 1000.0);
+					user_data_1.w[6] = (int32_t) ( actx->torqueKi * 1000.0);
+					user_data_1.w[7] = (int32_t) ( actx->torqueKd * 1000.0);
+					user_data_1.w[8] = (int32_t) ( 0 );
+					break;
+				}
+				case EXP_ACT_CONTROL_PARAM_MAIN: //1
+				{
+					user_data_1.w[2] =  (int32_t) ( act1TestSet->inputTheta	* 100.0	 );
+					user_data_1.w[3] =  (int32_t) ( act1TestSet->inputK		* 100.0	 );
+					user_data_1.w[4] =  (int32_t) ( act1TestSet->inputB		* 100.0	 );
+					user_data_1.w[5] =  (int32_t) ( actx->torqueKp			* 1000.0 );
+					user_data_1.w[6] =  (int32_t) ( actx->torqueKi			* 1000.0 );
+					user_data_1.w[7] =  (int32_t) ( actx->torqueKd			* 1000.0 );
+					user_data_1.w[8] =  (int32_t) ( act1TestSet->inputTorq	* 100.0	 );
+					user_data_1.w[9] =  (int32_t) ( actx->controlFF			* 100.0	 );
+					break;
+				}
+				case EXP_ACT_CONTROL_PARAM_SECOND: //2
+				{
+					user_data_1.w[2] =  (int32_t) ( act1TestSet->inputTheta	* 100.0	 );
+					user_data_1.w[3] =  (int32_t) ( act1TestSet->inputK		* 100.0	 );
+					user_data_1.w[4] =  (int32_t) ( act1TestSet->inputB		* 100.0	 );
+					user_data_1.w[5] =  (int32_t) ( actx->torqueKp			* 1000.0 );
+					user_data_1.w[6] =  (int32_t) ( actx->torqueKi			* 1000.0 );
+					user_data_1.w[7] =  (int32_t) ( actx->torqueKd			* 1000.0 );
+					user_data_1.w[8] =  (int32_t) ( actx->controlFF			* 100.0	 );
+					user_data_1.w[9] =  (int32_t) ( actx->controlScaler		* 100.0	 );
+					break;
+				}
+				case EXP_ACT_CONTROL_PARAM_THIRD: //3
+				{
+					user_data_1.w[2] =  (int32_t) ( act1TestSet->inputTheta	* 100.0	 );
+					user_data_1.w[3] =  (int32_t) ( act1TestSet->inputK		* 100.0	 );
+					user_data_1.w[4] =  (int32_t) ( act1TestSet->inputB		* 100.0	 );
+					user_data_1.w[5] =  (int32_t) ( actx->torqueKp			* 1000.0 );
+					user_data_1.w[6] =  (int32_t) ( actx->torqueKi			* 1000.0 );
+					user_data_1.w[7] =  (int32_t) ( actx->torqueKd			* 1000.0 );
+					user_data_1.w[8] =  (int32_t) ( act1TestSet->inputTorq	* 100.0	 );
+					user_data_1.w[9] =  (int32_t) ( 0 );
+					break;
+				}
+			}
+			break;
+
+		}// end case EXP_ACTUATOR_TESTING
 
 		case EXP_ANKLE_PASSIVE: //1
 		{
@@ -763,53 +730,6 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 			break;
 		}
 
-		case EXP_ACTUATOR_TESTING: //-3
-		{// Testing Actuator Control Parameters
-
-			switch (userWriteMode)
-			{
-				case EXP_ACT_CONTROL_PARAM_MAIN: //0
-				{
-					user_data_1.w[2] =  (int32_t) ( act1TestSet->inputTheta	* 100.0	 );
-					user_data_1.w[3] =  (int32_t) ( act1TestSet->inputK		* 100.0	 );
-					user_data_1.w[4] =  (int32_t) ( act1TestSet->inputB		* 100.0	 );
-					user_data_1.w[5] =  (int32_t) ( actx->torqueKp			* 1000.0 );
-					user_data_1.w[6] =  (int32_t) ( actx->torqueKi			* 1000.0 );
-					user_data_1.w[7] =  (int32_t) ( actx->torqueKd			* 1000.0 );
-					user_data_1.w[8] =  (int32_t) ( act1TestSet->inputTorq	* 100.0	 );
-					user_data_1.w[9] =  (int32_t) ( actx->controlFF			* 100.0	 );
-					break;
-				}
-				case EXP_ACT_CONTROL_PARAM_SECOND: //1
-				{
-					user_data_1.w[2] =  (int32_t) ( act1TestSet->inputTheta	* 100.0	 );
-					user_data_1.w[3] =  (int32_t) ( act1TestSet->inputK		* 100.0	 );
-					user_data_1.w[4] =  (int32_t) ( act1TestSet->inputB		* 100.0	 );
-					user_data_1.w[5] =  (int32_t) ( actx->torqueKp			* 1000.0 );
-					user_data_1.w[6] =  (int32_t) ( actx->torqueKi			* 1000.0 );
-					user_data_1.w[7] =  (int32_t) ( actx->torqueKd			* 1000.0 );
-					user_data_1.w[8] =  (int32_t) ( actx->controlFF			* 100.0	 );
-					user_data_1.w[9] =  (int32_t) ( actx->controlScaler		* 100.0	 );
-					break;
-				}
-				default:
-				{
-					user_data_1.w[2] = (int32_t) ( 0 );
-					user_data_1.w[3] = (int32_t) ( 0 );
-					user_data_1.w[4] = (int32_t) ( 0 );
-					user_data_1.w[5] = (int32_t) ( actx->torqueKp * 1000.0);
-					user_data_1.w[6] = (int32_t) ( actx->torqueKi * 1000.0);
-					user_data_1.w[7] = (int32_t) ( actx->torqueKd * 1000.0);
-					user_data_1.w[8] = (int32_t) ( 0 );
-					break;
-				}
-
-			}
-			break;
-
-		}// end case EXP_ACTUATOR_TESTING
-
-
 
 	}
 
@@ -819,7 +739,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 }
 
 
-void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
+void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet)
 {
 	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 
@@ -827,31 +747,72 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams)
 	{
 		case EXP_ACTUATOR_TESTING: //-3	// Testing Actuator Control Parameters
 		{
-			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);
-			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*10000.);
-			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);
-			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0);
+//			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);
+//			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*10000.);
+//			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);
+//			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0);
 
 			switch(userWriteMode)
 			{
-				case EXP_ACT_CONTROL_PARAM_MAIN: //0
+			case EXP_ACT_CONTROL_PARAM_DEFAULT: //0
+			{
+				rigid1.mn.genVar[1] = (int16_t) ( act1.jointTorque		 * 100.0	);
+				rigid1.mn.genVar[2] = (int16_t) ( act1.jointVel			 * 1000.0	);
+				rigid1.mn.genVar[3] = (int16_t) ( act1.jointAngleDegrees * 100.0	);
+				rigid1.mn.genVar[4] = (int16_t) ( act1.tauDes			 * 100.0	);
+				rigid1.mn.genVar[5] = (int16_t) ( act1.torqueKp			 * 100.0	);
+				rigid1.mn.genVar[6] = (int16_t) ( act1.torqueKi			 * 1000.0	);
+				rigid1.mn.genVar[7] = (int16_t) ( act1.torqueKd			 * 1000.0	);
+				rigid1.mn.genVar[8] = (int16_t) ( act1TestSet->inputTorq			);
+				rigid1.mn.genVar[9] = (int16_t) ( act1.controlFF					);
+				break;
+			}
+			case EXP_ACT_CONTROL_PARAM_MAIN: //1
 				{
-					rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp*1000.0);
-					rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi*1000.0);
-					rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd*1000.0);
-					rigid1.mn.genVar[8] = (int16_t) (act1.desiredCurrent);
-					rigid1.mn.genVar[9] = (int16_t) (act1.desiredVoltage);
+					rigid1.mn.genVar[2] = (int16_t) ( act1TestSet->inputTheta	* 100.0	);
+					rigid1.mn.genVar[3] = (int16_t) ( act1TestSet->inputK		* 100.0	);
+					rigid1.mn.genVar[4] = (int16_t) ( act1TestSet->inputB		* 100.0	);
+					rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp				* 1000.0);
+					rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi				* 1000.0);
+					rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd				* 1000.0);
+					rigid1.mn.genVar[8] = (int16_t) (act1TestSet->inputTorq				);
+					rigid1.mn.genVar[9] = (int16_t) (act1.controlFF						);
 					break;
 				}
-				case EXP_ACT_CONTROL_PARAM_SECOND: //1
+				case EXP_ACT_CONTROL_PARAM_SECOND: //2
 				{
-					rigid1.mn.genVar[6] = (int16_t) (act1.motorAcc);
-					rigid1.mn.genVar[7] = (int16_t) (act1.motCurrDt);
-					rigid1.mn.genVar[8] = (int16_t) (act1.desiredCurrent);
-					rigid1.mn.genVar[9] = (int16_t) (act1.desiredVoltage);
+					rigid1.mn.genVar[2] = (int16_t) ( act1TestSet->inputTheta	* 100.0	);
+					rigid1.mn.genVar[3] = (int16_t) ( act1TestSet->inputK		* 100.0	);
+					rigid1.mn.genVar[4] = (int16_t) ( act1TestSet->inputB		* 100.0	);
+					rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp				* 1000.0);
+					rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi				* 1000.0);
+					rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd				* 1000.0);
+					rigid1.mn.genVar[8] = (int16_t) (act1.controlFF						);
+					rigid1.mn.genVar[9] = (int16_t) (act1.controlScaler					);
+					break;
+				}
+				case EXP_ACT_CONTROL_PARAM_THIRD: //3
+				{
+					rigid1.mn.genVar[2] = (int16_t) ( act1TestSet->inputTheta	* 100.0	);
+					rigid1.mn.genVar[3] = (int16_t) ( act1TestSet->inputK		* 100.0	);
+					rigid1.mn.genVar[4] = (int16_t) ( act1TestSet->inputB		* 100.0	);
+					rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp				* 1000.0);
+					rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi				* 1000.0);
+					rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd				* 1000.0);
+					rigid1.mn.genVar[8] = (int16_t) (act1.desiredVoltage				);
+					rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent				);
 					break;
 				}
 				default:
+					rigid1.mn.genVar[1] = (int16_t) ( act1.jointTorque		 * 100.0	);
+					rigid1.mn.genVar[2] = (int16_t) ( act1.jointVel			 * 1000.0	);
+					rigid1.mn.genVar[3] = (int16_t) ( act1.jointAngleDegrees * 100.0	);
+					rigid1.mn.genVar[4] = (int16_t) ( act1.tauDes			 * 100.0	);
+					rigid1.mn.genVar[5] = (int16_t) ( act1.torqueKp			 * 100.0	);
+					rigid1.mn.genVar[6] = (int16_t) ( act1.torqueKi			 * 1000.0	);
+					rigid1.mn.genVar[7] = (int16_t) ( act1.torqueKd			 * 1000.0	);
+					rigid1.mn.genVar[8] = (int16_t) ( act1TestSet->inputTorq			);
+					rigid1.mn.genVar[9] = (int16_t) ( act1.desiredVoltage				);
 					break;
 			}
 			break;
@@ -1524,7 +1485,19 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 			{// Testing Actuator Control Parameters
 				switch (userWriteMode)
 				{
-					case EXP_ACT_CONTROL_PARAM_MAIN: //0
+					case EXP_ACT_CONTROL_PARAM_DEFAULT: //0
+					{
+//						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
+//						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;
+//						act1TestSet->inputB					= ( (float) user_data_1.w[4] ) /100.0;
+						actx->torqueKp						= ( (float) user_data_1.w[5] ) /1000.0;
+						actx->torqueKi						= ( (float) user_data_1.w[6] ) /1000.0;
+						actx->torqueKd						= ( (float) user_data_1.w[7] ) /1000.0;
+//						act1TestSet->inputTorq				= ( (float) user_data_1.w[8] ) /100.0;
+//						actx->controlFF						= ( (float) user_data_1.w[9] ) /100.0;
+						break;
+					}
+					case EXP_ACT_CONTROL_PARAM_MAIN: //1
 					{
 						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
 						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;
@@ -1536,7 +1509,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 						actx->controlFF						= ( (float) user_data_1.w[9] ) /100.0;
 						break;
 					}
-					case EXP_ACT_CONTROL_PARAM_SECOND: //1
+					case EXP_ACT_CONTROL_PARAM_SECOND: //2
 					{
 						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
 						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;
@@ -1548,6 +1521,19 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 						actx->controlScaler					= ( (float) user_data_1.w[9] ) /100.0;
 						break;
 					}
+					case EXP_ACT_CONTROL_PARAM_THIRD: //3
+					{
+						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
+						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;
+						act1TestSet->inputB					= ( (float) user_data_1.w[4] ) /100.0;
+						actx->torqueKp						= ( (float) user_data_1.w[5] ) /1000.0;
+						actx->torqueKi						= ( (float) user_data_1.w[6] ) /1000.0;
+						actx->torqueKd						= ( (float) user_data_1.w[7] ) /1000.0;
+						act1TestSet->inputTorq				= ( (float) user_data_1.w[8] ) /100.0;
+//						actx->controlFF						= ( (float) user_data_1.w[9] ) /100.0;
+						break;
+					}
+
 					default:
 					{
 						break;

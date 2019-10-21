@@ -665,8 +665,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
-//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+//	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
 #endif
 
