@@ -36,7 +36,6 @@ extern "C" {
 //#define DEVICE_TF08_A02		// Define specific actuator configuration.
 //#define DEVICE_TF08_A03		// Define specific actuator configuration.
 #define DEVICE_TF08_A04		// Define specific actuator configuration.
-//#define PATCH_CURRENT		// Patched board with Increased Current Sensing, reqs differnt gains on Current control
 //#define DEVICE_M14			// Standalone motor for testbench
 //#define DEVICE_M15			// Standalone motor for testbench
 //#define DEVICE_M16			// Standalone motor for testbench
@@ -54,6 +53,8 @@ extern "C" {
 //6. Specify User Walking Parameters (if applicable)
 //#define SUBJECT_012
 #define SUBJECT_002
+//#define SUBJECT_DEMO
+
 
 //****************************************************************************
 // Structure(s):
