@@ -32,8 +32,11 @@ int actuatorIsCorrect();
 int16_t getDeviceIdIncrementing();
 void checkSafeties(Act_s *actx);
 void handleSafetyConditions(Act_s *actx); //renamed from safetyFailure(void)
+void handleSafetyConditionsMinimal(Act_s *actx); //renamed from safetyFailure(void)
+
 int16_t getSafetyFlags(void);
 
+void setMotorMode(int8_t mode);
 
 void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status);
 void clearLEDStatus(void);

@@ -531,22 +531,29 @@ float actuateAngleLimits(Act_s *actx){
 
 	// apply unidirectional spring
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
-
-		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+		thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+//		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
 //		tauK = JOINT_SOFT_K * (thetaDelta);
-//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
-
 		tauK = jointLimitK * (thetaDelta);
-//		tauB = -jointLimitB * (actx->jointVelDegrees);
+
+		if (actx->jointVelDegrees < 0)
+		{
+			//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+			tauB = -jointLimitB * (actx->jointVelDegrees);
+		}
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
+		thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
 
-		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
+//		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
 //		tauK = JOINT_SOFT_K * (thetaDelta);
-//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
-
 		tauK = jointLimitK * (thetaDelta);
-//		tauB = -jointLimitB * (actx->jointVelDegrees);
+
+		if (actx->jointVelDegrees > 0)
+		{
+	//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+			tauB = -jointLimitB * (actx->jointVelDegrees);
+		}
 
 	} else
 	{

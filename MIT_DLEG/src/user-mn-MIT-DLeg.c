@@ -240,6 +240,7 @@ void MITDLegFsm1(void)
 				fsmTime = 0;
 				onEntry = 1;
 				zeroLoadCell = 0;
+				setMotorMode(MODE_ENABLED);
 			}
 			break;
 
@@ -278,7 +279,8 @@ void MITDLegFsm1(void)
 
 
                 //DEBUG removed this because joint encoder can't update in locked state.
-//                if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
+                if (getMotorMode() == MODE_ENABLED )
+                {
 
                     switch (experimentTask)
                     {
@@ -374,7 +376,11 @@ void MITDLegFsm1(void)
 
 //                    setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
 //                #endif
-
+                }
+                else
+                {
+                	handleSafetyConditionsMinimal(&act1);
+                }
                 controlTime++;
 
 

@@ -346,6 +346,10 @@ int8_t getMotorMode(void){
 	return motorMode;
 }
 
+void setMotorMode(int8_t mode){
+	motorMode = mode;
+}
+
 /*
  *  Gets the current safety conditions for the system
  *  Return: errorConditions(int8_t) - integer value representing the current safety conditions for the system
@@ -527,5 +531,61 @@ void handleSafetyConditions(Act_s *actx) {
 #endif // NO_DEVICE || NO_ACTUATOR
 }
 
+/*
+ * Check for safety flags, and act on them.
+ * Param: actx(Act_s) - Actuator structure to track sensor values
+ * todo: come up with correct strategies to deal with flags, include thermal limits also
+ */
+void handleSafetyConditionsMinimal(Act_s *actx) {
 
+	static int8_t lastMotorMode = MODE_ENABLED;
+
+#if defined(NO_DEVICE) || defined(NO_ACTUATOR)
+#else
+
+	//TODO: get LEDS working
+	if (errorConditions[WARNING_TORQUE_MEASURED] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0); //flashing yellow
+	}
+
+	if (errorConditions[WARNING_JOINTANGLE_SOFT] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0);//flashing yellow
+	}
+
+	if (errorConditions[WARNING_BATTERY_VOLTAGE] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0);//flashing yellow (TODO LED function is not working)
+	}
+
+	if (errorConditions[ERROR_PCB_THERMO] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0);//flashing yellow
+	}
+
+	if (errorConditions[ERROR_JOINTANGLE_HARD] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0);//flashing yellow
+		setMotorMode(MODE_DISABLED);
+	}
+
+
+	switch (motorMode){
+		case MODE_DISABLED:
+		{
+			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
+			disableMotor();
+			break;
+		}
+		case MODE_ENABLED:
+		{
+			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
+			{
+				setMotorMode(MODE_ENABLED);
+				mitInitCurrentController(actx);
+
+			}
+			break;
+		}
+	}
+	lastMotorMode = motorMode;
+
+#endif // NO_DEVICE || NO_ACTUATOR
+}
 
