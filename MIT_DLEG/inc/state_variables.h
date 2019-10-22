@@ -6,7 +6,6 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include <torque_replay.h>
 
 
 //Joint Type: activate one of these for joint limit angles.
@@ -33,10 +32,11 @@ extern "C" {
 // set SUBPROJECT_B <- Don't forget to set this for the ankle if using Knee, ankle is slave
 
 //3. Select device
-//#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-//#define DEVICE_TF08_A02		// Define specific actuator configuration. Knee 01
-#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
-//#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
+//#define DEVICE_TF08_A01			// Define specific actuator configuration.
+//#define DEVICE_TF08_A02		// Define specific actuator configuration.
+//#define DEVICE_TF08_A03		// Define specific actuator configuration.
+#define DEVICE_TF08_A04		// Define specific actuator configuration.
+//#define PATCH_CURRENT		// Patched board with Increased Current Sensing, reqs differnt gains on Current control
 //#define DEVICE_M14			// Standalone motor for testbench
 //#define DEVICE_M15			// Standalone motor for testbench
 //#define DEVICE_M16			// Standalone motor for testbench
@@ -52,7 +52,8 @@ extern "C" {
 //#define USE_EMG
 
 //6. Specify User Walking Parameters (if applicable)
-#define SUBJECT_012
+//#define SUBJECT_012
+#define SUBJECT_002
 
 //****************************************************************************
 // Structure(s):
@@ -76,7 +77,9 @@ enum walkingStateModes{
 	STATE_STANDING_UNLOADED = 6,
 
 	STATE_EMG_STAND_ON_TOE = 7,
-    STATE_LSW_EMG = 8
+    STATE_LSW_EMG = 8,
+	STATE_TORQUE_REPLAY = 9,
+	STATE_NONLINEAR_STIFF = 10
 };
 
 enum guiExperimentMode{
@@ -95,7 +98,9 @@ enum guiExperimentMode{
 	EXP_ANKLE_WALKING_BIOM_FSM 		= 3,	// SIMULATE A BIOM WITH NO DORSIFLEXION
 	EXP_ANKLE_WALKING_TORQUE_REPLAY = 4,		// REPLAY TORQUE
 	EXP_ANKLE_WALKING_QUASIPASSIVE 	= 5,	// QUASI-PASSIVE (TWO SPRING) MODE
-	EXP_KNEE_WALKING_FSM			= 6 	// NOT IN USE RIGHT NOW.
+	EXP_ANKLE_WALKING_NONLINEAR_K 	= 6,	// NONLINEAR STIFFNESS, BIOINSPIRED REPLAY MODE
+	EXP_KNEE_WALKING_FSM			= 7 	// NOT IN USE RIGHT NOW.
+
 };
 
 enum guiWalkingParameterVariableUpdates{
@@ -106,13 +111,18 @@ enum guiWalkingParameterVariableUpdates{
 	USER_INPUT_ANKLE_ORIGINAL		= 1,
 	USER_INPUT_ANKLE_IMPEDANCE		= 2,
 	USER_INPUT_ANKLE_STANCE			= 3,
-	USER_INPUT_ANKLE_SWING			= 4
+	USER_INPUT_ANKLE_SWING			= 4,
+	USER_INPUT_ANKLE_TORQUE_REPLAY  = 5,
+	USER_INPUT_ANKLE_NONLINEAR_K	= 6,
+	USER_INPUT_ANKLE_NONLINEAR_K1	= 7
 
 };
 
 enum guiActuatorTestingVariableUpdates{
-	EXP_ACT_CONTROL_PARAM_MAIN		= 0,
-	EXP_ACT_CONTROL_PARAM_SECOND	= 1
+	EXP_ACT_CONTROL_PARAM_DEFAULT	= 0,
+	EXP_ACT_CONTROL_PARAM_MAIN		= 1,
+	EXP_ACT_CONTROL_PARAM_SECOND	= 2,
+	EXP_ACT_CONTROL_PARAM_THIRD		= 3
 };
 
 
@@ -209,6 +219,7 @@ typedef struct act_s
     int32_t desiredCurrent; // desired current from getMotorCurrent() [mA]
     int32_t desiredVoltage; // desired current from getMotorCurrent() [mV]
     int32_t currentOpLimit; // current throttling limit [mA]
+    int32_t voltageOpLimit; // maximum allowable voltage.
 
     int32_t stanceTimer;	// [cycle counts]
 
@@ -292,7 +303,9 @@ typedef struct walkParams {
 	GainParams ankleGainsLst;
 	GainParams ankleGainsEsw;
 	GainParams ankleGainsLsw;
+	GainParams ankleGainsNonLinear;
 
+	float userMass;
 
 	//biom early stance value
 	float scaleFactor;
@@ -364,6 +377,7 @@ typedef struct actTestSettings {
 // torque replay variables
 typedef struct TorqueRep{
 	float tauDes;
+	float tauDesPlot;
 	float time_stance;
 	float standard_stance_period;
 	float previous_stance_period;
@@ -373,12 +387,23 @@ typedef struct TorqueRep{
 	float speedFactor;
 	float percent;
 	float torqueScalingFactor;	// User defined scaling value
-	float torque_traj_mscaled[TRAJ_SIZE];
+	//float torque_traj_mscaled[TRAJ_SIZE];
 	int16_t index;
 	int8_t entry_replay;	// Turns off first time torque replay is working.
 	int8_t begin;
 } TorqueRep;
 
+
+// nonlinear K control
+typedef struct nonLinearK {
+	int16_t ascAngleIndex;
+	int16_t descAngleIndex;
+	float stiffnessCurrentVal;
+	int8_t earlyLateFlag;
+	float torqueStiff;
+	int8_t currentWalkingState;
+
+} NonLinearK;
 
 //****************************************************************************
 // Shared variable(s)

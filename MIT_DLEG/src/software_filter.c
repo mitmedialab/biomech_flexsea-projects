@@ -437,6 +437,34 @@
 		}
 	#endif //end 15Hz
 
+/*  lpFilt = designfilt('lowpassiir','FilterOrder',2, ...
+			 'PassbandFrequency',15,'PassbandRipple',0.1, ...
+			 'SampleRate',1000);
+			[b,a] = tf(lpFilt)
+			[z p k ] = zpk(lpFilt)
+			fvtool(lpFilt)
+			M = idpoly(a,b,'NoiseVariance',0)
+		   Cutoff = 15Hz, 2nd order, 0.1 ripple, Butterworth filter, Sampling at 1000Hz
+		*/
+
+
+	float filterAccelButterworth15Hz(float value)
+	{
+		#define NTZEROS 2
+		#define NTPOLES 2
+
+		static float xvT[NTZEROS+1], yvT[NTPOLES+1];
+
+		xvT[0] = xvT[1];
+		xvT[1] = xvT[2];
+		xvT[2] = value;
+		yvT[0] = yvT[1];
+		yvT[1] = yvT[2];
+		yvT[2] = 1.77374445515908*yvT[1] - 0.800084509789504*yvT[0] + 0.00650963562958534*xvT[2] + 0.0130192712591707*xvT[1] + 0.00650963562958534*xvT[0];
+		return yvT[2];
+	}
+
+
 		//fc=15hz
 	float filterTorqueEncButterworth(float inputVal)
 	{

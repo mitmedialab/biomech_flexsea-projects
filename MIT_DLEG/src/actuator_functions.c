@@ -531,22 +531,29 @@ float actuateAngleLimits(Act_s *actx){
 
 	// apply unidirectional spring
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
-
-		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+		thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+//		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
 //		tauK = JOINT_SOFT_K * (thetaDelta);
-//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
-
 		tauK = jointLimitK * (thetaDelta);
-//		tauB = -jointLimitB * (actx->jointVelDegrees);
+
+		if (actx->jointVelDegrees < 0)
+		{
+			//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+			tauB = -jointLimitB * (actx->jointVelDegrees);
+		}
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
+		thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
 
-		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
+//		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
 //		tauK = JOINT_SOFT_K * (thetaDelta);
-//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
-
 		tauK = jointLimitK * (thetaDelta);
-//		tauB = -jointLimitB * (actx->jointVelDegrees);
+
+		if (actx->jointVelDegrees > 0)
+		{
+	//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+			tauB = -jointLimitB * (actx->jointVelDegrees);
+		}
 
 	} else
 	{
@@ -594,11 +601,12 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	static float DOB = 0.0;
 
 	//Saturation limit on Torque
-	if (tauDes > ABS_TORQUE_LIMIT_INIT) {
-		tauDes = ABS_TORQUE_LIMIT_INIT;
-	} else if (tauDes < -ABS_TORQUE_LIMIT_INIT) {
-		tauDes = -ABS_TORQUE_LIMIT_INIT;
+	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
+		tauCCombined = ABS_TORQUE_LIMIT_INIT;
+	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
+		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
 	}
+
 
 //	//Angle Limit bumpers
 	actx->tauDes = tauDes;
@@ -615,7 +623,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	// Feed Forward term
 //	tauFF = getFeedForwardTerm(refTorque);
 	tauFF = refTorque;
-	float tauFFMotor = -(MOT_J * actx->motorAcc); // Compensate rotor inertia.
+//	float tauFFMotor = -(MOT_J * actx->motorAcc); // Compensate rotor inertia.
+	float tauFFMotor = 0.0;
 
 	// Compensator
 	//PID around joint torque
@@ -629,14 +638,14 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	tauCCombined = tauC + tauFF + DOB;
 
+
+
+
 	// motor current signal
 	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/N) + tauFFMotor ) );	// Reflect torques to Motor level
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
 
-	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (VOLTAGE_KT_SCALER * actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
-
-	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
 	{
 		I = actx->currentOpLimit;
@@ -645,13 +654,27 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 		I = -actx->currentOpLimit;
 	}
 
+
+	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (VOLTAGE_KT_SCALER * actx->motorVel * MOT_KT) )  );//+ (actx->motCurrDt * MOT_L) );
+
+	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+
+
+//	if (V > actx->voltageOpLimit)
+//	{
+//		V = actx->voltageOpLimit;
+//	} else if (V < -actx->voltageOpLimit)
+//	{
+//		V = -actx->voltageOpLimit;
+//	}
+
 	actx->desiredCurrent = I; 	// demanded mA
 	actx->desiredVoltage = V;
 
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
-//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+//	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
 #endif
 
@@ -1611,7 +1634,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; // [rad]
 	actx->motorVel =  ( (float) *rigid1.ex.enc_ang_vel ) * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
-
+	actx->motorAcc = filterAccelButterworth15Hz(actx->motorAcc);
 
 	actx->regTemp = rigid1.re.temp;
 	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
