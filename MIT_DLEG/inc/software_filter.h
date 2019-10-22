@@ -70,6 +70,8 @@ float filterMotorCommandButterworth(float inputVal);
 float testingFilter(float input);
 float testingVelFilter(float input);
 
+float filterAccelButterworth15Hz(float value);
+
 //****************************************************************************
 // Definition(s):
 //****************************************************************************

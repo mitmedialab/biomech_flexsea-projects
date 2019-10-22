@@ -248,21 +248,21 @@ void MITDLegFsm1(void)
 			/*reserve for additional initialization*/
 
 			//Initialize Filters for Torque Sensing
-//			initSoftFIRFilt();	// Initialize software filter
+			initSoftFIRFilt();	// Initialize software filter
 
 //			mitInitOpenController(&act1);		//initialize Open Controller
-//			mitInitCurrentController(&act1);		//initialize Current Controller with gains
+			mitInitCurrentController(&act1);		//initialize Current Controller with gains
 
 
 			//Set userwrites to initial values
-//			ankleWalkParams = &subjectAnkleWalkParams;
-//			ankleWalkParams->initializedStateMachineVariables = 0;
-//			if (!ankleWalkParams->initializedStateMachineVariables){
-//
-//				initializeUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
-//				ankleWalkParams->initializedStateMachineVariables = 1;
-//				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
-//			}
+			ankleWalkParams = &subjectAnkleWalkParams;
+			ankleWalkParams->initializedStateMachineVariables = 0;
+			if (!ankleWalkParams->initializedStateMachineVariables){
+
+				initializeUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
+				ankleWalkParams->initializedStateMachineVariables = 1;
+				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
+			}
 
 			fsm1State = STATE_MAIN;
 			fsmTime = 0;
@@ -274,6 +274,108 @@ void MITDLegFsm1(void)
 
 		case STATE_MAIN:
 			{
+                updateUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
+
+
+                //DEBUG removed this because joint encoder can't update in locked state.
+//                if (getMotorMode() == MODE_ENABLED || getMotorMode() == MODE_OVERTEMP ){
+
+                    switch (experimentTask)
+                    {
+
+                        case EXP_ACTUATOR_TESTING://-3
+                        {// Testing Actuator Control Parameters
+                            setActuatorTestingTorque(&act1, &act1TestInput);//getImpedanceTorque(&act1, act1TestInput.inputK, act1TestInput.inputB, act1TestInput.inputTheta);
+                            break;
+                        }
+
+                        case EXP_IS_SWEEP_CHIRP_TEST://-2
+                        {// System ID tests
+                            act1.tauDes = getTorqueSystemIDFrequencySweepChirp( &act1TestInput);
+                            break;
+                        }
+
+                        case EXP_ANKLE_PASSIVE: //1
+                        {// Simulate just a spring foot
+                            setTorqueAnklePassive(&act1, ankleWalkParams);
+                            break;
+                        }
+                        case EXP_ANKLE_WALKING_FSM: //2
+                        {// Walking Controller
+//                            setKneeAnkleFlatGroundFSM(&act1);
+                            setSimpleAnkleFlatGroundFSM(&act1, ankleWalkParams);
+                            break;
+                        }
+
+                        case EXP_ANKLE_WALKING_BIOM_FSM: //3
+                        {// Biom controller, limited Dorsiflexion
+                            // USES SAME INPUTS AS EXP_ANKLE_WALKING_FSM
+
+                            // Set Biom settings to Walking Controller, all else the same.
+                            ankleWalkParams->virtualHardstopEngagementAngle = ankleWalkParams->biomVirtualHardstopEngagementAngle;
+                            ankleWalkParams->virtualHardstopK                = ankleWalkParams->biomVirtualHardstopK ;
+                            ankleWalkParams->ankleGainsEsw.thetaDes            = ankleWalkParams->biomAnkleGainsThetaDesEsw;
+                            ankleWalkParams->ankleGainsLsw.thetaDes            = ankleWalkParams->biomAnkleGainsThetaDesLsw;
+
+                            setSimpleAnkleFlatGroundFSM(&act1, ankleWalkParams);
+
+                            break;
+                        }
+                        case EXP_ANKLE_WALKING_TORQUE_REPLAY: //4
+                        {
+                            setAnkleTorqueReplay(&act1, ankleWalkParams);
+                            break;
+                        }
+
+                        case EXP_ANKLE_WALKING_QUASIPASSIVE: //5
+                        {// Quasi-passive controller, two springs, one for controlled PF, & one for controlled DF
+                            setTorqueQuasiPassive(&act1, ankleWalkParams);
+                            act1.tauDes = 0;
+                            break;
+                        }
+
+                        case EXP_ANKLE_WALKING_NONLINEAR_K: //6
+                        {
+                            setAnkleNonLinearStiffWalkingFSM(&act1, ankleWalkParams, &nonLinearKParams);
+//                            act1.tauDes = act1.safetyTorqueScalar * act1.tauDes;
+                            break;
+                        }
+
+                        /****************************************
+                         *  Below here is where user code goes
+                         ****************************************/
+                        case EXP_USER_CODE: //0
+                        {
+                            runMainUserApplication(&act1);
+                            act1.tauDes = 0.0;
+                            break;
+                        }
+                        /****************************************
+                         *  Above here is where user code goes
+                         ****************************************/
+                        case EXP_RESET_DEVICE: //-99
+                        {
+                            act1.tauDes = 0.0;
+                            fsm1State = STATE_FIND_POLES;
+                            break;
+                        }
+                        default:
+                        {
+                            // do not update from userwrites
+                            act1.tauDes = 0.0;
+                        }
+                    }
+
+                // Do not command power if we're running a no-power mode.
+                // Manually turn on OpenLoop control if necessary
+//                #if !defined(NO_POWER)
+
+                    setMotorTorque( &act1,  act1.tauDes);
+
+//                    setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
+//                #endif
+
+                controlTime++;
 
 
 				break;
@@ -760,7 +862,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 				rigid1.mn.genVar[2] = (int16_t) ( act1.jointVel			 * 1000.0	);
 				rigid1.mn.genVar[3] = (int16_t) ( act1.jointAngleDegrees * 100.0	);
 				rigid1.mn.genVar[4] = (int16_t) ( act1.tauDes			 * 100.0	);
-				rigid1.mn.genVar[5] = (int16_t) ( act1.torqueKp			 * 100.0	);
+				rigid1.mn.genVar[5] = (int16_t) ( act1.torqueKp			 * 1000.0	);
 				rigid1.mn.genVar[6] = (int16_t) ( act1.torqueKi			 * 1000.0	);
 				rigid1.mn.genVar[7] = (int16_t) ( act1.torqueKd			 * 1000.0	);
 				rigid1.mn.genVar[8] = (int16_t) ( act1TestSet->inputTorq			);
@@ -775,7 +877,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 					rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp				* 1000.0);
 					rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi				* 1000.0);
 					rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd				* 1000.0);
-					rigid1.mn.genVar[8] = (int16_t) (act1TestSet->inputTorq				);
+					rigid1.mn.genVar[8] = (int16_t) (act1TestSet->inputTorq		* 100.0	);
 					rigid1.mn.genVar[9] = (int16_t) (act1.controlFF						);
 					break;
 				}
@@ -811,7 +913,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 					rigid1.mn.genVar[5] = (int16_t) ( act1.torqueKp			 * 100.0	);
 					rigid1.mn.genVar[6] = (int16_t) ( act1.torqueKi			 * 1000.0	);
 					rigid1.mn.genVar[7] = (int16_t) ( act1.torqueKd			 * 1000.0	);
-					rigid1.mn.genVar[8] = (int16_t) ( act1TestSet->inputTorq			);
+					rigid1.mn.genVar[8] = (int16_t) ( act1TestSet->inputTorq * 100.0	);
 					rigid1.mn.genVar[9] = (int16_t) ( act1.desiredVoltage				);
 					break;
 			}
@@ -1487,14 +1589,14 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 				{
 					case EXP_ACT_CONTROL_PARAM_DEFAULT: //0
 					{
-//						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
-//						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;
-//						act1TestSet->inputB					= ( (float) user_data_1.w[4] ) /100.0;
+						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
+						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;
+						act1TestSet->inputB					= ( (float) user_data_1.w[4] ) /100.0;
 						actx->torqueKp						= ( (float) user_data_1.w[5] ) /1000.0;
 						actx->torqueKi						= ( (float) user_data_1.w[6] ) /1000.0;
 						actx->torqueKd						= ( (float) user_data_1.w[7] ) /1000.0;
-//						act1TestSet->inputTorq				= ( (float) user_data_1.w[8] ) /100.0;
-//						actx->controlFF						= ( (float) user_data_1.w[9] ) /100.0;
+						act1TestSet->inputTorq				= ( (float) user_data_1.w[8] ) /100.0;
+						actx->controlFF						= ( (float) user_data_1.w[9] ) /100.0;
 						break;
 					}
 					case EXP_ACT_CONTROL_PARAM_MAIN: //1

@@ -616,7 +616,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	// Feed Forward term
 //	tauFF = getFeedForwardTerm(refTorque);
 	tauFF = refTorque;
-	float tauFFMotor = -(MOT_J * actx->motorAcc); // Compensate rotor inertia.
+//	float tauFFMotor = -(MOT_J * actx->motorAcc); // Compensate rotor inertia.
+	float tauFFMotor = 0.0;
 
 	// Compensator
 	//PID around joint torque
@@ -1626,7 +1627,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; // [rad]
 	actx->motorVel =  ( (float) *rigid1.ex.enc_ang_vel ) * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
-
+	actx->motorAcc = filterAccelButterworth15Hz(actx->motorAcc);
 
 	actx->regTemp = rigid1.re.temp;
 	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
