@@ -188,8 +188,7 @@ void MITDLegFsm1(void)
 				#else
 					fsm1State = STATE_FIND_POLES;
 				#endif
-				act1.currentOpLimit = CURRENT_LIMIT_INIT;
-				act1.voltageOpLimit = ABS_VOLTAGE_LIMIT;
+
 
 				onEntry = 1;
 
@@ -533,6 +532,18 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 					break;
 				}
 				case EXP_ACT_CONTROL_PARAM_THIRD: //3
+				{
+					user_data_1.w[2] =  (int32_t) ( act1TestSet->inputTheta	* 100.0	 );
+					user_data_1.w[3] =  (int32_t) ( act1TestSet->inputK		* 100.0	 );
+					user_data_1.w[4] =  (int32_t) ( act1TestSet->inputB		* 100.0	 );
+					user_data_1.w[5] =  (int32_t) ( actx->torqueKp			* 1000.0 );
+					user_data_1.w[6] =  (int32_t) ( actx->torqueKi			* 1000.0 );
+					user_data_1.w[7] =  (int32_t) ( actx->torqueKd			* 1000.0 );
+					user_data_1.w[8] =  (int32_t) ( act1TestSet->inputTorq	* 100.0	 );
+					user_data_1.w[9] =  (int32_t) ( 0 );
+					break;
+				}
+				case EXP_ACT_CONTROL_PARAM_VOLTAGE: //4
 				{
 					user_data_1.w[2] =  (int32_t) ( act1TestSet->inputTheta	* 100.0	 );
 					user_data_1.w[3] =  (int32_t) ( act1TestSet->inputK		* 100.0	 );
@@ -909,6 +920,19 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 					rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd				* 1000.0);
 					rigid1.mn.genVar[8] = (int16_t) (act1.desiredVoltage				);
 					rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent				);
+					break;
+				}
+				case EXP_ACT_CONTROL_PARAM_VOLTAGE: //4
+				{
+					rigid1.mn.genVar[1] = (int16_t) ( act1.jointTorque		 * 100.0	);
+					rigid1.mn.genVar[2] = (int16_t) ( act1.jointVel			 * 1000.0	);
+					rigid1.mn.genVar[3] = (int16_t) ( act1.jointAngleDegrees * 100.0	);
+					rigid1.mn.genVar[4] = (int16_t) ( act1.tauDes			 * 100.0	);
+					rigid1.mn.genVar[5] = (int16_t) ( act1.torqueKp			 * 1000.0	);
+					rigid1.mn.genVar[6] = (int16_t) ( act1.torqueKi			 * 1000.0	);
+					rigid1.mn.genVar[7] = (int16_t) ( act1.torqueKd			 * 1000.0	);
+					rigid1.mn.genVar[8] = (int16_t) ( act1TestSet->inputTorq			);
+					rigid1.mn.genVar[9] = (int16_t) ( 1					);
 					break;
 				}
 				default:
@@ -1290,7 +1314,19 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 
 	if (!actx->initializedSettings)
 	{
+//		if (experimentTask == EXP_ACTUATOR_TESTING)
+//		{
+//			if(userWriteMode == EXP_ACT_CONTROL_PARAM_VOLTAGE)
+//			{
+//				mitInitOpenController(actx);
+//			}
+//			else
+//			{
+//				mitInitCurrentController(actx);
+//			}
+//		}
 		initializeUserWrites(actx, wParams, act1TestSet, torqueRep);
+
 	}
 	else
 	{
@@ -1630,6 +1666,18 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 						break;
 					}
 					case EXP_ACT_CONTROL_PARAM_THIRD: //3
+					{
+						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
+						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;
+						act1TestSet->inputB					= ( (float) user_data_1.w[4] ) /100.0;
+						actx->torqueKp						= ( (float) user_data_1.w[5] ) /1000.0;
+						actx->torqueKi						= ( (float) user_data_1.w[6] ) /1000.0;
+						actx->torqueKd						= ( (float) user_data_1.w[7] ) /1000.0;
+						act1TestSet->inputTorq				= ( (float) user_data_1.w[8] ) /100.0;
+//						actx->controlFF						= ( (float) user_data_1.w[9] ) /100.0;
+						break;
+					}
+					case EXP_ACT_CONTROL_PARAM_VOLTAGE: //4
 					{
 						act1TestSet->inputTheta				= ( (float) user_data_1.w[2] ) /100.0;
 						act1TestSet->inputK					= ( (float) user_data_1.w[3] ) /100.0;

@@ -638,13 +638,10 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	tauCCombined = tauC + tauFF + DOB;
 
-
-
-
 	// motor current signal
 	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/N) + tauFFMotor ) );	// Reflect torques to Motor level
 
-	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
+	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST );
 
 	if (I > actx->currentOpLimit)
 	{
@@ -1183,6 +1180,7 @@ float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet
  */
 void mitInitCurrentController(Act_s *actx) {
 
+	actx->tauDes   = 0.0;
 	actx->torqueKp = CURRENT_TORQ_KP_INIT;
 	actx->torqueKi = CURRENT_TORQ_KI_INIT;
 	actx->torqueKd = CURRENT_TORQ_KD_INIT;
@@ -1195,12 +1193,14 @@ void mitInitCurrentController(Act_s *actx) {
 
 void mitInitOpenController( Act_s *actx) {
 
+	actx->tauDes   = 0.0;
 	actx->torqueKp = VOLTAGE_TORQ_KP_INIT;
 	actx->torqueKi = VOLTAGE_TORQ_KI_INIT;
 	actx->torqueKd = VOLTAGE_TORQ_KD_INIT;
 	actx->controlScaler = 1.0;
 
 	actx->currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
+	actx->voltageOpLimit = VOLTAGE_LIMIT_INIT;
 
 	setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;
