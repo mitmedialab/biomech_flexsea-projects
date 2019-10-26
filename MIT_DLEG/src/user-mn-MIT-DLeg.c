@@ -232,7 +232,7 @@ void MITDLegFsm1(void)
 			//todo check this is okay
 			zeroLoadCell = 1;	// forces getAxialForce() to zero the load cell again. this is kinda sketchy using a global variable.
 			isEnabledUpdateSensors = 1;
-			experimentTask = 0;
+			experimentTask = 2;
 
 			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
 			{

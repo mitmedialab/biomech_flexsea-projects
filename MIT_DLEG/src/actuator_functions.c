@@ -1201,6 +1201,7 @@ void mitInitOpenController( Act_s *actx) {
 	actx->controlScaler = 1.0;
 
 	actx->currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
+	actx->voltageOpLimit = VOLTAGE_LIMIT_INIT; //CURRENT_ENTRY_INIT;
 
 	setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;
