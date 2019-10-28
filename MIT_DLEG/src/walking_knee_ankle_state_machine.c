@@ -80,55 +80,66 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 	        	//error handling here (should never be in STATE_IDLE by the time you get here)
 	            break;
 	        }
+
 	        case STATE_INIT: //-2
 	        {
 	        	kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;	// enter into early stance, this has stability. good idea for torque replay? might be better late swing
 
 	            break;
 	        }
+
 	        case STATE_EARLY_STANCE: //0
 	        { // check impedance mode in here - only stance state for torque replay (goes directly to early swing)
 
-				if (isTransitioning) {
+
+				if (isTransitioning) { // run on first loop. sets thetaDes to current theta to prevent a jarring heelstrike
 					ankleWalkParamx->timerInStance = 0;
 					passedStanceThreshEst = 0;
 
-					if( ankleWalkParamx->ankleGainsEst.thetaDes - actx->jointAngleDegrees < 0)
-					{// If Dorsiflexed, we need to move spring neutral endpt to current location so we're not hammering the user
-						//
-						storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
-						ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
-					}
-					else if( actx->jointTorque > GENTLE_TOESTRIKE_TORQUE_THRESH )
-					{// TODO Deal with a toe-strike, support it and move back into normal operation
-						storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
+					storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
+					ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
 
-						ankleWalkParamx->ankleGainsEst.kParam.thetaFinal = ankleWalkParamx->ankleGainsEst.thetaDes;
-						ankleWalkParamx->ankleGainsEst.kParam.thetaInit = actx->jointAngleDegrees;
-						ankleWalkParamx->ankleGainsEst.kParam.kCurrent = ankleWalkParamx->ankleGainsEst.k1;
+//					// Adjust spring constant, K, to be based around hardstopEngangementAngle instead of the stateTransition joint angle.
+//					// This prevents aggressive transition at heelstrike
+//
+//					// Current k1 and thetaDes to calculate current torque from linear spring (excluding damping)
+//					ankleWalkParamx->ankleGainsEst.kParam.thetaInit = ankleWalkParamx->ankleGainsEst.thetaDes;
+//					ankleWalkParamx->ankleGainsEst.kParam.kInit = ankleWalkParamx->ankleGainsEst.k1;
+//
+//					// thetaDes after transition
+//					ankleWalkParamx->ankleGainsEst.thetaDes = storedEstThetaDesAngle;
+//					ankleWalkParamx->ankleGainsEst.kParam.thetaFinal = storedEstThetaDesAngle; //ankleWalkParamx->virtualHardstopEngagementAngle;
+//
+//					// updating k1 to prevent aggressive transition
+//					updateStiffnessRampDTheta(actx, &ankleWalkParamx->ankleGainsEst.kParam);
+//					ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->ankleGainsEst.kParam.kFinal;
+//					if (ankleWalkParamx->ankleGainsEst.k1 < 0) ankleWalkParamx->ankleGainsEst.k1 = 0; // for safety, shouldn't be possible but prevents negative stiffnesses
 
-						updateStiffnessRampDTheta(actx, &ankleWalkParamx->ankleGainsEst.kParam);
-						ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->ankleGainsEst.kParam.kCurrent;
-					}
+
+
+
 				}
 				ankleWalkParamx->timerInStance++;
 
-
-				if( actx->jointAngleDegrees > ankleWalkParamx->virtualHardstopEngagementAngle && actx->jointVelDegrees < 0)
-				{ // If plantarflexed, and now dorsiflexing (changed direction)
+				if( actx->jointAngleDegrees > ankleWalkParamx->virtualHardstopEngagementAngle && actx->jointVelDegrees < 0) { // If plantarflexed, and now dorsiflexing (changed direction)
 					passedStanceThreshEst = 1;
 
-					if (passedStanceThreshEst != lastPassedStanceThreshEst)
-					{ // just transitioned
-
+					if (passedStanceThreshEst != lastPassedStanceThreshEst) { // just transitioned
 						// Adjust spring constant, K, to be based around hardstopEngangementAngle instead of the stateTransition joint angle.
 						// This prevents aggressive transition at heelstrike
-						ankleWalkParamx->ankleGainsEst.kParam.thetaFinal = ankleWalkParamx->virtualHardstopEngagementAngle;
-						ankleWalkParamx->ankleGainsEst.kParam.thetaInit = ankleWalkParamx->ankleGainsEst.thetaDes;
-						ankleWalkParamx->ankleGainsEst.kParam.kCurrent = ankleWalkParamx->ankleGainsEst.k1;
 
+						// Current k1 and thetaDes to calculate current torque from linear spring (excluding damping)
+						ankleWalkParamx->ankleGainsEst.kParam.thetaInit = ankleWalkParamx->ankleGainsEst.thetaDes;
+						ankleWalkParamx->ankleGainsEst.kParam.kInit = ankleWalkParamx->ankleGainsEst.k1;
+
+						// thetaDes after transition
+						ankleWalkParamx->ankleGainsEst.thetaDes = storedEstThetaDesAngle;
+						ankleWalkParamx->ankleGainsEst.kParam.thetaFinal = storedEstThetaDesAngle; //ankleWalkParamx->virtualHardstopEngagementAngle;
+
+						// updating k1 to prevent aggressive transition
 						updateStiffnessRampDTheta(actx, &ankleWalkParamx->ankleGainsEst.kParam);
-						ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->ankleGainsEst.kParam.kCurrent;
+						ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->ankleGainsEst.kParam.kFinal;
+						if (ankleWalkParamx->ankleGainsEst.k1 < 0) ankleWalkParamx->ankleGainsEst.k1 = 0; // for safety, shouldn't be possible but prevents negative stiffnesses
 					}
 
 				}
@@ -136,24 +147,19 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsEst);
 
 				/** Early Stance transition vectors **/
-				if( actx->jointTorque > HARD_TOESTRIKE_TORQUE_THRESH )
-				{// Deal with a toeStrike
+				if( actx->jointTorque > HARD_TOESTRIKE_TORQUE_THRESH ) {// Deal with a toeStrike
 
 					passedStanceThreshEst = 1; // Assume this is a toe strike and jump into mid-stance.
 					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
 
-				} else if (passedStanceThreshEst && (actx->jointAngleDegrees <= ankleWalkParamx->virtualHardstopEngagementAngle) )
-				{ // If passed through neutral once, and coming back, move to mid-stance with parallel spring
+				} else if (passedStanceThreshEst && (actx->jointAngleDegrees <= ankleWalkParamx->virtualHardstopEngagementAngle) ) { // If passed through neutral once, and coming back, move to mid-stance with parallel spring
 
 					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
 
-				} else if (actx->jointTorque > ankleWalkParamx->lspEngagementTorque)
-				{// Transition occurs even if the early swing motion is not finished
+				} else if (actx->jointTorque > ankleWalkParamx->lspEngagementTorque) {	// Transition occurs even if the early swing motion is not finished
 
 					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
 				}
-
-
 
 				break;
 	        }
@@ -735,12 +741,9 @@ void updateStiffnessRampDt(RampParam *rampParamx)
 	rampParamx->kCurrent = (rampParamx->kFinal - rampParamx->kInit)/rampParamx->deltaTime * rampParamx->runningTimer + rampParamx->kInit;
 }
 
-void updateStiffnessRampDTheta(Act_s *actx, RampParam *rampParamx)
-{ // Update impedance Stiffness K to match Force with new ThetaSetpt
-	rampParamx->kInit = rampParamx->kCurrent;
-	rampParamx->thetaInit = rampParamx->thetaCurrent;
-	rampParamx->kCurrent = rampParamx->kInit * ( actx->jointAngleDegrees -  rampParamx->thetaInit)
-											/ ( actx->jointAngleDegrees -  rampParamx->thetaFinal );
+void updateStiffnessRampDTheta(Act_s *actx, RampParam *rampParamx) { // Update impedance Stiffness K to match Force with new ThetaSetpt
+	rampParamx->kFinal = rampParamx->kInit * (actx->jointAngleDegrees -  rampParamx->thetaInit)
+										   / (actx->jointAngleDegrees -  rampParamx->thetaFinal);
 }
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
