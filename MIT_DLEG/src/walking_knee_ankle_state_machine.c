@@ -97,23 +97,21 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx)
 					passedStanceThreshEst = 0;
 
 					storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
-					ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
 
-//					// Adjust spring constant, K, to be based around hardstopEngangementAngle instead of the stateTransition joint angle.
-//					// This prevents aggressive transition at heelstrike
-//
-//					// Current k1 and thetaDes to calculate current torque from linear spring (excluding damping)
-//					ankleWalkParamx->ankleGainsEst.kParam.thetaInit = ankleWalkParamx->ankleGainsEst.thetaDes;
-//					ankleWalkParamx->ankleGainsEst.kParam.kInit = ankleWalkParamx->ankleGainsEst.k1;
-//
-//					// thetaDes after transition
-//					ankleWalkParamx->ankleGainsEst.thetaDes = storedEstThetaDesAngle;
-//					ankleWalkParamx->ankleGainsEst.kParam.thetaFinal = storedEstThetaDesAngle; //ankleWalkParamx->virtualHardstopEngagementAngle;
-//
-//					// updating k1 to prevent aggressive transition
-//					updateStiffnessRampDTheta(actx, &ankleWalkParamx->ankleGainsEst.kParam);
-//					ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->ankleGainsEst.kParam.kFinal;
-//					if (ankleWalkParamx->ankleGainsEst.k1 < 0) ankleWalkParamx->ankleGainsEst.k1 = 0; // for safety, shouldn't be possible but prevents negative stiffnesses
+					// Adjust set point, to be based around change in stiffness.
+					// This prevents aggressive transition at heelstrike
+
+					// Current k1 and thetaDes to calculate current torque from linear spring (excluding damping)
+					ankleWalkParamx->ankleGainsEst.kParam.thetaInit = ankleWalkParamx->ankleGainsEsw.thetaDes;
+					ankleWalkParamx->ankleGainsEst.kParam.kInit = ankleWalkParamx->ankleGainsEsw.k1;
+
+					// thetaDes after transition
+					ankleWalkParamx->ankleGainsEst.kParam.kFinal = storedEstThetaDesAngle; //ankleWalkParamx->virtualHardstopEngagementAngle;
+
+					// updating thetaDes to prevent aggressive transition
+					updateSetPointRampDK(actx, &ankleWalkParamx->ankleGainsEst.kParam);
+					ankleWalkParamx->ankleGainsEst.thetaDes = ankleWalkParamx->ankleGainsEst.kParam.thetaFinal;
+
 				}
 				ankleWalkParamx->timerInStance++;
 
@@ -740,6 +738,10 @@ void updateStiffnessRampDt(RampParam *rampParamx)
 void updateStiffnessRampDTheta(Act_s *actx, RampParam *rampParamx) { // Update impedance Stiffness K to match Force with new ThetaSetpt
 	rampParamx->kFinal = rampParamx->kInit * (actx->jointAngleDegrees -  rampParamx->thetaInit)
 										   / (actx->jointAngleDegrees -  rampParamx->thetaFinal);
+}
+
+void updateSetPointRampDK(Act_s *actx, RampParam *rampParamx) { // Update impedance Stiffness K to match Force with new ThetaSetpt
+	rampParamx->thetaFinal = -(rampParamx->kInit / rampParamx->kFinal) * (actx->jointAngleDegrees -  rampParamx->thetaInit) - actx->jointAngleDegrees;
 }
 
 #endif //BOARD_TYPE_FLEXSEA_MANAGE
