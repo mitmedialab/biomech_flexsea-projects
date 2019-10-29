@@ -283,7 +283,11 @@ void MITDLegFsm1(void)
 
                     switch (experimentTask)
                     {
-
+						case EXP_ACTUATOR_STEP_RESPONSE: //-4
+						{
+							setActuatorStepResponse(&act1, &act1TestInput);
+							break;
+						}
                         case EXP_ACTUATOR_TESTING://-3
                         {// Testing Actuator Control Parameters
                             setActuatorTestingTorque(&act1, &act1TestInput);//getImpedanceTorque(&act1, act1TestInput.inputK, act1TestInput.inputB, act1TestInput.inputTheta);
@@ -479,7 +483,18 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 			user_data_1.w[9] =  (int32_t) ( 0 );
 			break;
 		}
-
+		case EXP_ACTUATOR_STEP_RESPONSE: // -4
+		{
+			user_data_1.w[2] =  (int32_t) ( 0 ) ;
+			user_data_1.w[3] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[4] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[5] = 	(int32_t) ( actx->torqueKp * 1000.0);
+			user_data_1.w[6] = 	(int32_t) ( actx->torqueKi * 1000.0);
+			user_data_1.w[7] = 	(int32_t) ( actx->torqueKd * 1000.0);
+			user_data_1.w[8] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[9] =  (int32_t) ( 0 *100.0);
+			break;
+		}
 		case EXP_ACTUATOR_TESTING: //-3
 		{// Testing Actuator Control Parameters
 
@@ -559,7 +574,18 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 			break;
 
 		}// end case EXP_ACTUATOR_TESTING
-
+		case EXP_IS_SWEEP_CHIRP_TEST://-2
+		{
+			user_data_1.w[2] =  (int32_t) ( 0 ) ;
+			user_data_1.w[3] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[4] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[5] =  (int32_t) ( 0 ); //milli seconds
+			user_data_1.w[6] =  (int32_t) ( 0 ) ; // 0:def, 1:lin, 2:exp
+			user_data_1.w[7] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[8] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[9] =  (int32_t) ( 0 *100.0);
+			break;
+		}
 		case EXP_ANKLE_PASSIVE: //1
 		{
 
@@ -864,6 +890,19 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 
 	switch (experimentTask)
 	{
+		case EXP_ACTUATOR_STEP_RESPONSE: //-4	// Testing Actuator Control Parameters
+		{
+			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque		 *100.		);
+			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel			 *10000.	);
+			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	 *100.		);
+			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes			 *100.0		);
+			rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
+			rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
+			rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
+			rigid1.mn.genVar[8] = (int16_t) (act1.desiredCurrent	 			);
+			rigid1.mn.genVar[9] = (int16_t) (act1TestSet->timer					);
+			break;
+		}
 		case EXP_ACTUATOR_TESTING: //-3	// Testing Actuator Control Parameters
 		{
 //			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);
@@ -948,6 +987,19 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 					break;
 			}
 			break;
+		}
+		case EXP_IS_SWEEP_CHIRP_TEST://-2
+		{
+			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);
+			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*10000.);
+			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);
+			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0);
+			rigid1.mn.genVar[5] = (int16_t) (kneeAnkleStateMachine.currentState);
+			rigid1.mn.genVar[6] = (int16_t) (act1.motorPower * 100.0);
+			rigid1.mn.genVar[7] = (int16_t) (act1.motorEnergy * 100.0);
+			rigid1.mn.genVar[8] = (int16_t) (act1.desiredVoltage/2);
+		    rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent/2);
+		    break;
 		}
 		case EXP_ANKLE_PASSIVE:	//1 // Testing Actuator Control Parameters
 		{
@@ -1314,17 +1366,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 
 	if (!actx->initializedSettings)
 	{
-//		if (experimentTask == EXP_ACTUATOR_TESTING)
-//		{
-//			if(userWriteMode == EXP_ACT_CONTROL_PARAM_VOLTAGE)
-//			{
-//				mitInitOpenController(actx);
-//			}
-//			else
-//			{
-//				mitInitCurrentController(actx);
-//			}
-//		}
+
 		initializeUserWrites(actx, wParams, act1TestSet, torqueRep);
 
 	}
@@ -1625,6 +1667,20 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 				}
 				break;
 			}
+
+
+			case EXP_IS_SWEEP_CHIRP_TEST://-2
+			{
+				act1TestSet->begin									= ( (int16_t) user_data_1.w[2] ) ;
+				act1TestSet->freq									= ( (float) user_data_1.w[3] ) /100.0;
+				act1TestSet->freqFinal								= ( (float) user_data_1.w[4] ) /100.0;
+				act1TestSet->freqSweepTime							= ( (float) user_data_1.w[5] ) ; //milli seconds
+				act1TestSet->chirpType								= ( (int16_t) user_data_1.w[6] ) ; // 0:def, 1:lin, 2:exp
+				act1TestSet->amplitude								= ( (float) user_data_1.w[7] ) /100.0;
+				act1TestSet->dcBias									= ( (float) user_data_1.w[8] ) /100.0;
+				act1TestSet->noiseAmp								= ( (float) user_data_1.w[9] ) /100.0;
+				break;
+			}
 			case EXP_ACTUATOR_TESTING: //-3
 			{// Testing Actuator Control Parameters
 				switch (userWriteMode)
@@ -1697,17 +1753,16 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 				}
 				break;
 			}
-
-			case EXP_IS_SWEEP_CHIRP_TEST://-2
+			case EXP_ACTUATOR_STEP_RESPONSE: //-4
 			{
 				act1TestSet->begin									= ( (int16_t) user_data_1.w[2] ) ;
-				act1TestSet->freq									= ( (float) user_data_1.w[3] ) /100.0;
-				act1TestSet->freqFinal								= ( (float) user_data_1.w[4] ) /100.0;
-				act1TestSet->freqSweepTime							= ( (float) user_data_1.w[5] ) ; //milli seconds
-				act1TestSet->chirpType								= ( (int16_t) user_data_1.w[6] ) ; // 0:def, 1:lin, 2:exp
-				act1TestSet->amplitude								= ( (float) user_data_1.w[7] ) /100.0;
-				act1TestSet->dcBias									= ( (float) user_data_1.w[8] ) /100.0;
-				act1TestSet->noiseAmp								= ( (float) user_data_1.w[9] ) /100.0;
+				act1TestSet->offTime								= ( (uint16_t) user_data_1.w[3] ) ;
+				act1TestSet->onTime									= ( (uint16_t) user_data_1.w[4] ) ; //milli seconds
+				actx->torqueKp										= ( (float) user_data_1.w[5] ) /1000.0;
+				actx->torqueKi										= ( (float) user_data_1.w[6] ) /1000.0;
+				actx->torqueKd										= ( (float) user_data_1.w[7] ) /1000.0;
+				act1TestSet->amplitude								= ( (float) user_data_1.w[8] ) /100.0;
+				act1TestSet->dcBias									= ( (float) user_data_1.w[9] ) /100.0;
 				break;
 			}
 			default:

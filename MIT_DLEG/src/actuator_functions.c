@@ -623,8 +623,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	// Feed Forward term
 //	tauFF = getFeedForwardTerm(refTorque);
 	tauFF = refTorque;
-//	float tauFFMotor = -(MOT_J * actx->motorAcc); // Compensate rotor inertia.
-	float tauFFMotor = 0.0;
+	float tauFFMotor = -(MOT_J * actx->motorAcc); // Compensate rotor inertia.
+//	float tauFFMotor = 0.0;
 
 	// Compensator
 	//PID around joint torque
@@ -1591,6 +1591,33 @@ void setActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testIn
 		tor = getImpedanceTorque(&act1, testInput->inputK, testInput->inputB, testInput->inputTheta);
 	}
 	actx->tauDes = tor;
+}
+
+void setActuatorStepResponse(Act_s *actx, ActTestSettings *testInput)
+{
+	float tor = 0.0;
+
+	if(testInput->begin >= 1)
+	{
+		if(testInput->timer < testInput->onTime)
+		{
+			tor = testInput->amplitude;
+			testInput->timer++;
+		} else if (testInput->timer < (testInput->onTime + testInput->offTime) )
+		{
+			tor = 0.0;
+			testInput->timer++;
+		} else
+		{
+			tor = 0.0;
+			testInput->timer = 0;
+		}
+		actx->tauDes = tor + testInput->dcBias;
+	} else
+	{
+		testInput->timer = 0;
+		actx->tauDes = 0;
+	}
 }
 
 float getTorqueSystemIDFrequencySweepChirp( struct actTestSettings *testInput)

@@ -68,7 +68,7 @@ float getDoBInv(float refTorque);
 
 void  setActuatorTestingTorque(Act_s *actx, ActTestSettings *testInput);
 float getTorqueSystemIDFrequencySweepChirp( ActTestSettings *testInput);
-
+void setActuatorStepResponse(Act_s *actx, ActTestSettings *testInput);
 
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp, int16_t begin);
