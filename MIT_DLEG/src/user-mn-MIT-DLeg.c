@@ -776,7 +776,6 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 
 			break;
 		}
-
 		case EXP_ANKLE_WALKING_NONLINEAR_K: //6
 		{
 			switch (userWriteMode)
@@ -874,7 +873,6 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 			}
 			break;
 		}
-
 
 	}
 
