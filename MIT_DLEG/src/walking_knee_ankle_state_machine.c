@@ -1371,7 +1371,7 @@ void updateStiffnessRampDTheta(Act_s *actx, RampParam *rampParamx) { // Update i
 }
 
 void updateSetPointRampDK(Act_s *actx, RampParam *rampParamx) { // Update impedance Stiffness K to match Force with new ThetaSetpt
-	rampParamx->thetaFinal = -(rampParamx->kInit / rampParamx->kFinal) * (actx->jointAngleDegrees -  rampParamx->thetaInit) - actx->jointAngleDegrees;
+	rampParamx->thetaFinal =  actx->jointAngleDegrees - (rampParamx->kInit / rampParamx->kFinal) * (actx->jointAngleDegrees -  rampParamx->thetaInit);
 }
 
 
