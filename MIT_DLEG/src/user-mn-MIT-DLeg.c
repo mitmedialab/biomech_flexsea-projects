@@ -300,6 +300,11 @@ void MITDLegFsm1(void)
                             break;
                         }
 
+                        case EXP_BARE_BONES: //0
+                        {
+
+                        	break;
+                        }
                         case EXP_ANKLE_PASSIVE: //1
                         {// Simulate just a spring foot
                             setTorqueAnklePassive(&act1, ankleWalkParams);
@@ -375,7 +380,14 @@ void MITDLegFsm1(void)
                 // Manually turn on OpenLoop control if necessary
 //                #if !defined(NO_POWER)
 
-                    setMotorTorque( &act1,  act1.tauDes);
+                    if (experimentTask != EXP_BARE_BONES)
+                    {
+                    	setMotorTorque( &act1,  act1.tauDes);
+                    }
+                    else
+                    {
+                    	//do nothing.
+                    }
 
 //                    setMotorTorqueOpenLoop( &act1, act1.tauDes, 1);
 //                #endif
