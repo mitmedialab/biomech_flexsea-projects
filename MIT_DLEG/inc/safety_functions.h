@@ -42,6 +42,16 @@ void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status);
 void clearLEDStatus(void);
 void overrideLED(uint8_t r, uint8_t g, uint8_t b);
 
+extern struct staticsig_s staticsig_motVolt;	// check motor voltage for e-stop safety
+
+
+struct staticsig_s
+{
+	int32_t x; 		//sensor value
+	int32_t n; 		//number of function calls that x must be unchanged for it to return 1
+	int32_t nx; 	//current number of function calls with unchanged value
+};
+
 
 //enums
 enum MOTOR_MODES{
@@ -82,6 +92,7 @@ enum ERROR_TYPES{
 	//general errors
 	ERROR_WRONG_ACTUATOR	= 13,
 	ERROR_PERSISTENT		= 14,
+	ERROR_EMERGENCY_SAFETY_STOP = 15
 };
 
 #define ERROR_ARRAY_SIZE	15

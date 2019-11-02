@@ -27,10 +27,41 @@ static int16_t safetyFlags; //bitmap of all errors. Also serves as boolean for e
 static int8_t motorMode;
 static const int16_t stm32ID[] = STM32ID;
 
+struct staticsig_s staticsig_motVolt;	// check motor voltage for e-stop safety
 
 //****************************************************************************
 // Method(s)
 //****************************************************************************
+
+//nn is the number of function calls that x must be unchanged for it to return 1
+void init_staticsig(struct staticsig_s * ss, int32_t nn)
+{
+	ss->x = 0;
+	ss->n = nn;
+	ss->nx = 0;
+}
+
+//x is the new signal value
+uint8_t update_staticsig(int32_t x, struct staticsig_s * ss)
+{
+	if(ss->x == x)
+	{
+		ss->nx++;
+	}
+	else
+	{
+		ss->nx = 0;
+	}
+	ss->x = x;
+
+	if(ss->nx >= ss->n)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+
 
 /*
  *  check connected/disconnect status
@@ -426,6 +457,18 @@ int16_t getDeviceIdIncrementing(void) {
 }
 
 
+int8_t checkEmergencyStop()
+{
+	if(rigid1.ex.status & 0x80)
+	{
+		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_DISCONNECT;
+		return 1;
+	} else
+	{
+		return 0;
+	}
+}
+
 /*
  *  Makes all safety checks
  *  Param: actx(Act_s) - Actuator structure to track sensor values
@@ -450,6 +493,14 @@ void checkSafeties(Act_s *actx) {
 
 	checkPersistentError(actx);
 
+	if( checkEmergencyStop() )
+	{
+		rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
+	} else
+	{
+		rigid1.mn.genVar[0] = (int16_t) (987); 			//errors
+	}
+
 	//set our safety bitmap for streaming and checking purposes
 	//TODO: consider optimizing if there are future processing constraints
 	for (int i = 0; i < ERROR_ARRAY_SIZE; i++) {
@@ -457,6 +508,11 @@ void checkSafeties(Act_s *actx) {
 			SET_MAP_HIGH(i, safetyFlags);
 		}
 	}
+}
+
+void handleEStopCondition()
+{
+
 }
 
 /*

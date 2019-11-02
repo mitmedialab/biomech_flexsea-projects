@@ -381,8 +381,8 @@ void MITDLegFsm1(void)
 //                #endif
                 }
                 else
-                {
-                	handleSafetyConditionsMinimal(&act1);
+                { // do nothing
+//                	handleSafetyConditionsMinimal(&act1);	// this is not working?
                 }
                 controlTime++;
 
@@ -884,7 +884,8 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 
 void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet)
 {
-	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
+//	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
+
 
 	switch (experimentTask)
 	{
