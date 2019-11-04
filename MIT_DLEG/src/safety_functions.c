@@ -277,11 +277,14 @@ static void checkEmergencyStop(Act_s *actx)
 	{
 		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_DISCONNECT;
 		actx->resetStaticVariables = 1;		// flag to tell functions to reset static variables
+		actx->eStop = 1;
 	} else
 	{
 		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_NOMINAL;
 		actx->resetStaticVariables = 0;
+		actx->eStop = 0;
 	}
+
 }
 
 //****************************************************************************
@@ -486,7 +489,6 @@ int16_t getDeviceIdIncrementing(void) {
  */
 void checkSafeties(Act_s *actx) {
 	safetyFlags = 0; //reset this upon entering a check
-	//TODO:
 
 	checkLoadcell(actx);
 	checkJointEncoder(actx);
@@ -504,6 +506,7 @@ void checkSafeties(Act_s *actx) {
 	checkPersistentError(actx);
 
 	checkEmergencyStop(actx);
+
 
 //	if( checkEmergencyStop() )
 //	{

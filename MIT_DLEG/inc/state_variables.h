@@ -230,6 +230,8 @@ typedef struct act_s
     int16_t safetyFlag;		// todo: consider if necessary
     int8_t  initializedSettings;	// True if settings have been set for whatever testing mode
     int8_t resetStaticVariables;	// 1 = reset all static varibles, 0 = do nothing. use this to recover from E-stop
+    int8_t eStop;			// E-stop is pushed
+    int8_t lastEStopCondition;
 
     // Controls Related
     float torqueKp;

@@ -157,9 +157,34 @@ void MITDLegFsm1(void)
     // Send genVars values to the GUI
     updateGenVarOutputs(&act1, ankleWalkParams, &act1TestInput);
 
+    //Force a reset if E-stop was pushed while in a normal mode.
+    if(act1.eStop)
+    {
+    	fsm1State = STATE_SAFETY;
+    }
+
+
     //begin main FSM
 	switch(fsm1State)
 	{
+
+		case STATE_SAFETY: //-1
+		{ // Do nothing
+			updateUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
+
+			if (experimentTask == EXP_RESET_DEVICE )
+			{
+				if (act1.eStop == 0)
+				{ // E-stop was just released, start over again.
+
+					fsm1State = STATE_INITIALIZE_SENSORS;
+					fsmTime =0;
+				}
+			}
+
+			break;
+		}
+
 		//this state is always reached
 		case STATE_POWER_ON:
 			//Same power-on delay as FSM2:
@@ -230,7 +255,13 @@ void MITDLegFsm1(void)
 			//todo check this is okay
 			zeroLoadCell = 1;	// forces getAxialForce() to zero the load cell again. this is kinda sketchy using a global variable.
 			isEnabledUpdateSensors = 1;
-			experimentTask = 0;
+			act1.resetStaticVariables = 1;	// Reset all variables (todo: make sure ALL static, persistent variables are reset)
+
+			// GUI Modes
+			experimentTask = EXP_BARE_BONES;
+			userWriteMode = 0;
+
+
 
 			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
 			{
@@ -276,6 +307,12 @@ void MITDLegFsm1(void)
 
 				switch (experimentTask)
 				{
+					case EXP_RESET_DEVICE: // -99
+					{
+
+						fsm1State = STATE_INITIALIZE_SENSORS;
+						break;
+					}
 					case EXP_ACTUATOR_STEP_RESPONSE: //-4
 					{
 						setActuatorStepResponse(&act1, &act1TestInput);
@@ -305,6 +342,8 @@ void MITDLegFsm1(void)
 			//Handle exceptions here
 			break;
 	}
+
+	act1.lastEStopCondition = act1.eStop;
 
 	#endif	//ACTIVE_PROJECT == PROJECT_ANKLE_2DOF
 
@@ -1226,6 +1265,19 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 		break;
 		}
 
+		case EXP_BARE_BONES: //-5
+		{
+			rigid1.mn.genVar[1] = (int16_t) (fsm1State); //);			// Nm
+			rigid1.mn.genVar[2] = (int16_t) (act1.eStop	);			// radians/s
+			rigid1.mn.genVar[3] = (int16_t) (act1.lastEStopCondition	);			//
+			rigid1.mn.genVar[4] = (int16_t) (act1.resetStaticVariables	); 			//
+			rigid1.mn.genVar[5] = (int16_t) (act1.jointTorque * 100.0); //
+			rigid1.mn.genVar[6] = (int16_t) (act1.desiredCurrent);	 				//
+			rigid1.mn.genVar[7] = (int16_t) (getDeviceIdIncrementing()	); 			// Outputs Device ID, stepping through each number
+			rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); 	//
+			rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.currentState); 	//
+			break;
+		}
 		default:
 		{
 			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	*100.	);			// Nm
