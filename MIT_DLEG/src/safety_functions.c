@@ -263,6 +263,27 @@ static void checkJointAngleBounds(Act_s *actx) {
 static void checkPersistentError(Act_s *actx) {
 	//time limit for errors
 }
+
+/*
+ * Check if E-stop has been pressed. This sets motor drive to CTRL=NULL
+ * CAREFUL!!! todo: clear all static variables before reseting the drive control.
+ *
+ * Return 1 if pressed
+ * return 0 if not pressed
+ */
+static void checkEmergencyStop(Act_s *actx)
+{
+	if(rigid1.ex.status & 0x80)
+	{
+		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_DISCONNECT;
+		actx->resetStaticVariables = 1;		// flag to tell functions to reset static variables
+	} else
+	{
+		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_NOMINAL;
+		actx->resetStaticVariables = 0;
+	}
+}
+
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
@@ -457,17 +478,6 @@ int16_t getDeviceIdIncrementing(void) {
 }
 
 
-int8_t checkEmergencyStop()
-{
-	if(rigid1.ex.status & 0x80)
-	{
-		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_DISCONNECT;
-		return 1;
-	} else
-	{
-		return 0;
-	}
-}
 
 /*
  *  Makes all safety checks
@@ -493,13 +503,15 @@ void checkSafeties(Act_s *actx) {
 
 	checkPersistentError(actx);
 
-	if( checkEmergencyStop() )
-	{
-		rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
-	} else
-	{
-		rigid1.mn.genVar[0] = (int16_t) (987); 			//errors
-	}
+	checkEmergencyStop();
+
+//	if( checkEmergencyStop() )
+//	{
+//		rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
+//	} else
+//	{
+//		rigid1.mn.genVar[0] = (int16_t) (987); 			//Okay errors
+//	}
 
 	//set our safety bitmap for streaming and checking purposes
 	//TODO: consider optimizing if there are future processing constraints
@@ -519,6 +531,7 @@ void handleEStopCondition()
  * Check for safety flags, and act on them.
  * Param: actx(Act_s) - Actuator structure to track sensor values
  * todo: come up with correct strategies to deal with flags, include thermal limits also
+ * todo: this is very DANGEROUS difficult to know state when we turn motor on again.
  */
 void handleSafetyConditions(Act_s *actx) {
 
@@ -574,10 +587,10 @@ void handleSafetyConditions(Act_s *actx) {
 				rampCurrent(actx);
 			}
 			break;
-		case MODE_ENABLED:
+		case MODE_ENABLED: // VERY DANGEROUS todo: need graceful way to turn back on, this can cause unexpected behavior. Turned off for now
 			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
 			{
-				mitInitCurrentController(actx);
+//				mitInitCurrentController(actx);
 
 			}
 			break;

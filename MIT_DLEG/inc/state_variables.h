@@ -33,9 +33,9 @@ extern "C" {
 
 //3. Select device
 //#define DEVICE_TF08_A01			// Define specific actuator configuration.
-//#define DEVICE_TF08_A02		// Define specific actuator configuration.
+#define DEVICE_TF08_A02		// Define specific actuator configuration.
 //#define DEVICE_TF08_A03		// Define specific actuator configuration.
-#define DEVICE_TF08_A04		// Define specific actuator configuration.
+//#define DEVICE_TF08_A04		// Define specific actuator configuration.
 //#define DEVICE_M14			// Standalone motor for testbench
 //#define DEVICE_M15			// Standalone motor for testbench
 //#define DEVICE_M16			// Standalone motor for testbench
@@ -229,6 +229,7 @@ typedef struct act_s
 
     int16_t safetyFlag;		// todo: consider if necessary
     int8_t  initializedSettings;	// True if settings have been set for whatever testing mode
+    int8_t resetStaticVariables;	// 1 = reset all static varibles, 0 = do nothing. use this to recover from E-stop
 
     // Controls Related
     float torqueKp;
@@ -376,8 +377,8 @@ typedef struct actTestSettings {
 	float dcBias;
 	float noiseAmp;
 
-	uint16_t onTime;
-	uint16_t offTime;
+	uint32_t onTime;
+	uint32_t offTime;
 	uint32_t timer;
 
 } ActTestSettings;

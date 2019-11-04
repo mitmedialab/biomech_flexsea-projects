@@ -44,7 +44,6 @@ void overrideLED(uint8_t r, uint8_t g, uint8_t b);
 
 extern struct staticsig_s staticsig_motVolt;	// check motor voltage for e-stop safety
 
-
 struct staticsig_s
 {
 	int32_t x; 		//sensor value
@@ -95,7 +94,7 @@ enum ERROR_TYPES{
 	ERROR_EMERGENCY_SAFETY_STOP = 15
 };
 
-#define ERROR_ARRAY_SIZE	15
+#define ERROR_ARRAY_SIZE	16
 
 //sensor disconnect check values
 #define LOADCELL_DISCONNECT_STRAIN_DIFFERENCE 5000

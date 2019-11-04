@@ -53,7 +53,7 @@ float biomCalcImpedance(Act_s *actx, float k1, float b, float theta_set); 	// re
 float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet);	// Returns a Torque Value
 float getImpedanceTorqueParams(Act_s *actx, GainParams *gParams);	// Returns a Torque Value
 float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet, float k2);	// Returns a Torque Value
-void  setMotorTorque(struct act_s *actx, float tor_d);
+void  setMotorTorque(struct act_s *actx);
 void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des, int8_t motorControl);
 float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *act1);
 
