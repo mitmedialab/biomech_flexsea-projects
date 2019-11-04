@@ -591,13 +591,23 @@
 		/* Digital filter designed by mkfilter/mkshape/gencode   A.J. Fisher, http://www-users.cs.york.ac.uk/~fisher/cgi-bin/mkfscript
 		   Command line: /www/usr/fisher/helpers/mkfilter -Bu -Lp -o 2 -a 2.0000000000e-02 0.0000000000e+00 -l */
 
-		float filterJointAngleButterworth(float inputVal)
+		float filterJointAngleButterworth(float inputVal, int8_t reset)
 		{
 			#define NJAZEROS 2
 			#define NJAPOLES 2
 			#define BUTWRTH_FILT_GAIN_ANG   2.761148367e+02
 
 			static float xvJA[NJAZEROS+1], yvJA[NJAPOLES+1];
+
+			if(reset)
+			{
+				xvJA[0] = 0.0;
+				xvJA[1] = 0.0;
+				xvJA[2] = 0.0;
+				yvJA[0] = 0.0;
+				yvJA[1] = 0.0;
+				yvJA[2] = 0.0;
+			}
 
 			xvJA[0] = xvJA[1];
 			xvJA[1] = xvJA[2];
@@ -619,10 +629,20 @@
 		#define NJVPOLES 2
 		#define BUTWRTH_FILT_GAIN_VEL   2.761148367e+02
 
-		float filterJointVelocityButterworth(float inputVal)
+		float filterJointVelocityButterworth(float inputVal, int8_t reset)
 		{
 
 			static float xvJV[NJVZEROS+1], yvJV[NJVPOLES+1];
+			if (reset)
+			{
+				xvJV[0] = 0.0;
+				xvJV[1] = 0.0;
+				xvJV[2] = 0.0;
+				yvJV[0] = 0.0;
+				yvJV[1] = 0.0;
+				yvJV[2] = 0.0;
+			}
+
 
 			xvJV[0] = xvJV[1];
 			xvJV[1] = xvJV[2];
@@ -685,8 +705,16 @@
 
 		static float xvTD[NTDZEROS+1], yvTD[NTDPOLES+1];
 
-		float filterTorqueDerivativeButterworth(float inputVal)
+		float filterTorqueDerivativeButterworth(float inputVal, int8_t reset)
 		{
+			if(reset)
+			{
+				xvTD[0] = 0.0;
+				xvTD[1] = 0.0;
+				yvTD[0] = 0.0;
+				yvTD[1] = 0.0;
+			}
+
 			xvTD[0] = xvTD[1];
 			xvTD[1] = inputVal;
 			yvTD[0] = yvTD[1];

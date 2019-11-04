@@ -503,7 +503,7 @@ void checkSafeties(Act_s *actx) {
 
 	checkPersistentError(actx);
 
-	checkEmergencyStop();
+	checkEmergencyStop(actx);
 
 //	if( checkEmergencyStop() )
 //	{
@@ -522,10 +522,6 @@ void checkSafeties(Act_s *actx) {
 	}
 }
 
-void handleEStopCondition()
-{
-
-}
 
 /*
  * Check for safety flags, and act on them.
