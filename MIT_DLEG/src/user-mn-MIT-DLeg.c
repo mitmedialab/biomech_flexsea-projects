@@ -309,7 +309,6 @@ void MITDLegFsm1(void)
 				{
 					case EXP_RESET_DEVICE: // -99
 					{
-
 						fsm1State = STATE_INITIALIZE_SENSORS;
 						break;
 					}
@@ -319,7 +318,71 @@ void MITDLegFsm1(void)
 						setMotorTorque( &act1 );
 						break;
 					}
+                    case EXP_ACTUATOR_TESTING://-3
+                    {// Testing Actuator Control Parameters
+                        setActuatorTestingTorque(&act1, &act1TestInput);//getImpedanceTorque(&act1, act1TestInput.inputK, act1TestInput.inputB, act1TestInput.inputTheta);
+						setMotorTorque( &act1 );
 
+                        break;
+                    }
+                    case EXP_IS_SWEEP_CHIRP_TEST://-2
+                    {// System ID tests
+                        act1.tauDes = getTorqueSystemIDFrequencySweepChirp( &act1TestInput);
+						setMotorTorque( &act1 );
+
+                        break;
+                    }
+                    case EXP_ANKLE_PASSIVE: //1
+                    {// Simulate just a spring foot
+                        setTorqueAnklePassive(&act1, ankleWalkParams);
+						setMotorTorque( &act1 );
+
+                        break;
+                    }
+                    case EXP_ANKLE_WALKING_FSM: //2
+                    {// Walking Controller
+                        setSimpleAnkleFlatGroundFSM(&act1, ankleWalkParams);
+						setMotorTorque( &act1 );
+                        break;
+                    }
+
+                    case EXP_ANKLE_WALKING_BIOM_FSM: //3
+                    {// Biom controller, limited Dorsiflexion
+                        // USES SAME INPUTS AS EXP_ANKLE_WALKING_FSM
+
+                        // Set Biom settings to Walking Controller, all else the same.
+                        ankleWalkParams->virtualHardstopEngagementAngle = ankleWalkParams->biomVirtualHardstopEngagementAngle;
+                        ankleWalkParams->virtualHardstopK                = ankleWalkParams->biomVirtualHardstopK ;
+                        ankleWalkParams->ankleGainsEsw.thetaDes            = ankleWalkParams->biomAnkleGainsThetaDesEsw;
+                        ankleWalkParams->ankleGainsLsw.thetaDes            = ankleWalkParams->biomAnkleGainsThetaDesLsw;
+
+                        setSimpleAnkleFlatGroundFSM(&act1, ankleWalkParams);
+						setMotorTorque( &act1 );
+
+                        break;
+                    }
+                    case EXP_ANKLE_WALKING_TORQUE_REPLAY: //4
+                    {
+                        setAnkleTorqueReplay(&act1, ankleWalkParams);
+						setMotorTorque( &act1 );
+
+                        break;
+                    }
+
+                    case EXP_ANKLE_WALKING_QUASIPASSIVE: //5
+                    {// Quasi-passive controller, two springs, one for controlled PF, & one for controlled DF
+                        setTorqueQuasiPassive(&act1, ankleWalkParams);
+                        act1.tauDes = 0;
+						setMotorTorque( &act1 );
+                        break;
+                    }
+
+                    case EXP_ANKLE_WALKING_NONLINEAR_K: //6
+                    {
+                        setAnkleNonLinearStiffWalkingFSM(&act1, ankleWalkParams, &nonLinearKParams);
+						setMotorTorque( &act1 );
+                        break;
+                    }
 					case EXP_BARE_BONES: //-5
 					{
 
