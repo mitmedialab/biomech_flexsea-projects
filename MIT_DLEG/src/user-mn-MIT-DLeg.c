@@ -169,7 +169,7 @@ void MITDLegFsm1(void)
 	{
 
 		case STATE_SAFETY: //-1
-		{ // Do nothing
+		{ // Do nothing, until manually reset
 			updateUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
 
 			if (experimentTask == EXP_RESET_DEVICE )
@@ -261,8 +261,6 @@ void MITDLegFsm1(void)
 			experimentTask = EXP_BARE_BONES;
 			userWriteMode = 0;
 
-
-
 			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
 			{
 				fsm1State = STATE_INIT_USER_WRITES;
@@ -310,6 +308,10 @@ void MITDLegFsm1(void)
 					case EXP_RESET_DEVICE: // -99
 					{
 						fsm1State = STATE_INITIALIZE_SENSORS;
+						break;
+					}
+					case EXP_BARE_BONES: //-5
+					{
 						break;
 					}
 					case EXP_ACTUATOR_STEP_RESPONSE: //-4
@@ -383,11 +385,7 @@ void MITDLegFsm1(void)
 						setMotorTorque( &act1 );
                         break;
                     }
-					case EXP_BARE_BONES: //-5
-					{
 
-						break;
-					}
 					default:
 					{
 						// do not update from userwrites
