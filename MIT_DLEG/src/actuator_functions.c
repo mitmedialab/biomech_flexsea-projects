@@ -169,6 +169,11 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	strainReading = ( (float) rigid1.ex.strain );
 //	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
 
+	if(actx->resetStaticVariables)
+	{
+		tare = 1;
+	}
+
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing.
 		tareState = -1;
