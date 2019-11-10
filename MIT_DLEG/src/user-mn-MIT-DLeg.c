@@ -175,7 +175,7 @@ void MITDLegFsm1(void)
 			if (experimentTask == EXP_RESET_DEVICE )
 			{
 				if (act1.eStop == 0)
-				{ // E-stop was just released, start over again.
+				{ // E-stop was just released, start over again. Only after manually changing experimentTask
 
 					fsm1State = STATE_INITIALIZE_SENSORS;
 					fsmTime =0;
@@ -230,7 +230,16 @@ void MITDLegFsm1(void)
 
 			if (!actuatorIsCorrect(&act1)){
 				setLEDStatus(0,0,1); //flash red; needs reset
-			} else{
+			}
+			else if (rigid1.re.vb < UVLO_BIOMECH)
+			{	// Skip FindPoles if no motor power attached.
+				calibrationFlags = 0, calibrationNew = 0;
+				fsm1State = STATE_INITIALIZE_SENSORS;
+				fsmTime = 0;
+				isEnabledUpdateSensors = 1;
+				onEntry = 1;
+			}
+			else{
 				if (onEntry) {
 					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
 					calibrationFlags = 1, calibrationNew = 1;
@@ -252,7 +261,6 @@ void MITDLegFsm1(void)
 
 		case STATE_INITIALIZE_SENSORS:
 
-			//todo check this is okay
 			zeroLoadCell = 1;	// forces getAxialForce() to zero the load cell again. this is kinda sketchy using a global variable.
 			isEnabledUpdateSensors = 1;
 			act1.resetStaticVariables = 1;	// Reset all variables (todo: make sure ALL static, persistent variables are reset)
@@ -912,10 +920,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 		}
 		case EXP_ACTUATOR_TESTING: //-3	// Testing Actuator Control Parameters
 		{
-//			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque*100.);
-//			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel*10000.);
-//			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees*100.);
-//			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes*100.0);
 
 			switch(userWriteMode)
 			{

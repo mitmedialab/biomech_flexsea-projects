@@ -10,6 +10,7 @@
 // Include(s)
 //****************************************************************************
 #include "safety_functions.h"
+#include "global-config.h"
 
 //****************************************************************************
 // Definitions
@@ -273,12 +274,20 @@ static void checkPersistentError(Act_s *actx) {
  */
 static void checkEmergencyStop(Act_s *actx)
 {
-	if(rigid1.ex.status & 0x80)
+	uint16_t eStopPressed = rigid1.ex.status & 0x80;
+
+	uint16_t eStopWindow =0;
+
+	eStopWindow = checkEmergencyStopWindow(eStopPressed);	// store the last ESTOP_WINDOW number of samples. if not cleared then don't clear estop
+
+	if(eStopPressed)
 	{
 		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_DISCONNECT;
 		actx->resetStaticVariables = 1;		// flag to tell functions to reset static variables
 		actx->eStop = 1;
-	} else
+
+
+	} else if(eStopWindow == 0)
 	{
 		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_NOMINAL;
 		actx->resetStaticVariables = 0;
@@ -287,27 +296,47 @@ static void checkEmergencyStop(Act_s *actx)
 
 }
 
+/*
+ * Window the eStop button, we use this to store the last N samples
+ */
+
+int16_t checkEmergencyStopWindow(uint16_t inputVal)
+{
+	int16_t result = 0;
+	int16_t i = 0;
+
+	static uint32_t circStopCounter;
+	static int32_t counterIndex;
+	static uint32_t stopWindow[ESTOP_WINDOW];
+
+	++circStopCounter;	//increment circular counter
+	if(circStopCounter == ESTOP_WINDOW)
+	{
+		circStopCounter = 0;	//reset counter
+	}
+
+	stopWindow[circStopCounter] = inputVal;		// load new value into bottom of index
+	counterIndex = circStopCounter;
+
+
+	// using the accumulator,
+	for (i = 0; i < ESTOP_WINDOW;  i++)
+	{
+		result +=  stopWindow[counterIndex];
+		--counterIndex;
+		if(counterIndex == -1)
+		{
+			counterIndex = ESTOP_WINDOW-1;
+		}
+	}
+
+	return result;
+}
+
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
 
-/*
- * Turn the motor controller into a position controller in case we lose force sensing
- * Param: actx(Act_s) - Actuator structure to track sensor values
- */
-static void actuatePassiveMode(Act_s *actx){
-	static uint8_t onEntry = 1;
-
-	if (onEntry) {
-		setControlMode(CTRL_POSITION, DEVICE_CHANNEL);
-		setControlGains(SAFE_MODE_POS_CTRL_GAIN_KP, SAFE_MODE_POS_CTRL_GAIN_KI, SAFE_MODE_POS_CTRL_GAIN_KD, 0, DEVICE_CHANNEL);
-		onEntry = 0;
-	}
-
-	//todo: Ramp position from current position to neutral motor position
-	setMotorPosition(actx->motorPos0, DEVICE_CHANNEL);
-
-}
 
 /*
  * Reduce the current limit in order to reduce heating in the motor or drive electronics.
@@ -507,15 +536,6 @@ void checkSafeties(Act_s *actx) {
 
 	checkEmergencyStop(actx);
 
-
-//	if( checkEmergencyStop() )
-//	{
-//		rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
-//	} else
-//	{
-//		rigid1.mn.genVar[0] = (int16_t) (987); 			//Okay errors
-//	}
-
 	//set our safety bitmap for streaming and checking purposes
 	//TODO: consider optimizing if there are future processing constraints
 	for (int i = 0; i < ERROR_ARRAY_SIZE; i++) {
@@ -572,11 +592,10 @@ void handleSafetyConditions(Act_s *actx) {
 	switch (motorMode){
 		case MODE_DISABLED:
 			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
-			//			disableMotor();
+
 			break;
 		case MODE_PASSIVE:
 			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
-//			actuatePassiveMode(actx); //position control to neutral angle
 			break;
 		case MODE_OVERTEMP:
 			if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
@@ -586,10 +605,9 @@ void handleSafetyConditions(Act_s *actx) {
 				rampCurrent(actx);
 			}
 			break;
-		case MODE_ENABLED: // VERY DANGEROUS todo: need graceful way to turn back on, this can cause unexpected behavior. Turned off for now
+		case MODE_ENABLED: // VERY DANGEROUS todo: need graceful way to turn back on, this can cause unexpected behavior. Turned off for now. Maybe best to latch into failed mode.
 			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
 			{
-//				mitInitCurrentController(actx);
 
 			}
 			break;
@@ -638,15 +656,13 @@ void handleSafetyConditionsMinimal(Act_s *actx) {
 		case MODE_DISABLED:
 		{
 			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
-			disableMotor();
+
 			break;
 		}
 		case MODE_ENABLED:
 		{
-			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
+			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on. todo: this is totally unsafe, need more careful way to clear errors and turn on again.
 			{
-				setMotorMode(MODE_ENABLED);
-				mitInitCurrentController(actx);
 
 			}
 			break;

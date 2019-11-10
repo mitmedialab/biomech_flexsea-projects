@@ -34,6 +34,9 @@ void checkSafeties(Act_s *actx);
 void handleSafetyConditions(Act_s *actx); //renamed from safetyFailure(void)
 void handleSafetyConditionsMinimal(Act_s *actx); //renamed from safetyFailure(void)
 
+int16_t checkEmergencyStopWindow(uint16_t inputVal);
+
+
 int16_t getSafetyFlags(void);
 
 void setMotorMode(int8_t mode);

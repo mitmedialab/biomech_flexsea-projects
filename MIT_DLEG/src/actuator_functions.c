@@ -304,19 +304,8 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 	y[k-1] = y[k];
 
 	//TF1
-//	y[k] = 0.949200866873389*y[k-1] + 20025.5997143947*u[k-1]; // TF1 simple estimate 95.06% fit
 	y[k] = 0.917703269653775*y[k-1] + -27307.8288879291*u[k-1];
 
-	//TF3
-//	y[k] = 0.983824144892093*y[k-1]
-//			+ -639993.632211884/1000*u[k] + 634646.499333143/1000*u[k-1];
-
-	//TF6
-//	y[k] = 1.92284862023119*y[k-1] - 0.922871371518358*y[k-2]
-//			+ -161763.585837411*u[k] + 352228.322442098*u[k-1] + -190463.303430783*u[k-2]; // TF6 97.22%fit
-
-//	y[k] = filterTorqueButterworth( y[k] );	// clean it up, note this may cause additional delay
-//	y[k] = runSoftFirFilt(y[k]);		// works well, except there's substantial delay.
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing. Turned on externally, turned off internal
