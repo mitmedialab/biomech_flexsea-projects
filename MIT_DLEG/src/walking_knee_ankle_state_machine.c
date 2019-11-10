@@ -208,7 +208,7 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 				actx->tauDes = ankleWalkParamx->virtualHardstopTq + (ankleWalkParamx->samplesInLSP/ankleWalkParamx->lstPGDelTics) * getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsLst);  // drops off after zero when hardstop goes away
 
 				//Late Stance Power transition vectors
-				if ( (fabs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) && (timeInState > LST_TO_ESW_DELAY )) //&& (actx->jointAngleDegrees >=  ankleGainsLst.thetaDes -1.0) ) {	// not sure we need the timeInState? what's the point? just maker sure it's kicking?
+				if ( (fabs(actx->jointTorque) < ANKLE_UNLOADED_TORQUE_THRESH) && (timeInState > LST_TO_ESW_DELAY ))
 				{
 					kneeAnkleStateMachine.currentState = STATE_EARLY_SWING;
 					ankleWalkParamx->timerInStanceLast = ankleWalkParamx->timerInStance;
@@ -232,10 +232,7 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 
 				if(timeInState >= ESW_TO_LSW_DELAY)
 				{
-//					if( actx->tauMeas >= HARD_TOESTRIKE_TORQUE_THRESH )
-//					{ // If hammering the toe, jump into pushoff?
-//						kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
-//					}
+
 					if(fabs(actx->tauMeas) >= fabs(GENTLE_HEELSTRIKE_TORQUE_THRESH) )
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;//STATE_LATE_SWING;
@@ -382,16 +379,6 @@ void setAnkleTorqueReplay(Act_s *actx, WalkParams *ankleWalkParamx){
 			{ // check impedance mode in here - only stance state for torque replay (goes directly to early swing)
 
 
-				/*
-				updateAnkleVirtualHardstopTorque(actx, ankleWalkParamx);
-				actx->tauDes = ankleWalkParamx->virtualHardstopTq + getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsEst);
-
-				if (JNT_ORIENT*actx->jointAngleDegrees > ankleWalkParamx->virtualHardstopEngagementAngle)
-				{
-					kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
-					passedStanceThresh = 1;
-				}
-				*/
 				if (isTransitioning) {
 					ankleWalkParamx->timerInStance = 0;
 					passedStanceThreshEst = 0;
@@ -542,10 +529,7 @@ void setAnkleTorqueReplay(Act_s *actx, WalkParams *ankleWalkParamx){
 
 				if(timeInState >= ESW_TO_LSW_DELAY)
 				{
-//					if( actx->tauMeas >= HARD_TOESTRIKE_TORQUE_THRESH )
-//					{ // If hammering the toe, jump into pushoff?
-//						kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
-//					}
+
 					if(fabs(actx->tauMeas) >= fabs(GENTLE_HEELSTRIKE_TORQUE_THRESH) )
 					{
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;//STATE_LATE_SWING;
