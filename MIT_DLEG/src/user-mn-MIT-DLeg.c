@@ -336,7 +336,7 @@ void MITDLegFsm1(void)
 
 				default:
 				{
-					// do not update from userwrites
+					// do nothing
 					act1.tauDes = 0.0;
 				}
 			}
@@ -495,10 +495,10 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel		*100.	);			// radians/s
 			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	*100.	);			//
 			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes		*100.0	); 			//
-			rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang - actx->motorPos0); //
+			rigid1.mn.genVar[5] = (int16_t) (rigid1.re.vb); //
 			rigid1.mn.genVar[6] = (int16_t) (act1.desiredCurrent);	 				//
 			rigid1.mn.genVar[7] = (int16_t) (getDeviceIdIncrementing()	); 			// Outputs Device ID, stepping through each number
-			rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); 	//
+			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain); 	//
 			#ifdef IS_KNEE
 				  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
 			#else
@@ -528,7 +528,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 			rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
 			rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
 			rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
-			rigid1.mn.genVar[8] = (int16_t) (act1.desiredVoltage / 2);
+			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain);
 			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
 			break;
 		}

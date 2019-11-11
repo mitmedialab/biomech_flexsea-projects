@@ -749,6 +749,39 @@ float getReferenceLPF(float refTorque, int8_t reset)
 }
 
 /*
+ * LPF on reference due to Feedforward Term
+ * Input is reference
+ * return:	torque command value to the motor driver
+ */
+float getTorqueErrorLPF(float refTorque, int8_t reset)
+{
+	static float y[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	if(reset)
+	{
+		u[2] = 0.0,	u[1] = 0.0,	u[0] = 0.0;
+		y[2] = 0.0,	y[1] = 0.0,	y[0] = 0.0;
+	}
+
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = refTorque;			// [Nm]
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+
+	//fc = 30hz
+	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
+			+ 0.0*u[k] + 0.0147569016602231*u[k-1] + 0.0147569016602231*u[k-2];
+	return ( y[k] );
+}
+
+/*
  * Feedforward Term based on system Identification and simulation
  * Input is reference
  * return:	torque command value to the motor driver
@@ -895,7 +928,9 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	// Error is torque at the joint
 	float tauErr = refTorque - sensedTorque;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
-	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
+//	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
+	tauErrDot = getTorqueErrorLPF(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative, Try 30Hz
+
 	tauErrLast = tauErr;
 
 	// If there is no Integral Windup problem continue integrating error
