@@ -13,7 +13,7 @@
 //****************************************************************************
 
 #include "actuator_functions.h"
-
+#include "median_filter.h"
 
 //****************************************************************************
 // Variable(s)
@@ -21,56 +21,18 @@
 
 //Variables which aren't static may be updated by Plan in the future
 
-//extern uint8_t mitDlegInfo[2];// = {PORT_RS485_2, PORT_RS485_2};
-
-//SAFETY FLAGS - in addition to enum, so can be cleared but don't lose other flags that may exist.
-static int8_t isSafetyFlag = 0;
-static int8_t isAngleLimit = 0;
-static int8_t isTorqueLimit = 0;
-static int8_t isTempLimit = 0;
-static int8_t startedOverLimit = 1;
 
 int8_t isEnabledUpdateSensors = 0;
 int8_t fsm1State = STATE_POWER_ON;
-float currentScalar = CURRENT_SCALAR_INIT;
 
 int8_t zeroLoadCell = 0;	//Used to allow re-zeroing of the load cell, ie for testing purposes
+
+// For testing voltage mode instead of current mode
 float voltageGain = 1.0;	//tested
 float velGain = 1.0; //1.1;	// tested
 float indGain = 1.73;	// tested
 
-
-//torque gain values
-// ARE THESE WORKING? CHECK THAT THEY'RE NOT BEING OVERWRITTEN BY USERWRITES!!!
-//float torqueKp = TORQ_KP_INIT;
-//float torqueKi = TORQ_KI_INIT;
-//float torqueKd = TORQ_KD_INIT;
-float errorKi = 0.0;
-
-//Work on Joint Angle Limits
-float jointLimitK = JOINT_SOFT_K;
-float jointLimitB = JOINT_SOFT_B;
-
-//motor param terms
-float motJ = MOT_J;
-float motB = MOT_B;
-
-
-
-//const vars taken from defines (done to speed up computation time)
-static const float angleUnit    = ANG_UNIT;
-static const float jointZeroAbs = JOINT_ZERO_ABS;
-static const float jointZero	= JOINT_ZERO;
-
-static const float forcePerTick  = FORCE_PER_TICK;
-
-static const float jointMinSoft = JOINT_MIN_SOFT;
-static const float jointMaxSoft = JOINT_MAX_SOFT;
-static const float jointMinSoftDeg = JOINT_MIN_SOFT * DEG_PER_RAD;
-static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
-
-struct diffarr_s jntAngClks;		//maybe used for velocity and accel calcs.
-
+static const float jointZero    = JOINT_ZERO;
 
 //****************************************************************************
 // Method(s)
@@ -130,27 +92,7 @@ static void getJointAngleKinematic(struct act_s *actx)
 
 }
 
-/*
- *  Filter using moving average.  This one works well for small window sizes
- *  larger windowsizes gets better accuracy with windowAverageingLarge
- *  uses WINDOW_SIZE
- *  Param: currentVal(float) - current value given
- *  Return: average(float) - e rolling average of all previous and current values
- */
-//UNDERGRAD TODO: figure out whythis isn't working
-static float windowAveraging(float currentVal) {
 
-	static int16_t index = -1;
-	static float window[WINDOW_SIZE];
-	static float average = 0;
-
-	index = (index + 1) % WINDOW_SIZE;
-	average = average - window[index]/WINDOW_SIZE;
-	window[index] = currentVal;
-	average = average + window[index]/WINDOW_SIZE;
-
-	return average;
-}
 
 /**
  * Output axial force on screw
@@ -422,32 +364,6 @@ static float getMotorCurrentDt(struct act_s *actx)
 	return currentDt;
 }
 
-/*
- *  Determine torque rate at joint using window averaging
- *  Param:	actx(struct act_s) - Actuator structure to track sensor values
- *  Return: average(float) - joint torque rate in NEWTON-METERS PER SECOND
- */
-static float windowJointTorqueRate(struct act_s *actx) {
-	#define TR_WINDOW_SIZE 3
-
-	static int8_t index = -1;
-	static float window[TR_WINDOW_SIZE];
-	static float average = 0;
-	static float previousTorque = 0;
-	float currentRate = 0;
-
-	index = (index + 1) % TR_WINDOW_SIZE;
-	currentRate = (actx->jointTorque - previousTorque)*SECONDS;
-	average -= window[index]/TR_WINDOW_SIZE;
-	window[index] = currentRate;
-	average += window[index]/TR_WINDOW_SIZE;
-
-	previousTorque = actx->jointTorque;
-
-	return average;
-
-}
-
 
 
 
@@ -524,7 +440,7 @@ float actuateAngleLimits(Act_s *actx){
 		if (actx->jointVelDegrees < 0)
 		{
 			//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
-			tauB = -jointLimitB * (actx->jointVelDegrees);
+			tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
 		}
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
@@ -1294,7 +1210,7 @@ float torqueSystemIDFrequencySweepChirp(float initFreq,  float finalFreq, float 
 	static float omega = 0.0, signal = 0.0, initOmega, finalOmega;
 	static float k = 0.0, biasHold = 0.0;
 	static int8_t initialize = -1, lastRunning = 0, done = 0;
-	static uint32_t signalTimer = 0, startupTimer=0;
+	static uint32_t signalTimer = 0;
 	static uint16_t waitingPeriod = 500;
 
 	float t = 0.0;
@@ -1532,44 +1448,5 @@ void updateSensorValues(struct act_s *actx)
 }
 
 
-/*
- *  TODO:find out what this function does and how its used
- *  Param:	val(int32_t) - current value given
- *  Return: average(float) - e rolling average of all previous and current values
- */
-static float windowSmoothJoint(int32_t val) {
-	#define JOINT_WINDOW_SIZE 5
-
-	static int8_t index = -1;
-	static float window[JOINT_WINDOW_SIZE];
-	static float average = 0;
 
 
-	index = (index + 1) % JOINT_WINDOW_SIZE;
-	average -= window[index]/JOINT_WINDOW_SIZE;
-	window[index] = (float) val;
-	average += window[index]/JOINT_WINDOW_SIZE;
-
-	return average;
-}
-
-/*
- *  TODO:find out what this function does and how its used
- *  Param:	val(int32_t) -
- *  Return: average(float) -
- */
-static float windowSmoothAxial(float val) {
-	#define AXIAL_WINDOW_SIZE 5
-
-	static int8_t index = -1;
-	static float window[AXIAL_WINDOW_SIZE];
-	static float average = 0;
-
-
-	index = (index + 1) % AXIAL_WINDOW_SIZE;
-	average -= window[index]/AXIAL_WINDOW_SIZE;
-	window[index] = val;
-	average += window[index]/AXIAL_WINDOW_SIZE;
-
-	return average;
-}

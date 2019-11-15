@@ -10,6 +10,8 @@
 	These are lower level functions that should not be messed with.
 
 ****************************************************************************/
+#ifndef BIOMECH_BIOMECH_ACTUATOR_FUNCTIONS_H_
+#define BIOMECH_BIOMECH_ACTUATOR_FUNCTIONS_H_
 
 
 //****************************************************************************
@@ -81,3 +83,5 @@ int32_t noLoadCurrent(float desCurr);
 
 
 #define WINDOW_SIZE 10
+
+#endif //BIOMECH_BIOMECH_ACTUATOR_FUNCTIONS_H_
