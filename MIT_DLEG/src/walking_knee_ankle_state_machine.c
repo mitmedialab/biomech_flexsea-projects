@@ -242,40 +242,40 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 				break; // case STATE_EARLY_SWING
 	        }
 
-			case STATE_LATE_SWING: //4
-			{
-				if (isTransitioning) {
-					ankleWalkParamx->transitionId = 0;
-				}
-				ankleWalkParamx->timerInSwing++;
-
-				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsLsw);
-
-				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
-				if(timeInState > LSW_TO_EST_DELAY) {
-
-					// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-					if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
-						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-						ankleWalkParamx->transitionId = 1;
-					}
-					// VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
-					else if (actx->jointTorqueRate > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH) {
-						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-						ankleWalkParamx->transitionId = 2;
-					}
-					// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
-					else if (actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH) {
-						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-						ankleWalkParamx->transitionId = 3;
-					}
-
-				}
-					//------------------------- END OF TRANSITION VECTORS ------------------------//
-
-
-				break;
-			}
+//			case STATE_LATE_SWING: //4
+//			{
+//				if (isTransitioning) {
+//					ankleWalkParamx->transitionId = 0;
+//				}
+//				ankleWalkParamx->timerInSwing++;
+//
+//				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsLsw);
+//
+//				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
+//				if(timeInState > LSW_TO_EST_DELAY) {
+//
+//					// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+//					if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+//						ankleWalkParamx->transitionId = 1;
+//					}
+//					// VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
+//					else if (actx->jointTorqueRate > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH) {
+//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+//						ankleWalkParamx->transitionId = 2;
+//					}
+//					// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
+//					else if (actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH) {
+//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+//						ankleWalkParamx->transitionId = 3;
+//					}
+//
+//				}
+//					//------------------------- END OF TRANSITION VECTORS ------------------------//
+//
+//
+//				break;
+//			}
 	        default:
 	        {
 	            //turn off control.
@@ -536,40 +536,40 @@ void setAnkleTorqueReplay(Act_s *actx, WalkParams *ankleWalkParamx){
 				break; // case STATE_EARLY_SWING
 			}
 
-			case STATE_LATE_SWING: //4
-			{
-				if (isTransitioning) {
-					ankleWalkParamx->transitionId = 0;
-				}
-				ankleWalkParamx->timerInSwing++;
-
-				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsLsw);
-
-				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
-				if(timeInState > LSW_TO_EST_DELAY) {
-
-					 // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-					if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
-						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-						ankleWalkParamx->transitionId = 1;
-					}
-					// VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
-					else if (actx->jointTorqueRate > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH) {
-						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-						ankleWalkParamx->transitionId = 2;
-					}
-					// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
-					else if (actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH) {
-						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-						ankleWalkParamx->transitionId = 3;
-					}
-
-				}
-					//------------------------- END OF TRANSITION VECTORS ------------------------//
-
-
-				break;
-			}
+//			case STATE_LATE_SWING: //4
+//			{
+//				if (isTransitioning) {
+//					ankleWalkParamx->transitionId = 0;
+//				}
+//				ankleWalkParamx->timerInSwing++;
+//
+//				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsLsw);
+//
+//				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
+//				if(timeInState > LSW_TO_EST_DELAY) {
+//
+//					 // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+//					if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+//						ankleWalkParamx->transitionId = 1;
+//					}
+//					// VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
+//					else if (actx->jointTorqueRate > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH) {
+//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+//						ankleWalkParamx->transitionId = 2;
+//					}
+//					// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
+//					else if (actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH) {
+//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+//						ankleWalkParamx->transitionId = 3;
+//					}
+//
+//				}
+//					//------------------------- END OF TRANSITION VECTORS ------------------------//
+//
+//
+//				break;
+//			}
 
 			case STATE_TORQUE_REPLAY: // 9
 			{
@@ -807,40 +807,40 @@ void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx, 
 				break; // case STATE_EARLY_SWING
 			}
 
-			case STATE_LATE_SWING: //4
-			{
-				if (isTransitioning) {
-					ankleWalkParamx->transitionId = 0;
-				}
-				ankleWalkParamx->timerInSwing++;
-
-				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsLsw);
-
-				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
-				if(timeInState > LSW_TO_EST_DELAY) {
-
-					// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-					if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
-						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-						ankleWalkParamx->transitionId = 1;
-					}
-					// VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
-					else if (actx->jointTorqueRate > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH) {
-						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-						ankleWalkParamx->transitionId = 2;
-					}
-					// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
-					else if (actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH) {
-						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
-						ankleWalkParamx->transitionId = 3;
-					}
-
-				}
-					//------------------------- END OF TRANSITION VECTORS ------------------------//
-
-
-				break;
-			}
+//			case STATE_LATE_SWING: //4
+//			{
+//				if (isTransitioning) {
+//					ankleWalkParamx->transitionId = 0;
+//				}
+//				ankleWalkParamx->timerInSwing++;
+//
+//				actx->tauDes = getImpedanceTorqueParams(actx, &ankleWalkParamx->ankleGainsLsw);
+//
+//				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
+//				if(timeInState > LSW_TO_EST_DELAY) {
+//
+//					// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+//					if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+//						ankleWalkParamx->transitionId = 1;
+//					}
+//					// VECTOR (1): Late Swing -> Early Stance (gentle heal strike) - Condition 2 -
+//					else if (actx->jointTorqueRate > GENTLE_HEELSTRIKE_TORQ_RATE_THRESH) {
+//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+//						ankleWalkParamx->transitionId = 2;
+//					}
+//					// VECTOR (1): Late Swing -> Early Stance (toe strike) - Condition 3
+//					else if (actx->jointAngleDegrees < HARD_TOESTRIKE_ANGLE_THRESH) {
+//						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
+//						ankleWalkParamx->transitionId = 3;
+//					}
+//
+//				}
+//					//------------------------- END OF TRANSITION VECTORS ------------------------//
+//
+//
+//				break;
+//			}
 
 			case STATE_TORQUE_REPLAY: // 9
 			{
