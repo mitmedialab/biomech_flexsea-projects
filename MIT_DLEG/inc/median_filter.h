@@ -24,13 +24,14 @@ float opt_med7(float * p);
 float opt_med9(float * p);
 float opt_med25(float * p);
 
-float medianFilterData3( float *inputData, Act_s * actx );
-float medianFilterData5( float *inputData, Act_s * actx );
-float medianFilterData7( float *inputData, Act_s * actx );
-
-//float medianFilterData9( float *inputData, Act_s * actx );
+float medianFilterData3( float *inputData, float *origArray );
+float medianFilterData5( float *inputData, float *origArray );
+float medianFilterData7( float *inputData, float *origArray );
 float medianFilterData9( float *inputData, float *origArray );
+float medianFilterData25( float *inputData, float *origArray );
 
-float medianFilterData25( float *inputData, Act_s * actx );
+float medianFilterArbitraryFloats(float datum);
+uint16_t medianFilterArbitraryUint16(uint16_t datum);
+
 
 #endif /* FLEXSEA_PROJECTS_MIT_DLEG_INC_MEDIAN_FILTER_H_ */

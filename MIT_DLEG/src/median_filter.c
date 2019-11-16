@@ -7,31 +7,23 @@
 
 
 
-/*
- * The following routines have been built from knowledge gathered
- * around the Web. I am not aware of any copyright problem with
- * them, so use it as you want.
- * N. Devillard - 1998
- */
+
 #include "median_filter.h"
 
 #include "user-mn-MIT-DLeg.h"
 
 
 
-
 #define PIX_SWAP(a,b) { float temp=(a);(a)=(b);(b)=temp; }
-
 #define PIX_SORT(a,b) { if ((a)>(b)) PIX_SWAP((a),(b)); }
 
 /*
  * Median Filter
- * in: 		Input currently measured value
+ * in: 		Input currently measured value, and pointer to window array, so can be used elsewhere
  * return: 	median value from a rolling window
  */
-float medianFilterData3( float *inputData, Act_s *actx )
+float medianFilterData3( float *inputData, float *origArray)
 {
-	static float origArray[MEDIAN_FILTER_WINDOW_SIZE_3];
 	float copyArray[MEDIAN_FILTER_WINDOW_SIZE_3];			//establish window to track values
 	float filteredOutput =0.0;
 
@@ -59,9 +51,8 @@ float medianFilterData3( float *inputData, Act_s *actx )
  * in: 		Input currently measured value
  * return: 	median value from a rolling window
  */
-float medianFilterData5( float *inputData, Act_s *actx )
+float medianFilterData5( float *inputData, float *origArray )
 {
-	static float origArray[MEDIAN_FILTER_WINDOW_SIZE_5];
 	float copyArray[MEDIAN_FILTER_WINDOW_SIZE_5];			//establish window to track values
 	float filteredOutput =0.0;
 
@@ -89,9 +80,8 @@ float medianFilterData5( float *inputData, Act_s *actx )
  * in: 		Input currently measured value
  * return: 	median value from a rolling window
  */
-float medianFilterData7( float *inputData, Act_s *actx )
+float medianFilterData7( float *inputData, float *origArray )
 {
-	static float origArray[MEDIAN_FILTER_WINDOW_SIZE_7];
 	float copyArray[MEDIAN_FILTER_WINDOW_SIZE_7];			//establish window to track values
 	float filteredOutput =0.0;
 
@@ -120,7 +110,6 @@ float medianFilterData7( float *inputData, Act_s *actx )
  */
 float medianFilterData9( float *inputData, float *origArray )
 {
-//	static float origArray[MEDIAN_FILTER_WINDOW_SIZE_9];
 	float copyArray[MEDIAN_FILTER_WINDOW_SIZE_9];			//establish window to track values
 	float filteredOutput =0.0;
 
@@ -148,9 +137,8 @@ float medianFilterData9( float *inputData, float *origArray )
  * in: 		Input currently measured value
  * return: 	median value from a rolling window
  */
-float medianFilterData25( float *inputData, Act_s *actx )
+float medianFilterData25( float *inputData, float *origArray)
 {
-	static float origArray[MEDIAN_FILTER_WINDOW_SIZE_25];
 	float copyArray[MEDIAN_FILTER_WINDOW_SIZE_25];			//establish window to track values
 	float filteredOutput =0.0;
 
@@ -171,6 +159,15 @@ float medianFilterData25( float *inputData, Act_s *actx )
 
 	return filteredOutput;
 }
+
+
+/*
+ * The following routines have been built from knowledge gathered
+ * around the Web. I am not aware of any copyright problem with
+ * them, so use it as you want.
+ * N. Devillard - 1998
+ * http://ndevilla.free.fr/median/median/index.html
+ */
 
 /*----------------------------------------------------------------------------
    Function :   opt_med3()
@@ -217,7 +214,7 @@ float opt_med5(float * p)
                 If you need larger even length kernels check the paper
  ---------------------------------------------------------------------------*/
 
-pixelvalue opt_med6(pixelvalue * p)
+float opt_med6(float * p)
 {
     PIX_SORT(p[1], p[2]); PIX_SORT(p[3],p[4]);
     PIX_SORT(p[0], p[1]); PIX_SORT(p[2],p[3]); PIX_SORT(p[4],p[5]);
@@ -327,6 +324,201 @@ float opt_med25(float * p)
     return (p[12]);
 }
 
+/*
+ * For arbitrary filter window Size use this method from
+ * https://embeddedgurus.com/stack-overflow/2010/10/median-filtering/
+ */
+#define 	STOPPER_FLOATS -3.4e38                                      /* Smaller than any datum */
+#define    	MEDIAN_ARBITRARY_FILTER_SIZE_FLOATS    (11)
+
+float medianFilterArbitraryFloats(float datum)
+{
+ struct pair
+ {
+   struct pair   *point;                              /* Pointers forming list linked in sorted order */
+   float  value;                                   /* Values to sort */
+ };
+ static struct pair buffer[MEDIAN_ARBITRARY_FILTER_SIZE_FLOATS] = {0}; /* Buffer of nwidth pairs */
+ static struct pair *datpoint = buffer;               /* Pointer into circular buffer of data */
+ static struct pair small = {NULL, STOPPER_FLOATS};          /* Chain stopper */
+ static struct pair big = {&small, 0};                /* Pointer to head (largest) of linked list.*/
+
+ struct pair *successor;                              /* Pointer to successor of replaced data item */
+ struct pair *scan;                                   /* Pointer used to scan down the sorted list */
+ struct pair *scanold;                                /* Previous value of scan */
+ struct pair *median;                                 /* Pointer to median */
+ uint16_t i;
+
+ if (datum == STOPPER_FLOATS)
+ {
+   datum = STOPPER_FLOATS + 1;                             /* No stoppers allowed. */
+ }
+
+ if ( (++datpoint - buffer) >= MEDIAN_ARBITRARY_FILTER_SIZE_FLOATS)
+ {
+   datpoint = buffer;                               /* Increment and wrap data in pointer.*/
+ }
+
+ datpoint->value = datum;                           /* Copy in new datum */
+ successor = datpoint->point;                       /* Save pointer to old value's successor */
+ median = &big;                                     /* Median initially to first in chain */
+ scanold = NULL;                                    /* Scanold initially null. */
+ scan = &big;                                       /* Points to pointer to first (largest) datum in chain */
+
+ /* Handle chain-out of first item in chain as special case */
+ if (scan->point == datpoint)
+ {
+   scan->point = successor;
+ }
+ scanold = scan;                                     /* Save this pointer and   */
+ scan = scan->point ;                                /* step down chain */
+
+ /* Loop through the chain, normal loop exit via break. */
+ for (i = 0 ; i < MEDIAN_ARBITRARY_FILTER_SIZE_FLOATS; ++i)
+ {
+   /* Handle odd-numbered item in chain  */
+   if (scan->point == datpoint)
+   {
+     scan->point = successor;                      /* Chain out the old datum.*/
+   }
+
+   if (scan->value < datum)                        /* If datum is larger than scanned value,*/
+   {
+     datpoint->point = scanold->point;             /* Chain it in here.  */
+     scanold->point = datpoint;                    /* Mark it chained in. */
+     datum = STOPPER_FLOATS;
+   };
+
+   /* Step median pointer down chain after doing odd-numbered element */
+   median = median->point;                       /* Step median pointer.  */
+   if (scan == &small)
+   {
+     break;                                      /* Break at end of chain  */
+   }
+   scanold = scan;                               /* Save this pointer and   */
+   scan = scan->point;                           /* step down chain */
+
+   /* Handle even-numbered item in chain.  */
+   if (scan->point == datpoint)
+   {
+     scan->point = successor;
+   }
+
+   if (scan->value < datum)
+   {
+     datpoint->point = scanold->point;
+     scanold->point = datpoint;
+     datum = STOPPER_FLOATS;
+   }
+
+   if (scan == &small)
+   {
+     break;
+   }
+
+   scanold = scan;
+   scan = scan->point;
+ }
+ return median->value;
+}
+
+/*
+ * Same function as above, but for uint16_t values
+ */
+
+#define 	STOPPER_UINT16 0                                      /* Smaller than any datum */
+#define    	MEDIAN_ARBITRARY_FILTER_SIZE_UINT16    (11)
+
+uint16_t medianFilterArbitraryUint16(uint16_t datum)
+{
+ struct pair
+ {
+   struct pair   *point;                              /* Pointers forming list linked in sorted order */
+   uint16_t  value;                                   /* Values to sort */
+ };
+ static struct pair buffer[MEDIAN_ARBITRARY_FILTER_SIZE_UINT16] = {0}; /* Buffer of nwidth pairs */
+ static struct pair *datpoint = buffer;               /* Pointer into circular buffer of data */
+ static struct pair small = {NULL, STOPPER_UINT16};          /* Chain stopper */
+ static struct pair big = {&small, 0};                /* Pointer to head (largest) of linked list.*/
+
+ struct pair *successor;                              /* Pointer to successor of replaced data item */
+ struct pair *scan;                                   /* Pointer used to scan down the sorted list */
+ struct pair *scanold;                                /* Previous value of scan */
+ struct pair *median;                                 /* Pointer to median */
+ uint16_t i;
+
+ if (datum == STOPPER_UINT16)
+ {
+   datum = STOPPER_UINT16 + 1;                             /* No stoppers allowed. */
+ }
+
+ if ( (++datpoint - buffer) >= MEDIAN_ARBITRARY_FILTER_SIZE_UINT16)
+ {
+   datpoint = buffer;                               /* Increment and wrap data in pointer.*/
+ }
+
+ datpoint->value = datum;                           /* Copy in new datum */
+ successor = datpoint->point;                       /* Save pointer to old value's successor */
+ median = &big;                                     /* Median initially to first in chain */
+ scanold = NULL;                                    /* Scanold initially null. */
+ scan = &big;                                       /* Points to pointer to first (largest) datum in chain */
+
+ /* Handle chain-out of first item in chain as special case */
+ if (scan->point == datpoint)
+ {
+   scan->point = successor;
+ }
+ scanold = scan;                                     /* Save this pointer and   */
+ scan = scan->point ;                                /* step down chain */
+
+ /* Loop through the chain, normal loop exit via break. */
+ for (i = 0 ; i < MEDIAN_ARBITRARY_FILTER_SIZE_UINT16; ++i)
+ {
+   /* Handle odd-numbered item in chain  */
+   if (scan->point == datpoint)
+   {
+     scan->point = successor;                      /* Chain out the old datum.*/
+   }
+
+   if (scan->value < datum)                        /* If datum is larger than scanned value,*/
+   {
+     datpoint->point = scanold->point;             /* Chain it in here.  */
+     scanold->point = datpoint;                    /* Mark it chained in. */
+     datum = STOPPER_UINT16;
+   };
+
+   /* Step median pointer down chain after doing odd-numbered element */
+   median = median->point;                       /* Step median pointer.  */
+   if (scan == &small)
+   {
+     break;                                      /* Break at end of chain  */
+   }
+   scanold = scan;                               /* Save this pointer and   */
+   scan = scan->point;                           /* step down chain */
+
+   /* Handle even-numbered item in chain.  */
+   if (scan->point == datpoint)
+   {
+     scan->point = successor;
+   }
+
+   if (scan->value < datum)
+   {
+     datpoint->point = scanold->point;
+     scanold->point = datpoint;
+     datum = STOPPER_UINT16;
+   }
+
+   if (scan == &small)
+   {
+     break;
+   }
+
+   scanold = scan;
+   scan = scan->point;
+ }
+ return median->value;
+}
 
 
 #undef PIX_SORT

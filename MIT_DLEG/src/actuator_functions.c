@@ -103,7 +103,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
 	static float tareOffset = 0;
-	static float forceWindow[MEDIAN_FILTER_WINDOW_SIZE_9];	// store array of current strain values
+	static float forceWindow[MEDIAN_FILTER_WINDOW_SIZE_25];	// store array of current strain values
 
 	float strainReading = 0;
 	float axialForce = 0;
@@ -112,9 +112,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
-	strainReading = medianFilterData9( &strainReading, forceWindow );	// spike rejection
-	rigid1.mn.genVar[5] = (int16_t) (filterTorqueButterworth(strainReading ) ); //
-//	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
+	strainReading = medianFilterData25( &strainReading, forceWindow );	// spike rejection, other lowpass didn't help much
 
 	if(actx->resetStaticVariables)
 	{
@@ -174,8 +172,9 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
  */
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
-	float A=0, c = 0, c2 = 0, projLength = 0, CAng = 0, thetaCnt=0;
 	static int16_t timerTare = 0;
+
+	float A=0, c = 0, c2 = 0, projLength = 0, CAng = 0, thetaCnt=0;
 
 	if(actx->resetStaticVariables)
 	{
@@ -198,10 +197,8 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
     	timerTare++;
     	if (timerTare > 100)
     	{
-
 			actx->motorPos0 = *rigid1.ex.enc_ang;		// Store current position of motor, as Initial Position [counts].
 			actx->c0 = c;
-
 
 			tareState = 0;
 			timerTare = 0;
