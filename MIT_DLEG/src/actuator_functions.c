@@ -103,7 +103,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
 	static float tareOffset = 0;
-	static float forceWindow[MEDIAN_FILTER_WINDOW_SIZE_9];	// store array of current values
+	static float forceWindow[MEDIAN_FILTER_WINDOW_SIZE_9];	// store array of current strain values
 
 	float strainReading = 0;
 	float axialForce = 0;
@@ -113,7 +113,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
 	strainReading = medianFilterData9( &strainReading, forceWindow );	// spike rejection
-
+	rigid1.mn.genVar[5] = (int16_t) (filterTorqueButterworth(strainReading ) ); //
 //	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
 
 	if(actx->resetStaticVariables)
