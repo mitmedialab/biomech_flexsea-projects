@@ -484,14 +484,19 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 	{
 		default:
 		{
+			float testValue = (float) rigid1.ex.strain;
+			static float testArray[9];
+			static float testArray2[9];
+
+
 			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	*100.	);			// Nm
 			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel		*100.	);			// radians/s
-			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	*100.	);			//
-			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes		*100.0	); 			//
+			rigid1.mn.genVar[3] = (int16_t) (rigid1.ex.strain	);			//
+			rigid1.mn.genVar[4] = (int16_t) (medianFilterData9( &testValue, testArray )	); 			//
 			rigid1.mn.genVar[5] = (int16_t) (medianFilterData3( &act1.jointTorque, &act1 ) * 100.0); //
 			rigid1.mn.genVar[6] = (int16_t) (medianFilterData5( &act1.jointTorque, &act1 ) * 100.0); //
 			rigid1.mn.genVar[7] = (int16_t) (medianFilterData7( &act1.jointTorque, &act1 ) * 100.0); //
-			rigid1.mn.genVar[8] = (int16_t) (medianFilterData9( &act1.jointTorque, &act1 ) * 100.0); //
+			rigid1.mn.genVar[8] = (int16_t) (medianFilterData9( &act1.jointTorque, testArray2 ) * 100.0); //
 			rigid1.mn.genVar[9] = (int16_t) (medianFilterData25( &act1.jointTorque, &act1 ) * 100.0); //
 
 			break;

@@ -118,9 +118,9 @@ float medianFilterData7( float *inputData, Act_s *actx )
  * in: 		Input currently measured value
  * return: 	median value from a rolling window
  */
-float medianFilterData9( float *inputData, Act_s *actx )
+float medianFilterData9( float *inputData, float *origArray )
 {
-	static float origArray[MEDIAN_FILTER_WINDOW_SIZE_9];
+//	static float origArray[MEDIAN_FILTER_WINDOW_SIZE_9];
 	float copyArray[MEDIAN_FILTER_WINDOW_SIZE_9];			//establish window to track values
 	float filteredOutput =0.0;
 
