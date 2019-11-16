@@ -272,27 +272,50 @@ static void checkPersistentError(Act_s *actx) {
  * Return 1 if pressed
  * return 0 if not pressed
  */
+
 static void checkEmergencyStop(Act_s *actx)
 {
 	uint16_t eStopPressed = rigid1.ex.status & 0x80;
+	static uint16_t eStopPressCounter = 0;
+	static uint16_t eStopReleaseCounter = 0;
+	static uint8_t isPressed = 0;
 
-	uint16_t eStopWindow =0;
-
-	eStopWindow = checkEmergencyStopWindow(eStopPressed);	// store the last ESTOP_WINDOW number of samples. if not cleared then don't clear estop
-
+	//Check if the eStop is pressed or not
 	if(eStopPressed)
 	{
-		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_DISCONNECT;
-		actx->resetStaticVariables = 1;		// flag to tell functions to reset static variables
-		actx->eStop = 1;
-
-
+		if(eStopPressCounter < INTEGRAL_CAP)
+		{
+			eStopPressCounter++;
+		}
 	}
-	else if(eStopWindow == 0)
+	else
 	{
+		if(eStopReleaseCounter < INTEGRAL_CAP)
+		{
+			eStopReleaseCounter++;
+		}
+	}
+
+	//Has it been released long enough?
+	if(eStopReleaseCounter > ESTOP_WINDOW_RELEASED)
+	{
+		//We will get here multiple times, but only the 1st one matters
 		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_NOMINAL;
 		actx->resetStaticVariables = 0;
 		actx->eStop = 0;
+		eStopReleaseCounter = 0;
+		isPressed = 0;	//This resets the next if()
+	}
+
+	//Has it been pressed long enough?
+	if(eStopPressCounter >= ESTOP_WINDOW_PRESSED && !isPressed)
+	{
+		//We will only get here once per activation
+		isPressed = 1;
+		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_DISCONNECT;
+		actx->resetStaticVariables = 1;		// flag to tell functions to reset static variables
+		actx->eStop = 1;
+		eStopPressCounter = 0;
 	}
 }
 
