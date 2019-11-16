@@ -86,11 +86,7 @@ TorqueRep torqueRep;
 	extern WalkParams subjectKneeWalkParams;
 #endif
 
-extern uint8_t calibrationFlags, calibrationNew;
-extern int8_t zeroLoadCell; 		// used for zeroing the load cell.
 int8_t isEnabledUpdateSensors = 0;
-
-extern int16_t splineTime;
 
 int16_t experimentTask = EXP_BARE_BONES;  // used to determine what state machine we're running.
 int16_t userWriteMode = USER_INPUT_ANKLE_NOMINAL;

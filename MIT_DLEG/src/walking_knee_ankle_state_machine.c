@@ -254,13 +254,8 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 				if(timeInState > LSW_TO_EST_DELAY) {
 
-					if (timeInState >= LSW_TO_EMG_DELAY && mitEmgGetState() == 1){
-					//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
-						kneeAnkleStateMachine.currentState = STATE_LSW_EMG;
-						ankleWalkParamx->transitionId = 4;
-
-					} // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-					else if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+					// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+					if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParamx->transitionId = 1;
 					}
@@ -553,13 +548,8 @@ void setAnkleTorqueReplay(Act_s *actx, WalkParams *ankleWalkParamx){
 				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 				if(timeInState > LSW_TO_EST_DELAY) {
 
-					if (timeInState >= LSW_TO_EMG_DELAY && mitEmgGetState() == 1){
-					//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
-						kneeAnkleStateMachine.currentState = STATE_LSW_EMG;
-						ankleWalkParamx->transitionId = 4;
-
-					} // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-					else if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+					 // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+					if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParamx->transitionId = 1;
 					}
@@ -628,10 +618,8 @@ void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx, 
 	 */
 	static int8_t isTransitioning = 0;
 	static uint32_t timeInState = 0;
-	static int8_t passedStanceThresh = 0;
 	static int8_t passedStanceThreshEst = 0;
 	static int8_t lastPassedStanceThreshEst = 0;
-	static float storedVirtualHardstopEngagementAngle;
 	static float storedEstThetaDesAngle;
 
 	kneeAnkleStateMachine.onEntrySmState = kneeAnkleStateMachine.currentState; // save the state on entry, assigned to last_currentState on exit
@@ -831,13 +819,8 @@ void setAnkleNonLinearStiffWalkingFSM(Act_s *actx, WalkParams *ankleWalkParamx, 
 				//---------------------- LATE SWING TRANSITION VECTORS ----------------------//
 				if(timeInState > LSW_TO_EST_DELAY) {
 
-					if (timeInState >= LSW_TO_EMG_DELAY && mitEmgGetState() == 1){
-					//---------------------- FREE SPACE EMG TRANSITION VECTORS ----------------------//
-						kneeAnkleStateMachine.currentState = STATE_LSW_EMG;
-						ankleWalkParamx->transitionId = 4;
-
-					} // VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
-					else if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
+					// VECTOR (1): Late Swing -> Early Stance (hard heal strike) - Condition 1
+					if (actx->jointTorque > HARD_HEELSTRIKE_TORQUE_THRESH && actx->jointTorqueRate > HARD_HEELSTRIKE_TORQ_RATE_THRESH) {
 						kneeAnkleStateMachine.currentState = STATE_EARLY_STANCE;
 						ankleWalkParamx->transitionId = 1;
 					}

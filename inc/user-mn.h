@@ -429,7 +429,7 @@ void reset_user_code(void);
 
 	#define CO_ENABLE_ACTPACK	//Enables the ActPack state machine(s)
 
-	#define USE_MIT_EMG_I2C     //required for EMG board functionality
+//	#define USE_MIT_EMG_I2C     //required for EMG board functionality
 
 	#if(ACTIVE_SUBPROJECT == SUBPROJECT_A)
 
