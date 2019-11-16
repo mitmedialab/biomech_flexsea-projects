@@ -307,10 +307,10 @@ int16_t checkEmergencyStopWindow(uint16_t inputVal)
 
 	static uint32_t circStopCounter;
 	static int32_t counterIndex;
-	static uint32_t stopWindow[ESTOP_WINDOW];
+	static uint32_t stopWindow[ESTOP_WINDOW_RELEASED];
 
 	++circStopCounter;	//increment circular counter
-	if(circStopCounter == ESTOP_WINDOW)
+	if(circStopCounter == ESTOP_WINDOW_RELEASED)
 	{
 		circStopCounter = 0;	//reset counter
 	}
@@ -320,13 +320,13 @@ int16_t checkEmergencyStopWindow(uint16_t inputVal)
 
 
 	// using the accumulator,
-	for (i = 0; i < ESTOP_WINDOW;  i++)
+	for (i = 0; i < ESTOP_WINDOW_RELEASED;  i++)
 	{
 		result +=  stopWindow[counterIndex];
 		--counterIndex;
 		if(counterIndex == -1)
 		{
-			counterIndex = ESTOP_WINDOW-1;
+			counterIndex = ESTOP_WINDOW_RELEASED-1;
 		}
 	}
 
