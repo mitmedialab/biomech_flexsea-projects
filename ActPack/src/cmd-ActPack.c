@@ -255,7 +255,8 @@ void tx_cmd_actpack_w(uint8_t *shBuf, uint8_t *cmd, uint8_t *cmdType, \
 			SPLIT_16((ri->mn.analog[2]), shBuf, &index);
 			SPLIT_16((ri->mn.analog[3]), shBuf, &index);
 			//(16 bytes)
-		} else if(offset == 4)
+		}
+		else if(offset == 4)
 		{
 			SPLIT_32(ri->ctrl.timestamp, shBuf, &index);
 			SPLIT_16((uint16_t)(ri->ex.mot_volt >> 3), shBuf, &index);
@@ -574,8 +575,6 @@ void rx_multi_cmd_actpack_rr(uint8_t *msgBuf, MultiPacketInfo *mInfo, uint8_t *r
 	newActPackRRpacketAvailableFlag = 1;
 	ri->lastOffsetDecoded = offset;
 }
-
-
 
 //****************************************************************************
 // Private Function(s)

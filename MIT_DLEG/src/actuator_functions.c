@@ -30,7 +30,6 @@ static int8_t isTorqueLimit = 0;
 static int8_t isTempLimit = 0;
 static int8_t startedOverLimit = 1;
 
-int8_t isEnabledUpdateSensors = 0;
 int8_t fsm1State = STATE_POWER_ON;
 float currentScalar = CURRENT_SCALAR_INIT;
 
@@ -130,27 +129,7 @@ static void getJointAngleKinematic(struct act_s *actx)
 
 }
 
-/*
- *  Filter using moving average.  This one works well for small window sizes
- *  larger windowsizes gets better accuracy with windowAverageingLarge
- *  uses WINDOW_SIZE
- *  Param: currentVal(float) - current value given
- *  Return: average(float) - e rolling average of all previous and current values
- */
-//UNDERGRAD TODO: figure out whythis isn't working
-static float windowAveraging(float currentVal) {
 
-	static int16_t index = -1;
-	static float window[WINDOW_SIZE];
-	static float average = 0;
-
-	index = (index + 1) % WINDOW_SIZE;
-	average = average - window[index]/WINDOW_SIZE;
-	window[index] = currentVal;
-	average = average + window[index]/WINDOW_SIZE;
-
-	return average;
-}
 
 /**
  * Output axial force on screw
@@ -168,6 +147,11 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
 //	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
+
+	if(actx->resetStaticVariables)
+	{
+		tare = 1;
+	}
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing.
@@ -417,31 +401,7 @@ static float getMotorCurrentDt(struct act_s *actx)
 	return currentDt;
 }
 
-/*
- *  Determine torque rate at joint using window averaging
- *  Param:	actx(struct act_s) - Actuator structure to track sensor values
- *  Return: average(float) - joint torque rate in NEWTON-METERS PER SECOND
- */
-static float windowJointTorqueRate(struct act_s *actx) {
-	#define TR_WINDOW_SIZE 3
 
-	static int8_t index = -1;
-	static float window[TR_WINDOW_SIZE];
-	static float average = 0;
-	static float previousTorque = 0;
-	float currentRate = 0;
-
-	index = (index + 1) % TR_WINDOW_SIZE;
-	currentRate = (actx->jointTorque - previousTorque)*SECONDS;
-	average -= window[index]/TR_WINDOW_SIZE;
-	window[index] = currentRate;
-	average += window[index]/TR_WINDOW_SIZE;
-
-	previousTorque = actx->jointTorque;
-
-	return average;
-
-}
 
 
 
@@ -744,6 +704,39 @@ float getReferenceLPF(float refTorque, int8_t reset)
 }
 
 /*
+ * LPF on reference due to Feedforward Term
+ * Input is reference
+ * return:	torque command value to the motor driver
+ */
+float getTorqueErrorLPF(float refTorque, int8_t reset)
+{
+	static float y[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	if(reset)
+	{
+		u[2] = 0.0,	u[1] = 0.0,	u[0] = 0.0;
+		y[2] = 0.0,	y[1] = 0.0,	y[0] = 0.0;
+	}
+
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = refTorque;			// [Nm]
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+
+	//fc = 30hz
+	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
+			+ 0.0*u[k] + 0.0147569016602231*u[k-1] + 0.0147569016602231*u[k-2];
+	return ( y[k] );
+}
+
+/*
  * Feedforward Term based on system Identification and simulation
  * Input is reference
  * return:	torque command value to the motor driver
@@ -890,7 +883,9 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	// Error is torque at the joint
 	float tauErr = refTorque - sensedTorque;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
-	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
+//	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
+	tauErrDot = getTorqueErrorLPF(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative, Try 30Hz
+
 	tauErrLast = tauErr;
 
 	// If there is no Integral Windup problem continue integrating error
@@ -1488,48 +1483,7 @@ void updateSensorValues(struct act_s *actx)
 	actx->efficiencyInstant = actx->jointPower / ( (actx->motorPower) );
 
 	actx->safetyFlag = getSafetyFlags(); //todo: I don't think this is in use anymore MC
-
 }
 
 
-/*
- *  TODO:find out what this function does and how its used
- *  Param:	val(int32_t) - current value given
- *  Return: average(float) - e rolling average of all previous and current values
- */
-static float windowSmoothJoint(int32_t val) {
-	#define JOINT_WINDOW_SIZE 5
 
-	static int8_t index = -1;
-	static float window[JOINT_WINDOW_SIZE];
-	static float average = 0;
-
-
-	index = (index + 1) % JOINT_WINDOW_SIZE;
-	average -= window[index]/JOINT_WINDOW_SIZE;
-	window[index] = (float) val;
-	average += window[index]/JOINT_WINDOW_SIZE;
-
-	return average;
-}
-
-/*
- *  TODO:find out what this function does and how its used
- *  Param:	val(int32_t) -
- *  Return: average(float) -
- */
-static float windowSmoothAxial(float val) {
-	#define AXIAL_WINDOW_SIZE 5
-
-	static int8_t index = -1;
-	static float window[AXIAL_WINDOW_SIZE];
-	static float average = 0;
-
-
-	index = (index + 1) % AXIAL_WINDOW_SIZE;
-	average -= window[index]/AXIAL_WINDOW_SIZE;
-	window[index] = val;
-	average += window[index]/AXIAL_WINDOW_SIZE;
-
-	return average;
-}

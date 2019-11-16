@@ -30,6 +30,8 @@
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
+#ifdef USE_MIT_EMG_I2C
+
 //****************************************************************************
 // Include(s)
 //****************************************************************************
@@ -285,5 +287,7 @@ int16_t windowSmoothEMG1(int16_t val) {
 
 	return (int16_t) average;
 }
+
+#endif //USE_MIT_EMG_I2C
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE

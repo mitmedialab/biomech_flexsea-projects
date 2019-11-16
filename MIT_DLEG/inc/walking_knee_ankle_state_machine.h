@@ -4,8 +4,8 @@ extern "C" {
 
 #if (defined INCLUDE_UPROJ_MIT_DLEG && defined BOARD_TYPE_FLEXSEA_MANAGE) || defined BOARD_TYPE_FLEXSEA_PLAN
 
-#ifndef BIOM_STATE_MACHINE
-#define BIOM_STATE_MACHINE
+#ifndef WALKING_KNEE_ANKLE_STATE_MACHINE_H
+#define WALKING_KNEE_ANKLE_STATE_MACHINE_H
 
 //****************************************************************************
 // Include(s)

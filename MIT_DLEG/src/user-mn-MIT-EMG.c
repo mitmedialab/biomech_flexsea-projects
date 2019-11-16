@@ -231,7 +231,7 @@ void mitEmgI2c2Fsm(void)
 				emgTimer = 0;
 				emgState = EMG_STATE_INACTIVE;
 
-				emgPeripheralState == EMG_PERIPH_READY;
+				emgPeripheralState = EMG_PERIPH_READY;
 			}
 			break;
 

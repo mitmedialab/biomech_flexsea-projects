@@ -8,9 +8,9 @@ extern "C" {
 //****************************************************************************
 #include "walking_knee_ankle_state_machine.h"
 #include <user-mn-MIT-DLeg.h>
-//#include "user-mn-MIT-EMG.h"
-#include "spline_functions.h"
+#include "user-mn-MIT-EMG.h"
 #include "free_ankle_EMG.h"
+#include "spline_functions.h"
 #include "torque_replay.h"
 #include "nonlinear_stiff.h"
 

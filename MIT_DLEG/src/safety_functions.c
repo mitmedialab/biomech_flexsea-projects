@@ -24,7 +24,7 @@
 // Variable(s)
 //****************************************************************************
 static int8_t errorConditions[ERROR_ARRAY_SIZE]; //massage extern until it works
-static int16_t safetyFlags; //bitmap of all errors. Also serves as boolean for error existence
+static int16_t safetyFlags = 0; //bitmap of all errors. Also serves as boolean for error existence
 static int8_t motorMode;
 static const int16_t stm32ID[] = STM32ID;
 
@@ -287,13 +287,13 @@ static void checkEmergencyStop(Act_s *actx)
 		actx->eStop = 1;
 
 
-	} else if(eStopWindow == 0)
+	}
+	else if(eStopWindow == 0)
 	{
 		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_NOMINAL;
 		actx->resetStaticVariables = 0;
 		actx->eStop = 0;
 	}
-
 }
 
 /*
@@ -516,7 +516,8 @@ int16_t getDeviceIdIncrementing(void) {
  *  Param: actx(Act_s) - Actuator structure to track sensor values
  *
  */
-void checkSafeties(Act_s *actx) {
+void checkSafeties(Act_s *actx)
+{
 	safetyFlags = 0; //reset this upon entering a check
 
 	checkLoadcell(actx);
@@ -538,8 +539,10 @@ void checkSafeties(Act_s *actx) {
 
 	//set our safety bitmap for streaming and checking purposes
 	//TODO: consider optimizing if there are future processing constraints
-	for (int i = 0; i < ERROR_ARRAY_SIZE; i++) {
-		if (errorConditions[i]) {
+	for (int i = 0; i < ERROR_ARRAY_SIZE; i++)
+	{
+		if (errorConditions[i])
+		{
 			SET_MAP_HIGH(i, safetyFlags);
 		}
 	}
