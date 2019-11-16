@@ -30,8 +30,8 @@
 #if defined INCLUDE_UPROJ_MIT_DLEG || defined BOARD_TYPE_FLEXSEA_PLAN
 #if defined BOARD_TYPE_FLEXSEA_MANAGE || defined BOARD_TYPE_FLEXSEA_PLAN
 
-#ifndef INC_MIT_DLEG
-#define INC_MIT_DLEG
+#ifndef INC_MIT_DLEG_H
+#define INC_MIT_DLEG_H
 
 //****************************************************************************
 // Include(s)
@@ -49,9 +49,12 @@
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
+
 extern struct act_s act1, act2;	//define actuator structure shared
 extern int8_t isEnabledUpdateSensors;
 
+extern uint8_t calibrationFlags, calibrationNew;
+extern int8_t zeroLoadCell; 		// used for zeroing the load cell.
 
 
 //****************************************************************************
@@ -61,6 +64,7 @@ extern int8_t isEnabledUpdateSensors;
 //****************************************************************************
 // Public Function Prototype(s):
 //****************************************************************************
+
 void initMITDLeg(void);
 void MITDLegFsm1(void);
 void MITDLegFsm2(void);
@@ -68,10 +72,6 @@ void MITDLegFsm2(void);
 //****************************************************************************
 // Private Function Prototype(s):
 //****************************************************************************
-
-
-//Main FSMs
-
 
 //User writes/reads
 void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet, TorqueRep *torqueRep);
@@ -81,10 +81,6 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 //****************************************************************************
 // Definition(s):
 //****************************************************************************
-
-
-
-
 
 #endif	//INC_MIT_DLEG
 

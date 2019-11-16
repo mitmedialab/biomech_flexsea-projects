@@ -91,7 +91,7 @@ struct ankle2dof_s ankle2dof_left, ankle2dof_right;
 //****************************************************************************
 
 static void init_user_common(void);
-inline static void user_fsm2_common(void);
+//inline static void user_fsm2_common(void);
 
 //****************************************************************************
 // Public Function(s)
@@ -207,7 +207,7 @@ void user_fsm_1(void)
 void user_fsm_2(void)
 {
 	//Common:
-	user_fsm2_common();
+	//user_fsm2_common();
 
 	#if(RUNTIME_FSM2 == ENABLED)
 
@@ -235,7 +235,6 @@ void user_fsm_2(void)
 		//MIT D-Leg:
 		#if(ACTIVE_PROJECT == PROJECT_MIT_DLEG)
 		MITDLegFsm2();
-//		ActPack_fsm_2();	// used for communication
 		#endif	//PROJECT_MIT_DLEG
 
 		//MIT Pocket 2xDC / PocketClimb:
@@ -244,7 +243,7 @@ void user_fsm_2(void)
 		#endif	//PROJECT_POCKET_2XDC
 
 		//Dephy's Actuator Package (ActPack)
-		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK  ) //&& (ACTIVE_PROJECT != PROJECT_MIT_DLEG)
+		#if((ACTIVE_PROJECT == PROJECT_ACTPACK) || defined CO_ENABLE_ACTPACK)
 		ActPack_fsm_2();
 		#endif	//PROJECT_ACTPACK
 
@@ -271,9 +270,11 @@ static void init_user_common(void)
 	rigid1.ctrl.timestamp = 0;
 }
 
+/*
 inline static void user_fsm2_common(void)
 {
 	rigid1.ctrl.timestamp++;
 }
+*/
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE

@@ -10,15 +10,15 @@
 	These are lower level functions that should not be messed with.
 
 ****************************************************************************/
-#ifndef BIOMECH_BIOMECH_ACTUATOR_FUNCTIONS_H_
-#define BIOMECH_BIOMECH_ACTUATOR_FUNCTIONS_H_
-
+#ifndef INC_ACTUATOR_FUNCTIONS_H
+#define INC_ACTUATOR_FUNCTIONS_H
 
 //****************************************************************************
 // Include(s)
 //****************************************************************************
 #include <stdint.h>
 #include "main.h"
+#include "actuator_functions.h"
 #include "user-mn.h"
 #include "user-mn-ActPack.h"
 #include "mn-MotorControl.h"
@@ -81,7 +81,6 @@ bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output); /
 float actuateAngleLimits(Act_s *actx);	// apply virtual spring/damper on angle limits
 int32_t noLoadCurrent(float desCurr);
 
+extern int8_t fsm1State;
 
-#define WINDOW_SIZE 10
-
-#endif //BIOMECH_BIOMECH_ACTUATOR_FUNCTIONS_H_
+#endif //INC_ACTUATOR_FUNCTIONS_H

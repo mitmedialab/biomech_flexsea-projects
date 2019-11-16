@@ -22,7 +22,6 @@
 //Variables which aren't static may be updated by Plan in the future
 
 
-int8_t isEnabledUpdateSensors = 0;
 int8_t fsm1State = STATE_POWER_ON;
 
 int8_t zeroLoadCell = 0;	//Used to allow re-zeroing of the load cell, ie for testing purposes
@@ -114,6 +113,11 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	strainReading = ( (float) rigid1.ex.strain );
 //	strainReading = medianFilterData25( &strainReading, forceWindow );	// spike rejection, other lowpass didn't help much
 	strainReading = ( (float) medianFilterArbitraryUint16( rigid1.ex.strain ) );	// spike rejection, other lowpass didn't help much
+
+	if(actx->resetStaticVariables)
+	{
+		tare = 1;
+	}
 
 	if(actx->resetStaticVariables)
 	{
@@ -370,8 +374,6 @@ static float getMotorCurrentDt(struct act_s *actx)
 
 	return currentDt;
 }
-
-
 
 
 /*
@@ -999,63 +1001,6 @@ void mitInitPositionController(void) {
 	setControlGains(POS_CTRL_GAIN_KP, POS_CTRL_GAIN_KI, POS_CTRL_GAIN_KD, 0, DEVICE_CHANNEL);
 }
 
-
-/*
- *  Updates the static variables tim
- *  Return: average(float) -er and polesState
- *
- *  Return: 0(int8_t)
- */
-//int8_t findPoles(void) {
-//	static uint32_t timer = 0;
-//	static int8_t polesState = 0;
-//
-//	timer++;
-//
-//	switch(polesState) {
-//		case 0:
-//			//Disable FSM2:
-//			disableActPackFSM2();
-//			if(timer > 100)
-//			{
-//				polesState = 1;
-//			}
-//
-//			return 0;
-//
-//		case 1:
-//			//Send Find Poles command:
-//
-//			tx_cmd_calibration_mode_rw(TX_N_DEFAULT, CALIBRATION_FIND_POLES);
-//			packAndSend(P_AND_S_DEFAULT, FLEXSEA_EXECUTE_1, mitDlegInfo, SEND_TO_SLAVE);
-//			polesState = 2;
-//			timer = 0;
-//
-//			return 0;
-//
-//		case 2:
-//
-//			if(timer >= 44*SECONDS)
-//			{
-//				//Enable FSM2, position controller
-//				enableActPackFSM2();
-//				return 1;
-//			}
-//			return 0;
-//
-//
-//		default:
-//
-//			return 0;
-//
-//	}
-//
-//	return 0;
-//}
-
-
-
-
 /*
  * Set Motor torques open loop.  Used for System characterization.
  * Param:	actx(struct act_s) - Actuator structure to track sensor values
@@ -1453,7 +1398,5 @@ void updateSensorValues(struct act_s *actx)
 	actx->safetyFlag = getSafetyFlags(); //todo: I don't think this is in use anymore MC
 
 }
-
-
 
 

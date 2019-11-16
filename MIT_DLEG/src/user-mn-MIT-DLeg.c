@@ -49,11 +49,8 @@
 // Variable(s)
 //****************************************************************************
 
-
 uint8_t mitDlegInfo[2] = {PORT_RS485_1, PORT_RS485_1};
 uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
-#define THIS_ACTPACK		0
-#define SLAVE_ACTPACK		1
 
 // Initiate some variables that may be used for testing
 #if defined(IS_ACTUATOR_TESTING)
@@ -75,7 +72,6 @@ uint8_t enableMITfsm2 = 0, mitFSM2ready = 0, mitCalibrated = 0;
 	float freqSweepTime							= 0.0;
 #endif
 
-
 int8_t onEntry = 0;
 Act_s act1, act2;
 ActTestSettings act1TestInput;
@@ -85,18 +81,14 @@ TorqueRep torqueRep;
 #if defined(IS_ANKLE)
 
 	extern WalkParams subjectAnkleWalkParams;
-//	extern NonLinearK nonLinearKParams;
 
 #elif defined(IS_KNEE)
 	extern WalkParams subjectKneeWalkParams;
 #endif
 
-
-
-
 extern uint8_t calibrationFlags, calibrationNew;
 extern int8_t zeroLoadCell; 		// used for zeroing the load cell.
-extern int8_t isEnabledUpdateSensors;
+int8_t isEnabledUpdateSensors = 0;
 
 extern int16_t splineTime;
 
@@ -121,11 +113,9 @@ int16_t userWriteMode = USER_INPUT_ANKLE_NOMINAL;
 /*
  *  Initialize the Finite State Machine
  */
-void initMITDLeg(void) {
-
-
+void initMITDLeg(void)
+{
 }
-
 
 /*
  *  Finite State Machine with multiple states.
@@ -156,11 +146,9 @@ void MITDLegFsm1(void)
     	fsm1State = STATE_SAFETY;
     }
 
-
     //begin main FSM
 	switch(fsm1State)
 	{
-
 		case STATE_SAFETY: //-1
 		{ // Do nothing, until manually reset
 			updateUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
@@ -171,7 +159,7 @@ void MITDLegFsm1(void)
 				{ // E-stop was just released, start over again. Only after manually changing experimentTask
 
 					fsm1State = STATE_INITIALIZE_SENSORS;
-					fsmTime =0;
+					fsmTime = 0;
 				}
 			}
 
@@ -181,7 +169,8 @@ void MITDLegFsm1(void)
 		//this state is always reached
 		case STATE_POWER_ON:
 		{	//Same power-on delay as FSM2:
-			if(fsmTime >= AP_FSM2_POWER_ON_DELAY) {
+			if(fsmTime >= AP_FSM2_POWER_ON_DELAY)
+			{
 				//sensor update happens in mainFSM2(void) in main_fsm.c
 				isEnabledUpdateSensors = 0;
 				onEntry = 1;
@@ -193,7 +182,7 @@ void MITDLegFsm1(void)
 		}
 		case STATE_INITIALIZE_SETTINGS:
 		{
-			if(fsmTime >= AP_FSM2_POWER_ON_DELAY+3000)
+			if(fsmTime >= (AP_FSM2_POWER_ON_DELAY + 3000))
 			{	// +3000 to allow regulate to read battery voltage correctly
 
 				#if defined(NO_DEVICE)
@@ -206,7 +195,6 @@ void MITDLegFsm1(void)
 				#else
 					fsm1State = STATE_FIND_POLES;
 				#endif
-
 
 				onEntry = 1;
 
@@ -224,7 +212,8 @@ void MITDLegFsm1(void)
 		{
 			if (rigid1.re.vb < UVLO_BIOMECH)
 			{	// Skip FindPoles if no motor power attached.
-				calibrationFlags = 0, calibrationNew = 0;
+				calibrationFlags = 0;
+				calibrationNew = 0;
 				fsm1State = STATE_INITIALIZE_SENSORS;
 				fsmTime = 0;
 				isEnabledUpdateSensors = 1;
@@ -232,21 +221,25 @@ void MITDLegFsm1(void)
 			}
 			else
 			{
-				if (!actuatorIsCorrect(&act1)){
+				if (!actuatorIsCorrect(&act1))
+				{
 					setLEDStatus(0,0,1); //flash red; needs reset
 				}
 				else
 				{
-					if (onEntry) {
+					if (onEntry)
+					{
 						// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
-						calibrationFlags = 1, calibrationNew = 1;
+						calibrationFlags = 1;
+						calibrationNew = 1;
 
 						isEnabledUpdateSensors = 0;
 						onEntry = 0;
 					}
 
 					// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
-					if (FINDPOLES_DONE){
+					if (FINDPOLES_DONE)
+					{
 						fsm1State = STATE_INITIALIZE_SENSORS;
 						fsmTime = 0;
 						isEnabledUpdateSensors = 1;
@@ -285,12 +278,11 @@ void MITDLegFsm1(void)
 
 			mitInitCurrentController(&act1);		//initialize Current Controller with gains
 
-
 			//Set userwrites to initial values
 			ankleWalkParams = &subjectAnkleWalkParams;
 			ankleWalkParams->initializedStateMachineVariables = 0;
-			if (!ankleWalkParams->initializedStateMachineVariables){
-
+			if (!ankleWalkParams->initializedStateMachineVariables)
+			{
 				initializeUserWrites(&act1, ankleWalkParams, &act1TestInput, &torqueRep);
 				ankleWalkParams->initializedStateMachineVariables = 1;
 				kneeAnkleStateMachine.currentState = STATE_INIT;	//Establish walking state machine initialization state
@@ -325,8 +317,6 @@ void MITDLegFsm1(void)
 					setMotorTorque( &act1 );
 					break;
 				}
-
-
 				default:
 				{
 					// do nothing
@@ -349,7 +339,6 @@ void MITDLegFsm1(void)
 	act1.lastEStopCondition = act1.eStop;
 
 	#endif	//ACTIVE_PROJECT == PROJECT_ANKLE_2DOF
-
 }
 
 
@@ -374,7 +363,6 @@ void MITDLegFsm2(void)
 		return;
 	}
 
-
 	//External controller can fully disable the comm:
 	//if(ActPackSys == SYS_NORMAL && ActPackCoFSM == APC_FSM2_ENABLED){enableAPfsm2 = 1;}
 	//else {enableAPfsm2 = 0;}
@@ -394,11 +382,9 @@ void MITDLegFsm2(void)
 
 			//Reset KEEP/CHANGE once set:
 			if(writeEx[1].setGains == CHANGE){writeEx[1].setGains = KEEP;}
-
 		}
 
 		commDelayTimer++;
-
 	}
 
 	#endif	//ACTIVE_PROJECT == PROJECT_MIT_DLEG
@@ -458,9 +444,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
             break;
         }
 
-
 	}
-
 
 	actx->initializedSettings = 1;
 	wParams->initializedStateMachineVariables = 1;	// set flag that we initialized variables
@@ -484,28 +468,26 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 	{
 		default:
 		{
-			float testValue = (float) rigid1.ex.strain;
-			static float testArray[9];
-			static float testArray25[25];
-
-
-			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	*100.	);			// Nm
-			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel		*100.	);			// radians/s
-			rigid1.mn.genVar[3] = (int16_t) (rigid1.ex.strain);			//
-			rigid1.mn.genVar[4] = (int16_t) (medianFilterData9( &testValue, testArray )	); 			//
-//			rigid1.mn.genVar[5] = (int16_t) (medianFilterData3( &act1.jointTorque, &act1 ) * 100.0); //
-//			rigid1.mn.genVar[6] = (int16_t) (medianFilterData5( &act1.jointTorque, &act1 ) * 100.0); //
-//			rigid1.mn.genVar[7] = (int16_t) (medianFilterData7( &act1.jointTorque, &act1 ) * 100.0); //
-//			rigid1.mn.genVar[8] = (int16_t) (medianFilterArbitraryUint16( rigid1.ex.strain ) ); //
-			rigid1.mn.genVar[9] = (int16_t) (medianFilterData25( &testValue, testArray25 ) ); //
-
+			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	*100.0	);			// Nm
+			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel		*100.0	);			// radians/s
+			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	*100.0	);			//
+			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes		*100.0	); 			//
+			rigid1.mn.genVar[5] = (int16_t) (rigid1.re.vb); //
+			rigid1.mn.genVar[6] = (int16_t) (act1.desiredCurrent);	 				//
+			rigid1.mn.genVar[7] = (int16_t) (getDeviceIdIncrementing()	); 			// Outputs Device ID, stepping through each number
+			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain); 	//
+			#ifdef IS_KNEE
+				  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
+			#else
+				  rigid1.mn.genVar[9] = (int16_t) (experimentTask) ;//(kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
+			#endif
 			break;
 		}
         case EXP_IS_SWEEP_CHIRP_TEST://-2
         {
-            rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque		*100.);
-            rigid1.mn.genVar[2] = (int16_t) (act1.jointVel			*100.);
-            rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	*100.);
+            rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque		*100.0);
+            rigid1.mn.genVar[2] = (int16_t) (act1.jointVel			*100.0);
+            rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	*100.0);
             rigid1.mn.genVar[4] = (int16_t) (act1.tauDes			*100.0);
             rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
             rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
@@ -516,19 +498,19 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
         }
 		case EXP_ACTUATOR_STEP_RESPONSE: //-4	// Testing Actuator Control Parameters
 		{
-			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque		 *100.		);
-			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel			 *100.	);
-			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	 *100.		);
+			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque		 *100.0		);
+			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel			 *100.0		);
+			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	 *100.0		);
 			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes			 *100.0		);
 			rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
 			rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
 			rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
 			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain / 2);
+
 			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
 			break;
 		}
 	}
-
 }
 
 /*UserWrites are inputs from Plan. They are initailized to teh values shown below.

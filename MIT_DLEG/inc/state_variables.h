@@ -419,7 +419,7 @@ typedef struct nonLinearK {
 //****************************************************************************
 // Shared variable(s)
 //****************************************************************************
-extern int8_t fsm1State;
+
 extern float currentScalar;
 
 

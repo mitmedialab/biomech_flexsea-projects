@@ -29,6 +29,9 @@
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 
+#ifdef USE_MIT_EMG_I2C
+
+
 #ifndef INC_EMG_FREE_H
 #define INC_EMG_FREE_H
 
@@ -100,5 +103,7 @@ int16_t windowSmoothEMG1(int16_t val);
 
 
 #endif	//INC_EMG_FSM_H
+
+#endif //USE_MIT_EMG_I2C
 
 #endif 	//BOARD_TYPE_FLEXSEA_MANAGE
