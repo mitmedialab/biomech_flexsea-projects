@@ -112,7 +112,8 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
-	strainReading = medianFilterData25( &strainReading, forceWindow );	// spike rejection, other lowpass didn't help much
+//	strainReading = medianFilterData25( &strainReading, forceWindow );	// spike rejection, other lowpass didn't help much
+	strainReading = ( (float) medianFilterArbitraryUint16( rigid1.ex.strain ) );	// spike rejection, other lowpass didn't help much
 
 	if(actx->resetStaticVariables)
 	{
@@ -518,7 +519,7 @@ void setMotorTorque(struct act_s *actx)
 	actx->tauDes = refTorque;
 
 	// Feed Forward term
-	tauFF = refTorque/N_ETA;
+	tauFF = refTorque;
 
 	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
@@ -533,7 +534,7 @@ void setMotorTorque(struct act_s *actx)
 	}
 
 	// motor current signal
-	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/N)  ) );	// Reflect torques to Motor level
+	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/(N*N_ETA) )  ) );	// Reflect torques to Motor level
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST );
 
