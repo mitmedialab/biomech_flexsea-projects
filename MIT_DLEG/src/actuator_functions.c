@@ -516,9 +516,11 @@ void setMotorTorque(struct act_s *actx)
 	N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	//	// LPF Reference term to compensate for FF delay
-	refTorque = getReferenceLPF(refTorque, actx->resetStaticVariables);
+//	refTorque = getReferenceLPF(refTorque, actx->resetStaticVariables);
 
-	actx->tauDes = refTorque;
+//	actx->tauDes = refTorque;
+
+	rigid1.mn.genVar[6] = (int16_t) (refTorque	*100.	);
 
 	// Feed Forward term
 	tauFF = refTorque;
@@ -836,6 +838,8 @@ float getDobLpf(float refTorque)
  * input:	Act_s structure
  * return:	desired torque signal to motor
  */
+#define MAX_INTEGRAL_ERROR		70
+
 float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 {
 	static float tauErrLast = 0.0, tauErrInt = 0.0;
@@ -852,43 +856,49 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 
 	// Error is torque at the joint
 	float tauErr = refTorque - sensedTorque;		// [Nm]
-	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
+	float tauErrDot = (tauErr - tauErrLast)*100;		// [Nm/s]
 //	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
 	tauErrDot = getTorqueErrorLPF(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative, Try 30Hz
-
+	tauErrInt = tauErrInt + tauErr;
 	tauErrLast = tauErr;
+
+	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
+	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);
 
 	// If there is no Integral Windup problem continue integrating error
 	// Don't let integral wind-up without a controller.
-	if (~tauErrIntWindup && (actx->torqueKi != 0) )
+//	if (!tauErrIntWindup && (actx->torqueKi != 0) )
+//	{
+//		tauErrInt = tauErrInt + tauErr;				// [Nm]
+//	}
+
+	if(tauErrInt >= MAX_INTEGRAL_ERROR)
 	{
-		tauErrInt = tauErrInt + tauErr;				// [Nm]
-	} else
+		tauErrInt = MAX_INTEGRAL_ERROR;
+	} else if (tauErrInt <= -MAX_INTEGRAL_ERROR)
 	{
-		//https://ocw.mit.edu/courses/aeronautics-and-astronautics/16-30-feedback-control-systems-fall-2010/lecture-notes/MIT16_30F10_lec23.pdf
-		// try Antiwindup
-		// 0) test, don't increase tauErrInt; // seems like it locks up in a direction
-		// 1) test, set error to zero. // works okay, but kinda locks up at end limits
-		// 2) test, don't test for sign of error, just if saturated. // locks up more, slower response
-		// 3) test, set Ki = 0; this seems dangerous, rather know what this is doing.
-		// 4) test, try a scalar on the error => tauErrInt = tauErrInt + errorKi * (tauCOutput - tauCCombined); // this seemed unstable, not driving the right direction
-//		tauErrInt = 0.0;	// this is reasonably stable.
+		tauErrInt = -MAX_INTEGRAL_ERROR;
 	}
 
-	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator
+
+	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*(0.1)*actx->torqueKi;	// torq Compensator, Ki-reduced
+
+	rigid1.mn.genVar[7] = (int16_t)(tauErrInt*100.0);
+	rigid1.mn.genVar[5] = (int16_t)(tauErrInt*100.0);
+
 
 	//Saturation limit on Torque
-	tauCOutput = tauC;
+//	tauCOutput = tauC;
 
-	if (tauC > ABS_TORQUE_LIMIT_INIT) {
-		tauCOutput = ABS_TORQUE_LIMIT_INIT;
-	} else if (tauC < -ABS_TORQUE_LIMIT_INIT) {
-		tauCOutput = -ABS_TORQUE_LIMIT_INIT;
-	}
+//	if (tauC > ABS_TORQUE_LIMIT_INIT) {
+//		tauCOutput = ABS_TORQUE_LIMIT_INIT;
+//	} else if (tauC < -ABS_TORQUE_LIMIT_INIT) {
+//		tauCOutput = -ABS_TORQUE_LIMIT_INIT;
+//	}
 
 	// Clamp and turn off integral term if it's causing a torque saturation
 
-	tauErrIntWindup = integralAntiWindup(tauErr, tauC, tauCOutput);
+//	tauErrIntWindup = integralAntiWindup(tauErr, tauC, tauCOutput);
 
 
 	return tauC; // try not saturating until current, tauCOutput;
