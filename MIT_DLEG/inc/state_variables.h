@@ -13,7 +13,9 @@ extern "C" {
 
 //0. Update ./flexsea-projects/inc/User-mn.h to specify ACTIVE_SUBPROJECT
 
-//1. Select joint type
+/*
+ * 1. Select joint type
+ */
 
 //#define IS_KNEE	// SUBPROJECT_A <- Don't forget to set this if using Knee
 #define IS_ANKLE	// SUBPROJECT_B <- Don't forget to set this if using Knee, ankle is slave
@@ -26,12 +28,17 @@ extern "C" {
 */
 
 
-//2. Set Subproject if necessary.
-// go to ../inc/user-mn.h
-// set SUBPROJECT_A <- Don't forget to set this if using Ankle alone, or set for Knee when using an Ankle, This is Master
-// set SUBPROJECT_B <- Don't forget to set this for the ankle if using Knee, ankle is slave
+/*
+ * 2. Set Subproject if necessary.
+ *  go to ../inc/user-mn.h
+ *  set SUBPROJECT_A <- Don't forget to set this if using Ankle alone, or set for Knee when using an Ankle, This is Master
+ *  set SUBPROJECT_B <- Don't forget to set this for the ankle if using Knee, ankle is slave
+ */
 
-//3. Select device
+
+/* 3. Select device
+ * 	 Note: use getDeviceIdIncrementing() to get correct system ID
+ */
 //#define DEVICE_TF08_A01			// Define specific actuator configuration.
 #define DEVICE_TF08_A02		// Define specific actuator configuration.
 //#define DEVICE_TF08_A03		// Define specific actuator configuration.
@@ -40,17 +47,23 @@ extern "C" {
 //#define DEVICE_M15			// Standalone motor for testbench
 //#define DEVICE_M16			// Standalone motor for testbench
 //#define DEVICE_M23			// Standalone motor for testbench
+//#define DEVICE_M24			// Standalone motor for testbench
 
-
-// 4. Turn off things if necessary.
+/* 4. Turn off things if necessary.
+ *
+ */
 //#define NO_DEVICE				// use if not connected to an actuator or any hardware. Note to get Device ID use getDeviceIdIncrementing()
 //#define NO_ACTUATOR				// use if testing motors, but not attached to actuator
 //#define NO_POWER				// testing control signals, do not use setMotorcurrent()
 
-//5. Select peripheral options
+/*
+ * 5. Select peripheral options
+ */
 //#define USE_EMG
 
-//6. Specify User Walking Parameters (if applicable)
+/*
+ * 6. Specify User Walking Parameters (if applicable)
+ */
 //#define SUBJECT_012
 #define SUBJECT_002
 //#define SUBJECT_DEMO

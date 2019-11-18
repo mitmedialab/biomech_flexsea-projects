@@ -112,7 +112,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
 //	strainReading = medianFilterData25( &strainReading, forceWindow );	// spike rejection, other lowpass didn't help much
-	strainReading = ( (float) medianFilterArbitraryUint16( rigid1.ex.strain ) );	// spike rejection, other lowpass didn't help much
+//	strainReading = ( (float) medianFilterArbitraryUint16( rigid1.ex.strain ) );	// spike rejection, other lowpass didn't help much
 
 	if(actx->resetStaticVariables)
 	{
@@ -523,7 +523,7 @@ void setMotorTorque(struct act_s *actx)
 	rigid1.mn.genVar[6] = (int16_t) (refTorque	*100.	);
 
 	// Feed Forward term
-	tauFF = refTorque;
+	tauFF = refTorque; //getReferenceLPF(refTorque, actx->resetStaticVariables)
 
 	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
@@ -536,6 +536,9 @@ void setMotorTorque(struct act_s *actx)
 	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
 		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
 	}
+
+	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
+
 
 	// motor current signal
 	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/(N*N_ETA) )  ) );	// Reflect torques to Motor level
@@ -842,9 +845,11 @@ float getDobLpf(float refTorque)
 
 float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 {
-	static float tauErrLast = 0.0, tauErrInt = 0.0;
+	static float tauErrLast = 0.0;
+	static float tauErrInt = 0.0;
 	static int8_t tauErrIntWindup = 0;
-	static float tauCCombined = 0.0, tauCOutput = 0.0;
+	static float tauCCombined = 0.0;
+	static float tauCOutput = 0.0;
 
 	//todo: need to reset filters also!
 	if(actx->resetStaticVariables)
@@ -856,14 +861,11 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 
 	// Error is torque at the joint
 	float tauErr = refTorque - sensedTorque;		// [Nm]
-	float tauErrDot = (tauErr - tauErrLast)*100;		// [Nm/s]
+	float tauErrDot = (tauErr - tauErrLast)*100.0;		// [Nm/s]
 //	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
 	tauErrDot = getTorqueErrorLPF(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative, Try 30Hz
-	tauErrInt = tauErrInt + tauErr;
+	tauErrInt = tauErrInt + tauErr*0.1;
 	tauErrLast = tauErr;
-
-	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
-	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);
 
 	// If there is no Integral Windup problem continue integrating error
 	// Don't let integral wind-up without a controller.
@@ -881,9 +883,10 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	}
 
 
-	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*(0.1)*actx->torqueKi;	// torq Compensator, Ki-reduced
+	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
 
-	rigid1.mn.genVar[7] = (int16_t)(tauErrInt*100.0);
+	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
+	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*10.0);
 	rigid1.mn.genVar[5] = (int16_t)(tauErrInt*100.0);
 
 
