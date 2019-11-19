@@ -521,7 +521,7 @@ void setMotorTorque(struct act_s *actx)
 //	actx->tauDes = refTorque;
 
 	// Notch Filter
-//	notch = getNotchFilter(refTorque) * actx->controlScaler;
+	notch = getNotchFilter(refTorque) * actx->controlScaler;
 
 	// Feed Forward term
 	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT) * actx->controlFF;
