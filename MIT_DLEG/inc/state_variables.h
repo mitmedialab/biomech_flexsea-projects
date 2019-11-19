@@ -391,7 +391,6 @@ typedef struct actTestSettings {
 	float amplitude;
 	float dcBias;
 	float noiseAmp;
-	float valueScaler;
 
 	uint32_t onTime;
 	uint32_t offTime;

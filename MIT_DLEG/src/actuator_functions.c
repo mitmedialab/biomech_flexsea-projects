@@ -503,8 +503,8 @@ int32_t noLoadCurrent(float desCurr) {
  */
 void setMotorTorque(struct act_s *actx)
 {
-	float tauFF =0.0;
-
+	float tauFF = 0.0;
+	float notch = 0.0;
 	float tauC = 0.0;
 	float tauCCombined = 0.0;
 	float N=0.0, Icalc=0.0;
@@ -520,11 +520,11 @@ void setMotorTorque(struct act_s *actx)
 
 //	actx->tauDes = refTorque;
 
-
+	// Notch Filter
+//	notch = getNotchFilter(refTorque) * actx->controlScaler;
 
 	// Feed Forward term
-//	tauFF = refTorque; //getReferenceLPF(refTorque, actx->resetStaticVariables)
-	tauFF = actx->controlFF	* getFeedForwardTerm(refTorque) + actx->controlScaler*refTorque;
+	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT) * actx->controlFF;
 
 	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
@@ -538,12 +538,15 @@ void setMotorTorque(struct act_s *actx)
 		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
 	}
 	rigid1.mn.genVar[2] = (int16_t) (refTorque		*100.	);
+
+
+
 	rigid1.mn.genVar[6] = (int16_t) (tauC			*100.	);
 	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
 	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
-
+	rigid1.mn.genVar[9] = (int16_t) (notch			*100.0	);
 	// motor current signal
-	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/(N*N_ETA) )  ) );	// Reflect torques to Motor level
+	Icalc = tauCCombined;	// Reflect torques to Motor level
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST );
 
@@ -735,9 +738,9 @@ float getNotchFilter(float refTorque)
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
-	//fc = 30;
-	y[k] = 1.97219508852572*y[k-1] - 0.972388366801247*y[k-2]
-					+ 0.987369348311765*u[k] + -1.97206727426789*u[k-1] + 0.984891204231653*u[k-2];
+	//fc = 20;
+	y[k] = 1.8227334*y[k-1] - 0.8371821*y[k-2]
+					+ 72.3532614*u[k] + -144.4757007*u[k-1] + 72.1365268*u[k-2];
 
 	return ( y[k] );
 }
@@ -865,10 +868,10 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 
 	// Error is torque at the joint
 	float tauErr = refTorque - sensedTorque;		// [Nm]
-	float tauErrDot = (tauErr - tauErrLast)*100.0;		// [Nm/s]
+	float tauErrDot = (tauErr - tauErrLast)*10.0;		// [Nm/s]
 //	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
 	tauErrDot = getTorqueErrorLPF(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative, Try 30Hz
-	tauErrInt = tauErrInt + tauErr*0.1;
+	tauErrInt = tauErrInt + tauErr;
 	tauErrLast = tauErr;
 
 	// If there is no Integral Windup problem continue integrating error
@@ -887,10 +890,10 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	}
 
 
-	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
+	float tauC = tauErr*actx->torqueKp + 0.1*tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
 
 	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
-	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*10.0);
+	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);
 	rigid1.mn.genVar[5] = (int16_t)(tauErrInt*100.0);
 
 
@@ -997,7 +1000,7 @@ void mitInitOpenController( Act_s *actx) {
 	actx->torqueKp = VOLTAGE_TORQ_KP_INIT;
 	actx->torqueKi = VOLTAGE_TORQ_KI_INIT;
 	actx->torqueKd = VOLTAGE_TORQ_KD_INIT;
-	actx->controlScaler = 1.0;
+	actx->controlScaler = 0.0;	//only used when testing, can be dangerous
 
 	actx->currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
 	actx->voltageOpLimit = VOLTAGE_LIMIT_INIT;

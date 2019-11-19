@@ -506,7 +506,7 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 //			rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
 //			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain / 2);
 //
-			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
+//			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
 //			break;
 		}
 	}
@@ -567,7 +567,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 				act1TestSet->begin							= ( (int16_t) user_data_1.w[2] 	) ;
 				act1TestSet->offTime						= ( (uint16_t) user_data_1.w[3] ) ;
 				act1TestSet->onTime							= ( (uint16_t) user_data_1.w[4] ) ; //milli seconds
-				actx->torqueKp								= ( (float) user_data_1.w[5] 	) /1000.0;
+				actx->torqueKp								= ( (float) user_data_1.w[5] 	) /10000.0;
 				actx->torqueKi								= ( (float) user_data_1.w[6] 	) /10000.0;
 				actx->torqueKd								= ( (float) user_data_1.w[7] 	) /10000.0;
 				act1TestSet->amplitude						= ( (float) user_data_1.w[8] 	) /100.0;
