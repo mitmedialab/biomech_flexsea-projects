@@ -520,10 +520,11 @@ void setMotorTorque(struct act_s *actx)
 
 //	actx->tauDes = refTorque;
 
-	rigid1.mn.genVar[6] = (int16_t) (refTorque	*100.	);
+
 
 	// Feed Forward term
-	tauFF = refTorque; //getReferenceLPF(refTorque, actx->resetStaticVariables)
+//	tauFF = refTorque; //getReferenceLPF(refTorque, actx->resetStaticVariables)
+	tauFF = actx->controlFF	* getFeedForwardTerm(refTorque) + actx->controlScaler*refTorque;
 
 	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
@@ -536,9 +537,10 @@ void setMotorTorque(struct act_s *actx)
 	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
 		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
 	}
-
+	rigid1.mn.genVar[2] = (int16_t) (refTorque		*100.	);
+	rigid1.mn.genVar[6] = (int16_t) (tauC			*100.	);
 	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
-
+	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
 
 	// motor current signal
 	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/(N*N_ETA) )  ) );	// Reflect torques to Motor level
@@ -629,9 +631,11 @@ float getFeedForwardTerm(float refTorque)
 //					+ 184.467062409284 *u[k] + -368.934124818568*u[k-1] + 184.467062409284*u[k-2];
 
 	//fc = 20; New Voltage Control Model
-	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
-					+ 156.499749745744*u[k] + -309.88200358926*u[k-1] + 153.400847073617*u[k-2];
+//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
+//					+ 156.499749745744*u[k] + -309.88200358926*u[k-1] + 153.400847073617*u[k-2];
 
+	//fc = 20; LPF, Newer trial
+	y[k] = 1.4608054*y[k-1] - 0.5334881*y[k-2] + 3.6396485e+02*u[k] + -7.2676858e+02*u[k-1] + 3.6287459e+02*u[k-2];
 
 	return ( y[k] );
 }
