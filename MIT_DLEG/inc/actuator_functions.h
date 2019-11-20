@@ -69,12 +69,14 @@ float getDobLpf(float refTorque);
 float getDoBInv(float refTorque);
 
 void  setActuatorTestingTorque(Act_s *actx, ActTestSettings *testInput);
+
 float getTorqueSystemIDFrequencySweepChirp( ActTestSettings *testInput);
+float getSinusoidalAngle( struct actTestSettings *testInput);
+
 void setActuatorStepResponse(Act_s *actx, ActTestSettings *testInput);
 
 void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp, int16_t begin);
-//float torqueSystemIDFrequencySweepChirp(float initOmega,  float finalOmega, float T, float amplitude, float dcBias, float noiseAmp, int8_t chirpType, int8_t begin);
 float torqueSystemIDFrequencySweepChirp(float initOmega,  float finalOmega, float testLength, float amplitude, float dcBias, float noiseAmp, int16_t chirpType, int16_t running);
 float torqueSystemIDPRBS(void);
 bool integralAntiWindup(float tau_err, float tau_C_total, float tau_C_output); // integral term anti-windup clamp check

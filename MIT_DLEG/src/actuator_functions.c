@@ -212,7 +212,8 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c - actx->c0) ), actx->resetStaticVariables ) );	// [mm]
+//    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c - actx->c0) ), actx->resetStaticVariables ) );	// [mm]
+    actx->screwLengthDelta = (  ( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c - actx->c0) ), actx->resetStaticVariables ) );	// [mm]
 
     return projLength/1000.; // [m] output is in meters
 
@@ -537,14 +538,14 @@ void setMotorTorque(struct act_s *actx)
 	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
 		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
 	}
-	rigid1.mn.genVar[2] = (int16_t) (refTorque		*100.	);
+//	rigid1.mn.genVar[2] = (int16_t) (refTorque		*100.	);
 
 
 
-	rigid1.mn.genVar[6] = (int16_t) (tauC			*100.	);
-	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
-	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
-	rigid1.mn.genVar[9] = (int16_t) (notch			*100.0	);
+//	rigid1.mn.genVar[6] = (int16_t) (tauC			*100.	);
+//	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
+//	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
+//	rigid1.mn.genVar[9] = (int16_t) (notch			*100.0	);
 	// motor current signal
 	Icalc = tauCCombined;	// Reflect torques to Motor level
 
@@ -892,9 +893,9 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 
 	float tauC = tauErr*actx->torqueKp + 0.1*tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
 
-	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
-	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);
-	rigid1.mn.genVar[5] = (int16_t)(tauErrInt*100.0);
+//	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
+//	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);
+//	rigid1.mn.genVar[5] = (int16_t)(tauErrInt*100.0);
 
 
 	//Saturation limit on Torque
@@ -1374,6 +1375,17 @@ float getTorqueSystemIDFrequencySweepChirp( struct actTestSettings *testInput)
 						testInput->chirpType, testInput->begin);
 	return tor;
 }
+
+
+float getSinusoidalAngle( struct actTestSettings *testInput)
+{
+	float theta = torqueSystemIDFrequencySweepChirp( testInput->freq,
+						testInput->freq, testInput->freqSweepTime,
+						testInput->amplitude, testInput->dcBias, 0,
+						0, testInput->begin);
+	return theta;
+}
+
 
 //****************************************************************************
 // Private Function(s)

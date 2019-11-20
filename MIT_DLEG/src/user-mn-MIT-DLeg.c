@@ -76,6 +76,7 @@ int8_t onEntry = 0;
 Act_s act1, act2;
 ActTestSettings act1TestInput;
 TorqueRep torqueRep;
+GainParams testGains = {0.0, 0.0, 0.2, 0.0};
 
 // EXTERNS
 #if defined(IS_ANKLE)
@@ -303,10 +304,21 @@ void MITDLegFsm1(void)
 					fsm1State = STATE_INITIALIZE_SENSORS;
 					break;
 				}
+				case EXP_IS_SWEEP_IMPEDANCE_TEST://-6
+				{// System Sweep tests
+					testGains.thetaDes = getTorqueSystemIDFrequencySweepChirp( &act1TestInput);
+//					testGains.k1 = ;
+//					testGains.b;
+
+					act1.tauDes = getImpedanceTorqueParams(&act1, &testGains);	// Returns a Torque Value
+					setMotorTorque( &act1 );
+					break;
+				}
 				case EXP_BARE_BONES: //-5
 				{
 					break;
 				}
+
 				case EXP_ACTUATOR_STEP_RESPONSE: //-4
 				{
 					setActuatorStepResponse(&act1, &act1TestInput);
@@ -421,6 +433,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 			user_data_1.w[9] =  (int32_t) ( 0 );
 			break;
 		}
+
 		case EXP_ACTUATOR_STEP_RESPONSE: // -4
 		{
 			user_data_1.w[2] =  (int32_t) ( 0 ) ;
@@ -460,8 +473,8 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 
 	rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	*100.	);			// Nm
-//	rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		*100.0	);			// radians/s
-//	rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	*100.	);			//
+	rigid1.mn.genVar[2] = (int16_t) (rigid1.ex.strain - 32768); //(act1.tauDes 		*100.0	);			// radians/s
+	rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	*100.	);			//
 //	rigid1.mn.genVar[4] = (int16_t) (act1.tauDes		*100.0	); 			//
 //	rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang - actx->motorPos0); //
 //	rigid1.mn.genVar[6] = (int16_t) (act1.desiredCurrent);	 				//
@@ -535,7 +548,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 	static int16_t lastExperiment = 0;
 	static int16_t lastUserWriteMode = 0;
 	experimentTask 		= ( (int16_t) (user_data_1.w[0] ) );	// Select what experiment
-//	userWriteMode 		= ( (int16_t) (user_data_1.w[1] ) ); // Select what inputs you need
+//	userWriteMode 		= ( (int16_t) (user_data_1.w[1] ) ); // Select what inputs you need, REMOVED TEMPORARILY
 
 	// Check if experiment has changed, need to initialize values for that.
 	if( (experimentTask != lastExperiment) || (userWriteMode != lastUserWriteMode) )
@@ -580,6 +593,19 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 				actx->controlScaler							= ( (float) user_data_1.w[9] 	) /1000.0;
 				break;
 			}
+			case EXP_IS_SWEEP_IMPEDANCE_TEST://-6
+			{// System Sweep tests
+				act1TestSet->begin							= ( (int16_t) user_data_1.w[2] ) ;
+				act1TestSet->freq							= ( (float) user_data_1.w[3] ) /100.0;
+				testGains.k1								= ( (float) user_data_1.w[4] ) /100.0;
+				testGains.b									= ( (float) user_data_1.w[5] ) /100.0; //milli seconds
+//				act1TestSet->chirpType						= ( (int16_t) user_data_1.w[6] ) ; // 0:def, 1:lin, 2:exp
+				act1TestSet->amplitude						= ( (float) user_data_1.w[7] ) /100.0;
+				act1TestSet->dcBias							= ( (float) user_data_1.w[8] ) /100.0;
+//				act1TestSet->noiseAmp						= ( (float) user_data_1.w[9] ) /100.0;
+				break;
+			}
+
 			default:
 			{
 				// do not update from userwrites

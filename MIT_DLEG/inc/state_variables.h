@@ -101,6 +101,7 @@ enum guiExperimentMode{
 	// these specify which controls to run and what input/outputs
 	// used by user_data_1.w[0]
 	EXP_RESET_DEVICE				= -99,
+	EXP_IS_SWEEP_IMPEDANCE_TEST		= -6,
 	EXP_BARE_BONES					= -5,
 	EXP_ACTUATOR_STEP_RESPONSE		= -4,
 	EXP_ACTUATOR_TESTING			= -3,
