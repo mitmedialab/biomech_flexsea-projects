@@ -107,7 +107,7 @@ extern int8_t isEnabledUpdateSensors;
 
 extern int16_t splineTime;
 
-int16_t experimentTask = EXP_ACTUATOR_TESTING;  // used to determine what state machine we're running.
+int16_t experimentTask = EXP_ANKLE_WALKING_FSM;  // used to determine what state machine we're running.
 int16_t userWriteMode = USER_INPUT_ANKLE_NOMINAL;
 
 //static int gui_mode = GUI_MODE_NOM_CONTROL_PARAMS;
@@ -232,7 +232,7 @@ void MITDLegFsm1(void)
 			//todo check this is okay
 			zeroLoadCell = 1;	// forces getAxialForce() to zero the load cell again. this is kinda sketchy using a global variable.
 			isEnabledUpdateSensors = 1;
-			experimentTask = 2;
+			experimentTask = EXP_ANKLE_WALKING_FSM;
 
 			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
 			{
