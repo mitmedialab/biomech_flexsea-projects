@@ -322,13 +322,13 @@ void MITDLegFsm1(void)
 				case EXP_ACTUATOR_STEP_RESPONSE: //-4
 				{
 					setActuatorStepResponse(&act1, &act1TestInput);
-					setMotorTorque( &act1 );
+					setMotorTorqueDOB( &act1 );
 					break;
 				}
                 case EXP_IS_SWEEP_CHIRP_TEST://-2
                 {// System ID tests
                     act1.tauDes = getTorqueSystemIDFrequencySweepChirp( &act1TestInput);
-                	setMotorTorque( &act1 );
+                	setMotorTorqueDOB( &act1 );
                     break;
                 }
 				default:

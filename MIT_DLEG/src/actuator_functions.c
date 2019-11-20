@@ -521,11 +521,9 @@ void setMotorTorque(struct act_s *actx)
 
 //	actx->tauDes = refTorque;
 
-	// Notch Filter
-//	notch = getNotchFilter(refTorque) * actx->controlScaler;
 
 	// Feed Forward term
-	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT) * actx->controlFF;
+	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT);
 
 	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
@@ -580,7 +578,39 @@ void setMotorTorque(struct act_s *actx)
 
 }
 
+/*
+ * Calculate required motor torque, based on joint torque. set motor torque
+ * 			Motor Torque request, or maybe current
+ * Param:	actx(struct act_s) - Actuator structure to track sensor values
+ * Param:	tauDes(float_ - TODO:find out what this param is
+ * 			TODO: find out what this is (old param?) ->tor_d, desired torque at joint [Nm]
+ * Updates to Actuator structure:
+ * 			actx->tauDes = tauDes(parameter);
+ * 			actx->desiredCurrent = new desired current
+ *
+ */
+void setMotorTorqueDOB(struct act_s *actx)
+{
+	static float DOB = 0.0;
+	float DOBref = 0.0;
+	float DOBerr = 0.0;
 
+//	//Angle Limit bumpers
+	float refTorque = actx->tauDes + actuateAngleLimits(actx);
+	actx->tauMeas = actx->jointTorque;
+
+	// DOB Ref Term
+	DOBref = getDOBRef(refTorque);
+
+	DOBerr = DOBref - DOB;
+
+	DOB = getDOBQtd(DOBerr) - getDOBInvQtd(actx->tauMeas);
+
+	actx->tauDes = actx->controlScaler*DOBerr;
+
+	setMotorTorque(actx);
+
+}
 
 
 
@@ -753,15 +783,15 @@ float getNotchFilter(float refTorque)
  */
 float getDOB(float refTorque, float measTorque)
 {
-	return ( getDobLpf(refTorque) - getDoBInv(measTorque) );
+	return ( getDOBInvQtd(measTorque) - getDOBQtd(refTorque) );
 }
 
 /*
- * DOB applies a LPF on reference term
- * Input is reference (measured from output)
+ * DOB applies a LPF on reference signal
+ * Input is reference
  * return:	torque command value to the motor driver
  */
-float getDoBInv(float refTorque)
+float getDOBQtd(float refTorque)
 {
 	static float y[3] = {0, 0, 0};
 	static float u[3] = {0, 0, 0};
@@ -776,29 +806,36 @@ float getDoBInv(float refTorque)
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
-	//fc = 8hz * PlantInverse
-	y[k] = 1.90195384658863*y[k-1] - 0.904357108638321*y[k-2]
-			+ 15.0394155073408*u[k] + -30.038350459323*u[k-1] + 15.0018639276053*u[k-2];
+	//fc = 50
+	y[k] = 1.2484569*y[k-1] - 0.3896611*y[k-2]
+			 + 0.0706021*u[k-1] + 0.0706021*u[k-2];
 
-//	//fc = 8hz * PlantInverse, with Plant faking no spring
-//	y[k] = 1.90195384658863*y[k-1] - 0.904357108638321*y[k-2]
-//			+ 15.0392939721932*u[k] + -30.0410366681093*u[k-1] + 15.0017426959161*u[k-2];
+	return ( y[k] );
+}
 
-//	//fc = 8hz * PlantInverse, with Plant faking no spring, no damp
-//	y[k] = 1.90195384658863*y[k-1] - 0.904357108638321*y[k-2]
-//			+ 15.0205136401454*u[k] + -30.0410272802908*u[k-1] + 15.0205136401454*u[k-2];
+/*
+ * DOB multiplies Inverted Plant Model to a LPF on measured output
+ * Input is measured from output
+ * return:	torque command value to the motor driver
+ */
+float getDOBInvQtd(float refTorque)
+{
+	static float y[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
+	static int8_t k = 2;
 
-////	//fc = 10hz * PlantInverse
-//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-//			+ 23.2083845430577*u[k] + -46.3543006813545*u[k-1] + 23.150436047501*u[k-2];
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = refTorque;			// [Nm]
 
-	//fc = 15hz * PlantInverse
-//	y[k] = 1.82011448135205*y[k-1] - 0.82820418130686*y[k-2]
-//			+ 50.6246744776461*u[k] + -101.113086017633*u[k-1] + 50.498270861807*u[k-2];
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
 
-//	//fc = 20hz * PlantInverse
-//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
-//			+ 87.2661742636883*u[k] + -174.297460197009*u[k-1] + 87.04828130771*u[k-2];
+	//fc = 50hz * PlantInverse
+	y[k] = 1.2484568*y[k-1] - 0.3896611*y[k-2]
+			+ 37.4555422*u[k] + -73.4157594*u[k-1] + 36.0785346*u[k-2];
 
 	return ( y[k] );
 }
@@ -808,7 +845,7 @@ float getDoBInv(float refTorque)
  * Input is reference
  * return:	torque command value to the motor driver
  */
-float getDobLpf(float refTorque)
+float getDOBRef(float refTorque)
 {
 	static float y[3] = {0, 0, 0};
 	static float u[3] = {0, 0, 0};
@@ -823,22 +860,13 @@ float getDobLpf(float refTorque)
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
-	//fc = 8hz
-	y[k] = 1.90195384658863*y[k-1] - 0.904357108638321*y[k-2]
-			+ 0.00120163102484574*u[k-1] + 0.00120163102484574*u[k-2];
-
-
-//	//fc = 10hz
-//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-//			+ 0.0018543217247955*u[k-1] + 0.0018543217247955*u[k-2];
+//	//fc = 20hz
+//	y[k] = 1.6564084*y[k-1] - 0.6859222*y[k-2]
+//			+ 7.8287683*u[k] + -15.3449912*u[k-1] + 7.5409531*u[k-2];
 
 	//fc = 20hz
-//	y[k] = 1.82011448135205*y[k-1] - 0.82820418130686*y[k-2]
-//			+ 0.0*u[k] + 0.00404484997740527*u[k-1] + 0.00404484997740527*u[k-2];
-
-//	//fc = 20hz
-//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
-//			+ 0.0*u[k] + 0.00697246128771821*u[k-1] + 0.00697246128771821*u[k-2];
+	y[k] = 1.6564084*y[k-1] - 0.6859222*y[k-2]
+			+ 7.8287683*u[k] + -15.3449912*u[k-1] + 7.5409531*u[k-2];
 
 	return ( y[k] );
 }
@@ -891,7 +919,7 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	}
 
 
-	float tauC = tauErr*actx->torqueKp + actx->controlScaler*tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
+	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
 
 	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
 	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);

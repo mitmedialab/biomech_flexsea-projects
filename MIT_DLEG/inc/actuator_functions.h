@@ -56,7 +56,10 @@ float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet);	// Ret
 float getImpedanceTorqueParams(Act_s *actx, GainParams *gParams);	// Returns a Torque Value
 float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet, float k2);	// Returns a Torque Value
 void  setMotorTorque(struct act_s *actx);
+void  setMotorTorqueDOB(struct act_s *actx);
 void  setMotorTorqueOpenLoop(struct act_s *actx, float tau_des, int8_t motorControl);
+void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
+
 float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *act1);
 
 float getFeedForwardTerm(float refTorque);
@@ -65,17 +68,16 @@ float getNotchFilter(float refTorque);
 float getCompensatorCustomOutput(float refTorque, float sensedTorque);									// calculate compensator output value
 //float getCompensatorCustomOutput2(Act_s *actx, float tauMeas, float tauRef);									// calculate compensator output value
 float getDOB(float refTorque, float measTorque);
-float getDobLpf(float refTorque);
-float getDoBInv(float refTorque);
+float getDOBRef(float refTorque);
+float getDOBQtd(float refTorque);
+float getDOBInvQtd(float refTorque);
 
 void  setActuatorTestingTorque(Act_s *actx, ActTestSettings *testInput);
+void setActuatorStepResponse(Act_s *actx, ActTestSettings *testInput);
 
 float getTorqueSystemIDFrequencySweepChirp( ActTestSettings *testInput);
 float getSinusoidalAngle( struct actTestSettings *testInput);
 
-void setActuatorStepResponse(Act_s *actx, ActTestSettings *testInput);
-
-void  setMotorTorqueOpenLoopVolts(struct act_s *actx, float tau_des);
 float torqueSystemIDFrequencySweep(float omega, uint32_t signalTimer, float amplitude, float dcBias, float noiseAmp, int16_t begin);
 float torqueSystemIDFrequencySweepChirp(float initOmega,  float finalOmega, float testLength, float amplitude, float dcBias, float noiseAmp, int16_t chirpType, int16_t running);
 float torqueSystemIDPRBS(void);
