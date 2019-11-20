@@ -93,6 +93,7 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 				{
 					ankleWalkParamx->timerInStance = 0;
 					passedStanceThreshEst = 0;
+					lastPassedStanceThreshEst = passedStanceThreshEst;
 
 					storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
 
@@ -135,6 +136,8 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 						updateStiffnessRampDTheta(actx, &ankleWalkParamx->ankleGainsEst.kParam);
 						ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->ankleGainsEst.kParam.kFinal;
 						if (ankleWalkParamx->ankleGainsEst.k1 < 0) ankleWalkParamx->ankleGainsEst.k1 = 0; // for safety, shouldn't be possible but prevents negative stiffnesses
+
+						lastPassedStanceThreshEst = passedStanceThreshEst;
 					}
 
 				}
