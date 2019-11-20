@@ -68,7 +68,7 @@ float getNotchFilter(float refTorque);
 float getCompensatorCustomOutput(float refTorque, float sensedTorque);									// calculate compensator output value
 //float getCompensatorCustomOutput2(Act_s *actx, float tauMeas, float tauRef);									// calculate compensator output value
 float getDOB(float refTorque, float measTorque);
-float getDOBRef(float refTorque);
+float getDOBFF(float refTorque);
 float getDOBQtd(float refTorque);
 float getDOBInvQtd(float refTorque);
 

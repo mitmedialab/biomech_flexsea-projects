@@ -543,7 +543,6 @@ void setMotorTorque(struct act_s *actx)
 	rigid1.mn.genVar[6] = (int16_t) (tauC			*100.	);
 	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
 	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
-	rigid1.mn.genVar[9] = (int16_t) (notch			*100.0	);
 	// motor current signal
 	Icalc = tauCCombined;	// Reflect torques to Motor level
 
@@ -600,13 +599,16 @@ void setMotorTorqueDOB(struct act_s *actx)
 	actx->tauMeas = actx->jointTorque;
 
 	// DOB Ref Term
-	DOBref = getDOBRef(refTorque);
+	DOBref = getDOBFF(refTorque);
 
 	DOBerr = DOBref - DOB;
 
 	DOB = getDOBQtd(DOBerr) - getDOBInvQtd(actx->tauMeas);
 
 	actx->tauDes = actx->controlScaler*DOBerr;
+
+	rigid1.mn.genVar[9] = (int16_t) (refTorque			*100.0	);
+
 
 	setMotorTorque(actx);
 
@@ -806,9 +808,12 @@ float getDOBQtd(float refTorque)
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
-	//fc = 50
-	y[k] = 1.2484569*y[k-1] - 0.3896611*y[k-2]
-			 + 0.0706021*u[k-1] + 0.0706021*u[k-2];
+//	//fc = 50
+//	y[k] = 1.2484569*y[k-1] - 0.3896611*y[k-2]
+//			 + 0.0706021*u[k-1] + 0.0706021*u[k-2];
+	//fc = 30
+	y[k] = 1.7349051*y[k-1] - 0.7660021*y[k-2]
+			 + 0.0155485*u[k-1] + 0.0155485*u[k-2];
 
 	return ( y[k] );
 }
@@ -833,9 +838,13 @@ float getDOBInvQtd(float refTorque)
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
-	//fc = 50hz * PlantInverse
-	y[k] = 1.2484568*y[k-1] - 0.3896611*y[k-2]
-			+ 37.4555422*u[k] + -73.4157594*u[k-1] + 36.0785346*u[k-2];
+//	//fc = 50hz * PlantInverse
+//	y[k] = 1.2484568*y[k-1] - 0.3896611*y[k-2]
+//			+ 37.4555422*u[k] + -73.4157594*u[k-1] + 36.0785346*u[k-2];
+
+	//fc = 30hz * PlantInverse
+	y[k] = 1.7349051*y[k-1] - 0.7660021*y[k-2]
+			+ 8.2487061*u[k] + -16.1681018*u[k-1] + 7.9454524*u[k-2];
 
 	return ( y[k] );
 }
@@ -845,7 +854,7 @@ float getDOBInvQtd(float refTorque)
  * Input is reference
  * return:	torque command value to the motor driver
  */
-float getDOBRef(float refTorque)
+float getDOBFF(float refTorque)
 {
 	static float y[3] = {0, 0, 0};
 	static float u[3] = {0, 0, 0};
@@ -865,8 +874,8 @@ float getDOBRef(float refTorque)
 //			+ 7.8287683*u[k] + -15.3449912*u[k-1] + 7.5409531*u[k-2];
 
 	//fc = 20hz
-	y[k] = 1.6564084*y[k-1] - 0.6859222*y[k-2]
-			+ 7.8287683*u[k] + -15.3449912*u[k-1] + 7.5409531*u[k-2];
+	y[k] = 1.8227334*y[k-1] - 0.8371821*y[k-2]
+			+ 3.8326400*u[k] + -7.5122708*u[k-1] + 3.6917377*u[k-2];
 
 	return ( y[k] );
 }
