@@ -1070,12 +1070,12 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 	{ // Mid-Stance Controlled Dorsiflexion, going into Powered Plantarflexion,
 		for(int16_t i = 0; i < NONL_TRAJ_SIZE; i++)
 		{
-			if ( ( ascAngle[i] < actx->jointAngleDegrees ) &&  ( actx->jointAngleDegrees >= ascAngle[NONL_TRAJ_MAX_INDEX] + NONL_TRAJ_ANGLE_END_TOLERANCE ) ) {// changed condition, added tolerance
+			if ( ( ascAngle[i] < actx->jointAngleDegrees ) &&  ( actx->jointAngleDegrees >= ascAngle[NONL_TRAJ_MAX_INDEX] + NONL_TRAJ_ANGLE_END_TOLERANCE ) && ( actx->jointTorque < NONL_TRAJ_TORQUE_TRESH ) ) {// changed condition, added tolerance
 				nonLinearKParamx->ascAngleIndex = i;
 				i = NONL_TRAJ_SIZE; // end loop
-			} else if (actx->jointAngleDegrees <= (ascAngle[NONL_TRAJ_MAX_INDEX] + NONL_TRAJ_ANGLE_END_TOLERANCE) ) // make tolerance bigger to make the transition at a lower dorsiflexion angle
+			} else if ( (actx->jointAngleDegrees <= (ascAngle[NONL_TRAJ_MAX_INDEX] + NONL_TRAJ_ANGLE_END_TOLERANCE) ) && ( actx->jointTorque > NONL_TRAJ_TORQUE_TRESH ) ) // added torque treshold, or make tolerance bigger to make the transition at a lower dorsiflexion angle
 			{ // jump into descending mode
-				nonLinearKParamx->earlyLateFlag = 1;
+				nonLinearKParamx->earlyLateFlag = 1; // transition to descending profile
 				i = NONL_TRAJ_SIZE;
 			}
 		}
