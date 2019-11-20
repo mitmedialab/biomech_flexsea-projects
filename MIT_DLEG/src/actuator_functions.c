@@ -522,7 +522,7 @@ void setMotorTorque(struct act_s *actx)
 //	actx->tauDes = refTorque;
 
 	// Notch Filter
-	notch = getNotchFilter(refTorque) * actx->controlScaler;
+//	notch = getNotchFilter(refTorque) * actx->controlScaler;
 
 	// Feed Forward term
 	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT) * actx->controlFF;
@@ -538,14 +538,14 @@ void setMotorTorque(struct act_s *actx)
 	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
 		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
 	}
-//	rigid1.mn.genVar[2] = (int16_t) (refTorque		*100.	);
+	rigid1.mn.genVar[2] = (int16_t) (refTorque		*100.	);
 
 
 
-//	rigid1.mn.genVar[6] = (int16_t) (tauC			*100.	);
-//	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
-//	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
-//	rigid1.mn.genVar[9] = (int16_t) (notch			*100.0	);
+	rigid1.mn.genVar[6] = (int16_t) (tauC			*100.	);
+	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
+	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
+	rigid1.mn.genVar[9] = (int16_t) (notch			*100.0	);
 	// motor current signal
 	Icalc = tauCCombined;	// Reflect torques to Motor level
 
@@ -891,11 +891,11 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	}
 
 
-	float tauC = tauErr*actx->torqueKp + 0.1*tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
+	float tauC = tauErr*actx->torqueKp + actx->controlScaler*tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
 
-//	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
-//	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);
-//	rigid1.mn.genVar[5] = (int16_t)(tauErrInt*100.0);
+	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
+	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);
+	rigid1.mn.genVar[5] = (int16_t)(tauErrInt*100.0);
 
 
 	//Saturation limit on Torque

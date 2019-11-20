@@ -473,9 +473,9 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 
 	rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	*100.	);			// Nm
-	rigid1.mn.genVar[2] = (int16_t) (rigid1.ex.strain - 32768); //(act1.tauDes 		*100.0	);			// radians/s
-	rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	*100.	);			//
-//	rigid1.mn.genVar[4] = (int16_t) (act1.tauDes		*100.0	); 			//
+//	rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		*100.0	);			// radians/s
+//	rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	*100.	);			//
+//	rigid1.mn.genVar[4] = (int16_t) (act1.screwLengthDelta		*1000.0	); 			//
 //	rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang - actx->motorPos0); //
 //	rigid1.mn.genVar[6] = (int16_t) (act1.desiredCurrent);	 				//
 //	rigid1.mn.genVar[7] = (int16_t) (getDeviceIdIncrementing()	); 			// Outputs Device ID, stepping through each number
