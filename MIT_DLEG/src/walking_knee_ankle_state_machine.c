@@ -1070,18 +1070,17 @@ float getNonlinearStiffness(Act_s *actx, WalkParams *wParams, WalkingStateMachin
 	{ // Mid-Stance Controlled Dorsiflexion, going into Powered Plantarflexion,
 		for(int16_t i = 0; i < NONL_TRAJ_SIZE; i++)
 		{
-			if ( ( ascAngle[i] < actx->jointAngleDegrees ) &&  ( actx->jointAngleDegrees >= ascAngle[NONL_TRAJ_MAX_INDEX] ) )
-			{ // values are increasing, so if we get above it we're done.
+			if ( ( ascAngle[i] < actx->jointAngleDegrees ) &&  ( actx->jointAngleDegrees >= ascAngle[NONL_TRAJ_MAX_INDEX] + NONL_TRAJ_ANGLE_END_TOLERANCE ) ) {// changed condition, added tolerance
 				nonLinearKParamx->ascAngleIndex = i;
 				i = NONL_TRAJ_SIZE; // end loop
-			} else if (actx->jointAngleDegrees <= (ascAngle[NONL_TRAJ_MAX_INDEX] + NONL_TRAJ_ANGLE_END_TOLERANCE) )
+			} else if (actx->jointAngleDegrees <= (ascAngle[NONL_TRAJ_MAX_INDEX] + NONL_TRAJ_ANGLE_END_TOLERANCE) ) // make tolerance bigger to make the transition at a lower dorsiflexion angle
 			{ // jump into descending mode
 				nonLinearKParamx->earlyLateFlag = 1;
 				i = NONL_TRAJ_SIZE;
 			}
 		}
 	} else if (nonLinearKParamx->earlyLateFlag == 1)
-	{ // Late Stance, powered pushoff going into toe-off,
+	{ // Late Stance, powered pushoff going into toe-off
 		for(int16_t i = NONL_TRAJ_MAX_INDEX; i >= 0; i--)
 		{
 			if ( ( descAngle[i] > actx->jointAngleDegrees   ) &&  ( actx->jointAngleDegrees <= descAngle[0] ) ) // change in here, was: [NONL_TRAJ_MAX_INDEX]
