@@ -25,24 +25,8 @@ NonLinearK nonLinearKParams;
 float torque_traj_mscaled[TRAJ_SIZE]; // global variable
 
 //NOTE: All of the damping values have been reduced by 1/10 due to controller
-// Gain Parameters are modified to match our joint angle convention (RHR for right ankle, wearer's perspective). Positive Plantaflexion
-//GainParams ankleGainsEst = {2.5, 0.0, 0.18, -5.0};	// may want to increase this damping, at least.
-//GainParams ankleGainsMst = {2.5, 0.0, 0.18, 0.0};	// may want to increase this damping, at least.
-//GainParams ankleGainsLst = {4.0, 0.0, 0.18, 10.0};
-//GainParams ankleGainsEsw = {1.5, 0.0, 0.18, -5.0};
-//GainParams ankleGainsLsw = {1.5, 0.0, 0.18, -5.0};
-
-//GainParams ankleGainsEMG = {0.0, 0.0, 0.0, 0.0};
 
 float splineTime = 100.0;
-
-//Knee, Positive Knee Flexion
-//GainParams kneeGainsEst = {2.5, 0.0, 0.15, 10.0};
-//GainParams kneeGainsMst = {2.5, 0.0, 0.15, 10.0};	// {2.5, 0.0, 0.1, 10.0};
-//GainParams kneeGainsLst = {1.0, 0.0, 0.15, 30.0};	// {2.5, 0.0, 0.1, 15.0};
-//GainParams kneeGainsEsw = {2.5, 0.0, 0.15, 30.0}; // GainParams kneeGainsEsw = {1.5, 0.0, 0.1, 50.0};
-//GainParams kneeGainsLsw = {2.5, 0.0, 0.15, 10.0};
-
 
 #ifdef BOARD_TYPE_FLEXSEA_MANAGE
 

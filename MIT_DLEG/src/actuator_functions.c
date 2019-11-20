@@ -505,22 +505,18 @@ int32_t noLoadCurrent(float desCurr) {
 void setMotorTorque(struct act_s *actx)
 {
 	float tauFF = 0.0;
-	float notch = 0.0;
 	float tauC = 0.0;
 	float tauCCombined = 0.0;
 	float N=0.0, Icalc=0.0;
 
-//	//Angle Limit bumpers
+	//Angle Limit bumpers
 	float refTorque = actx->tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
 	N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
-	//	// LPF Reference term to compensate for FF delay
-//	refTorque = getReferenceLPF(refTorque, actx->resetStaticVariables);
-
-//	actx->tauDes = refTorque;
-
+//  LPF Reference term to compensate for FF delay
+	refTorque = getReferenceLPF(refTorque, actx->resetStaticVariables);
 
 	// Feed Forward term
 	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT);
@@ -536,13 +532,7 @@ void setMotorTorque(struct act_s *actx)
 	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
 		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
 	}
-	rigid1.mn.genVar[2] = (int16_t) (refTorque		*100.	);
 
-
-
-	rigid1.mn.genVar[6] = (int16_t) (tauC			*100.	);
-	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
-	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
 	// motor current signal
 	Icalc = tauCCombined;	// Reflect torques to Motor level
 
@@ -637,7 +627,6 @@ float getFeedForwardTerm(float refTorque)
 	y[k-1] = y[k];
 
 
-
 	// fc=30hz
 //	y[k] = 1.75893011414808*y[k-1] - 0.778800783071405*y[k-2]
 //				+ 71.0565154791215*u[k] -141.922482701404*u[k-1] + 70.8790960571072*u[k-2];
@@ -703,18 +692,8 @@ float getReferenceLPF(float refTorque, int8_t reset)
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
 
-
-//	//fc = 10hz
-//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-//			+ 0.0018543217247955*u[k-1] + 0.0018543217247955*u[k-2];
-
-//	//fc = 20hz
-//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
-//			+ 0.0*u[k] + 0.00697246128771821*u[k-1] + 0.00697246128771821*u[k-2];
-
-	//fc = 30hz
-	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
-			+ 0.0*u[k] + 0.0147569016602231*u[k-1] + 0.0147569016602231*u[k-2];
+	//fc = 30
+	y[k] = 1.7349051*y[k-1] - 0.7660021*y[k-2] + 0.0155485*u[k-1] + 0.0155485*u[k-2];
 	return ( y[k] );
 }
 
@@ -907,19 +886,12 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 
 	// Error is torque at the joint
 	float tauErr = refTorque - sensedTorque;		// [Nm]
-	float tauErrDot = (tauErr - tauErrLast)*10.0;		// [Nm/s]
-//	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
+	float tauErrDot = (tauErr - tauErrLast)*1000.0;		// [Nm/s]
 	tauErrDot = getTorqueErrorLPF(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative, Try 30Hz
 	tauErrInt = tauErrInt + tauErr;
 	tauErrLast = tauErr;
 
-	// If there is no Integral Windup problem continue integrating error
-	// Don't let integral wind-up without a controller.
-//	if (!tauErrIntWindup && (actx->torqueKi != 0) )
-//	{
-//		tauErrInt = tauErrInt + tauErr;				// [Nm]
-//	}
-
+	// Anti-windup
 	if(tauErrInt >= MAX_INTEGRAL_ERROR)
 	{
 		tauErrInt = MAX_INTEGRAL_ERROR;
@@ -928,27 +900,7 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 		tauErrInt = -MAX_INTEGRAL_ERROR;
 	}
 
-
 	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
-
-	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
-	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);
-	rigid1.mn.genVar[5] = (int16_t)(tauErrInt*100.0);
-
-
-	//Saturation limit on Torque
-//	tauCOutput = tauC;
-
-//	if (tauC > ABS_TORQUE_LIMIT_INIT) {
-//		tauCOutput = ABS_TORQUE_LIMIT_INIT;
-//	} else if (tauC < -ABS_TORQUE_LIMIT_INIT) {
-//		tauCOutput = -ABS_TORQUE_LIMIT_INIT;
-//	}
-
-	// Clamp and turn off integral term if it's causing a torque saturation
-
-//	tauErrIntWindup = integralAntiWindup(tauErr, tauC, tauCOutput);
-
 
 	return tauC; // try not saturating until current, tauCOutput;
 }
