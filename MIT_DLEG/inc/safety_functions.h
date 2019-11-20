@@ -32,12 +32,27 @@ int actuatorIsCorrect();
 int16_t getDeviceIdIncrementing();
 void checkSafeties(Act_s *actx);
 void handleSafetyConditions(Act_s *actx); //renamed from safetyFailure(void)
+void handleSafetyConditionsMinimal(Act_s *actx); //renamed from safetyFailure(void)
+
+int16_t checkEmergencyStopWindow(uint16_t inputVal);
+
+
 int16_t getSafetyFlags(void);
 
+void setMotorMode(int8_t mode);
 
 void setLEDStatus(uint8_t l1_status, uint8_t l2_status, uint8_t l3_status);
 void clearLEDStatus(void);
 void overrideLED(uint8_t r, uint8_t g, uint8_t b);
+
+extern struct staticsig_s staticsig_motVolt;	// check motor voltage for e-stop safety
+
+struct staticsig_s
+{
+	int32_t x; 		//sensor value
+	int32_t n; 		//number of function calls that x must be unchanged for it to return 1
+	int32_t nx; 	//current number of function calls with unchanged value
+};
 
 
 //enums
@@ -79,9 +94,10 @@ enum ERROR_TYPES{
 	//general errors
 	ERROR_WRONG_ACTUATOR	= 13,
 	ERROR_PERSISTENT		= 14,
+	ERROR_EMERGENCY_SAFETY_STOP = 15
 };
 
-#define ERROR_ARRAY_SIZE	15
+#define ERROR_ARRAY_SIZE	16
 
 //sensor disconnect check values
 #define LOADCELL_DISCONNECT_STRAIN_DIFFERENCE 5000

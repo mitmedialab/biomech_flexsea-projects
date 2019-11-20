@@ -10,6 +10,7 @@
 // Include(s)
 //****************************************************************************
 #include "safety_functions.h"
+#include "global-config.h"
 
 //****************************************************************************
 // Definitions
@@ -27,10 +28,41 @@ static int16_t safetyFlags; //bitmap of all errors. Also serves as boolean for e
 static int8_t motorMode;
 static const int16_t stm32ID[] = STM32ID;
 
+struct staticsig_s staticsig_motVolt;	// check motor voltage for e-stop safety
 
 //****************************************************************************
 // Method(s)
 //****************************************************************************
+
+//nn is the number of function calls that x must be unchanged for it to return 1
+void init_staticsig(struct staticsig_s * ss, int32_t nn)
+{
+	ss->x = 0;
+	ss->n = nn;
+	ss->nx = 0;
+}
+
+//x is the new signal value
+uint8_t update_staticsig(int32_t x, struct staticsig_s * ss)
+{
+	if(ss->x == x)
+	{
+		ss->nx++;
+	}
+	else
+	{
+		ss->nx = 0;
+	}
+	ss->x = x;
+
+	if(ss->nx >= ss->n)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+
 
 /*
  *  check connected/disconnect status
@@ -232,27 +264,79 @@ static void checkJointAngleBounds(Act_s *actx) {
 static void checkPersistentError(Act_s *actx) {
 	//time limit for errors
 }
+
+/*
+ * Check if E-stop has been pressed. This sets motor drive to CTRL=NULL
+ * CAREFUL!!! todo: clear all static variables before reseting the drive control.
+ *
+ * Return 1 if pressed
+ * return 0 if not pressed
+ */
+static void checkEmergencyStop(Act_s *actx)
+{
+	uint16_t eStopPressed = rigid1.ex.status & 0x80;
+
+	uint16_t eStopWindow =0;
+
+	eStopWindow = checkEmergencyStopWindow(eStopPressed);	// store the last ESTOP_WINDOW number of samples. if not cleared then don't clear estop
+
+	if(eStopPressed)
+	{
+		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_DISCONNECT;
+		actx->resetStaticVariables = 1;		// flag to tell functions to reset static variables
+		actx->eStop = 1;
+
+
+	} else if(eStopWindow == 0)
+	{
+		errorConditions[ERROR_EMERGENCY_SAFETY_STOP] = SENSOR_NOMINAL;
+		actx->resetStaticVariables = 0;
+		actx->eStop = 0;
+	}
+
+}
+
+/*
+ * Window the eStop button, we use this to store the last N samples
+ */
+
+int16_t checkEmergencyStopWindow(uint16_t inputVal)
+{
+	int16_t result = 0;
+	int16_t i = 0;
+
+	static uint32_t circStopCounter;
+	static int32_t counterIndex;
+	static uint32_t stopWindow[ESTOP_WINDOW];
+
+	++circStopCounter;	//increment circular counter
+	if(circStopCounter == ESTOP_WINDOW)
+	{
+		circStopCounter = 0;	//reset counter
+	}
+
+	stopWindow[circStopCounter] = inputVal;		// load new value into bottom of index
+	counterIndex = circStopCounter;
+
+
+	// using the accumulator,
+	for (i = 0; i < ESTOP_WINDOW;  i++)
+	{
+		result +=  stopWindow[counterIndex];
+		--counterIndex;
+		if(counterIndex == -1)
+		{
+			counterIndex = ESTOP_WINDOW-1;
+		}
+	}
+
+	return result;
+}
+
 //****************************************************************************
 // Public Function(s)
 //****************************************************************************
 
-/*
- * Turn the motor controller into a position controller in case we lose force sensing
- * Param: actx(Act_s) - Actuator structure to track sensor values
- */
-static void actuatePassiveMode(Act_s *actx){
-	static uint8_t onEntry = 1;
-
-	if (onEntry) {
-		setControlMode(CTRL_POSITION, DEVICE_CHANNEL);
-		setControlGains(SAFE_MODE_POS_CTRL_GAIN_KP, SAFE_MODE_POS_CTRL_GAIN_KI, SAFE_MODE_POS_CTRL_GAIN_KD, 0, DEVICE_CHANNEL);
-		onEntry = 0;
-	}
-
-	//todo: Ramp position from current position to neutral motor position
-	setMotorPosition(actx->motorPos0, DEVICE_CHANNEL);
-
-}
 
 /*
  * Reduce the current limit in order to reduce heating in the motor or drive electronics.
@@ -346,6 +430,10 @@ int8_t getMotorMode(void){
 	return motorMode;
 }
 
+void setMotorMode(int8_t mode){
+	motorMode = mode;
+}
+
 /*
  *  Gets the current safety conditions for the system
  *  Return: errorConditions(int8_t) - integer value representing the current safety conditions for the system
@@ -422,6 +510,7 @@ int16_t getDeviceIdIncrementing(void) {
 }
 
 
+
 /*
  *  Makes all safety checks
  *  Param: actx(Act_s) - Actuator structure to track sensor values
@@ -429,7 +518,6 @@ int16_t getDeviceIdIncrementing(void) {
  */
 void checkSafeties(Act_s *actx) {
 	safetyFlags = 0; //reset this upon entering a check
-	//TODO:
 
 	checkLoadcell(actx);
 	checkJointEncoder(actx);
@@ -446,6 +534,8 @@ void checkSafeties(Act_s *actx) {
 
 	checkPersistentError(actx);
 
+	checkEmergencyStop(actx);
+
 	//set our safety bitmap for streaming and checking purposes
 	//TODO: consider optimizing if there are future processing constraints
 	for (int i = 0; i < ERROR_ARRAY_SIZE; i++) {
@@ -455,10 +545,12 @@ void checkSafeties(Act_s *actx) {
 	}
 }
 
+
 /*
  * Check for safety flags, and act on them.
  * Param: actx(Act_s) - Actuator structure to track sensor values
  * todo: come up with correct strategies to deal with flags, include thermal limits also
+ * todo: this is very DANGEROUS difficult to know state when we turn motor on again.
  */
 void handleSafetyConditions(Act_s *actx) {
 
@@ -500,11 +592,10 @@ void handleSafetyConditions(Act_s *actx) {
 	switch (motorMode){
 		case MODE_DISABLED:
 			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
-			//			disableMotor();
+
 			break;
 		case MODE_PASSIVE:
 			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
-//			actuatePassiveMode(actx); //position control to neutral angle
 			break;
 		case MODE_OVERTEMP:
 			if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
@@ -514,10 +605,9 @@ void handleSafetyConditions(Act_s *actx) {
 				rampCurrent(actx);
 			}
 			break;
-		case MODE_ENABLED:
+		case MODE_ENABLED: // VERY DANGEROUS todo: need graceful way to turn back on, this can cause unexpected behavior. Turned off for now. Maybe best to latch into failed mode.
 			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
 			{
-				mitInitCurrentController(actx);
 
 			}
 			break;
@@ -527,5 +617,59 @@ void handleSafetyConditions(Act_s *actx) {
 #endif // NO_DEVICE || NO_ACTUATOR
 }
 
+/*
+ * Check for safety flags, and act on them.
+ * Param: actx(Act_s) - Actuator structure to track sensor values
+ * todo: come up with correct strategies to deal with flags, include thermal limits also
+ */
+void handleSafetyConditionsMinimal(Act_s *actx) {
 
+	static int8_t lastMotorMode = MODE_ENABLED;
+
+#if defined(NO_DEVICE) || defined(NO_ACTUATOR)
+#else
+
+	//TODO: get LEDS working
+	if (errorConditions[WARNING_TORQUE_MEASURED] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0); //flashing yellow
+	}
+
+	if (errorConditions[WARNING_JOINTANGLE_SOFT] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0);//flashing yellow
+	}
+
+	if (errorConditions[WARNING_BATTERY_VOLTAGE] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0);//flashing yellow (TODO LED function is not working)
+	}
+
+	if (errorConditions[ERROR_PCB_THERMO] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0);//flashing yellow
+	}
+
+	if (errorConditions[ERROR_JOINTANGLE_HARD] != VALUE_NOMINAL){
+		setLEDStatus(1,0,0);//flashing yellow
+		setMotorMode(MODE_DISABLED);
+	}
+
+
+	switch (motorMode){
+		case MODE_DISABLED:
+		{
+			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
+
+			break;
+		}
+		case MODE_ENABLED:
+		{
+			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on. todo: this is totally unsafe, need more careful way to clear errors and turn on again.
+			{
+
+			}
+			break;
+		}
+	}
+	lastMotorMode = motorMode;
+
+#endif // NO_DEVICE || NO_ACTUATOR
+}
 

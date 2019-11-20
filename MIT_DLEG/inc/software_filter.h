@@ -58,10 +58,10 @@ float filterButterworth30Hz(float inputVal);
 float filterButterworth50Hz(float inputVal);
 float filterTorqueButterworth(float inputVal);
 float filterEncoderTorqueButterworth(float inputVal);
-float filterTorqueDerivativeButterworth(float inputVal);
-float filterJointAngleButterworth(float inputVal);
+float filterTorqueDerivativeButterworth(float inputVal, int8_t reset);
+float filterJointAngleButterworth(float inputVal, int8_t reset);
 float filterJointAngleLimitOutputButterworth(float inputVal);
-float filterJointVelocityButterworth(float inputVal);
+float filterJointVelocityButterworth(float inputVal, int8_t reset);
 float filterJointAngleOutputButterworth(float inputVal);
 
 float filterTorqueEncButterworth(float inputVal);
@@ -69,6 +69,8 @@ float filterMotorCommandButterworth(float inputVal);
 
 float testingFilter(float input);
 float testingVelFilter(float input);
+
+float filterAccelButterworth15Hz(float value);
 
 //****************************************************************************
 // Definition(s):

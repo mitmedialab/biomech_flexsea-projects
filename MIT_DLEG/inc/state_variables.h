@@ -32,10 +32,10 @@ extern "C" {
 // set SUBPROJECT_B <- Don't forget to set this for the ankle if using Knee, ankle is slave
 
 //3. Select device
-#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-//#define DEVICE_TF08_A02		// Define specific actuator configuration. Knee 01
-//#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
-//#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
+//#define DEVICE_TF08_A01			// Define specific actuator configuration.
+#define DEVICE_TF08_A02		// Define specific actuator configuration.
+//#define DEVICE_TF08_A03		// Define specific actuator configuration.
+//#define DEVICE_TF08_A04		// Define specific actuator configuration.
 //#define DEVICE_M14			// Standalone motor for testbench
 //#define DEVICE_M15			// Standalone motor for testbench
 //#define DEVICE_M16			// Standalone motor for testbench
@@ -53,6 +53,8 @@ extern "C" {
 //6. Specify User Walking Parameters (if applicable)
 //#define SUBJECT_012
 #define SUBJECT_002
+//#define SUBJECT_DEMO
+
 
 //****************************************************************************
 // Structure(s):
@@ -86,6 +88,8 @@ enum guiExperimentMode{
 	// these specify which controls to run and what input/outputs
 	// used by user_data_1.w[0]
 	EXP_RESET_DEVICE				= -99,
+	EXP_BARE_BONES					= -5,
+	EXP_ACTUATOR_STEP_RESPONSE		= -4,
 	EXP_ACTUATOR_TESTING			= -3,
 	EXP_IS_SWEEP_CHIRP_TEST			= -2,
 	EXP_IS_SWEEP_TEST				= -1,
@@ -118,8 +122,11 @@ enum guiWalkingParameterVariableUpdates{
 };
 
 enum guiActuatorTestingVariableUpdates{
-	EXP_ACT_CONTROL_PARAM_MAIN		= 0,
-	EXP_ACT_CONTROL_PARAM_SECOND	= 1
+	EXP_ACT_CONTROL_PARAM_DEFAULT	= 0,
+	EXP_ACT_CONTROL_PARAM_MAIN		= 1,
+	EXP_ACT_CONTROL_PARAM_SECOND	= 2,
+	EXP_ACT_CONTROL_PARAM_THIRD		= 3,
+	EXP_ACT_CONTROL_PARAM_VOLTAGE	= 4
 };
 
 
@@ -222,6 +229,9 @@ typedef struct act_s
 
     int16_t safetyFlag;		// todo: consider if necessary
     int8_t  initializedSettings;	// True if settings have been set for whatever testing mode
+    int8_t resetStaticVariables;	// 1 = reset all static varibles, 0 = do nothing. use this to recover from E-stop
+    int8_t eStop;			// E-stop is pushed
+    int8_t lastEStopCondition;
 
     // Controls Related
     float torqueKp;
@@ -368,6 +378,10 @@ typedef struct actTestSettings {
 	float amplitude;
 	float dcBias;
 	float noiseAmp;
+
+	uint32_t onTime;
+	uint32_t offTime;
+	uint32_t timer;
 
 } ActTestSettings;
 

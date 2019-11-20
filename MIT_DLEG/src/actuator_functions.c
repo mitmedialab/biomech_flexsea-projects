@@ -104,25 +104,22 @@ static int16_t getMotorTempSensor(void)
 static void getJointAngleKinematic(struct act_s *actx)
 {
 	static float lastJointVel = 0;
-	static float jointAngleRad = 0;
+	float jointAngleRad = 0;
+	if(actx->resetStaticVariables)
+	{
+		lastJointVel = 0;
+	}
 
 	//ANGLEReturn: tauRestoring(float) -
 	jointAngleRad = JOINT_ANGLE_DIR * ( jointZero + JOINT_ENC_DIR * ( (float) (*(rigid1.ex.joint_ang)) ) )  * RAD_PER_CNT; // (angleUnit)/JOINT_CPR;
 	actx->jointAngle = jointAngleRad;
 
 	//VELOCITY
-//	actx->jointVel = 0.5*actx->jointVel + 0.5*( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
-	actx->jointVel = filterJointVelocityButterworth( (actx->jointAngle - actx->lastJointAngle) * SECONDS);
+	actx->jointVel = filterJointVelocityButterworth( (actx->jointAngle - actx->lastJointAngle) * SECONDS, actx->resetStaticVariables);
 
 	//ACCEL  -- todo: check to see if this works
 	actx->jointAcc = 0.5 * actx->jointAcc + 0.5*( (actx->jointVel - lastJointVel ) * SECONDS);
 
-	// SAFETY CHECKS
-	//if we start over soft limits after findPoles(), only turn on motor after getting within limits
-	//TODO: I think we can remove this, verify we are handling this with safety functions
-//	if (startedOverLimit && jointAngleRad < jointMaxSoft && jointAngleRad > jointMinSoft) {
-//		startedOverLimit = 0;
-//	}
 
 	actx->jointAngleDegrees = actx->jointAngle * DEG_PER_RAD;
 	actx->jointVelDegrees = actx->jointVel * DEG_PER_RAD;
@@ -170,7 +167,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
-	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
+//	strainReading = filterTorqueButterworth( (float) rigid1.ex.strain );	// filter strain readings
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing.
@@ -221,20 +218,19 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
  */
 static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareState)
 {
-	static float A=0, c0=0, c = 0, c2 = 0, projLength = 0, CAng = 0, cdiff, projLengthSq, thetaCnt;
-	static int32_t motorTheta0 = 0.0;
+	float A=0, c = 0, c2 = 0, projLength = 0, CAng = 0, thetaCnt=0;
 	static int16_t timerTare = 0;
+
+	if(actx->resetStaticVariables)
+	{
+		timerTare = 0;
+	}
 
 	thetaCnt = JOINT_ANGLE_DIR * ( JOINT_ZERO_ABS + JOINT_ENC_DIR * ( (float) (*(rigid1.ex.joint_ang)) ) )  * RAD_PER_CNT;;
 
 	CAng = M_PI - thetaCnt - MA_TF; 	// angle
 	c2 = MA_B2PLUSA2 - MA_TWOAB*cosf(CAng);
 	c = sqrtf(c2);
-////	cdiff = c2 - MA_B2MINUSA2;
-////	projLengthSq = MA_A_SQ - (cdiff*cdiff)/(4.0*c2);
-//	cdiff = MA_A2MINUSB2 - c2;
-//	projLength = MA_B * sqrtf(1 - (cdiff)/(-MA_TWOAB) );
-
 
     A = acosf(( MA_A2MINUSB2 - c2 ) / (-2*MA_B*c) );
     projLength = (MA_B * sinf(A)); // [mm] project length, r (in docs) of moment arm.
@@ -258,7 +254,7 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
 
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
-    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c - actx->c0) ) ) );	// [mm]
+    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c - actx->c0) ), actx->resetStaticVariables ) );	// [mm]
 
     return projLength/1000.; // [m] output is in meters
 
@@ -308,19 +304,8 @@ float getAxialForceEncoderTransferFunction(struct act_s *actx, int8_t tare)
 	y[k-1] = y[k];
 
 	//TF1
-//	y[k] = 0.949200866873389*y[k-1] + 20025.5997143947*u[k-1]; // TF1 simple estimate 95.06% fit
 	y[k] = 0.917703269653775*y[k-1] + -27307.8288879291*u[k-1];
 
-	//TF3
-//	y[k] = 0.983824144892093*y[k-1]
-//			+ -639993.632211884/1000*u[k] + 634646.499333143/1000*u[k-1];
-
-	//TF6
-//	y[k] = 1.92284862023119*y[k-1] - 0.922871371518358*y[k-2]
-//			+ -161763.585837411*u[k] + 352228.322442098*u[k-1] + -190463.303430783*u[k-2]; // TF6 97.22%fit
-
-//	y[k] = filterTorqueButterworth( y[k] );	// clean it up, note this may cause additional delay
-//	y[k] = runSoftFirFilt(y[k]);		// works well, except there's substantial delay.
 
 	if (tare)
 	{	// User input has requested re-zeroing the load cell, ie locked output testing. Turned on externally, turned off internal
@@ -408,15 +393,6 @@ static float getJointTorque(struct act_s *actx)
 
 	torque = actx->linkageMomentArm * actx->axialForce;
 
-//	torque = torque * TORQ_CALIB_M + TORQ_CALIB_B;		//apply calibration to torque measurement
-
-	if(torque >= ABS_TORQUE_LIMIT_INIT || torque <= -ABS_TORQUE_LIMIT_INIT) {
-		isSafetyFlag = SAFETY_TORQUE;
-		isTorqueLimit = 1;
-	} else {
-		isTorqueLimit = 0;
-	}
-
 	return torque;
 }
 
@@ -429,6 +405,11 @@ static float getMotorCurrentDt(struct act_s *actx)
 {
 	static float lastCurrent = 0.0;
 	static float currentDt = 0.0;
+	if(actx->resetStaticVariables)
+	{
+		lastCurrent = 0.0;
+		currentDt = 0.0;
+	}
 
 	currentDt = 0.8*currentDt + 0.2 * (actx->motCurr - lastCurrent)*SECONDS; // units [A/sec]
 	lastCurrent = actx->motCurr;
@@ -525,28 +506,33 @@ bool integralAntiWindup(float tauErr, float tauCTotal, float tauCOutput) {
  */
 //TODO: check that damping ratio is in the correct direction.
 float actuateAngleLimits(Act_s *actx){
-	static float bumperTorq=0.0;
+	float bumperTorq=0.0;
 	float tauK = 0; float tauB = 0;
 	float thetaDelta =0;
 
 	// apply unidirectional spring
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
+		thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+//		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+		tauK = JOINT_SOFT_K * (thetaDelta);
 
-		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
-//		tauK = JOINT_SOFT_K * (thetaDelta);
-//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
-
-		tauK = jointLimitK * (thetaDelta);
-//		tauB = -jointLimitB * (actx->jointVelDegrees);
+		if (actx->jointVelDegrees < 0)
+		{
+			//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+			tauB = -jointLimitB * (actx->jointVelDegrees);
+		}
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
+		thetaDelta = (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
+//		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
 
-		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
-//		tauK = JOINT_SOFT_K * (thetaDelta);
-//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+		tauK = JOINT_SOFT_K * (thetaDelta);
 
-		tauK = jointLimitK * (thetaDelta);
-//		tauB = -jointLimitB * (actx->jointVelDegrees);
+
+		if (actx->jointVelDegrees > 0)
+		{
+			tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+		}
 
 	} else
 	{
@@ -585,43 +571,32 @@ int32_t noLoadCurrent(float desCurr) {
  * 			actx->desiredCurrent = new desired current
  *
  */
-void setMotorTorque(struct act_s *actx, float tauDes)
+void setMotorTorque(struct act_s *actx)
 {
 	float tauFF =0.0;
+
 	float tauC = 0.0;
 	float tauCCombined = 0.0;
 	float N=0.0, Icalc=0.0;
-	static float DOB = 0.0;
-
 
 //	//Angle Limit bumpers
-	actx->tauDes = tauDes;
-	float refTorque = tauDes + actuateAngleLimits(actx);
+	float refTorque = actx->tauDes + actuateAngleLimits(actx);
 	actx->tauMeas = actx->jointTorque;
 
 	N = actx->linkageMomentArm * N_SCREW;	// gear ratio
 
 	//	// LPF Reference term to compensate for FF delay
-	refTorque = getReferenceLPF(refTorque);
+	refTorque = getReferenceLPF(refTorque, actx->resetStaticVariables);
 
 	actx->tauDes = refTorque;
 
 	// Feed Forward term
-//	tauFF = getFeedForwardTerm(refTorque);
-	tauFF = refTorque;
-	float tauFFMotor = -(MOT_J * actx->motorAcc); // Compensate rotor inertia.
+	tauFF = refTorque/N_ETA;
 
-	// Compensator
 	//PID around joint torque
-	tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas, actx);
+	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
 
-	// Custom Compensator Controller, todo: NOT STABLE DO NOT USE!!
-//	tauC = getCompensatorCustomOutput(refTorque, actx->tauMeas);
-
-	// Disturbance Observer
-//	DOB = getDOB(tauCCombined, actx->tauMeas); // send it back for next round
-
-	tauCCombined = tauC + tauFF + DOB;
+	tauCCombined = tauC + tauFF;
 
 	//Saturation limit on Torque
 	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
@@ -630,12 +605,12 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
 	}
 
-
 	// motor current signal
-	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/N) + tauFFMotor ) );	// Reflect torques to Motor level
+	Icalc = ( 1.0/(MOT_KT ) * ( (tauCCombined/N)  ) );	// Reflect torques to Motor level
 
-	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT );
+	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST );
 
+	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
 	{
 		I = actx->currentOpLimit;
@@ -644,28 +619,18 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 		I = -actx->currentOpLimit;
 	}
 
-
-	int32_t V = (int32_t) ( CURRENT_SCALAR_INIT * ( (Icalc * MOT_R*1.732) + (VOLTAGE_KT_SCALER * actx->motorVel * MOT_KT) )  + (actx->motCurrDt * MOT_L) );
-
-	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
-
-
-	if (V > actx->voltageOpLimit)
-	{
-		V = actx->voltageOpLimit;
-	} else if (V < -actx->voltageOpLimit)
-	{
-		V = -actx->voltageOpLimit;
-	}
-
 	actx->desiredCurrent = I; 	// demanded mA
-	actx->desiredVoltage = V;
 
 	// Turn off motor power if using a non powered mode.
 #if !defined(NO_POWER)
-//	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-	setMotorVoltage(V, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
-
+	if(actx->resetStaticVariables)
+	{
+		I = 0.0;
+		actx->desiredCurrent = I; 	// demanded mA
+	}else
+	{
+		setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
+	}
 #endif
 
 	//variables used in cmd-rigid offset 5, for multipacket
@@ -674,154 +639,9 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 }
 
-/*
- * set motor torque using position control
- * DO NOT USE, FLEXSEA POSITION CONTROLLER IS CRAZY!
- */
-void setMotorTorqueSEA(struct act_s *actx, float tauDes)
-{
-//Saturation limit on Torque
-	if (tauDes > ABS_TORQUE_LIMIT_INIT) {
-		tauDes = ABS_TORQUE_LIMIT_INIT;
-	} else if (tauDes < -ABS_TORQUE_LIMIT_INIT) {
-		tauDes = -ABS_TORQUE_LIMIT_INIT;
-	}
-
-//	//Angle Limit bumpers
-	actx->tauDes = tauDes;
-	float refTorque = tauDes + actuateAngleLimits(actx);
-	actx->tauMeas = actx->jointTorque;
-
-	// Feed Forward term
-//	float tauFF = getFeedForwardTerm(refTorque); 	// Not in use at the moment todo: figure out how to do this properly
-	float tauFF = 0.0;
-
-	// LPF Reference term to compensate for FF delay
-	float N = actx->linkageMomentArm * N_SCREW;	// gear ratio, at the motor
-
-	refTorque = getReferenceLPF(refTorque);
-
-	// Compensator
-	//PID around motor torque
-	float tauC = getCompensatorPIDOutput(refTorque, actx->tauMeas, actx);
-
-	float tauCCombined = tauC + tauFF;
-
-	float motorTheta = getMotorPositionSEA(actx, tauCCombined/actx->linkageMomentArm);
-
-	float motorTor = SPRING_K_E/N_SCREW * (MOTOR_DIRECTION * MOTOR_METER_PER_TICK * ( motorTheta - actx->motorPos0) - (actx->c - actx->c0)/1000.0 );
 
 
-//	float motorTor = SPRING_K_E/N * actx->screwLengthDelta;
 
-	int32_t Icalc = (int32_t)  ( (1.0/(MOT_KT)) * motorTor * CURRENT_SCALAR_INIT );
-
-	rigid1.mn.genVar[9] = (int16_t) (Icalc );
-
-	// set motor position, DO NOT USE, IT'S CRAZY
-	setMotorCurrent( Icalc, DEVICE_CHANNEL);
-
-}
-
-/*
- * Control compensator based on system Identification and simulation
- * Input is system state
- * return:	torque command value to the motor driver
- */
-float getCompensatorCustomOutput(float refTorque, float sensedTorque)
-{
-	static float y[4] = {0, 0, 0, 0};
-	static float u[4] = {0, 0, 0, 0};
-	static int8_t k = 3;
-	static int8_t tauErrIntWindup = 0;
-
-	// shift previous values into new locations
-	u[k-3] = u[k-2];
-	u[k-2] = u[k-1];
-	u[k-1] = u[k];
-	// update current state to new values
-
-
-//	// If there is no Integral Windup problem continue integrating error
-//	if (~tauErrIntWindup)
-//	{
-//		u[k] = tauRef - tauMeas;			// [Nm]
-//	} else
-//	{
-//		u[k] = 0.0;	// this is reasonably stable.
-//	}
-
-	u[k] = refTorque - sensedTorque;
-
-	// use this for anti-hunting, find reasonable values
-//	if (fabs(u[k]) < 0.3 )
-//	{
-//		u[k] = 0;
-//	}
-
-	y[k-3] = y[k-2];
-	y[k-2] = y[k-1];
-	y[k-1] = y[k];
-
-//	y[k] = 1.432921006780524*y[k-1] - 0.432921006780524*y[k-2] + 1.560904973168400e+02*u[k] -3.086064879570783e+02*u[k-1] + 1.525349804975425e+02*u[k-2];	// 100r/s way too chunky
-//	y[k] = 1.517782504695552*y[k-1] - 0.517782504695552*y[k-2] + 16.287517713266595*u[k] -32.202047693057246*u[k-1] + 15.916511507446286*u[k-2]; // 25r/s
-//	y[k] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 29.559248967791255*u[k] -58.441481750942710*u[k-1] + 28.885829813641216*u[k-2];  // 36r/s
-//	y[k] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 29.559248967791255*u[k] -58.441481750942710*u[k-1] + 28.885829813641216*u[k-2]; // 72 r/s decent, slug
-//	  A(z) = 1 - 1.518 z^-1 + 0.5178 z^-2
-//	  B(z) = 86.27 - 170.6 z^-1 + 84.3 z^-2
-//	y[k] = 1.003612290385856*y[k-1] - 0.003612290385856*y[k-2] + 2.036915869672753e+02*u[k] -4.045028279479388e+02*u[k-1] + 2.008214235232099e+02*u[k-2]; // chunky business
-//	y[k] = 1.517772574715339*y[k-1] - 0.517772574715339*y[k-2] + 86.268736903430250*u[k] -1.705616004964224e+02*u[k-1] + 84.303361534847570*u[k-2]; // 76r/s, mostly stable
-
-//	y[k] = 1.98698574428531*y[k-1] - 0.986985744285313*y[k-2]
-//			+ 0.152409464742096*u[k] -0.30441022160376*u[k-1] + 0.152028916963166*u[k-2]; // Internal Model with FF
-
-//	y[k] = 2.99658244121261*y[k-1] - 2.99335168788952*y[k-2] + 0.996769246676907*y[k-3]
-//			+ 0*u[k] +7.67677135433392e-07*u[k-1] + -1.53331944492887e-06*u[k-2]
-//			+ 7.65784083882671e-07*u[k-3]; // LGQ_robust
-
-//	y[k] = 2.95173205599843*y[k-1] - 2.90478006489518*y[k-2] + 0.953048008896744*y[k-3]
-//			+ 0*u[k] + 0.000487240901613151*u[k-1] - 0.000975072809443166*u[k-2]
-//			+ 0.00048787960545394*u[k-3]; // LGQ_robust2, worked, but very sluggish, worked okay with FF, DOB
-
-//	y[k] = 2.95173205599843*y[k-1] - 2.90478006489518*y[k-2] + 0.953048008896744*y[k-3]
-//			+ 0*u[k] + 0.00693283053802919*u[k-1] + -0.0138740703576578*u[k-2]
-//			+ 0.00694191849734771*u[k-3]; // LGQ_robust2, slow
-
-//	y[k] = .497955331171937*y[k-1]
-//			+ (71.8291748524559*u[k] + -71.2524739446287*u[k-1]); // Working decently, 05/08/19
-
-//	y[k] = 1.00729286908813*y[k-1] + 0.00729286908812694*y[k-2]
-//			+ 73.9965057760154*u[k] + -147.814491028553*u[k-1] + 73.8180420010814*u[k-2]; // rockets out of the way
-
-	y[k] = 1.0*y[k-1] +
-			+ 0.0*u[k] + 0.00121054729895155*u[k-1];
-
-
-//	rigid1.mn.genVar[7] = (int16_t) ( u[k] * 100.0);
-//	rigid1.mn.genVar[8] = (int16_t) ( y[k] * 100.);
-
-
-	//Saturation limit on Torque
-	float tauC = y[k];
-	float tauCOutput = tauC;
-
-	if (tauC > ABS_TORQUE_LIMIT_INIT) {
-		tauCOutput = ABS_TORQUE_LIMIT_INIT;
-	} else if (tauC < -ABS_TORQUE_LIMIT_INIT) {
-		tauCOutput = -ABS_TORQUE_LIMIT_INIT;
-	}
-
-	// Clamp and turn off integral term if it's causing a torque saturation
-
-	tauErrIntWindup = integralAntiWindup( (u[k]), tauC, tauCOutput);
-	// If there is Integral Windup problem stop integrating error
-	if (tauErrIntWindup)
-	{
-		u[k] = 0.0;			// [Nm]
-	}
-
-	return ( y[k] );
-}
 
 /*
  * Feedforward Term based on system Identification and simulation
@@ -887,11 +707,17 @@ float getFeedForwardTerm(float refTorque)
  * Input is reference
  * return:	torque command value to the motor driver
  */
-float getReferenceLPF(float refTorque)
+float getReferenceLPF(float refTorque, int8_t reset)
 {
 	static float y[3] = {0, 0, 0};
 	static float u[3] = {0, 0, 0};
 	static int8_t k = 2;
+
+	if(reset)
+	{
+		u[2] = 0.0,	u[1] = 0.0,	u[0] = 0.0;
+		y[2] = 0.0,	y[1] = 0.0,	y[0] = 0.0;
+	}
 
 	// shift previous values into new locations
 	u[k-2] = u[k-1];
@@ -1049,15 +875,22 @@ float getDobLpf(float refTorque)
  */
 float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 {
-
 	static float tauErrLast = 0.0, tauErrInt = 0.0;
 	static int8_t tauErrIntWindup = 0;
 	static float tauCCombined = 0.0, tauCOutput = 0.0;
 
+	//todo: need to reset filters also!
+	if(actx->resetStaticVariables)
+	{ // Reset static variables.
+		tauErrLast = 0.0, tauErrInt = 0.0;
+		tauErrIntWindup = 0;
+		tauCCombined = 0.0, tauCOutput = 0.0;
+	}
+
 	// Error is torque at the joint
 	float tauErr = refTorque - sensedTorque;		// [Nm]
 	float tauErrDot = (tauErr - tauErrLast)*SECONDS;		// [Nm/s]
-	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot);	// apply filter to Derivative
+	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
 	tauErrLast = tauErr;
 
 	// If there is no Integral Windup problem continue integrating error
@@ -1074,14 +907,8 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 		// 2) test, don't test for sign of error, just if saturated. // locks up more, slower response
 		// 3) test, set Ki = 0; this seems dangerous, rather know what this is doing.
 		// 4) test, try a scalar on the error => tauErrInt = tauErrInt + errorKi * (tauCOutput - tauCCombined); // this seemed unstable, not driving the right direction
-		tauErrInt = 0.0;	// this is reasonably stable.
+//		tauErrInt = 0.0;	// this is reasonably stable.
 	}
-
-//	//anti hunting for Integral term, if we're not moving, don't worry about it.
-//	if (fabs(actx->jointVel) < 0.075 )//&& fabs(actx->jointTorque) < 2.0)
-//	{
-//		tauErrInt = 0.0;
-//	}
 
 	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator
 
@@ -1095,9 +922,7 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	}
 
 	// Clamp and turn off integral term if it's causing a torque saturation
-//	if ( integralAntiWindup(tauErr, tauCCombined, tauCOutput) ){
-//		tauErrInt = 0;
-//	}
+
 	tauErrIntWindup = integralAntiWindup(tauErr, tauC, tauCOutput);
 
 
@@ -1173,6 +998,7 @@ float getImpedanceTorqueQuadratic(Act_s *actx, float k1, float b, float thetaSet
  */
 void mitInitCurrentController(Act_s *actx) {
 
+	actx->tauDes   = 0.0;
 	actx->torqueKp = CURRENT_TORQ_KP_INIT;
 	actx->torqueKi = CURRENT_TORQ_KI_INIT;
 	actx->torqueKd = CURRENT_TORQ_KD_INIT;
@@ -1185,12 +1011,14 @@ void mitInitCurrentController(Act_s *actx) {
 
 void mitInitOpenController( Act_s *actx) {
 
+	actx->tauDes   = 0.0;
 	actx->torqueKp = VOLTAGE_TORQ_KP_INIT;
 	actx->torqueKi = VOLTAGE_TORQ_KI_INIT;
 	actx->torqueKd = VOLTAGE_TORQ_KD_INIT;
 	actx->controlScaler = 1.0;
 
 	actx->currentOpLimit = CURRENT_LIMIT_INIT; //CURRENT_ENTRY_INIT;
+	actx->voltageOpLimit = VOLTAGE_LIMIT_INIT;
 
 	setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
 	writeEx[DEVICE_CHANNEL].setpoint = 0;
@@ -1583,6 +1411,33 @@ void setActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testIn
 	actx->tauDes = tor;
 }
 
+void setActuatorStepResponse(Act_s *actx, ActTestSettings *testInput)
+{
+	float tor = 0.0;
+
+	if(testInput->begin >= 1)
+	{
+		if(testInput->timer < testInput->onTime)
+		{
+			tor = testInput->amplitude;
+			testInput->timer++;
+		} else if (testInput->timer < (testInput->onTime + testInput->offTime) )
+		{
+			tor = 0.0;
+			testInput->timer++;
+		} else
+		{
+			tor = 0.0;
+			testInput->timer = 0;
+		}
+		actx->tauDes = tor + testInput->dcBias;
+	} else
+	{
+		testInput->timer = 0;
+		actx->tauDes = 0.0;
+	}
+}
+
 float getTorqueSystemIDFrequencySweepChirp( struct actTestSettings *testInput)
 {
 	float tor = torqueSystemIDFrequencySweepChirp( testInput->freq,
@@ -1611,20 +1466,16 @@ void updateSensorValues(struct act_s *actx)
 	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
 	actx->axialForceEnc = getAxialForceEncoderCalc(actx);
 
-//	actx->axialForceTF = getAxialForceEncoderTransferFunction(actx, zeroLoadCell);
-
-
 	actx->jointTorque = getJointTorque(actx);
-
 	updateJointTorqueRate(actx);
+
 	actx->jointPower = (actx->jointTorque * actx->jointVel); // [W]
 
 	actx->motorPosRaw = *rigid1.ex.enc_ang;		// [counts]
-
 	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; // [rad]
 	actx->motorVel =  ( (float) *rigid1.ex.enc_ang_vel ) * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
 	actx->motorAcc = rigid1.ex.mot_acc;	// rad/s/s
-
+//	actx->motorAcc = filterAccelButterworth15Hz(actx->motorAcc);
 
 	actx->regTemp = rigid1.re.temp;
 	actx->motTemp = 0; // REMOVED FOR NOISE ISSUES getMotorTempSensor();
@@ -1632,20 +1483,12 @@ void updateSensorValues(struct act_s *actx)
 	actx->motCurrDt = getMotorCurrentDt(actx);
 
 	actx->motorPower = ( (float) (rigid1.ex.mot_current * rigid1.ex.mot_volt) ) * 0.000001; // [W]
-	actx->motorEnergy = actx->motorEnergy + actx->motorPower/1000.0;	// [J]
+	actx->motorEnergy = actx->motorEnergy + actx->motorPower/SECONDS;	// [J]
 
 	actx->efficiencyInstant = actx->jointPower / ( (actx->motorPower) );
 
 	actx->safetyFlag = getSafetyFlags(); //todo: I don't think this is in use anymore MC
 
-	if (actx->regTemp > PCB_TEMP_LIMIT_INIT || actx->motTemp > MOTOR_TEMP_LIMIT_INIT )
-	{
-		isSafetyFlag = SAFETY_TEMP;
-		isTempLimit = 1;
-	} else
-	{
-		isTempLimit = 0;
-	}
 }
 
 
