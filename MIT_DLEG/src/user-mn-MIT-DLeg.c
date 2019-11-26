@@ -306,7 +306,7 @@ void MITDLegFsm1(void)
 				}
 				case EXP_IS_SWEEP_IMPEDANCE_TEST://-6
 				{// System Sweep tests
-					testGains.thetaDes = getTorqueSystemIDFrequencySweepChirp( &act1TestInput);
+					testGains.thetaDes = getSinusoidalAngle( &act1TestInput);
 //					testGains.k1 = ;
 //					testGains.b;
 
@@ -433,7 +433,19 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 			user_data_1.w[9] =  (int32_t) ( 0 );
 			break;
 		}
-
+		case EXP_IS_SWEEP_IMPEDANCE_TEST://-6
+		{
+			user_data_1.w[1] =  (int32_t) ( 0 );
+			user_data_1.w[2] =  (int32_t) ( 0 ) ;
+			user_data_1.w[3] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[4] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[5] =  (int32_t) ( 0 );
+			user_data_1.w[6] =  (int32_t) ( 0 ) ;
+			user_data_1.w[7] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[8] =  (int32_t) ( 0 *100.0);
+			user_data_1.w[9] =  (int32_t) ( 0 *100.0);
+			break;
+		}
 		case EXP_ACTUATOR_STEP_RESPONSE: // -4
 		{
 			user_data_1.w[2] =  (int32_t) ( 0 ) ;
@@ -473,9 +485,9 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 
 	rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	*100.	);			// Nm
-	rigid1.mn.genVar[2] = (int16_t) (rigid1.ex.strain - 32768); //(act1.tauDes 		*100.0	);			// radians/s
+	rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		*100.0	);			// radians/s (rigid1.ex.strain - 32768); //
 	rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	*100.	);			//
-//	rigid1.mn.genVar[4] = (int16_t) (act1.tauDes		*100.0	); 			//
+	rigid1.mn.genVar[4] = (int16_t) (act1.jointVel		*100.0	); 			//
 //	rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang - actx->motorPos0); //
 //	rigid1.mn.genVar[6] = (int16_t) (act1.desiredCurrent);	 				//
 //	rigid1.mn.genVar[7] = (int16_t) (getDeviceIdIncrementing()	); 			// Outputs Device ID, stepping through each number
@@ -520,13 +532,26 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 //			rigid1.mn.genVar[2] = (int16_t) (act1.jointVel			 *100.0		);
 //			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	 *100.0		);
 //			rigid1.mn.genVar[4] = (int16_t) (act1.tauDes			 *100.0		);
-//			rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
-//			rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
-//			rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
-//			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain / 2);
-//
-//			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
-//			break;
+			rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
+			rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
+			rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
+			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain -32768);
+
+			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
+			break;
+		}
+		case EXP_IS_SWEEP_IMPEDANCE_TEST://-6
+		{
+//            rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque		*100.0);
+//            rigid1.mn.genVar[2] = (int16_t) (act1.jointVel			*100.0);
+//            rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	*100.0);
+//            rigid1.mn.genVar[4] = (int16_t) (act1.tauDes			*100.0);
+//            rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
+//            rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
+//            rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
+			rigid1.mn.genVar[8] = (int16_t) (act1.desiredVoltage / 2);
+			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
+			break;
 		}
 	}
 }

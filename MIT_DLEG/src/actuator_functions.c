@@ -1376,7 +1376,9 @@ float getTorqueSystemIDFrequencySweepChirp( struct actTestSettings *testInput)
 	return tor;
 }
 
-
+/*
+ * Output a sinusoidal theta trajectory
+ */
 float getSinusoidalAngle( struct actTestSettings *testInput)
 {
 	float theta = torqueSystemIDFrequencySweepChirp( testInput->freq,
