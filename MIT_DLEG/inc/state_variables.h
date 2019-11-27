@@ -32,8 +32,8 @@ extern "C" {
 // set SUBPROJECT_B <- Don't forget to set this for the ankle if using Knee, ankle is slave
 
 //3. Select device
-//#define DEVICE_TF08_A01			// Define specific actuator configuration.
-#define DEVICE_TF08_A02		// Define specific actuator configuration.
+#define DEVICE_TF08_A01			// Define specific actuator configuration.
+//#define DEVICE_TF08_A02		// Define specific actuator configuration.
 //#define DEVICE_TF08_A03		// Define specific actuator configuration.
 //#define DEVICE_TF08_A04		// Define specific actuator configuration.
 //#define DEVICE_M14			// Standalone motor for testbench
