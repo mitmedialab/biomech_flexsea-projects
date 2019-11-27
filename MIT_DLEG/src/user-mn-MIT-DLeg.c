@@ -203,29 +203,46 @@ void MITDLegFsm1(void)
 			break;
 
 		case STATE_FIND_POLES:
-
-			if (!actuatorIsCorrect(&act1)){
-				setLEDStatus(0,0,1); //flash red; needs reset
-			} else{
-				if (onEntry) {
-					// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
-					calibrationFlags = 1, calibrationNew = 1;
-
-					isEnabledUpdateSensors = 0;
-					onEntry = 0;
+		{
+			if (rigid1.re.vb < UVLO_BIOMECH)
+			{	// Skip FindPoles if no motor power attached.
+				calibrationFlags = 0;
+				calibrationNew = 0;
+				fsm1State = STATE_INITIALIZE_SENSORS;
+				fsmTime = 0;
+				isEnabledUpdateSensors = 1;
+				onEntry = 1;
+			}
+			else
+			{
+				if (!actuatorIsCorrect(&act1))
+				{
+					setLEDStatus(0,0,1); //flash red; needs reset
 				}
+				else
+				{
+					if (onEntry)
+					{
+						// USE these to to TURN OFF FIND POLES set these = 0 for OFF, or =1 for ON
+						calibrationFlags = 1;
+						calibrationNew = 1;
 
-				// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
-				if (FINDPOLES_DONE){
-					fsm1State = STATE_INITIALIZE_SENSORS;
-					fsmTime = 0;
-					isEnabledUpdateSensors = 1;
-					onEntry = 1;
+						isEnabledUpdateSensors = 0;
+						onEntry = 0;
+					}
+
+					// Check if FindPoles has completed, if so then go ahead. This is done in calibration_tools.c
+					if (FINDPOLES_DONE)
+					{
+						fsm1State = STATE_INITIALIZE_SENSORS;
+						fsmTime = 0;
+						isEnabledUpdateSensors = 1;
+						onEntry = 1;
+					}
 				}
 			}
-
 			break;
-
+		}
 		case STATE_INITIALIZE_SENSORS:
 
 			//todo check this is okay
