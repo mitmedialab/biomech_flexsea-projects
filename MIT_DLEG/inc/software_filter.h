@@ -64,6 +64,9 @@ float filterJointAngleLimitOutputButterworth(float inputVal);
 float filterJointVelocityButterworth(float inputVal, int8_t reset);
 float filterJointAngleOutputButterworth(float inputVal);
 
+float filterLowPass30(float *u, float *y, float refTorque);
+
+
 float filterTorqueEncButterworth(float inputVal);
 float filterMotorCommandButterworth(float inputVal);
 

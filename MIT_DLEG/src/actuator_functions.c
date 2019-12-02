@@ -31,7 +31,6 @@ float voltageGain = 1.0;	//tested
 float velGain = 1.0; //1.1;	// tested
 float indGain = 1.73;	// tested
 
-static const float jointZero    = JOINT_ZERO;
 
 //****************************************************************************
 // Method(s)
@@ -72,7 +71,7 @@ static void getJointAngleKinematic(struct act_s *actx)
 	}
 
 	//ANGLEReturn: tauRestoring(float) -
-	jointAngleRad = JOINT_ANGLE_DIR * ( jointZero + JOINT_ENC_DIR * ( (float) (*(rigid1.ex.joint_ang)) ) )  * RAD_PER_CNT; // (angleUnit)/JOINT_CPR;
+	jointAngleRad = JOINT_ANGLE_DIR * ( JOINT_ZERO + JOINT_ENC_DIR * ( (float) (*(rigid1.ex.joint_ang)) ) )  * RAD_PER_CNT; // (angleUnit)/JOINT_CPR;
 	actx->jointAngle = jointAngleRad;
 
 	//VELOCITY
@@ -92,6 +91,20 @@ static void getJointAngleKinematic(struct act_s *actx)
 }
 
 
+/*
+ * Measure axial force by motor current sensing
+ */
+float getAxialForceMotorCurrent(struct act_s *actx)
+{
+	static float uArray[3];
+	static float yArray[3];
+
+	float currRead = ( (float) rigid1.ex.mot_current ) * 0.001 * MOT_KT *1.732051*1.20;
+	float curr = filterLowPass30(uArray, yArray, currRead);
+
+
+	return (curr * N_SCREW*N_ETA);
+}
 
 /**
  * Output axial force on screw
@@ -111,7 +124,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
-//	strainReading = medianFilterData25( &strainReading, forceWindow );	// spike rejection, other lowpass didn't help much
+	strainReading = medianFilterData25( &strainReading, forceWindow );	// spike rejection, other lowpass didn't help much
 //	strainReading = ( (float) medianFilterArbitraryUint16( rigid1.ex.strain ) );	// spike rejection, other lowpass didn't help much
 
 	if(actx->resetStaticVariables)
@@ -166,8 +179,70 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	return axialForce;
 }
 
+/*
+ * Interpolated linkage moment arm calculation
+ * Try using this to reduce calculation time.
+ * Try to keep track of current position, if velocity
+ */
+static float getLinkageMomentArmLookup(float theta)
+{
+	static float lastMomentArm = 0.0;
+	static float lastTheta = 0.0;
+	float currentMomentArm =0.0;
+	static int16_t lastIndex = 0;
+	int16_t searchIndex =0;
+	int16_t n = 0;
+	int16_t np1 = 0;
 
+	theta = JOINT_ENC_DIR * (theta - JOINT_ZERO * RAD_PER_CNT);
 
+	if(theta > lastTheta)
+	{
+		//search upward
+		for (searchIndex = lastIndex; searchIndex<MOMENTARM_N; ++searchIndex)
+		{
+			if(theta >= MOMENTARM_THETA[searchIndex])
+			{
+				break;
+			}
+		}
+
+	} else if(theta < lastTheta)
+	{
+		//search downard
+		for (searchIndex = lastIndex; searchIndex>0; --searchIndex)
+		{
+			if(theta <= MOMENTARM_THETA[searchIndex])
+			{
+				break;
+			}
+		}
+	}
+	else
+	{	//no change
+		searchIndex = lastIndex;
+		currentMomentArm = lastMomentArm;
+	}
+
+	n = searchIndex - 1;
+	np1 = searchIndex +1;
+	// check limits on indices
+	if(np1 > MOMENTARM_N)
+	{
+		np1 = MOMENTARM_N;
+	}
+	if(n < 0)
+	{
+		n = 0;
+	}
+
+	currentMomentArm = MOMENTARM_R[n] + (theta - MOMENTARM_THETA[n]) / (MOMENTARM_THETA[np1]-MOMENTARM_THETA[n]) *(MOMENTARM_R[np1] - MOMENTARM_R[n]);
+
+	lastTheta = theta;
+	lastIndex = searchIndex;
+
+	return currentMomentArm;
+}
 
 /**
  * Linear Actuator Actual Moment Arm, internal units are [mm, rad] to keep internal precision, outputs [m]
@@ -213,11 +288,14 @@ static float getLinkageMomentArm(struct act_s *actx, float theta, int8_t tareSta
     // Force is related to difference in screw position.
     // Eval'd by difference in motor position - neutral position, adjusted by expected position - neutral starting position.
 //    actx->screwLengthDelta = (  filterJointAngleButterworth( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c - actx->c0) ), actx->resetStaticVariables ) );	// [mm]
-    actx->screwLengthDelta = (  ( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c - actx->c0) ), actx->resetStaticVariables ) );	// [mm]
+//    actx->screwLengthDeltaRoman = (float) ( MOTOR_DIRECTION*2.993159602325407e-04*( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) - 0.403564715559730 - (actx->croman-actx->c0roman));	// [mm]
+    actx->screwLengthDelta =   ( (float) ( MOTOR_DIRECTION*MOTOR_MILLIMETER_PER_TICK*( ( (float) ( *rigid1.ex.enc_ang - actx->motorPos0) ) ) - (c - actx->c0) ) );	// [mm]
 
     return projLength/1000.; // [m] output is in meters
 
 }
+
+
 
 /*
  * Calculate axial force based on displacement of spring measured from motor angle and expected motor angle
@@ -1054,8 +1132,8 @@ void setMotorTorqueOpenLoop(struct act_s *actx, float tauDes, int8_t motorContro
 	int32_t ImA = (int32_t) ( I * CURRENT_SCALAR_INIT );
 	int32_t VmV = (int32_t) ( CURRENT_SCALAR_INIT * ( (I * MOT_R*1.732) + (actx->motorVel * MOT_KT) ) ); //+ (actx->motCurrDt * MOT_L)
 
-	rigid1.mn.genVar[6] = (int16_t) (VmV);
-	rigid1.mn.genVar[7] = (int16_t) (ImA);
+//	rigid1.mn.genVar[6] = (int16_t) (VmV);
+//	rigid1.mn.genVar[7] = (int16_t) (ImA);
 
 	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 //	if (I > actx->currentOpLimit)
@@ -1404,6 +1482,7 @@ void updateSensorValues(struct act_s *actx)
 	getJointAngleKinematic(actx);
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
+	actx->linkageMomentArmInterp = getLinkageMomentArmLookup(actx->jointAngle);
 
 	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
 	actx->axialForceEnc = getAxialForceEncoderCalc(actx);

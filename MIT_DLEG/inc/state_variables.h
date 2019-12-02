@@ -39,8 +39,8 @@ extern "C" {
 /* 3. Select device
  * 	 Note: use getDeviceIdIncrementing() to get correct system ID
  */
-//#define DEVICE_TF08_A01			// Define specific actuator configuration.
-#define DEVICE_TF08_A02		// Define specific actuator configuration.
+#define DEVICE_TF08_A01			// Define specific actuator configuration.
+//#define DEVICE_TF08_A02		// Define specific actuator configuration.
 //#define DEVICE_TF08_A03		// Define specific actuator configuration.
 //#define DEVICE_TF08_A04		// Define specific actuator configuration.
 //#define DEVICE_M14			// Standalone motor for testbench
@@ -203,6 +203,7 @@ typedef struct act_s
     float efficiencyInstant; //
 
     float linkageMomentArm;
+    float linkageMomentArmInterp;
     float axialForce;		// actively used force measurement.
     float axialForceTF;		// calculated or transfer function force measurement
     float axialForceLC;		// load cell measurement
@@ -211,6 +212,8 @@ typedef struct act_s
     float tauMeas;          // torque contribution from series spring
     float tauDes;           // FSM des torque - tauMeas
     float screwLengthDelta;		// track deflection of spring
+    float screwLengthDeltaRoman;		// track deflection of spring
+
     float linkageLengthNonLinearity;	// track difference in calculated and measured length
     float lastJointAngle;
     float lastJointVel;

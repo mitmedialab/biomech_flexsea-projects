@@ -307,8 +307,6 @@ void MITDLegFsm1(void)
 				case EXP_IS_SWEEP_IMPEDANCE_TEST://-6
 				{// System Sweep tests
 					testGains.thetaDes = getSinusoidalAngle( &act1TestInput);
-//					testGains.k1 = ;
-//					testGains.b;
 
 					act1.tauDes = getImpedanceTorqueParams(&act1, &testGains);	// Returns a Torque Value
 					setMotorTorque( &act1 );
@@ -484,15 +482,15 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 
 	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
 
-	rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	*100.	);			// Nm
-	rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		*100.0	);			// radians/s (rigid1.ex.strain - 32768); //
-	rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	*100.	);			//
-	rigid1.mn.genVar[4] = (int16_t) (act1.jointVel		*100.0	); 			//
-//	rigid1.mn.genVar[5] = (int16_t) (*rigid1.ex.enc_ang - actx->motorPos0); //
-//	rigid1.mn.genVar[6] = (int16_t) (act1.desiredCurrent);	 				//
-//	rigid1.mn.genVar[7] = (int16_t) (getDeviceIdIncrementing()	); 			// Outputs Device ID, stepping through each number
-//	rigid1.mn.genVar[8] = (int16_t) (kneeAnkleStateMachine.currentState); 	//
-//	rigid1.mn.genVar[9] = (int16_t) (experimentTask) ;//(kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
+	rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
+	rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
+	rigid1.mn.genVar[3] = (int16_t) (act1.jointAngle	* 100.	);			//
+	rigid1.mn.genVar[4] = (int16_t) (act1.jointVel		* 100.0	); 			//
+	rigid1.mn.genVar[5] = (int16_t) (act1.axialForce 	* 10.0); //
+	rigid1.mn.genVar[6] = (int16_t) (getAxialForceMotorCurrent(&act1) * 10.0);	 				//
+	rigid1.mn.genVar[7] = (int16_t) (act1.axialForceEnc	* 10.0	); 			// Outputs Device ID, stepping through each number
+	rigid1.mn.genVar[8] = (int16_t) (act1.linkageMomentArm * 10000.0); 	//
+	rigid1.mn.genVar[9] = (int16_t) (act1.linkageMomentArmInterp * 10000.0) ;//(kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
 
 	switch (experimentTask)
 	{

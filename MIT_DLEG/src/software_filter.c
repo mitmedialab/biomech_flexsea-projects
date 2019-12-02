@@ -380,6 +380,36 @@ float filterMotorCommandButterworth(float inputVal)
 	}
 #endif //end 15Hz
 
+/*
+ * LPF on reference due to Feedforward Term
+ * Input:
+ * 			static float y[3] = {0, 0, 0};
+ * 			static float u[3] = {0, 0, 0};
+ *
+ * return:	torque command value to the motor driver
+ */
+float filterLowPass30(float *u, float *y, float refTorque)
+{
+
+	static const int8_t k = 2;
+
+
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = refTorque;			// [Nm]
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+
+	//fc = 30hz
+	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
+			+ 0.0*u[k] + 0.0147569016602231*u[k-1] + 0.0147569016602231*u[k-2];
+	return ( y[k] );
+}
+
 
 #endif // end MATT_SOFT_FILT
 
