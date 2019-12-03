@@ -179,70 +179,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	return axialForce;
 }
 
-/*
- * Interpolated linkage moment arm calculation
- * Try using this to reduce calculation time.
- * Try to keep track of current position, if velocity
- */
-static float getLinkageMomentArmLookup(float theta)
-{
-	static float lastMomentArm = 0.0;
-	static float lastTheta = 0.0;
-	float currentMomentArm =0.0;
-	static int16_t lastIndex = 0;
-	int16_t searchIndex =0;
-	int16_t n = 0;
-	int16_t np1 = 0;
 
-	theta = JOINT_ENC_DIR * (theta - JOINT_ZERO * RAD_PER_CNT);
-
-	if(theta > lastTheta)
-	{
-		//search upward
-		for (searchIndex = lastIndex; searchIndex<MOMENTARM_N; ++searchIndex)
-		{
-			if(theta >= MOMENTARM_THETA[searchIndex])
-			{
-				break;
-			}
-		}
-
-	} else if(theta < lastTheta)
-	{
-		//search downard
-		for (searchIndex = lastIndex; searchIndex>0; --searchIndex)
-		{
-			if(theta <= MOMENTARM_THETA[searchIndex])
-			{
-				break;
-			}
-		}
-	}
-	else
-	{	//no change
-		searchIndex = lastIndex;
-		currentMomentArm = lastMomentArm;
-	}
-
-	n = searchIndex - 1;
-	np1 = searchIndex +1;
-	// check limits on indices
-	if(np1 > MOMENTARM_N)
-	{
-		np1 = MOMENTARM_N;
-	}
-	if(n < 0)
-	{
-		n = 0;
-	}
-
-	currentMomentArm = MOMENTARM_R[n] + (theta - MOMENTARM_THETA[n]) / (MOMENTARM_THETA[np1]-MOMENTARM_THETA[n]) *(MOMENTARM_R[np1] - MOMENTARM_R[n]);
-
-	lastTheta = theta;
-	lastIndex = searchIndex;
-
-	return currentMomentArm;
-}
 
 /**
  * Linear Actuator Actual Moment Arm, internal units are [mm, rad] to keep internal precision, outputs [m]
@@ -1482,7 +1419,6 @@ void updateSensorValues(struct act_s *actx)
 	getJointAngleKinematic(actx);
 
 	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
-	actx->linkageMomentArmInterp = getLinkageMomentArmLookup(actx->jointAngle);
 
 	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
 	actx->axialForceEnc = getAxialForceEncoderCalc(actx);
