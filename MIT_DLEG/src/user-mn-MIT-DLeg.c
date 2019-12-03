@@ -488,9 +488,9 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
 	rigid1.mn.genVar[4] = (int16_t) (act1.jointVel		* 100.0	); 			//
 	rigid1.mn.genVar[5] = (int16_t) (act1.axialForce 	* 10.0); //
 	rigid1.mn.genVar[6] = (int16_t) (getAxialForceMotorCurrent(&act1) * 10.0);	 				//
-	rigid1.mn.genVar[7] = (int16_t) (act1.axialForceEnc	* 10.0	); 			// Outputs Device ID, stepping through each number
+	rigid1.mn.genVar[7] = (int16_t) (act1.jointPower	* 10.0); 			// Outputs Device ID, stepping through each number
 	rigid1.mn.genVar[8] = (int16_t) (act1.linkageMomentArm * 10000.0); 	//
-	rigid1.mn.genVar[9] = (int16_t) (act1.linkageMomentArmInterp * 10000.0) ;//(kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
+//	rigid1.mn.genVar[9] = (int16_t) (act1.linkageMomentArmInterp * 10000.0) ;//(kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
 
 	switch (experimentTask)
 	{
