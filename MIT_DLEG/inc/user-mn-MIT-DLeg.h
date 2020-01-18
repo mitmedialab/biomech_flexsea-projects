@@ -75,8 +75,8 @@ uint8_t getJointDof(void);
 //void torqueSweepTest(struct act_s *actx);
 
 //User writes
-void updateUserWrites(Act_s *actx, WalkParams *wParams);
-void initializeUserWrites(Act_s *actx, WalkParams *wParams);
+//void updateUserWrites(Act_s *actx, WalkParams *wParams);
+//void initializeUserWrites(Act_s *actx, WalkParams *wParams);
 
 
 //****************************************************************************

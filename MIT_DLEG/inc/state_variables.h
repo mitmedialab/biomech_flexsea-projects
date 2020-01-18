@@ -5,19 +5,23 @@
 extern "C" {
 #endif
 
-#include <stdint.h>
 
+#include <stdint.h>
 
 //Joint Type: activate one of these for joint limit angles.
 //measured from nominal joint configuration, in degrees
 
 //1. Select joint type
-//#define IS_ANKLE
-#define IS_KNEE
+
+#define IS_KNEE        //IS_KNEE is AT02_01 (MOTOR1), for now
+//#define IS_ANKLE     //IS_ANKLE is AT02_02 (MOTOR2), for now
 
 //2. Select device
+#define DEVICE_AT02_01         // Define specific actuator configuration. Two dof Ankle Motor 1
+//#define DEVICE_AT02_02         // Define specific actuator configuration. Two dof Ankle Motor 2
+
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
-#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
+//#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02
 //#define DEVICE_TF08_A03		// Define specific actuator configuration. Knee 01
 //#define DEVICE_TF08_A04		// Define specific actuator configuration. Knee 02
 //#define NO_DEVICE
@@ -67,7 +71,7 @@ typedef struct act_s
     float jointVelDegrees;
     float jointAcc;
     float linkageMomentArm;
-    float axialForce;
+
     float jointTorque;
     float tauMeas;          // torque contribution from series spring
     float tauDes;           // FSM des torque - tauMeas
@@ -76,7 +80,10 @@ typedef struct act_s
     float lastJointTorque;
     float jointTorqueRate;  // Joint torque rate
     float safetyTorqueScalar;	// Scalar value to reduce overall allowed torque generated.
-
+    float crankAngleDegrees;    	// crank position [degrees]
+    float lastCrankAngleDegrees;
+    float crankAngleRad;
+    float crankVel;          //[deg/s]
     int32_t motorPosRaw;    	// motor position [counts]
     int32_t motorPosNeutral;	// neutral position of motor.
     float motorPos;       		// motor position [rad]
@@ -96,8 +103,11 @@ typedef struct act_s
 	uint16_t commandTimer;
 
 	//following values are sent over multipacket
+	int32_t axialForce;
+	int16_t intCrankAngleDegrees;
 	int16_t intJointAngleDegrees; // all have x100 multiplication when sent over!!
-	int16_t intJointVelDegrees;
+	int16_t intTauDes;
+	int32_t intCrankVel;
 	int16_t intJointTorque;
 	int16_t desiredJointAngleDeg; //multiplier
 	float	desiredJointAngleDeg_f;
@@ -105,6 +115,7 @@ typedef struct act_s
 	float 	desiredJointK_f;
 	uint16_t desiredJointB; //multiplier
 	float	desiredJointB_f;
+	int16_t volt;
 
 } Act_s;
 

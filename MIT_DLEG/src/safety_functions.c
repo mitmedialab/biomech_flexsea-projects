@@ -141,7 +141,7 @@ static void checkEMG(Act_s *actx) {
  */
 static void checkBatteryBounds(Act_s *actx) {
 
-	if (rigid1.re.vb <= UVLO_NOTIFY && rigid1.re.vb >= UV_USB_BIOMECH) {
+	if (rigid1.re.vb <= UVLO_NOTIFY) {
 		errorConditions[WARNING_BATTERY_VOLTAGE] = VALUE_BELOW;
 	} else if (rigid1.re.vb >= UVHI_BIOMECH) {
 		errorConditions[WARNING_BATTERY_VOLTAGE] = VALUE_ABOVE;
@@ -395,22 +395,12 @@ int actuatorIsCorrect() {
  */
 void checkSafeties(Act_s *actx) {
 	safetyFlags = 0; //reset this upon entering a check
-	//TODO:
 
-	checkLoadcell(actx);
-	checkJointEncoder(actx);
-	checkMotorEncoder(actx);
-	checkMotorThermo(actx);
-	checkPCBThermo(actx);
-	checkEMG(actx);
+
 
 	checkBatteryBounds(actx);
-	checkTorqueMeasuredBounds(actx);
 	checkCurrentMeasuredBounds(actx);
-	checkJointAngleBounds(actx); //hard and soft limits
-	checkTemperatureBounds(actx);
 
-	checkPersistentError(actx);
 
 	//set our safety bitmap for streaming and checking purposes
 	//TODO: consider optimizing if there are future processing constraints
