@@ -13,12 +13,12 @@ extern "C" {
 
 //1. Select joint type
 
-#define IS_KNEE        //IS_KNEE is AT02_01 (MOTOR1), for now
-//#define IS_ANKLE     //IS_ANKLE is AT02_02 (MOTOR2), for now
+//#define IS_KNEE        //IS_KNEE is AT02_01 (MOTOR1), for now
+#define IS_ANKLE     //IS_ANKLE is AT02_02 (MOTOR2), for now
 
 //2. Select device
-#define DEVICE_AT02_01         // Define specific actuator configuration. Two dof Ankle Motor 1
-//#define DEVICE_AT02_02         // Define specific actuator configuration. Two dof Ankle Motor 2
+//#define DEVICE_AT02_01         // Define specific actuator configuration. Two dof Ankle Motor 1
+#define DEVICE_AT02_02         // Define specific actuator configuration. Two dof Ankle Motor 2
 
 //#define DEVICE_TF08_A01			// Define specific actuator configuration. Ankle 01
 //#define DEVICE_TF08_A02		// Define specific actuator configuration. Ankle 02

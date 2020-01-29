@@ -24,14 +24,14 @@
 uint8_t mitDlegInfo[2] = {PORT_RS485_2, PORT_RS485_2};
 
 //SAFETY FLAGS - in addition to enum, so can be cleared but don't lose other flags that may exist.
-static int8_t isSafetyFlag = 0;
-static int8_t isAngleLimit = 0;
-static int8_t isTorqueLimit = 0;
-static int8_t isTempLimit = 0;
-static int8_t startedOverLimit = 1;
+//static int8_t isSafetyFlag = 0;
+//static int8_t isAngleLimit = 0;
+//static int8_t isTorqueLimit = 0;
+//static int8_t isTempLimit = 0;
+//static int8_t startedOverLimit = 1;
 
 int8_t isEnabledUpdateSensors = 0;
-int8_t fsm1State = STATE_POWER_ON;
+
 float currentScalar = CURRENT_SCALAR_INIT;
 
 
@@ -67,6 +67,7 @@ static const float jointMinSoft = JOINT_MIN_SOFT;
 static const float jointMaxSoft = JOINT_MAX_SOFT;
 static const float jointMinSoftDeg = JOINT_MIN_SOFT * DEG_PER_RAD;
 static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
+static const float currentLimitMax = CURRENT_LIMIT_INIT;
 
 struct diffarr_s jntAngClks;		//maybe used for velocity and accel calcs.
 
@@ -669,55 +670,50 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 //	actx->tauDes = tauDes + actuateAngleLimits(actx);
 //	actx->tauMeas = actx->jointTorque;
 
-
-	/*int16_t kp = user_data_1.w[1];
-	int16_t ki = user_data_1.w[2];
-	int16_t kd = user_data_1.w[3];*/
-
 	static float tauErrLast = 0, tauErrInt = 0, tauErrInt0 = 0;
 
-
-
-	// Error is done at the motor. todo: could be done at the joint, messes with our gains.
 	float tauErr = actx->tauDes - actx->jointTorque;		// [Nm]
 
 	float tauErrDot = tauErr - tauErrLast;		// [Nm/s]
-	//HG revised portion
-	tauErrInt0 = tauErrInt;
-	//
-	tauErrInt = tauErrInt + tauErr;
-	tauErrLast = tauErr;
 
 
+/////////////////////////////////////////////////////
+//  PID around joint torque using voltage command  //
+/////////////////////////////////////////////////////
 
-	//PID around motor torque
+//	//HG revised portion
+//	tauErrInt0 = tauErrInt;
+//	//
+//	tauErrInt = tauErrInt + tauErr;
+//	tauErrLast = tauErr;
 
-	int32_t v = (tauErr*torqueKp + tauErrInt*torqueKi + tauErrDot*torqueKd)*JOINT_ENC_DIR;
-
-	// hardware limit 22000
-	if (abs(v)>25000)
-	{
-		v = (tauErr*torqueKp + tauErrInt0*torqueKi + tauErrDot*torqueKd)*JOINT_ENC_DIR;
-		tauErrInt = tauErrInt0;
-	}
-
-
-
-
-
-	actx->volt = v/1000;
-
-
-//	int32_t v = (tauErr*kp + tauErrInt*ki + tauErrDot*kd)*JOINT_ENC_DIR;
-
-	setMotorVoltage(v, DEVICE_CHANNEL);
-
-	// Feedforward term
-//	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
+//	int32_t v = (tauErr*torqueKp + tauErrInt*torqueKi + tauErrDot*torqueKd)*JOINT_ENC_DIR;
 //
-//	float tauCCombined = tauC + tauFF;
+//	// hardware limit 22000
+//	if (abs(v)>25000)
+//	{
+//		v = (tauErr*torqueKp + tauErrInt0*torqueKi + tauErrDot*torqueKd)*JOINT_ENC_DIR;
+//		tauErrInt = tauErrInt0;
+//	}
 
-	//Saturation limit on Torque
+//	actx->volt = v/1000;
+//	setMotorVoltage(v, DEVICE_CHANNEL);
+
+/////////////////////////////////////////////////////
+//  PID around joint torque using voltage command  //
+/////////////////////////////////////////////////////
+
+
+///////////////////////////////////////////////////
+//  PID around joint torque via current control  //
+///////////////////////////////////////////////////
+
+// Feedforward term
+	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
+
+//	float tauCCombined = tauC + tauFF;
+//
+//	//Saturation limit on Torque
 //	float tauCOutput = tauCCombined;
 //	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
 //		tauCOutput = ABS_TORQUE_LIMIT_INIT;
@@ -725,15 +721,16 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 //		tauCOutput = -ABS_TORQUE_LIMIT_INIT;
 //	}
 //
-	// Clamp and turn off integral term if it's causing a torque saturation
+//	//Clamp and turn off integral term if it's causing a torque saturation
 //	if ( integralAntiWindup(tauErr, tauCCombined, tauCOutput) ){
 //		tauErrInt = 0;
 //	}
-
-	// motor current signal
+//
+//	// motor current signal
+//	//Robin: find N, which is non-linear
 //	int32_t I = (int32_t) ( 1.0/(MOT_KT * N * N_ETA) * tauCOutput * CURRENT_SCALAR_INIT);
-
-	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
+//
+//	//Saturate I for our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 //	if (I > actx->currentOpLimit)
 //	{
 //		I = actx->currentOpLimit;
@@ -741,14 +738,15 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 //	{
 //		I = -actx->currentOpLimit;
 //	}
-
+//
 //	actx->desiredCurrent = I;// + noLoadCurrent(I); 	// demanded mA
-
+//
 //	setMotorCurrent(actx->desiredCurrent, DEVICE_CHANNEL);	// send current command to comm buffer to Execute
 
-	//variables used in cmd-rigid offset 5, for multipacket
-//	rigid1.mn.userVar[5] = actx->tauMeas*1000;	// x1000 is for float resolution in int32
-//	rigid1.mn.userVar[6] = actx->tauDes*1000;
+///////////////////////////////////////////////////
+//  PID around joint torque via current control  //
+///////////////////////////////////////////////////
+
 }
 
 

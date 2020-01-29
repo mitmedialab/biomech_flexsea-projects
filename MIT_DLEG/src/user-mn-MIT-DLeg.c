@@ -38,6 +38,7 @@
 #include "run_main_user_application.h"	// This is where user application functions live
 #include "ui.h"
 
+
 //#include "state_variables.h"
 
 //****************************************************************************
@@ -50,6 +51,7 @@ float freqRad = 0.0;
 float torqInput = 0.0;
 
 int8_t onEntry = 0;
+int8_t fsm1State = STATE_POWER_ON;
 Act_s act1;
 
 //NEED TO SET CORRECTLY FOR MULTIPACKET MULTIDOF
@@ -119,7 +121,8 @@ void MITDLegFsm1(void)
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
 	  rigid1.mn.genVar[0] = (int16_t) (act1.motCurr); //startedOverLimit;
-	  rigid1.mn.genVar[1] = (int16_t) (rigid1.ex.strain-31866);
+	  rigid1.mn.genVar[1] = (int16_t) (act1.desiredCurrent);
+	  //rigid1.mn.genVar[1] = (int16_t) (rigid1.ex.strain-31866);
 	  rigid1.mn.genVar[2] = (int16_t) (rigid1.ex.strain+30525);
 	  rigid1.mn.genVar[3] = (int16_t) (act1.axialForce);
 	  rigid1.mn.genVar[4] = (int16_t) (act1.crankAngleDegrees);
@@ -161,7 +164,7 @@ void MITDLegFsm1(void)
 					///DEBUG TODO CHANGE THIS FOR REAL TESTING
 //					fsm1State = STATE_FIND_POLES;
 				#endif
-//				act1.currentOpLimit = CURRENT_LIMIT_INIT;
+
 				onEntry = 1;
 			}
 
@@ -199,18 +202,28 @@ void MITDLegFsm1(void)
 
 			/*reserve for additional initialization*/
 
-//			mitInitCurrentController();		//initialize Current Controller with gains
+			mitInitCurrentController();		//initialize Current Controller with gains
+
 //			setControlMode(CTRL_POSITION, DEVICE_CHANNEL);		//open control for alternative testing
 //			init_position_controller(DEVICE_CHANNEL);
 //			setControlGains(0, 0, 0, 0, DEVICE_CHANNEL);
 
+			//Test torque control based on voltage command
 			/*user_data_1.w[0] = 0;
 			user_data_1.w[1] = 200;
 			user_data_1.w[2] = 6;
 			user_data_1.w[3] = 650;*/
 
+			//Test current control
+			//Default desired current
+			user_data_1.w[0] = 0;
+			//Default PID for current controller
+			user_data_1.w[1] = 60;  //Kp
+			user_data_1.w[2] = 5;  //Ki
+			user_data_1.w[3] = 35;  //Kd
 
-			setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
+
+//			setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
 
 			//absolute torque limit scaling factor TODO: possibly remove
 //			act1.safetyTorqueScalar = 1.0;
@@ -230,6 +243,7 @@ void MITDLegFsm1(void)
 		case STATE_MAIN:
 			{
 				runMainUserApplication(&act1);
+
 //				if(onEntry){
 //
 //					onEntry = 0;
