@@ -13,7 +13,7 @@
 void init_kinematics();
 void update_kinematics(struct fx_rigid_mn_s* mn, struct taskmachine_s* tm);
 
-//Getters
+//Getters (prototype for function that gets &kin)
 struct kinematics_s* get_kinematics();
 
 struct kinematics_s

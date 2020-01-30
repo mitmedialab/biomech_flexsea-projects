@@ -52,7 +52,10 @@ static void reset_position_and_velocity(struct taskmachine_s* tm){
     kin.latest_foot_static_samples = tm->elapsed_samples;
 }
 
-//Correct orientation using accelerometers, and update the ground slope.
+// Correct orientation using accelerometers, and update the ground slope.
+// looks for y component in gravity as recorded by imu during stance
+// sets rot1 & rot3 based on gravity direction
+// estimates ground slope as the diff between ankle angle and gravity dir
 static void correct_orientation_and_update_ground_slope(struct taskmachine_s* tm){
 	static float theta_quiet_acc = 0.0;
 	theta_quiet_acc = kin.aAccY*GRAVITY_RECIP;
@@ -62,7 +65,9 @@ static void correct_orientation_and_update_ground_slope(struct taskmachine_s* tm
 	kin.rot1 = sqrtf(1.0-(kin.rot3*kin.rot3));
 }
 
-//Update 2D rotation matrix using gyroscopes only.
+// Update 2D rotation matrix using gyroscopes only.
+// uses small angle approx for cos(th) => 1 and sin(th) => th
+// TODO: replace rot1 and rot3 for rot1prev and rot3prev for consistency
 static void update_rotation_matrix(){
 	static float rot1prev, rot3prev;
 	rot1prev = kin.rot1;
@@ -72,7 +77,12 @@ static void update_rotation_matrix(){
 
 }
 
-//Update 2D ankle translations and the displacement from starting point.
+// Update 2D ankle translations and the displacement from starting point.
+// If the foot has not been lifted to high:
+// find acceleration of ankle joint center (SsAy and SsAz)
+// find absolute acceleration at joint center (aAy and aAz)
+// Integrate to find velocity and position
+// ???: wouldn't this type of integration overestimate the effect of acceleration on position? ( p = v*t + a*t^2 ) vs ( p = v*t + 1/2*a*t^2 )
 static void update_ankle_translations(){
 	static float aOmegaXSquared, SaAy, SaAz;
 	if (fabs(kin.pAz) < PAZ_MAX){
