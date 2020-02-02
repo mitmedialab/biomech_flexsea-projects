@@ -709,7 +709,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 ///////////////////////////////////////////////////
 
 // Feedforward term
-	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
+//	float tauFF = 0.0; 	// Not in use at the moment todo: figure out how to do this properly
 
 //	float tauCCombined = tauC + tauFF;
 //
