@@ -107,7 +107,7 @@ enum ERROR_TYPES{
 
 #define JOINT_ANGLE_DIFF_VALUE				 0
 #define JOINT_ANGLE_COUNT_THRESHOLD			 100
-#define JOINT_TORQUE_RATE_THRESHOLD			 1000
+#define JOINT_TORQUE_RATE_THRESHOLD			 6000 //Max expected is about 3000Nm/s, but impact might throw that off some.
 
 #define MOTOR_ANGLE_DIFF_VALUE				 0
 #define MOTOR_ANGLE_COUNT_THRESHOLD		 	 100
