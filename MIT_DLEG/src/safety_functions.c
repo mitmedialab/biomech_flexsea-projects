@@ -201,6 +201,17 @@ static void checkTorqueMeasuredBounds(Act_s *actx) {
 	}
 }
 
+
+/*
+ * Checks to see if torque rapidly changed, likely a fault, set error CONDITION
+ */
+static void checkTorqueRate(Act_s *actx) {
+	if (fabs(actx->jointTorqueRate) > JOINT_TORQUE_RATE_THRESHOLD)
+	{
+		errorConditions[ERROR_JOINT_TORQUE] = SENSOR_INVALID;
+	}
+}
+
 /*
  *  Checks to see if the measured current is within the bounds of the device
  *  Param: actx(Act_s) - Actuator structure to track sensor values
@@ -389,9 +400,12 @@ static void rampCurrent(Act_s *actx) {
 /*
  * Disable the motor because of some safety flag
  */
-static void disableMotor(void) {
+static void disableMotor(Act_s *actx) {
 	//CTRL_NONE gives desired damping behavior
+	actx->tauDes = 0.0;
 	setControlMode(CTRL_NONE, DEVICE_CHANNEL);
+	writeEx[DEVICE_CHANNEL].setpoint = 0;			// wasn't included in setControlMode, could be safe for init
+	setControlGains(0, 0, 0, 0, DEVICE_CHANNEL);
 }
 
 /*
@@ -545,6 +559,7 @@ void checkSafeties(Act_s *actx)
 
 	checkLoadcell(actx);
 	checkJointEncoder(actx);
+	checkTorqueRate(actx);		// This likely catches an error from either loadcell or joint encoder
 	checkMotorEncoder(actx);
 	checkMotorThermo(actx);
 	checkPCBThermo(actx);
@@ -587,13 +602,15 @@ void handleSafetyConditions(Act_s *actx) {
 	//TODO figure out if MODE_DISABLED should be blocking/ how to do it
 	if (errorConditions[ERROR_MOTOR_ENCODER] != SENSOR_NOMINAL)
 		motorMode = MODE_DISABLED;
-	else if (errorConditions[ERROR_JOINT_ENCODER] ||
-			errorConditions[ERROR_LDC])
-		motorMode = MODE_PASSIVE;
+	else if (errorConditions[ERROR_JOINT_ENCODER] || errorConditions[ERROR_LDC])
+		motorMode = MODE_DISABLED;
+	else if (errorConditions[ERROR_JOINT_TORQUE] )
+		motorMode = MODE_DISABLED;
 	else if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
 			errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL ||
 			actx->currentOpLimit < CURRENT_LIMIT_INIT)
-		motorMode = MODE_OVERTEMP;
+//		motorMode = MODE_OVERTEMP;
+		motorMode = MODE_DISABLED;
 	else {
 		motorMode = MODE_ENABLED;
 	}
@@ -615,22 +632,23 @@ void handleSafetyConditions(Act_s *actx) {
 		setLEDStatus(1,0,0);//flashing yellow
 	}
 
+	//TODO: turned off everything but disabled, only turn system off, don't do recovery for now. need to find elegant solutions that generated some sort of expected behavior
 	switch (motorMode){
 		case MODE_DISABLED:
 			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
-
+			disableMotor(actx);
 			break;
-		case MODE_PASSIVE:
-			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
-			break;
-		case MODE_OVERTEMP:
-			if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
-				errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL) {
-				throttleCurrent(actx);
-			} else {
-				rampCurrent(actx);
-			}
-			break;
+//		case MODE_PASSIVE:
+//			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
+//			break;
+//		case MODE_OVERTEMP:
+//			if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
+//				errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL) {
+//				throttleCurrent(actx);
+//			} else {
+//				rampCurrent(actx);
+//			}
+//			break;
 		case MODE_ENABLED: // VERY DANGEROUS todo: need graceful way to turn back on, this can cause unexpected behavior. Turned off for now. Maybe best to latch into failed mode.
 			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
 			{

@@ -39,8 +39,8 @@ extern "C" {
 /* 3. Select device
  * 	 Note: use getDeviceIdIncrementing() to get correct system ID
  */
-#define DEVICE_TF08_A01			// Define specific actuator configuration.
-//#define DEVICE_TF08_A02		// Define specific actuator configuration.
+//#define DEVICE_TF08_A01			// Define specific actuator configuration.
+#define DEVICE_TF08_A02		// Define specific actuator configuration.
 //#define DEVICE_TF08_A03		// Define specific actuator configuration.
 //#define DEVICE_TF08_A04		// Define specific actuator configuration.
 //#define DEVICE_M14			// Standalone motor for testbench
