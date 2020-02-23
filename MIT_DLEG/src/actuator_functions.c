@@ -14,6 +14,7 @@
 
 #include "actuator_functions.h"
 #include "median_filter.h"
+#include "float.h"
 
 //****************************************************************************
 // Variable(s)
@@ -115,7 +116,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 	static int8_t tareState = -1;
 	static uint32_t timer = 0;
 	static float tareOffset = 0;
-	static float forceWindow[MEDIAN_FILTER_WINDOW_SIZE_25];	// store array of current strain values
+	static float forceWindow[MEDIAN_FILTER_WINDOW_SIZE_7];	// store array of current strain values
 
 	float strainReading = 0;
 	float axialForce = 0;
@@ -124,8 +125,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 
 	// Filter the signal
 	strainReading = ( (float) rigid1.ex.strain );
-	strainReading = medianFilterData25( &strainReading, forceWindow );	// spike rejection, other lowpass didn't help much
-//	strainReading = ( (float) medianFilterArbitraryUint16( rigid1.ex.strain ) );	// spike rejection, other lowpass didn't help much
+	strainReading = medianFilterData7( &strainReading, forceWindow );	// spike rejection, other lowpass didn't help much
 
 	if(actx->resetStaticVariables)
 	{
@@ -143,7 +143,7 @@ static float getAxialForce(struct act_s *actx, int8_t tare)
 		timer = 0;
 		tareOffset = 0;
 		tare=0;
-		for(uint8_t i = 0; i < MEDIAN_FILTER_WINDOW_SIZE_9; ++i)
+		for(uint8_t i = 0; i < MEDIAN_FILTER_WINDOW_SIZE_7; ++i)
 		{
 			forceWindow[i] = 0.0;
 		}
@@ -540,7 +540,8 @@ void setMotorTorque(struct act_s *actx)
 	notch = getNotchFilter(refTorque) * actx->controlScaler;
 
 	// Feed Forward term
-	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT) * actx->controlFF;
+//	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT) * actx->controlFF;
+	tauFF = getReferenceLPF(refTorque, actx->resetStaticVariables); // Put delay on FF since it's a simple FF, align with feedback term
 
 	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
@@ -562,7 +563,7 @@ void setMotorTorque(struct act_s *actx)
 //	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
 //	rigid1.mn.genVar[9] = (int16_t) (notch			*100.0	);
 	// motor current signal
-	Icalc = tauCCombined;	// Reflect torques to Motor level
+	Icalc = tauCCombined * 1.0/(N*N_ETA*MOT_KT);	// Reflect torques to Motor level
 
 	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST );
 
@@ -618,40 +619,6 @@ float getFeedForwardTerm(float refTorque)
 
 	y[k-2] = y[k-1];
 	y[k-1] = y[k];
-
-
-
-	// fc=30hz
-//	y[k] = 1.75893011414808*y[k-1] - 0.778800783071405*y[k-2]
-//				+ 71.0565154791215*u[k] -141.922482701404*u[k-1] + 70.8790960571072*u[k-2];
-
-	//fc = 10hz
-//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-//				+ 13.2619229729635*u[k] -26.4882821937814*u[k-1] + 13.2288095745257*u[k-2];
-
-//	//fc = 10;
-//	y[k] = 1.87820273484859*y[k-1] - 0.881911378298176*y[k-2]
-//				+ 23.2083845430577*u[k] - 46.3543006813545*u[k-1] + 23.150436047501*u[k-2];
-
-//	//fc = 20;
-//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
-//					+ 87.2661742636883*u[k] + -174.297460197009*u[k-1] + 87.04828130771*u[k-2];
-
-	//fc = 30; Workign well
-//	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
-//					+ 184.694944687829*u[k] + -368.892758757167*u[k-1] + 184.233784017135*u[k-2];
-
-//	//fc = 30; // updated plant
-//	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
-//					+ 184.697703835199*u[k] + -368.934240110452*u[k-1] + 184.236536275252*u[k-2];
-
-//	//fc = 30; //updated plant, no spring, no damping
-//	y[k] = 1.65640836261372*y[k-1] - 0.685922165934166*y[k-2]
-//					+ 184.467062409284 *u[k] + -368.934124818568*u[k-1] + 184.467062409284*u[k-2];
-
-	//fc = 20; New Voltage Control Model
-//	y[k] = 1.76382275659635*y[k-1] - 0.777767679171789*y[k-2]
-//					+ 156.499749745744*u[k] + -309.88200358926*u[k-1] + 153.400847073617*u[k-2];
 
 	//fc = 20; LPF, Newer trial
 	y[k] = 1.4608054*y[k-1] - 0.5334881*y[k-2] + 3.6396485e+02*u[k] + -7.2676858e+02*u[k-1] + 3.6287459e+02*u[k-2];
@@ -874,7 +841,6 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	static float tauCCombined = 0.0;
 	static float tauCOutput = 0.0;
 
-	//todo: need to reset filters also!
 	if(actx->resetStaticVariables)
 	{ // Reset static variables.
 		tauErrLast = 0.0, tauErrInt = 0.0;
@@ -1428,6 +1394,15 @@ void updateSensorValues(struct act_s *actx)
 
 	actx->jointPower = (actx->jointTorque * actx->jointVel); // [W]
 
+	float jointPwrIncrement = actx->jointPower/SECONDS;
+	if( (jointPwrIncrement + actx->jointEnergy > FLT_MAX) || (jointPwrIncrement + actx->jointEnergy < FLT_MIN) )
+	{ // do nothing, we would overflow
+	}
+	else
+	{ // it's safe to do the integration
+		actx->jointEnergy = actx->jointEnergy + jointPwrIncrement;	// [J]
+	}
+
 	actx->motorPosRaw = *rigid1.ex.enc_ang;		// [counts]
 	actx->motorPos =  ( (float) *rigid1.ex.enc_ang ) * RAD_PER_MOTOR_CNT; // [rad]
 	actx->motorVel =  ( (float) *rigid1.ex.enc_ang_vel ) * RAD_PER_MOTOR_CNT*SECONDS;	// rad/s TODO: check on motor encoder CPR, may not actually be 16384
@@ -1440,7 +1415,14 @@ void updateSensorValues(struct act_s *actx)
 	actx->motCurrDt = getMotorCurrentDt(actx);
 
 	actx->motorPower = ( (float) (rigid1.ex.mot_current * rigid1.ex.mot_volt) ) * 0.000001; // [W]
-	actx->motorEnergy = actx->motorEnergy + actx->motorPower/SECONDS;	// [J]
+	float motorPwrIncrement = actx->motorPower/SECONDS;
+	if( (motorPwrIncrement + actx->motorEnergy > FLT_MAX) || (motorPwrIncrement + actx->motorEnergy < FLT_MIN) )
+	{ // do nothing, we would overflow
+	}
+	else
+	{ // it's safe to do the integration
+		actx->motorEnergy = actx->motorEnergy + motorPwrIncrement;	// [J]
+	}
 
 	actx->efficiencyInstant = actx->jointPower / ( (actx->motorPower) );
 
