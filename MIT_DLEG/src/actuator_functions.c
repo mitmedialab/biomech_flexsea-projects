@@ -52,32 +52,69 @@ static int16_t getMotorTempSensor(void)
 }
 
 /*
- * Ramp motor current based on velocity. This is to overcome stiction, no-load current.
+ * Ramp motor current to overcome stiction, no-load current.
  */
-static int32_t getMotorNoLoadDeadBandValue(struct act_s *actx)
+static int32_t getMotorNoLoadDeadBandValue(struct act_s *actx, int32_t Ides)
 {
-	float stictionCurrent = 0.0;
+	int32_t stictionCurrent = 0.0;
 	int32_t motorVel = ( *rigid1.ex.enc_ang_vel );
+	int32_t Iadj =0;
+	float B = 0.1;
 
-	if (motorVel <= MOT_STICTION_VEL_THRESHOLD && motorVel > 0)
+	if (Ides < MOT_STICTION_CUR_THRESHOLD && Ides > 0)
 	{ // Within ramp region, positive side
-		stictionCurrent = motorVel * MOT_STICTION_POS_SLOPE;
-
-	} else if (motorVel > MOT_STICTION_VEL_THRESHOLD )
-	{ // Above threshold
-		stictionCurrent = MOT_NOLOAD_CURRENT_POS;
+		stictionCurrent = Ides * MOT_STICTION_POS_SLOPE - (int32_t)( (float)motorVel * B);
 	}
-	else if (motorVel >= -MOT_STICTION_VEL_THRESHOLD && motorVel < 0)
+	else if (Ides >= MOT_STICTION_CUR_THRESHOLD )
+	{ // Above threshold, hold constant
+		stictionCurrent = MOT_NOLOAD_CURRENT_POS - (int32_t)( (float)motorVel * B);
+	}
+	else if (Ides > -MOT_STICTION_CUR_THRESHOLD && Ides < 0)
 	{
-		stictionCurrent = motorVel * MOT_STICTION_NEG_SLOPE;
-	} else if (motorVel < -MOT_STICTION_VEL_THRESHOLD )
+		stictionCurrent = Ides * MOT_STICTION_NEG_SLOPE - (int32_t)( (float)motorVel * B);
+	}
+	else if (Ides <= -MOT_STICTION_CUR_THRESHOLD )
 	{
-		stictionCurrent = -MOT_NOLOAD_CURRENT_NEG;
-	} else
+		stictionCurrent = -MOT_NOLOAD_CURRENT_NEG - (int32_t)( (float)motorVel * B);
+	}
+	else
 	{
 		stictionCurrent = 0;
 	}
 	return stictionCurrent;
+
+//	if(Ides > 0)
+//	{
+//		Iadj = MOT_NOLOAD_CURRENT_POS + ( Ides / actx->currentOpLimit ) * ( actx->currentOpLimit - MOT_NOLOAD_CURRENT_POS );
+//	} else if (Ides < 0)
+//	{
+//		Iadj = MOT_NOLOAD_CURRENT_NEG + ( Ides / actx->currentOpLimit ) * ( -actx->currentOpLimit - MOT_NOLOAD_CURRENT_NEG );
+//	} else
+//	{
+//		Iadj = 0;
+//	}
+//
+//	return Iadj;
+
+//	if (motorVel <= MOT_STICTION_VEL_THRESHOLD && motorVel > 0)
+//	{ // Within ramp region, positive side
+//		stictionCurrent = motorVel * MOT_STICTION_POS_SLOPE;
+//
+//	} else if (motorVel > MOT_STICTION_VEL_THRESHOLD )
+//	{ // Above threshold
+//		stictionCurrent = MOT_NOLOAD_CURRENT_POS;
+//	}
+//	else if (motorVel >= -MOT_STICTION_VEL_THRESHOLD && motorVel < 0)
+//	{
+//		stictionCurrent = motorVel * MOT_STICTION_NEG_SLOPE;
+//	} else if (motorVel < -MOT_STICTION_VEL_THRESHOLD )
+//	{
+//		stictionCurrent = -MOT_NOLOAD_CURRENT_NEG;
+//	} else
+//	{
+//		stictionCurrent = 0;
+//	}
+//	return stictionCurrent;
 
 }
 
@@ -554,7 +591,8 @@ void setMotorTorque(struct act_s *actx)
 	float tauC = 0.0;
 	float tauCCombined = 0.0;
 	float N = 0.0;
-	float Icalc = 0.0, INoLoad = 0.0;
+	float Icalc = 0.0;
+	int32_t INoLoad = 0.0;
 
 //	//Angle Limit bumpers
 	float refTorque = actx->tauDes + actuateAngleLimits(actx);
@@ -587,15 +625,18 @@ void setMotorTorque(struct act_s *actx)
 	}
 
 	// motor current signal
-	Icalc = tauCCombined * 1.0/(N*N_ETA*MOT_KT) ;	// Reflect torques to Motor level
-	INoLoad = getMotorNoLoadDeadBandValue(actx);
+	Icalc = (tauCCombined * 1.0/(N*N_ETA*MOT_KT) )  ;	// Reflect torques to Motor level
+	INoLoad = getMotorNoLoadDeadBandValue(actx, (Icalc * CURRENT_SCALAR_INIT) );
 
-	rigid1.mn.genVar[6] = (int16_t) (notch * 100.0);	 				//
-	rigid1.mn.genVar[7] = (int16_t) (tauFF * 100.0); 			// Outputs Device ID, stepping through each number
-	rigid1.mn.genVar[8] = (int16_t) (INoLoad); 	//
-	rigid1.mn.genVar[9] = (int16_t) (actx->motorVel); 	//
+
 
 	int32_t I = (int32_t) ( (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST) + INoLoad );
+//	int32_t I = (int32_t) ( INoLoad );
+
+	rigid1.mn.genVar[6] = (int16_t) (notch * 1000.0);	 				//
+	rigid1.mn.genVar[7] = (int16_t) (Icalc * 1000.0); 			// Outputs Device ID, stepping through each number
+	rigid1.mn.genVar[8] = (int16_t) (INoLoad); 	//
+	rigid1.mn.genVar[9] = (int16_t) (I); 	//
 
 	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
