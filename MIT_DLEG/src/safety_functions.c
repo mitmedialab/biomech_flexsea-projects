@@ -208,7 +208,7 @@ static void checkTorqueMeasuredBounds(Act_s *actx) {
 static void checkTorqueRate(Act_s *actx) {
 	if (fabs(actx->jointTorqueRate) > JOINT_TORQUE_RATE_THRESHOLD)
 	{
-		errorConditions[ERROR_JOINT_TORQUE] = SENSOR_INVALID;
+		errorConditions[ERROR_JOINT_TORQUE_RATE] = SENSOR_INVALID;
 	}
 }
 
@@ -601,16 +601,16 @@ void handleSafetyConditions(Act_s *actx) {
 #else
 	//TODO figure out if MODE_DISABLED should be blocking/ how to do it
 	if (errorConditions[ERROR_MOTOR_ENCODER] != SENSOR_NOMINAL)
-		motorMode = MODE_DISABLED;
+		motorMode = MODE_PASSIVE;
 	else if (errorConditions[ERROR_JOINT_ENCODER] || errorConditions[ERROR_LDC])
-		motorMode = MODE_DISABLED;
-	else if (errorConditions[ERROR_JOINT_TORQUE] )
+		motorMode = MODE_PASSIVE;
+	else if (errorConditions[ERROR_JOINT_TORQUE_RATE] )
 		motorMode = MODE_DISABLED;
 	else if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
 			errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL ||
 			actx->currentOpLimit < CURRENT_LIMIT_INIT)
-//		motorMode = MODE_OVERTEMP;
-		motorMode = MODE_DISABLED;
+		motorMode = MODE_OVERTEMP;
+//		motorMode = MODE_DISABLED;
 	else {
 		motorMode = MODE_ENABLED;
 	}
@@ -638,22 +638,25 @@ void handleSafetyConditions(Act_s *actx) {
 			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
 			disableMotor(actx);
 			break;
-//		case MODE_PASSIVE:
-//			// todo: DEBUG was causing issues, based on joint Encoder most likely. Need to work with Dephy to get comm bus checking for error handling
-//			break;
-//		case MODE_OVERTEMP:
+		case MODE_PASSIVE:
+			// todo: Figure out what passive mode is
+			break;
+		case MODE_OVERTEMP:
 //			if (errorConditions[ERROR_PCB_THERMO] == VALUE_ABOVE ||
 //				errorConditions[ERROR_MOTOR_THERMO] != VALUE_NOMINAL) {
 //				throttleCurrent(actx);
 //			} else {
 //				rampCurrent(actx);
 //			}
-//			break;
-		case MODE_ENABLED: // VERY DANGEROUS todo: need graceful way to turn back on, this can cause unexpected behavior. Turned off for now. Maybe best to latch into failed mode.
-			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
-			{
+			disableMotor(actx);
 
-			}
+			break;
+		case MODE_ENABLED:
+			// VERY DANGEROUS todo: need graceful way to turn back on, if at all, this can cause unexpected behavior. Turned off for now. Maybe best to latch into failed mode.
+//			if (lastMotorMode != MODE_ENABLED)	// turn motor mode back on.
+//			{
+//
+//			}
 			break;
 	}
 	lastMotorMode = motorMode;

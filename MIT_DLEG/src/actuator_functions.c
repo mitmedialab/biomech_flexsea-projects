@@ -52,6 +52,36 @@ static int16_t getMotorTempSensor(void)
 }
 
 /*
+ * Ramp motor current based on velocity. This is to overcome stiction, no-load current.
+ */
+static int32_t getMotorNoLoadDeadBandValue(struct act_s *actx)
+{
+	float stictionCurrent = 0.0;
+	int32_t motorVel = ( *rigid1.ex.enc_ang_vel );
+
+	if (motorVel <= MOT_STICTION_VEL_THRESHOLD && motorVel > 0)
+	{ // Within ramp region, positive side
+		stictionCurrent = motorVel * MOT_STICTION_POS_SLOPE;
+
+	} else if (motorVel > MOT_STICTION_VEL_THRESHOLD )
+	{ // Above threshold
+		stictionCurrent = MOT_NOLOAD_CURRENT_POS;
+	}
+	else if (motorVel >= -MOT_STICTION_VEL_THRESHOLD && motorVel < 0)
+	{
+		stictionCurrent = motorVel * MOT_STICTION_NEG_SLOPE;
+	} else if (motorVel < -MOT_STICTION_VEL_THRESHOLD )
+	{
+		stictionCurrent = -MOT_NOLOAD_CURRENT_NEG;
+	} else
+	{
+		stictionCurrent = 0;
+	}
+	return stictionCurrent;
+
+}
+
+/*
  * Output joint angle, vel, accel in ANG_UNIT, measured from joint zero,
  * Param: actx(struct act_s) - Actuator structure to track sensor values
  * updated Actuator structure:
@@ -523,7 +553,8 @@ void setMotorTorque(struct act_s *actx)
 	float notch = 0.0;
 	float tauC = 0.0;
 	float tauCCombined = 0.0;
-	float N=0.0, Icalc=0.0;
+	float N = 0.0;
+	float Icalc = 0.0, INoLoad = 0.0;
 
 //	//Angle Limit bumpers
 	float refTorque = actx->tauDes + actuateAngleLimits(actx);
@@ -554,18 +585,17 @@ void setMotorTorque(struct act_s *actx)
 	} else if (tauCCombined < -ABS_TORQUE_LIMIT_INIT) {
 		tauCCombined = -ABS_TORQUE_LIMIT_INIT;
 	}
-//	rigid1.mn.genVar[2] = (int16_t) (refTorque		*100.	);
 
-
-
-//	rigid1.mn.genVar[6] = (int16_t) (tauC			*100.	);
-//	rigid1.mn.genVar[7] = (int16_t) (tauCCombined 	*100.	);
-//	rigid1.mn.genVar[8] = (int16_t) (tauFF 			*100.	);
-//	rigid1.mn.genVar[9] = (int16_t) (notch			*100.0	);
 	// motor current signal
-	Icalc = tauCCombined * 1.0/(N*N_ETA*MOT_KT);	// Reflect torques to Motor level
+	Icalc = tauCCombined * 1.0/(N*N_ETA*MOT_KT) ;	// Reflect torques to Motor level
+	INoLoad = getMotorNoLoadDeadBandValue(actx);
 
-	int32_t I = (int32_t) (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST );
+	rigid1.mn.genVar[6] = (int16_t) (notch * 100.0);	 				//
+	rigid1.mn.genVar[7] = (int16_t) (tauFF * 100.0); 			// Outputs Device ID, stepping through each number
+	rigid1.mn.genVar[8] = (int16_t) (INoLoad); 	//
+	rigid1.mn.genVar[9] = (int16_t) (actx->motorVel); 	//
+
+	int32_t I = (int32_t) ( (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST) + INoLoad );
 
 	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
@@ -850,7 +880,7 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 
 	// Error is torque at the joint
 	float tauErr = refTorque - sensedTorque;		// [Nm]
-	float tauErrDot = (tauErr - tauErrLast)*10.0;		// [Nm/s]
+	float tauErrDot = (tauErr - tauErrLast);		// [Nm/s]
 //	tauErrDot = filterTorqueDerivativeButterworth(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative
 	tauErrDot = getTorqueErrorLPF(tauErrDot, actx->resetStaticVariables);	// apply filter to Derivative, Try 30Hz
 	tauErrInt = tauErrInt + tauErr;
@@ -872,7 +902,7 @@ float getCompensatorPIDOutput(float refTorque, float sensedTorque, Act_s *actx)
 	}
 
 
-	float tauC = tauErr*actx->torqueKp + 0.1*tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
+	float tauC = tauErr*actx->torqueKp + tauErrDot*actx->torqueKd + tauErrInt*actx->torqueKi;	// torq Compensator, Ki-reduced
 
 //	rigid1.mn.genVar[3] = (int16_t)(tauErr*100.0);
 //	rigid1.mn.genVar[4] = (int16_t)(tauErrDot*100.0);

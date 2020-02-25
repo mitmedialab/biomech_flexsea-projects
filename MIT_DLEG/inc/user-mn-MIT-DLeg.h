@@ -1,5 +1,5 @@
 /****************************************************************************
-	[Project] FlexSEA: Flexible & Scalable Electronics Architecture
+ 	[Project] FlexSEA: Flexible & Scalable Electronics Architecture
 	[Sub-project] 'flexsea-manage' Mid-level computing, and networking
 	Copyright (C) 2016 Dephy, Inc. <http://dephy.com/>
 

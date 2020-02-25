@@ -411,6 +411,84 @@ void MITDLegFsm2(void)
 // Private Function(s)
 //****************************************************************************
 
+
+void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet)
+{
+
+	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
+
+//	rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
+//	rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
+//	rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	* 100.	);			//
+//	rigid1.mn.genVar[4] = (int16_t) (act1.jointVelDegrees	* 100.0	); 			//
+//	rigid1.mn.genVar[5] = (int16_t) (act1.axialForce 	* 10.0); //
+//	rigid1.mn.genVar[6] = (int16_t) (getAxialForceMotorCurrent(&act1) * 10.0);	 				//
+//	rigid1.mn.genVar[7] = (int16_t) (act1.jointPower	* 10.0); 			// Outputs Device ID, stepping through each number
+//	rigid1.mn.genVar[8] = (int16_t) (act1.linkageMomentArm * 10000.0); 	//
+//	rigid1.mn.genVar[9] = (int16_t) (act1.linkageMomentArmInterp * 10000.0) ;//(kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
+
+	switch (experimentTask)
+	{
+		default:
+		{
+			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
+			rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
+			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	* 100.	);			//
+			rigid1.mn.genVar[4] = (int16_t) (act1.jointVelDegrees	* 100.0	); 			//
+			rigid1.mn.genVar[5] = (int16_t) (act1.axialForce 	* 10.0); //
+//			rigid1.mn.genVar[6] = (int16_t) (getAxialForceMotorCurrent(&act1) * 10.0);	 				//
+//			rigid1.mn.genVar[7] = (int16_t) (act1.jointPower	* 10.0); 			// Outputs Device ID, stepping through each number
+//			rigid1.mn.genVar[8] = (int16_t) (act1.linkageMomentArm * 10000.0); 	//
+//			#ifdef IS_KNEE
+//				  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
+//			#else
+//				  rigid1.mn.genVar[9] = (int16_t) (experimentTask) ;//(kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
+//			#endif
+			break;
+		}
+        case EXP_IS_SWEEP_CHIRP_TEST://-2
+        {
+			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
+			rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
+			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	* 100.	);			//
+			rigid1.mn.genVar[4] = (int16_t) (act1.jointVelDegrees	* 100.0	); 			//
+			rigid1.mn.genVar[5] = (int16_t) (act1.axialForce 	* 10.0); //
+			rigid1.mn.genVar[6] = (int16_t) (getAxialForceMotorCurrent(&act1) * 10.0);	 				//
+			rigid1.mn.genVar[7] = (int16_t) (act1.jointPower	* 10.0); 			// Outputs Device ID, stepping through each number
+            rigid1.mn.genVar[8] = (int16_t) (act1.desiredVoltage / 2);
+            rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
+            break;
+        }
+		case EXP_ACTUATOR_STEP_RESPONSE: //-4	// Testing Actuator Control Parameters
+		{
+			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
+			rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
+			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	* 100.	);			//
+			rigid1.mn.genVar[4] = (int16_t) (act1.jointVelDegrees	* 100.0	); 			//
+			rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
+//			rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
+//			rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
+//			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain -32768);
+//
+//			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
+			break;
+		}
+		case EXP_IS_SWEEP_IMPEDANCE_TEST://-6
+		{
+//            rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque		*100.0);
+//            rigid1.mn.genVar[2] = (int16_t) (act1.jointVel			*100.0);
+//            rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	*100.0);
+//            rigid1.mn.genVar[4] = (int16_t) (act1.tauDes			*100.0);
+//            rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
+//            rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
+//            rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
+			rigid1.mn.genVar[8] = (int16_t) (act1.desiredVoltage / 2);
+			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
+			break;
+		}
+	}
+}
+
 /*
  * genVars are output to the GUI. These can be used to send out values, they are global variables but it's good to keep track
  * of them all in one place, hence his function. It's also annoying to flip up and down the code, so now they're located near
@@ -495,83 +573,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 }
 
 
-void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1TestSet)
-{
 
-	rigid1.mn.genVar[0] = (int16_t) (getSafetyFlags()); 			//errors
-
-//	rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
-//	rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
-//	rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	* 100.	);			//
-//	rigid1.mn.genVar[4] = (int16_t) (act1.jointVelDegrees	* 100.0	); 			//
-//	rigid1.mn.genVar[5] = (int16_t) (act1.axialForce 	* 10.0); //
-//	rigid1.mn.genVar[6] = (int16_t) (getAxialForceMotorCurrent(&act1) * 10.0);	 				//
-//	rigid1.mn.genVar[7] = (int16_t) (act1.jointPower	* 10.0); 			// Outputs Device ID, stepping through each number
-//	rigid1.mn.genVar[8] = (int16_t) (act1.linkageMomentArm * 10000.0); 	//
-//	rigid1.mn.genVar[9] = (int16_t) (act1.linkageMomentArmInterp * 10000.0) ;//(kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
-
-	switch (experimentTask)
-	{
-		default:
-		{
-			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
-			rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
-			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	* 100.	);			//
-			rigid1.mn.genVar[4] = (int16_t) (act1.jointVelDegrees	* 100.0	); 			//
-			rigid1.mn.genVar[5] = (int16_t) (act1.axialForce 	* 10.0); //
-			rigid1.mn.genVar[6] = (int16_t) (getAxialForceMotorCurrent(&act1) * 10.0);	 				//
-			rigid1.mn.genVar[7] = (int16_t) (act1.jointPower	* 10.0); 			// Outputs Device ID, stepping through each number
-			rigid1.mn.genVar[8] = (int16_t) (act1.linkageMomentArm * 10000.0); 	//
-//			#ifdef IS_KNEE
-//				  rigid1.mn.genVar[9] = (int16_t) (kneeAnkleStateMachine.slaveCurrentState); //(rigid2.ex.mot_volt); //rigid2.mn.genVar[7]; //(rigid1.re.vb);				// mV
-//			#else
-//				  rigid1.mn.genVar[9] = (int16_t) (experimentTask) ;//(kneeAnkleStateMachine.currentState); //(act1.axialForce *10);
-//			#endif
-			break;
-		}
-        case EXP_IS_SWEEP_CHIRP_TEST://-2
-        {
-			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
-			rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
-			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	* 100.	);			//
-			rigid1.mn.genVar[4] = (int16_t) (act1.jointVelDegrees	* 100.0	); 			//
-			rigid1.mn.genVar[5] = (int16_t) (act1.axialForce 	* 10.0); //
-			rigid1.mn.genVar[6] = (int16_t) (getAxialForceMotorCurrent(&act1) * 10.0);	 				//
-			rigid1.mn.genVar[7] = (int16_t) (act1.jointPower	* 10.0); 			// Outputs Device ID, stepping through each number
-
-            rigid1.mn.genVar[8] = (int16_t) (act1.desiredVoltage / 2);
-            rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
-            break;
-        }
-		case EXP_ACTUATOR_STEP_RESPONSE: //-4	// Testing Actuator Control Parameters
-		{
-			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
-			rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
-			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	* 100.	);			//
-			rigid1.mn.genVar[4] = (int16_t) (act1.jointVelDegrees	* 100.0	); 			//
-			rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
-			rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
-			rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
-			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain -32768);
-
-			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
-			break;
-		}
-		case EXP_IS_SWEEP_IMPEDANCE_TEST://-6
-		{
-//            rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque		*100.0);
-//            rigid1.mn.genVar[2] = (int16_t) (act1.jointVel			*100.0);
-//            rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	*100.0);
-//            rigid1.mn.genVar[4] = (int16_t) (act1.tauDes			*100.0);
-//            rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
-//            rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
-//            rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
-			rigid1.mn.genVar[8] = (int16_t) (act1.desiredVoltage / 2);
-			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
-			break;
-		}
-	}
-}
 
 /*UserWrites are inputs from Plan. They are initailized to teh values shown below.
  * Their values are then used by udpateUserWrites to set function values.

@@ -27,6 +27,7 @@
 #include "flexsea_cmd_calibration.h"
 #include "flexsea_user_structs.h"
 #include "user-mn-MIT-DLeg.h"
+#include "global-config.h"
 
 #include <math.h>
 #include <stdbool.h>
