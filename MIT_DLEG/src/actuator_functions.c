@@ -42,9 +42,9 @@ float indGain = 1.73;	// tested
 
 //torque gain values
 // ARE THESE WORKING? CHECK THAT THEY'RE NOT BEING OVERWRITTEN BY USERWRITES!!!
-float torqueKp = TORQ_KP_INIT;
-float torqueKi = TORQ_KI_INIT;
-float torqueKd = TORQ_KD_INIT;
+float torqueKp = CURRENT_TORQ_KP_INIT;
+float torqueKi = CURRENT_TORQ_KI_INIT;
+float torqueKd = CURRENT_TORQ_KD_INIT;
 float errorKi = 0.0;
 
 
