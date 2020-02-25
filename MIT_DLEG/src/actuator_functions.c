@@ -59,63 +59,29 @@ static int32_t getMotorNoLoadDeadBandValue(struct act_s *actx, int32_t Ides)
 	int32_t stictionCurrent = 0.0;
 	int32_t motorVel = ( *rigid1.ex.enc_ang_vel );
 	int32_t Iadj =0;
-	float B = 0.1;
+	float B = actx->controlFF;
 
 	if (Ides < MOT_STICTION_CUR_THRESHOLD && Ides > 0)
 	{ // Within ramp region, positive side
-		stictionCurrent = Ides * MOT_STICTION_POS_SLOPE - (int32_t)( (float)motorVel * B);
+		stictionCurrent = Ides * MOT_STICTION_POS_SLOPE - (int32_t)( (float)abs(motorVel) * B);
 	}
 	else if (Ides >= MOT_STICTION_CUR_THRESHOLD )
 	{ // Above threshold, hold constant
-		stictionCurrent = MOT_NOLOAD_CURRENT_POS - (int32_t)( (float)motorVel * B);
+		stictionCurrent = MOT_NOLOAD_CURRENT_POS - (int32_t)( (float)abs(motorVel) * B);
 	}
 	else if (Ides > -MOT_STICTION_CUR_THRESHOLD && Ides < 0)
 	{
-		stictionCurrent = Ides * MOT_STICTION_NEG_SLOPE - (int32_t)( (float)motorVel * B);
+		stictionCurrent = Ides * MOT_STICTION_NEG_SLOPE + (int32_t)( (float)abs(motorVel) * B);
 	}
 	else if (Ides <= -MOT_STICTION_CUR_THRESHOLD )
 	{
-		stictionCurrent = -MOT_NOLOAD_CURRENT_NEG - (int32_t)( (float)motorVel * B);
+		stictionCurrent = -MOT_NOLOAD_CURRENT_NEG + (int32_t)( (float)abs(motorVel) * B);
 	}
 	else
 	{
 		stictionCurrent = 0;
 	}
 	return stictionCurrent;
-
-//	if(Ides > 0)
-//	{
-//		Iadj = MOT_NOLOAD_CURRENT_POS + ( Ides / actx->currentOpLimit ) * ( actx->currentOpLimit - MOT_NOLOAD_CURRENT_POS );
-//	} else if (Ides < 0)
-//	{
-//		Iadj = MOT_NOLOAD_CURRENT_NEG + ( Ides / actx->currentOpLimit ) * ( -actx->currentOpLimit - MOT_NOLOAD_CURRENT_NEG );
-//	} else
-//	{
-//		Iadj = 0;
-//	}
-//
-//	return Iadj;
-
-//	if (motorVel <= MOT_STICTION_VEL_THRESHOLD && motorVel > 0)
-//	{ // Within ramp region, positive side
-//		stictionCurrent = motorVel * MOT_STICTION_POS_SLOPE;
-//
-//	} else if (motorVel > MOT_STICTION_VEL_THRESHOLD )
-//	{ // Above threshold
-//		stictionCurrent = MOT_NOLOAD_CURRENT_POS;
-//	}
-//	else if (motorVel >= -MOT_STICTION_VEL_THRESHOLD && motorVel < 0)
-//	{
-//		stictionCurrent = motorVel * MOT_STICTION_NEG_SLOPE;
-//	} else if (motorVel < -MOT_STICTION_VEL_THRESHOLD )
-//	{
-//		stictionCurrent = -MOT_NOLOAD_CURRENT_NEG;
-//	} else
-//	{
-//		stictionCurrent = 0;
-//	}
-//	return stictionCurrent;
-
 }
 
 /*
@@ -615,7 +581,7 @@ void setMotorTorque(struct act_s *actx)
 	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
 
-	tauCCombined = tauC + tauFF;
+	tauCCombined = tauC + (notch);
 
 	//Saturation limit on Torque
 	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
@@ -627,6 +593,7 @@ void setMotorTorque(struct act_s *actx)
 	// motor current signal
 	Icalc = (tauCCombined * 1.0/(N*N_ETA*MOT_KT) )  ;	// Reflect torques to Motor level
 	INoLoad = getMotorNoLoadDeadBandValue(actx, (Icalc * CURRENT_SCALAR_INIT) );
+
 
 
 
