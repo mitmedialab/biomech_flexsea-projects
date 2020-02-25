@@ -61,8 +61,8 @@ static void correct_orientation_and_update_ground_slope(struct taskmachine_s* tm
 	theta_quiet_acc = kin.aAccY*GRAVITY_RECIP;
 	kin.ground_slope_est_sum = kin.ground_slope_est_sum + tm->aa - theta_quiet_acc;
 	kin.ground_slope_estimation_counter =  kin.ground_slope_estimation_counter + 1;
-	kin.rot3 = 0.98*kin.rot3 + 0.02*theta_quiet_acc;
-	kin.rot1 = sqrtf(1.0-(kin.rot3*kin.rot3));
+	kin.rot3 = 0.98*kin.rot3 + 0.02*theta_quiet_acc; // lower left
+	kin.rot1 = sqrtf(1.0-(kin.rot3*kin.rot3)); // upper left
 }
 
 // Update 2D rotation matrix using gyroscopes only.
