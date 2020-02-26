@@ -489,7 +489,7 @@ float actuateAngleLimits(Act_s *actx){
 	float tauK = 0; float tauB = 0;
 	float thetaDelta =0;
 
-	// apply unidirectional spring
+	// apply unidirectional spring and damper
 	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
 		thetaDelta = (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
 //		thetaDelta = filterJointAngleLimitOutputButterworth(JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
@@ -499,6 +499,9 @@ float actuateAngleLimits(Act_s *actx){
 		{
 			//		tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
 			tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+		} else
+		{
+			tauB = 0.0;
 		}
 
 	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
@@ -511,6 +514,9 @@ float actuateAngleLimits(Act_s *actx){
 		if (actx->jointVelDegrees > 0)
 		{
 			tauB = -JOINT_SOFT_B * (actx->jointVelDegrees);
+		} else
+		{
+			tauB = 0.0;
 		}
 
 	} else
@@ -569,8 +575,6 @@ void setMotorTorque(struct act_s *actx)
 	//	// LPF Reference term to compensate for FF delay
 //	refTorque = getReferenceLPF(refTorque, actx->resetStaticVariables);
 
-//	actx->tauDes = refTorque;
-
 	// Notch Filter
 	notch = CONTROL_SCALER_NOTCH * getNotchFilter(refTorque);
 
@@ -582,6 +586,7 @@ void setMotorTorque(struct act_s *actx)
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
 
 	tauCCombined = tauC + (notch + tauFF);
+
 
 	//Saturation limit on Torque
 	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
@@ -597,10 +602,12 @@ void setMotorTorque(struct act_s *actx)
 
 	int32_t I = (int32_t) ( (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST) + INoLoad );
 
+	rigid1.mn.genVar[4] = (int16_t) (refTorque	* 100.0	); 			//
+
 //	rigid1.mn.genVar[6] = (int16_t) (notch * 1000.0);	 				//
 //	rigid1.mn.genVar[7] = (int16_t) (tauFF * 1000.0); 			// Outputs Device ID, stepping through each number
-//	rigid1.mn.genVar[8] = (int16_t) (INoLoad); 	//
-//	rigid1.mn.genVar[9] = (int16_t) (I); 	//
+	rigid1.mn.genVar[8] = (int16_t) (INoLoad); 	//
+	rigid1.mn.genVar[9] = (int16_t) (I); 	//
 
 	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
@@ -958,7 +965,9 @@ float biomCalcImpedance(Act_s *actx,float k1, float b, float thetaSet)
  */
 float getImpedanceTorque(Act_s *actx, float k1, float b, float thetaSet)
 {
-	float thetaDelta = filterJointAngleOutputButterworth(thetaSet - actx->jointAngleDegrees);
+//	float thetaDelta = filterJointAngleOutputButterworth(thetaSet - actx->jointAngleDegrees);
+	float thetaDelta = (thetaSet - actx->jointAngleDegrees);
+
 	return k1 * (thetaDelta ) - b*actx->jointVelDegrees;
 }
 

@@ -459,6 +459,19 @@ void updateGenVarOutputs(Act_s *actx, WalkParams *wParams, ActTestSettings *act1
             rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
             break;
         }
+        case EXP_ACTUATOR_TESTING: // -3
+		{
+			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
+			rigid1.mn.genVar[2] = (int16_t) (act1.tauDes 		* 100.0	);			// radians/s (rigid1.ex.strain - 32768); //
+			rigid1.mn.genVar[3] = (int16_t) (act1.jointAngleDegrees	* 100.	);			//
+//			rigid1.mn.genVar[4] = (int16_t) (act1.jointVelDegrees	* 100.0	); 			//
+			rigid1.mn.genVar[5] = (int16_t) (act1.torqueKp			 * 1000.0	);
+			rigid1.mn.genVar[6] = (int16_t) (act1.torqueKi			 * 1000.0	);
+			rigid1.mn.genVar[7] = (int16_t) (act1.torqueKd			 * 1000.0	);
+//			rigid1.mn.genVar[8] = (int16_t) (rigid1.ex.strain -32768);
+//			rigid1.mn.genVar[9] = (int16_t) (act1.desiredCurrent / 2);
+			break;
+		}
 		case EXP_ACTUATOR_STEP_RESPONSE: //-4	// Testing Actuator Control Parameters
 		{
 			rigid1.mn.genVar[1] = (int16_t) (act1.jointTorque	* 100.	);			// Nm
