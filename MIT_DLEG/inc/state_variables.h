@@ -256,6 +256,7 @@ typedef struct act_s
     float torqueKd;
     float controlFF;		// used for testing parameter requirements, not used normally
     float controlScaler;	// used for testing parameter requirements, not used normally
+    float tempValue; 		// used for testing.
 
     /* MULTIPACKET BELOW */
     //following are multipacket specific

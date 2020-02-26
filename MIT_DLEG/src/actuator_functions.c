@@ -59,7 +59,7 @@ static int32_t getMotorNoLoadDeadBandValue(struct act_s *actx, int32_t Ides)
 	int32_t stictionCurrent = 0.0;
 	int32_t motorVel = ( *rigid1.ex.enc_ang_vel );
 	int32_t Iadj =0;
-	float B = 20; //actx->controlFF;
+	float B = 0	; //actx->controlFF;
 
 	if (Ides < MOT_STICTION_CUR_THRESHOLD && Ides > 0)
 	{ // Within ramp region, positive side
@@ -67,7 +67,7 @@ static int32_t getMotorNoLoadDeadBandValue(struct act_s *actx, int32_t Ides)
 	}
 	else if (Ides >= MOT_STICTION_CUR_THRESHOLD )
 	{ // Above threshold, hold constant
-		stictionCurrent = MOT_NOLOAD_CURRENT_POS - (int32_t)( (float)abs(motorVel) * B);
+		stictionCurrent = MOT_NOLOAD_CURRENT_POS ;
 	}
 	else if (Ides > -MOT_STICTION_CUR_THRESHOLD && Ides < 0)
 	{
@@ -75,7 +75,7 @@ static int32_t getMotorNoLoadDeadBandValue(struct act_s *actx, int32_t Ides)
 	}
 	else if (Ides <= -MOT_STICTION_CUR_THRESHOLD )
 	{
-		stictionCurrent = -MOT_NOLOAD_CURRENT_NEG + (int32_t)( (float)abs(motorVel) * B);
+		stictionCurrent = -MOT_NOLOAD_CURRENT_NEG ;
 	}
 	else
 	{
@@ -572,11 +572,11 @@ void setMotorTorque(struct act_s *actx)
 //	actx->tauDes = refTorque;
 
 	// Notch Filter
-	notch = actx->controlScaler * getNotchFilter(refTorque) * actx->controlScaler;
+	notch = CONTROL_SCALER_NOTCH * getNotchFilter(refTorque);
 
 	// Feed Forward term
 //	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT) * actx->controlFF;
-	tauFF = actx->controlFF * getReferenceLPF(refTorque, actx->resetStaticVariables); // Put delay on FF since it's a simple FF, align with feedback term
+	tauFF = CONTROL_SCALER_FF * getReferenceLPF(refTorque, actx->resetStaticVariables); // Put delay on FF since it's a simple FF, align with feedback term
 
 	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
@@ -595,15 +595,12 @@ void setMotorTorque(struct act_s *actx)
 	INoLoad =  getMotorNoLoadDeadBandValue(actx, (Icalc * CURRENT_SCALAR_INIT) );
 
 
-
-
 	int32_t I = (int32_t) ( (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST) + INoLoad );
-//	int32_t I = (int32_t) ( INoLoad );
 
-	rigid1.mn.genVar[6] = (int16_t) (notch * 1000.0);	 				//
-	rigid1.mn.genVar[7] = (int16_t) (tauFF * 1000.0); 			// Outputs Device ID, stepping through each number
-	rigid1.mn.genVar[8] = (int16_t) (INoLoad); 	//
-	rigid1.mn.genVar[9] = (int16_t) (I); 	//
+//	rigid1.mn.genVar[6] = (int16_t) (notch * 1000.0);	 				//
+//	rigid1.mn.genVar[7] = (int16_t) (tauFF * 1000.0); 			// Outputs Device ID, stepping through each number
+//	rigid1.mn.genVar[8] = (int16_t) (INoLoad); 	//
+//	rigid1.mn.genVar[9] = (int16_t) (I); 	//
 
 	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
@@ -1362,6 +1359,8 @@ void setActuatorTestingTorque(struct act_s *actx, struct actTestSettings *testIn
 void setActuatorStepResponse(Act_s *actx, ActTestSettings *testInput)
 {
 	float tor = 0.0;
+	testInput->offTime = 1000 - testInput->onTime;	// save an input, just use duty cycle, 1000ms
+
 
 	if(testInput->begin >= 1)
 	{

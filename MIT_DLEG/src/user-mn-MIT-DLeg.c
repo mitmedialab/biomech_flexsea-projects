@@ -546,7 +546,7 @@ void initializeUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act
 			user_data_1.w[3] =  (int32_t) ( 0 *100.0);
 			user_data_1.w[4] =  (int32_t) ( 0 *100.0);
 			user_data_1.w[5] = 	(int32_t) ( actx->torqueKp * 1000.0);
-			user_data_1.w[6] = 	(int32_t) ( actx->torqueKi * 1000.0);
+			user_data_1.w[6] = 	(int32_t) ( actx->torqueKi * 10000.0);
 			user_data_1.w[7] = 	(int32_t) ( actx->torqueKd * 1000.0);
 //			user_data_1.w[8] =  (int32_t) ( 0 *100.0);
 //			user_data_1.w[9] =  (int32_t) ( 0 *100.0);
@@ -641,7 +641,7 @@ void updateUserWrites(Act_s *actx, WalkParams *wParams, ActTestSettings *act1Tes
 			{
 				actx->controlFF								= ( (float) user_data_1.w[1] 	) /1000.0;
 				act1TestSet->begin							= ( (int16_t) user_data_1.w[2] 	) ;
-				act1TestSet->offTime						= ( (uint16_t) user_data_1.w[3] ) ;
+				actx->tempValue								= ( (float) user_data_1.w[3] 	) /1000.0;
 				act1TestSet->onTime							= ( (uint16_t) user_data_1.w[4] ) ; //milli seconds
 				actx->torqueKp								= ( (float) user_data_1.w[5] 	) /1000.0;
 				actx->torqueKi								= ( (float) user_data_1.w[6] 	) /10000.0;
