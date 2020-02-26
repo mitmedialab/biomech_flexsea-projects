@@ -592,7 +592,7 @@ void setMotorTorque(struct act_s *actx)
 
 	// motor current signal
 	Icalc = (tauCCombined * 1.0/(N*N_ETA*MOT_KT) )  ;	// Reflect torques to Motor level
-	INoLoad = 0* getMotorNoLoadDeadBandValue(actx, (Icalc * CURRENT_SCALAR_INIT) );
+	INoLoad =  getMotorNoLoadDeadBandValue(actx, (Icalc * CURRENT_SCALAR_INIT) );
 
 
 
