@@ -43,6 +43,7 @@ extern "C" {
 #define DEVICE_TF08_A02		// Define specific actuator configuration.
 //#define DEVICE_TF08_A03		// Define specific actuator configuration.
 //#define DEVICE_TF08_A04		// Define specific actuator configuration.
+//#define DEVICE_M11			// Standalone motor for testbench
 //#define DEVICE_M14			// Standalone motor for testbench
 //#define DEVICE_M15			// Standalone motor for testbench
 //#define DEVICE_M16			// Standalone motor for testbench
@@ -64,9 +65,10 @@ extern "C" {
 /*
  * 6. Specify User Walking Parameters (if applicable)
  */
-//#define SUBJECT_012
-#define SUBJECT_002
 //#define SUBJECT_DEMO
+//#define SUBJECT_002
+//#define SUBJECT_012
+#define SUBJECT_038
 
 
 //****************************************************************************
