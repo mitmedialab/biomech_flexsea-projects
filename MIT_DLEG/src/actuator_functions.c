@@ -59,7 +59,7 @@ static int32_t getMotorNoLoadDeadBandValue(struct act_s *actx, int32_t Ides)
 	int32_t stictionCurrent = 0.0;
 	int32_t motorVel = ( *rigid1.ex.enc_ang_vel );
 	int32_t Iadj =0;
-	float B = actx->controlFF;
+	float B = 20; //actx->controlFF;
 
 	if (Ides < MOT_STICTION_CUR_THRESHOLD && Ides > 0)
 	{ // Within ramp region, positive side
@@ -572,16 +572,16 @@ void setMotorTorque(struct act_s *actx)
 //	actx->tauDes = refTorque;
 
 	// Notch Filter
-	notch = getNotchFilter(refTorque) * actx->controlScaler;
+	notch = actx->controlScaler * getNotchFilter(refTorque) * actx->controlScaler;
 
 	// Feed Forward term
 //	tauFF = refTorque * 1.0/(N*N_ETA*MOT_KT) * actx->controlFF;
-	tauFF = getReferenceLPF(refTorque, actx->resetStaticVariables); // Put delay on FF since it's a simple FF, align with feedback term
+	tauFF = actx->controlFF * getReferenceLPF(refTorque, actx->resetStaticVariables); // Put delay on FF since it's a simple FF, align with feedback term
 
 	//PID around joint torque
 	tauC = getCompensatorPIDOutput(refTorque, actx->jointTorque, actx);
 
-	tauCCombined = tauC + (notch);
+	tauCCombined = tauC + (notch + tauFF);
 
 	//Saturation limit on Torque
 	if (tauCCombined > ABS_TORQUE_LIMIT_INIT) {
@@ -592,7 +592,7 @@ void setMotorTorque(struct act_s *actx)
 
 	// motor current signal
 	Icalc = (tauCCombined * 1.0/(N*N_ETA*MOT_KT) )  ;	// Reflect torques to Motor level
-	INoLoad = getMotorNoLoadDeadBandValue(actx, (Icalc * CURRENT_SCALAR_INIT) );
+	INoLoad = 0* getMotorNoLoadDeadBandValue(actx, (Icalc * CURRENT_SCALAR_INIT) );
 
 
 
@@ -601,7 +601,7 @@ void setMotorTorque(struct act_s *actx)
 //	int32_t I = (int32_t) ( INoLoad );
 
 	rigid1.mn.genVar[6] = (int16_t) (notch * 1000.0);	 				//
-	rigid1.mn.genVar[7] = (int16_t) (Icalc * 1000.0); 			// Outputs Device ID, stepping through each number
+	rigid1.mn.genVar[7] = (int16_t) (tauFF * 1000.0); 			// Outputs Device ID, stepping through each number
 	rigid1.mn.genVar[8] = (int16_t) (INoLoad); 	//
 	rigid1.mn.genVar[9] = (int16_t) (I); 	//
 
