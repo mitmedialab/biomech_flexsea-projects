@@ -597,17 +597,10 @@ void setMotorTorque(struct act_s *actx)
 
 	// motor current signal
 	Icalc = (tauCCombined * 1.0/(N*N_ETA*MOT_KT) )  ;	// Reflect torques to Motor level
-	INoLoad =  getMotorNoLoadDeadBandValue(actx, (Icalc * CURRENT_SCALAR_INIT) );
+//	INoLoad =  getMotorNoLoadDeadBandValue(actx, (Icalc * CURRENT_SCALAR_INIT) );
 
 
-	int32_t I = (int32_t) ( (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST) + INoLoad );
-
-	rigid1.mn.genVar[4] = (int16_t) (refTorque	* 100.0	); 			//
-
-//	rigid1.mn.genVar[6] = (int16_t) (tauNotch * 1000.0);	 				//
-//	rigid1.mn.genVar[7] = (int16_t) (tauFF * 1000.0); 			// Outputs Device ID, stepping through each number
-	rigid1.mn.genVar[8] = (int16_t) (INoLoad); 	//
-	rigid1.mn.genVar[9] = (int16_t) (I); 	//
+	int32_t I = (int32_t) ( (Icalc * CURRENT_SCALAR_INIT * CURRENT_GAIN_ADJUST) );
 
 	//Saturate I to our current operational limits -- limit can be reduced by safetyShutoff() due to heating
 	if (I > actx->currentOpLimit)
@@ -710,6 +703,37 @@ float getFeedForwardTerm(float refTorque)
  * return:	torque command value to the motor driver
  */
 float getReferenceLPF(float refTorque, int8_t reset)
+{
+	static float y[3] = {0, 0, 0};
+	static float u[3] = {0, 0, 0};
+	static int8_t k = 2;
+
+	if(reset)
+	{
+		u[2] = 0.0,	u[1] = 0.0,	u[0] = 0.0;
+		y[2] = 0.0,	y[1] = 0.0,	y[0] = 0.0;
+	}
+
+	// shift previous values into new locations
+	u[k-2] = u[k-1];
+	u[k-1] = u[k];
+	// update current state to new values
+	u[k] = refTorque;			// [Nm]
+
+	y[k-2] = y[k-1];
+	y[k-1] = y[k];
+
+	//fc = 30
+	y[k] = 1.7349051*y[k-1] - 0.7660021*y[k-2] + 0.0155485*u[k-1] + 0.0155485*u[k-2];
+	return ( y[k] );
+}
+
+/*
+ * LPF on reference due to Feedforward Term
+ * Input is reference
+ * return:	torque command value to the motor driver
+ */
+float getReferenceLPFWalking(float refTorque, int8_t reset)
 {
 	static float y[3] = {0, 0, 0};
 	static float u[3] = {0, 0, 0};

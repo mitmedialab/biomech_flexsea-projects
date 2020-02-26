@@ -90,8 +90,8 @@ TorqueRep torqueRep;
 
 int8_t isEnabledUpdateSensors = 0;
 
-int16_t experimentTask = EXP_BARE_BONES;  // used to determine what state machine we're running.
-int16_t userWriteMode = USER_INPUT_ANKLE_NOMINAL;
+int16_t experimentTask = 0 ; //EXP_ANKLE_WALKING_FSM;  // used to determine what state machine we're running.
+int16_t userWriteMode = 0; //USER_INPUT_ANKLE_NOMINAL;
 
 //static int gui_mode = GUI_MODE_NOM_CONTROL_PARAMS;
 //static int gui_sub_mode = 0;
@@ -254,8 +254,8 @@ void MITDLegFsm1(void)
 			act1.resetStaticVariables = 1;	// Reset all variables (todo: make sure ALL static, persistent variables are reset)
 
 			// GUI Modes
-			experimentTask = 0;
-			userWriteMode = 0;
+			experimentTask = EXP_ANKLE_WALKING_FSM;  // used to determine what state machine we're running.
+			userWriteMode = USER_INPUT_ANKLE_NOMINAL;
 
 			if (fsmTime > AP_FSM2_POWER_ON_DELAY)
 			{
@@ -337,6 +337,7 @@ void MITDLegFsm1(void)
 				case EXP_ANKLE_WALKING_FSM: //2
 				{// Walking Controller
 					setSimpleAnkleFlatGroundFSM(&act1, ankleWalkParams);
+					act1.tauDes = getReferenceLPFWalking(act1.tauDes, act1.resetStaticVariables);
 					setMotorTorque(&act1);
 					break;
 				}

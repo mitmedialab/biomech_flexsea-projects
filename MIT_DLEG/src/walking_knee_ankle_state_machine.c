@@ -84,16 +84,20 @@ void setSimpleAnkleFlatGroundFSM(Act_s *actx, WalkParams *ankleWalkParamx) {
 						storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
 						ankleWalkParamx->ankleGainsEst.thetaDes = actx->jointAngleDegrees;
 					}
-					else if( actx->jointTorque > GENTLE_TOESTRIKE_TORQUE_THRESH )
+					if( actx->jointTorque > GENTLE_TOESTRIKE_TORQUE_THRESH )
 					{// TODO Deal with a toe-strike, support it and move back into normal operation
-						storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
 
-						ankleWalkParamx->ankleGainsEst.kParam.thetaFinal = ankleWalkParamx->ankleGainsEst.thetaDes;
-						ankleWalkParamx->ankleGainsEst.kParam.thetaInit = actx->jointAngleDegrees;
-						ankleWalkParamx->ankleGainsEst.kParam.kCurrent = ankleWalkParamx->ankleGainsEst.k1;
-
-						updateStiffnessRampDTheta(actx, &ankleWalkParamx->ankleGainsEst.kParam);
-						ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->ankleGainsEst.kParam.kCurrent;
+						passedStanceThreshEst = 1; // Assume this is a toe strike and jump into mid-stance.
+						kneeAnkleStateMachine.currentState = STATE_MID_STANCE;
+//
+//						storedEstThetaDesAngle = ankleWalkParamx->ankleGainsEst.thetaDes;
+//
+//						ankleWalkParamx->ankleGainsEst.kParam.thetaFinal = ankleWalkParamx->ankleGainsEst.thetaDes;
+//						ankleWalkParamx->ankleGainsEst.kParam.thetaInit = actx->jointAngleDegrees;
+//						ankleWalkParamx->ankleGainsEst.kParam.kCurrent = ankleWalkParamx->ankleGainsEst.k1;
+//
+//						updateStiffnessRampDTheta(actx, &ankleWalkParamx->ankleGainsEst.kParam);
+//						ankleWalkParamx->ankleGainsEst.k1 = ankleWalkParamx->ankleGainsEst.kParam.kCurrent;
 					}
 				}
 				ankleWalkParamx->timerInStance++;
