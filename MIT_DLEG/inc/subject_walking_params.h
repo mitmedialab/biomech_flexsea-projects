@@ -196,7 +196,7 @@
 		.biomVirtualHardstopK 					= 10.0,
 		.biomVirtualHardstopB 					= 0.18
 	};
-#elif defined(SUBJECT_038) // LB todo:check subj number
+#elif defined(SUBJECT_039) // LB todo:check subj number
 	WalkParams subjectAnkleWalkParams =
 	{
 		.userMass		= 65,			//kg
@@ -204,12 +204,12 @@
 		.earlyStanceKF = 0.1,
 		.earlyStanceDecayConstant = EARLYSTANCE_DECAY_CONSTANT,
 		.virtualHardstopEngagementAngle = 0.0,	//user_data_1.w[1] = 0	  [deg]
-		.virtualHardstopK				= 4.5,	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
+		.virtualHardstopK				= 4.0,	//user_data_1.w[2] = 350 [Nm/deg] NOTE: Everett liked this high, Others prefer more like 6.0
 		.lspEngagementTorque 			= 40.0,	//user_data_1.w[3] = 7400 [Nm]	// What triggers pushoff
 		.lstPGDelTics 					= 70.0,	//user_data_1.w[4] = 30			// Delay to ramp up pushoff power
 
-		.ankleGainsEst.k1 				= 1.0,
-		.ankleGainsEst.b 		        = 0.18,
+		.ankleGainsEst.k1 				= 0.5,
+		.ankleGainsEst.b 		        = 0.23,
 		.ankleGainsEst.thetaDes         = 0.0,
 		.ankleGainsEst.kParam.deltaTime = 1,
 
@@ -219,7 +219,7 @@
 
 		.ankleGainsLst.k1 		        = 4.5,
 		.ankleGainsLst.b 		        = 0.12,
-		.ankleGainsLst.thetaDes         = 14.0,
+		.ankleGainsLst.thetaDes         = 15.0,
 
 		.ankleGainsEsw.k1		        = 1.5,
 		.ankleGainsEsw.b 		        = 0.18,
