@@ -66,9 +66,9 @@ extern "C" {
  * 6. Specify User Walking Parameters (if applicable)
  */
 //#define SUBJECT_DEMO
-//#define SUBJECT_002
+#define SUBJECT_002
 //#define SUBJECT_012
-#define SUBJECT_038
+//#define SUBJECT_038
 
 
 //****************************************************************************

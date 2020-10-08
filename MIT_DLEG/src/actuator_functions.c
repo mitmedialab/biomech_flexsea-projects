@@ -1457,14 +1457,56 @@ float getSinusoidalAngle( struct actTestSettings *testInput)
  */
 void updateSensorValues(struct act_s *actx)
 {
-	getJointAngleKinematic(actx);
 
-	actx->linkageMomentArm = getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
 
-	actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
-	actx->axialForceEnc = getAxialForceEncoderCalc(actx);
+	// get Joint angle
+	getJointAngleRad(); // radians
+	getJointAngleDeg();	// deg
+	getJointVelocityRad();
+	getJointVelocityDeg();
 
-	actx->jointTorque = getJointTorque(actx);
+	getMotorPosition();
+	getMotorVelocity();
+	getMotorCurrent();
+
+
+	// get load cell values
+	getForceValue();	// Newtons, needs to be converted from actuator
+
+	// Actuator specific geometry
+	// For TF8 this calculates moment arm based on joint angle
+	// and then output torque is calcualted from momentarm*forceValue
+	getActuatorKinematics()
+	{
+		getLinkageMomentArm(actx, actx->jointAngle, zeroLoadCell);
+		getJointTorque();	// joint torque calculated based on forceValue and moment arm
+	}
+
+	/*** Safety Functions ***/
+	getMotorTemp();
+	getMotorDriveTemp();
+
+	checkSafeties();
+
+
+	/**** Nice to have functions ***/
+
+	getJointTorqueRate(); // take the derivative of the torque
+	getJointPower();
+	getJointEnergy();
+
+	getMotorPowerElectric();	// calculated I*V
+	getMotorPowerMechanical();	// calculated motorTorque*motorVelocityRad
+	getMotorEnergy();
+	getMotorTorque();
+
+
+
+//=====================old stuff ===============/
+
+
+		actx->axialForce = getAxialForce(actx, zeroLoadCell); //filtering happening inside function
+		actx->jointTorque = getJointTorque(actx);
 	updateJointTorqueRate(actx);
 
 	actx->jointPower = (actx->jointTorque * actx->jointVel); // [W]
