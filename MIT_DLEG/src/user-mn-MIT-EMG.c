@@ -37,13 +37,13 @@ volatile uint8_t emgReadyFlag=0;
 //volatile uint8_t emg_active_flag
 uint16_t emgTimestamp = 0;
 
-int16_t emgData[8] = {0,0,0,0,0,0,0,0};
+int16_t emgData[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 int16_t emgMisc[3] = {0,0,0};
 extern uint8_t i2c2_dma_tx_buf[24]; //from i2c.c
 extern uint8_t i2c2_dma_rx_buf[24]; //from i2c.c
 extern I2C_HandleTypeDef hi2c2;
 
-int16_t emgScalers[8] = {1,1,1,1,1,1,1,1};
+int16_t emgScalers[16] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 //****************************************************************************
 // Function(s)
 //****************************************************************************

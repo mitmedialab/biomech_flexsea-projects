@@ -50,7 +50,7 @@
 //****************************************************************************
 
 //variables contain the data
-extern int16_t emgData[8]; //8 ch emg data
+extern int16_t emgData[16]; //16 ch emg data
 extern int16_t emgMisc[3]; // array of int16_t reserved for various usage
 extern volatile uint8_t emgOnFlag; //this flag decide whether use EMG or not
 extern uint16_t emgTimestamp;
