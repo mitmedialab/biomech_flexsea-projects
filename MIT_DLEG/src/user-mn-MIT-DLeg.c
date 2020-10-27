@@ -121,18 +121,19 @@ void MITDLegFsm1(void)
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
 	  rigid1.mn.genVar[0] = (int16_t) (act1.motCurr); //startedOverLimit;
+//	  rigid1.mn.genVar[0] = (int16_t) (rigid1.ex.strain);
 	  rigid1.mn.genVar[1] = (int16_t) (act1.desiredCurrent);
 	  //rigid1.mn.genVar[1] = (int16_t) (rigid1.ex.strain-31866);
 	  rigid1.mn.genVar[2] = (int16_t) (rigid1.ex.strain+30525);
 	  rigid1.mn.genVar[3] = (int16_t) (act1.axialForce);
-	  rigid1.mn.genVar[4] = (int16_t) (act1.crankAngleDegrees);
+//	  rigid1.mn.genVar[3] = (int16_t) (emgData[0]);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.crankAngleDegrees*100);
 	  rigid1.mn.genVar[5] = (int16_t) (act1.crankVel)*100;
-	  //rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.enc_ang);
+//	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.enc_ang);
 	  rigid1.mn.genVar[6] = (int16_t) ((act1.jointTorque)*100);
 	  rigid1.mn.genVar[7] = (int16_t) ((act1.tauDes)*100);
-	  rigid1.mn.genVar[8] = (int16_t) (emgData[0]);
-	  rigid1.mn.genVar[9] = (int16_t) (*(rigid1.ex.enc_ang_vel));
-
+//	  rigid1.mn.genVar[8] = (int16_t) (user_data_1.w[2]);
+//	  rigid1.mn.genVar[9] = (int16_t) (*(rigid1.ex.enc_ang_vel));
 
 
     //begin main FSM
@@ -200,37 +201,50 @@ void MITDLegFsm1(void)
 
 		case STATE_INIT_USER_WRITES:
 
-			/*reserve for additional initialization*/
 
-			mitInitCurrentController();		//initialize Current Controller with gains
-
-//			setControlMode(CTRL_POSITION, DEVICE_CHANNEL);		//open control for alternative testing
-//			init_position_controller(DEVICE_CHANNEL);
-//			setControlGains(0, 0, 0, 0, DEVICE_CHANNEL);
-
-			//Test torque control based on voltage command
-			/*user_data_1.w[0] = 0;
-			user_data_1.w[1] = 200;
-			user_data_1.w[2] = 6;
-			user_data_1.w[3] = 650;*/
+			//initialize Current Controller with gains
+			mitInitCurrentController();
 
 			//Test current control
 			//Default desired current
-			user_data_1.w[0] = 0;
+//			user_data_1.w[0] = 0;
 			//Default PID for current controller
-			user_data_1.w[1] = 60;  //Kp
-			user_data_1.w[2] = 5;  //Ki
-			user_data_1.w[3] = 35;  //Kd
+//			user_data_1.w[1] = 54;  //Kp
+//			user_data_1.w[2] = 3;  //Ki
+//			user_data_1.w[3] = 0;  //Kd
+
+//			//Default PID for torque controller (current-based control)
+//			user_data_1.w[1] = 5;  //Kp
+//			user_data_1.w[2] = 1;  //Ki
+//			user_data_1.w[3] = 10;  //Kd
 
 
+			//Initialize Position Controller
+//			setControlMode(CTRL_POSITION, DEVICE_CHANNEL);
+//			init_position_controller(DEVICE_CHANNEL);
+//			setControlGains(0, 0, 0, 0, DEVICE_CHANNEL);
+
+			//Initialize Voltage Controller
 //			setControlMode(CTRL_OPEN, DEVICE_CHANNEL);
+
+			//Test torque control based on voltage command
+//			user_data_1.w[0] = 0;
+//			user_data_1.w[1] = 200;
+//			user_data_1.w[2] = 6;
+//			user_data_1.w[3] = 650;
+
+			//Impedance controller
+//			user_data_1.w[0] = 100;   // k
+//			user_data_1.w[1] = 3;  // b
+//			user_data_1.w[2] = 0;   // theta
+
 
 			//absolute torque limit scaling factor TODO: possibly remove
 //			act1.safetyTorqueScalar = 1.0;
 
-			// Set default values
-			act1.desiredJointK_f = 0.2;
-			act1.desiredJointB_f = 0.01;
+			// Set default values for impedance control
+			act1.desiredJointK_f = 0.6;
+			act1.desiredJointB_f = 0.001;
 			act1.desiredJointAngleDeg_f = 0;
 
 
