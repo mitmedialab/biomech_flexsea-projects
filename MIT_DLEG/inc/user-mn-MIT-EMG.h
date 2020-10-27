@@ -60,6 +60,8 @@ extern volatile uint16_t emgErrorCnt;
 //****************************************************************************
 void mitEmgUpdateStatus(void);
 void mitEmgDecode(void);
+
+void mitEmgDecode16ch(void);
 void mitEmgRead(void);
 void mitEmgI2CErrorCallback(I2C_HandleTypeDef *hi2c);
 void mitEmgI2CRxCpltCallback(I2C_HandleTypeDef *hi2c); //attach this function on i2c.c
@@ -76,6 +78,7 @@ void scaleEMGMultipacket(void);
 //****************************************************************************
 
 #define I2C_SLAVE_ADDR_EMG		16	//8 bits (7 = 0x66)
+#define I2C_EMG_BUFSIZE 40
 
 #define EMG_PERIPH_READY 0
 #define EMG_PERIPH_RECEIVE_WAIT 1

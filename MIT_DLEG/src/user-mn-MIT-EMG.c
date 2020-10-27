@@ -20,6 +20,7 @@
 //****************************************************************************
 // Include(s)
 //****************************************************************************
+#include <i2c.h>
 #include "user-mn-MIT-EMG.h"
 
 #ifdef USE_MIT_EMG_I2C
@@ -38,9 +39,10 @@ volatile uint8_t emgReadyFlag=0;
 uint16_t emgTimestamp = 0;
 
 int16_t emgData[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+uint8_t emgSW[2] = {0,0};
 int16_t emgMisc[3] = {0,0,0};
-extern uint8_t i2c2_dma_tx_buf[24]; //from i2c.c
-extern uint8_t i2c2_dma_rx_buf[24]; //from i2c.c
+//extern uint8_t i2c2_dma_tx_buf[I2C_EMG_BUFSIZE]; //from i2c.c
+extern uint8_t i2c2_dma_rx_buf[I2C_EMG_BUFSIZE]; //from i2c.c
 extern I2C_HandleTypeDef hi2c2;
 
 int16_t emgScalers[16] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
@@ -53,6 +55,7 @@ int16_t emgScalers[16] = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1};
 void scaleEMGMultipacket(void) {
 
 	//update emgScalers with user write values
+	//does not work for 16 channel EMG code
 	if (sizeof(emgScalers)/sizeof(int16_t) <= sizeof(user_data_1.w)/sizeof(int32_t)) {
 		for (uint i = 0; i < sizeof(emgScalers)/sizeof(int16_t); i++) {
 
@@ -118,13 +121,29 @@ void mitEmgDecode(void)
 		return;
 }
 
+void mitEmgDecode16ch(void)
+{
+	//ToDo: need to include packet check function
+		emgSW[0] = i2c2_dma_rx_buf[6];
+		emgSW[1] = i2c2_dma_rx_buf[7];
+
+		memcpy(emgData, i2c2_dma_rx_buf+8,32);
+		scaleEMGMultipacket();
+//		memcpy(emgMisc, i2c2_dma_rx_buf+2,6);
+		/*
+		for(uint8_t i=0;i<8;i++)
+			rigid1.mn.genVar[i] = emgData[i];
+*/
+		return;
+}
+
 /*
  * Description TODO: find out what this does
  */
 void mitEmgRead(void)
 {
 	static HAL_StatusTypeDef retVal;
-	retVal = HAL_I2C_Master_Receive_DMA(&hi2c2, I2C_SLAVE_ADDR_EMG, i2c2_dma_rx_buf, 24);
+	retVal = HAL_I2C_Master_Receive_DMA(&hi2c2, I2C_SLAVE_ADDR_EMG, i2c2_dma_rx_buf, I2C_EMG_BUFSIZE);
 	if(retVal == HAL_OK)
 	{
 		i2c2FsmState = I2C_FSM_RX_DATA;
@@ -158,7 +177,7 @@ void mitEmgI2CRxCpltCallback(I2C_HandleTypeDef *hi2c)
 
 		else if(emgState == EMG_STATE_READ)
 		{
-			mitEmgDecode();
+			mitEmgDecode16ch();
 			emgPeripheralState = EMG_PERIPH_RECEIVE_COMPLETE;
 			emgTimer = 0;
 		}
