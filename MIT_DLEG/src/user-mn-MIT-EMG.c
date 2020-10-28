@@ -124,11 +124,15 @@ void mitEmgDecode(void)
 void mitEmgDecode16ch(void)
 {
 	//ToDo: need to include packet check function
-		emgSW[0] = i2c2_dma_rx_buf[6];
-		emgSW[1] = i2c2_dma_rx_buf[7];
+		emgSW[0] = i2c2_dma_rx_buf[8];
+		emgSW[1] = i2c2_dma_rx_buf[9];
 
-		memcpy(emgData, i2c2_dma_rx_buf+8,32);
-		scaleEMGMultipacket();
+
+		memcpy(emgData, i2c2_dma_rx_buf+10,42);
+
+		//emgData[9] = (int16_t)i2c2_dma_rx_buf[9];
+
+		//scaleEMGMultipacket();
 //		memcpy(emgMisc, i2c2_dma_rx_buf+2,6);
 		/*
 		for(uint8_t i=0;i<8;i++)

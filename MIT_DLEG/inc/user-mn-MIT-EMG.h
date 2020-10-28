@@ -78,7 +78,7 @@ void scaleEMGMultipacket(void);
 //****************************************************************************
 
 #define I2C_SLAVE_ADDR_EMG		16	//8 bits (7 = 0x66)
-#define I2C_EMG_BUFSIZE 40
+#define I2C_EMG_BUFSIZE 42
 
 #define EMG_PERIPH_READY 0
 #define EMG_PERIPH_RECEIVE_WAIT 1
@@ -86,7 +86,7 @@ void scaleEMGMultipacket(void);
 
 #define EMG_LINE_THRESHOLD 3475 // 2.8V/3.3V *4096
 #define EMG_TIMER_THRESHOLD 250 //250ms
-#define EMG_TIMER_PRESCALER 2 // comm freq = 1kHz/presc
+#define EMG_TIMER_PRESCALER 4 // comm freq = 1kHz/presc
 
 #ifdef PROJECT_MIT_DLEG
 //#define EMG_LINE_READY 1 //AIN1-CON

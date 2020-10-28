@@ -36,6 +36,7 @@
 #include "safety_functions.h"
 #include "walking_state_machine.h"	// Included to allow UserWrites to update walking machine controller.
 #include "run_main_user_application.h"	// This is where user application functions live
+#include "state_variables.h"
 #include "ui.h"
 
 
@@ -120,20 +121,30 @@ void MITDLegFsm1(void)
 
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
-	  rigid1.mn.genVar[0] = (int16_t) (act1.motCurr); //startedOverLimit;
-//	  rigid1.mn.genVar[0] = (int16_t) (rigid1.ex.strain);
-	  rigid1.mn.genVar[1] = (int16_t) (act1.desiredCurrent);
-	  //rigid1.mn.genVar[1] = (int16_t) (rigid1.ex.strain-31866);
-	  rigid1.mn.genVar[2] = (int16_t) (rigid1.ex.strain+30525);
-	  rigid1.mn.genVar[3] = (int16_t) (act1.axialForce);
-//	  rigid1.mn.genVar[3] = (int16_t) (emgData[0]);
-	  rigid1.mn.genVar[4] = (int16_t) (act1.crankAngleDegrees*100);
-	  rigid1.mn.genVar[5] = (int16_t) (act1.crankVel)*100;
-//	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.enc_ang);
-	  rigid1.mn.genVar[6] = (int16_t) ((act1.jointTorque)*100);
-	  rigid1.mn.genVar[7] = (int16_t) ((act1.tauDes)*100);
+//	  rigid1.mn.genVar[0] = (int16_t) (act1.motCurr); //startedOverLimit;
+////	  rigid1.mn.genVar[0] = (int16_t) (rigid1.ex.strain);
+//	  rigid1.mn.genVar[1] = (int16_t) (act1.desiredCurrent);
+//	  //rigid1.mn.genVar[1] = (int16_t) (rigid1.ex.strain-31866);
+//	  rigid1.mn.genVar[2] = (int16_t) (rigid1.ex.strain+30525);
+//	  rigid1.mn.genVar[3] = (int16_t) (act1.axialForce);
+////	  rigid1.mn.genVar[3] = (int16_t) (emgData[0]);
+//	  rigid1.mn.genVar[4] = (int16_t) (act1.crankAngleDegrees*100);
+//	  rigid1.mn.genVar[5] = (int16_t) (act1.crankVel)*100;
+////	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.enc_ang);
+//	  rigid1.mn.genVar[6] = (int16_t) ((act1.jointTorque)*100);
+//	  rigid1.mn.genVar[7] = (int16_t) ((act1.tauDes)*100);
 //	  rigid1.mn.genVar[8] = (int16_t) (user_data_1.w[2]);
 //	  rigid1.mn.genVar[9] = (int16_t) (*(rigid1.ex.enc_ang_vel));
+    rigid1.mn.genVar[0] = (int16_t) ((emgData[0]));//((emgData[0]));
+    rigid1.mn.genVar[1] = (int16_t) ((emgData[1]));
+    rigid1.mn.genVar[2] = (int16_t) ((emgData[2]));
+    rigid1.mn.genVar[3] = (int16_t) ((emgData[3]));
+    rigid1.mn.genVar[4] = (int16_t) ((emgData[4]));
+    rigid1.mn.genVar[5] = (int16_t) ((emgData[5]));
+    rigid1.mn.genVar[6] = (int16_t) ((emgData[6]));
+    rigid1.mn.genVar[7] = (int16_t) ((emgData[7]));
+    rigid1.mn.genVar[8] = (int16_t) ((emgData[8]));
+    rigid1.mn.genVar[9] = (int16_t) ((emgData[9]));
 
 
     //begin main FSM
