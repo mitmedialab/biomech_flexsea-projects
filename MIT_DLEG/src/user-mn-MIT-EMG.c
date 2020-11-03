@@ -28,7 +28,7 @@
 // Variable(s)
 //****************************************************************************
 volatile uint8_t emgPeripheralState = EMG_PERIPH_READY;
-volatile uint8_t emgOnFlag = 1;			// This must be one in order to work!!! ;)
+volatile uint8_t emgOnFlag = 0;			// This must be one in order to work!!! ;)
 
 volatile uint8_t emgState = EMG_STATE_DISABLE;
 volatile uint16_t emgTimer = 0; //1tick represent 1ms
