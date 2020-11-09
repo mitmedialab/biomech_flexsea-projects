@@ -39,7 +39,7 @@ float currentScalar = CURRENT_SCALAR_INIT;
 static const float torqueKp = TORQ_KP_INIT;
 static const float torqueKi = TORQ_KI_INIT;
 static const float torqueKd = TORQ_KD_INIT;
-
+static const float torqueLimitABS = ABS_TORQUE_LIMIT_INIT;
 
 static const ki_scale = K_I_SCALE;
 
@@ -782,7 +782,15 @@ void setMotorTorque(struct act_s *actx, float tauDes)
  */
 float biomCalcImpedance(Act_s *actx,float k1, float b, float thetaSet)
 {
-	return k1 * (thetaSet - actx->crankAngleDegrees ) - b*actx->crankVel;
+	float tauDes =  k1 * (thetaSet - actx->crankAngleDegrees ) - b*actx->crankVel;
+	// Limit the abs(torque)< torqueLimit
+	if(tauDes > torqueLimitABS){
+		tauDes = torqueLimitABS;
+	}else if(tauDes< -torqueLimitABS){
+		tauDes = -torqueLimitABS;
+	}
+
+	return tauDes;
 
 }
 
