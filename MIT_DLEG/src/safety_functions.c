@@ -201,29 +201,29 @@ static void checkTemperatureBounds(Act_s *actx) {
  *  Param: actx(Act_s) - Actuator structure to track sensor values
  *
  */
-static void checkJointAngleBounds(Act_s *actx) {
-	if (errorConditions[ERROR_JOINT_ENCODER]) {
-		errorConditions[WARNING_JOINTANGLE_SOFT] = SENSOR_INVALID;
-	} else {
-		//soft angle check
-		if (actx->jointAngleDegrees <= JOINT_MIN_SOFT_DEGREES) {
-			errorConditions[WARNING_JOINTANGLE_SOFT] = VALUE_BELOW;
-		} else if (actx->jointAngleDegrees >= JOINT_MAX_SOFT_DEGREES) {
-			errorConditions[WARNING_JOINTANGLE_SOFT] = VALUE_ABOVE;
-		} else {
-			errorConditions[WARNING_JOINTANGLE_SOFT] = VALUE_NOMINAL;
-		}
-
-		//hard angle check
-		if (actx->jointAngleDegrees <= JOINT_MIN_HARD_DEGREES) {
-			errorConditions[ERROR_JOINTANGLE_HARD] = VALUE_BELOW;
-		} else if (actx->jointAngleDegrees >= JOINT_MAX_HARD_DEGREES) {
-			errorConditions[ERROR_JOINTANGLE_HARD] = VALUE_ABOVE;
-		} else {
-			errorConditions[ERROR_JOINTANGLE_HARD] = VALUE_NOMINAL;
-		}
-	}
-}
+//static void checkJointAngleBounds(Act_s *actx) {
+//	if (errorConditions[ERROR_JOINT_ENCODER]) {
+//		errorConditions[WARNING_JOINTANGLE_SOFT] = SENSOR_INVALID;
+//	} else {
+//		//soft angle check
+//		if (actx->jointAngleDegrees <= JOINT_MIN_SOFT_DEGREES) {
+//			errorConditions[WARNING_JOINTANGLE_SOFT] = VALUE_BELOW;
+//		} else if (actx->jointAngleDegrees >= JOINT_MAX_SOFT_DEGREES) {
+//			errorConditions[WARNING_JOINTANGLE_SOFT] = VALUE_ABOVE;
+//		} else {
+//			errorConditions[WARNING_JOINTANGLE_SOFT] = VALUE_NOMINAL;
+//		}
+//
+//		//hard angle check
+//		if (actx->jointAngleDegrees <= JOINT_MIN_HARD_DEGREES) {
+//			errorConditions[ERROR_JOINTANGLE_HARD] = VALUE_BELOW;
+//		} else if (actx->jointAngleDegrees >= JOINT_MAX_HARD_DEGREES) {
+//			errorConditions[ERROR_JOINTANGLE_HARD] = VALUE_ABOVE;
+//		} else {
+//			errorConditions[ERROR_JOINTANGLE_HARD] = VALUE_NOMINAL;
+//		}
+//	}
+//}
 
 /*
  *  Definition

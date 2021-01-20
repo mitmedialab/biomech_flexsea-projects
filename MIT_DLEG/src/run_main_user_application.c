@@ -67,11 +67,13 @@ void runMainUserApplication(Act_s *actx){
 //	actx->desiredJointB_f = ((float) user_data_1.w[1])/1000;
 //	actx->desiredJointAngleDeg_f = ((float) user_data_1.w[2])/10;
 
-	actx->tauDes = biomCalcImpedance(actx, actx->desiredJointK_f, actx->desiredJointB_f, actx->desiredJointAngleDeg_f);
-
-	actx->intTauDes = actx->tauDes*MULTIPK_SCALE;
-
-
+	if (actx->motorOnFlag == 0) {
+		actx->tauDes = biomCalcImpedance(actx, actx->desiredJointK_f, actx->desiredJointB_f, actx->desiredJointAngleDeg_f);
+		actx->intTauDes = actx->tauDes*MULTIPK_SCALE;
+	}else if(actx->motorOnFlag == 1){
+		actx->tauDes = actx->desiredJointAngleDeg_f;
+		actx->intTauDes = actx->tauDes*MULTIPK_SCALE;
+	}
 //	actx->tauDes = user_data_1.w[0];
 
 	setMotorTorque(actx, actx->tauDes);

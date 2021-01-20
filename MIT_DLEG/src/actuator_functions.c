@@ -64,10 +64,10 @@ static const float forcePerTick  = FORCE_PER_TICK;
 //static const float fitOffset = FIT_CONST_ONE;
 //static const float iniOffset = INI_FORCE_OFFSET1;
 
-static const float jointMinSoft = JOINT_MIN_SOFT;
-static const float jointMaxSoft = JOINT_MAX_SOFT;
-static const float jointMinSoftDeg = JOINT_MIN_SOFT * DEG_PER_RAD;
-static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
+//static const float jointMinSoft = JOINT_MIN_SOFT;
+//static const float jointMaxSoft = JOINT_MAX_SOFT;
+//static const float jointMinSoftDeg = JOINT_MIN_SOFT * DEG_PER_RAD;
+//static const float jointMaxSoftDeg = JOINT_MAX_SOFT * DEG_PER_RAD;
 static const float currentLimitMax = CURRENT_LIMIT_INIT;
 
 struct diffarr_s jntAngClks;		//maybe used for velocity and accel calcs.
@@ -286,20 +286,20 @@ float actuateAngleLimits(Act_s *actx){
 	float tauK = 0; float tauB = 0;
 
 	// apply unidirectional spring
-	if ( actx->jointAngleDegrees < JOINT_MIN_SOFT_DEGREES ) {
-		tauK = JOINT_SOFT_K * (JOINT_MIN_SOFT_DEGREES - actx->jointAngleDegrees);
+	if ( actx->crankAngleDegrees < CRANK_MIN_SOFT_DEGREES ) {
+		tauK = JOINT_SOFT_K * (CRANK_MIN_SOFT_DEGREES - actx->crankAngleDegrees);
 
 		// apply unidirectional damper
-		if ( actx->jointVelDegrees < 0) {
+		if ( actx->crankVel < 0) {
 
-			tauB = -JOINT_SOFT_B * actx->jointVelDegrees;
+			tauB = -JOINT_SOFT_B * actx->crankVel;
 		}
 
-	} else if ( actx->jointAngleDegrees > JOINT_MAX_SOFT_DEGREES) {
-		tauK = JOINT_SOFT_K * (JOINT_MAX_SOFT_DEGREES - actx->jointAngleDegrees);
+	} else if ( actx->crankAngleDegrees > CRANK_MAX_SOFT_DEGREES) {
+		tauK = JOINT_SOFT_K * (CRANK_MAX_SOFT_DEGREES - actx->crankAngleDegrees);
 
 		// apply unidirectional damper
-		if ( actx->jointVelDegrees > 0) {
+		if ( actx->crankVel > 0) {
 
 		tauB = -JOINT_SOFT_B * actx->jointVelDegrees;
 
@@ -421,7 +421,7 @@ int8_t findPoles(void) {
  *  Return: average(float) -
  */
 static float windowSmoothAxial(float val) {
-	#define AXIAL_WINDOW_SIZE 10
+	#define AXIAL_WINDOW_SIZE 30
 
 	static int8_t index = -1;
 	static float window[AXIAL_WINDOW_SIZE];
@@ -636,7 +636,7 @@ static int32_t getAxialForce(void)
  *  Param:	actx(struct act_s) -  Actuator structure to track sensor values
  *  Return: torque(float) - joint torque in NEWTON-METERS
  */
-static float getJointTorque(struct act_s *actx)
+float getJointTorque(struct act_s *actx)
 {
 	float torque = 0;
 
@@ -716,6 +716,8 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	static float tauErrLast = 0, tauErrInt = 0, tauErrInt0 = 0;
 	float tauFF =0.0;
 	float tauC = 0.0;
+	float tauK = 0.0;
+	float tauB = 0.0;
 	float tauCCombined = 0.0;
 	static float N = 30.0;
 	static float effy = 1.05;   //  1/0.95  Assuming 5% lost
@@ -730,7 +732,7 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 	float tauErr = actx->tauDes - actx->jointTorque;
 	float tauErrDot = tauErr - tauErrLast;
 
-	static int32_t currLimit = 30000;
+	static int32_t currLimit = 35000;
 
 	//PID on torque
 	tauErrInt0 = tauErrInt;
@@ -749,7 +751,31 @@ void setMotorTorque(struct act_s *actx, float tauDes)
 
 	tauFF = actx->tauDes*effy*JOINT_ENC_DIR;
 
-	tauCCombined = tauC + tauFF;
+
+	// apply unidirectional spring (virtual hard stops)
+	if ( actx->crankAngleDegrees < CRANK_MIN_SOFT_DEGREES ) {
+		tauK = JOINT_SOFT_K * (CRANK_MIN_SOFT_DEGREES - actx->crankAngleDegrees);
+
+		// apply unidirectional damper
+		if ( actx->crankVel < 0) {
+
+			tauB = -JOINT_SOFT_B * actx->crankVel;
+		}
+
+	} else if ( actx->crankAngleDegrees > CRANK_MAX_SOFT_DEGREES) {
+		tauK = JOINT_SOFT_K * (CRANK_MAX_SOFT_DEGREES - actx->crankAngleDegrees);
+
+		// apply unidirectional damper
+		if ( actx->crankVel > 0) {
+
+		tauB = -JOINT_SOFT_B * actx->jointVelDegrees;
+
+		}
+	}
+
+	tauCCombined = tauC + tauFF + JOINT_ENC_DIR*(tauB + tauK);
+//	tauCCombined = tauC + tauFF;
+
 
 	int32_t I = (int32_t) (( 1.0/(MOT_KT ) * ( (tauCCombined/N) ) )*1000);
 

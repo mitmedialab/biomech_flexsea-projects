@@ -122,29 +122,32 @@ void MITDLegFsm1(void)
     //Increment fsm_time (1 tick = 1ms nominally; need to confirm)
     fsmTime++;
 //	  rigid1.mn.genVar[0] = (int16_t) (act1.motCurr); //startedOverLimit;
-////	  rigid1.mn.genVar[0] = (int16_t) (rigid1.ex.strain);
-//	  rigid1.mn.genVar[1] = (int16_t) (act1.desiredCurrent);
-//	  //rigid1.mn.genVar[1] = (int16_t) (rigid1.ex.strain-31866);
+	  rigid1.mn.genVar[0] = (int16_t) (rigid1.ex.strain);
+	  rigid1.mn.genVar[1] = (int16_t) (act1.desiredCurrent);
+	  //rigid1.mn.genVar[1] = (int16_t) (rigid1.ex.strain-31866);
 //	  rigid1.mn.genVar[2] = (int16_t) (rigid1.ex.strain+30525);
-//	  rigid1.mn.genVar[3] = (int16_t) (act1.axialForce);
-////	  rigid1.mn.genVar[3] = (int16_t) (emgData[0]);
-//	  rigid1.mn.genVar[4] = (int16_t) (act1.crankAngleDegrees*100);
-//	  rigid1.mn.genVar[5] = (int16_t) (act1.crankVel)*100;
-////	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.enc_ang);
-//	  rigid1.mn.genVar[6] = (int16_t) ((act1.jointTorque)*100);
-//	  rigid1.mn.genVar[7] = (int16_t) ((act1.tauDes)*100);
-//	  rigid1.mn.genVar[8] = (int16_t) (user_data_1.w[2]);
-//	  rigid1.mn.genVar[9] = (int16_t) (*(rigid1.ex.enc_ang_vel));
-    rigid1.mn.genVar[0] = (int16_t) ((emgData[0]));//((emgData[0]));
-    rigid1.mn.genVar[1] = (int16_t) ((emgData[1]));
-    rigid1.mn.genVar[2] = (int16_t) ((emgData[2]));
-    rigid1.mn.genVar[3] = (int16_t) ((emgData[3]));
-    rigid1.mn.genVar[4] = (int16_t) ((emgData[4]));
-    rigid1.mn.genVar[5] = (int16_t) ((emgData[5]));
-    rigid1.mn.genVar[6] = (int16_t) ((emgData[6]));
-    rigid1.mn.genVar[7] = (int16_t) ((emgData[7]));
-    rigid1.mn.genVar[8] = (int16_t) ((emgData[8]));
-    rigid1.mn.genVar[9] = (int16_t) ((emgData[9]));
+	  rigid1.mn.genVar[2] = (int16_t) (act1.linkageMomentArm*1000);
+	  rigid1.mn.genVar[3] = (int16_t) (act1.axialForce);
+//	  rigid1.mn.genVar[3] = (int16_t) (emgData[0]);
+
+//	  rigid1.mn.genVar[4] = (int16_t) ((act1.jointTorque)*100);
+	  rigid1.mn.genVar[4] = (int16_t) (act1.crankAngleDegrees*100);
+	  rigid1.mn.genVar[5] = (int16_t) (act1.crankVel)*100;
+//	  rigid1.mn.genVar[5] = (int16_t) (rigid1.ex.enc_ang);
+	  rigid1.mn.genVar[6] = (int16_t) ((act1.jointTorque)*100);
+	  rigid1.mn.genVar[7] = (int16_t) ((act1.tauDes)*100);
+	  rigid1.mn.genVar[8] = (int16_t) (user_data_1.w[2]);
+	  rigid1.mn.genVar[9] = (int16_t) (*(rigid1.ex.enc_ang_vel));
+//    rigid1.mn.genVar[0] = (int16_t) ((emgData[0]));//((emgData[0]));
+//    rigid1.mn.genVar[1] = (int16_t) ((emgData[1]));
+//    rigid1.mn.genVar[2] = (int16_t) ((emgData[2]));
+//    rigid1.mn.genVar[3] = (int16_t) ((emgData[3]));
+//    rigid1.mn.genVar[4] = (int16_t) ((emgData[4]));
+//    rigid1.mn.genVar[5] = (int16_t) ((emgData[5]));
+//    rigid1.mn.genVar[6] = (int16_t) ((emgData[6]));
+//    rigid1.mn.genVar[7] = (int16_t) ((emgData[7]));
+//    rigid1.mn.genVar[8] = (int16_t) ((emgData[8]));
+//    rigid1.mn.genVar[9] = (int16_t) ((emgData[9]));
 
 
     //begin main FSM
@@ -254,9 +257,15 @@ void MITDLegFsm1(void)
 //			act1.safetyTorqueScalar = 1.0;
 
 			// Set default values for impedance control
-			act1.desiredJointK_f = 0.6;
-			act1.desiredJointB_f = 0.001;
-			act1.desiredJointAngleDeg_f = 0;
+//			act1.desiredJointK_f = 0.6;
+//			act1.desiredJointB_f = 0.001;
+//			act1.desiredJointAngleDeg_f = 0;
+
+			act1.desiredJointK_f = 0.7;
+			act1.desiredJointB_f = 0.0;
+			act1.desiredJointAngleDeg_f = 0.0;
+
+			act1.motorOnFlag == 0;
 
 
 			fsm1State = STATE_MAIN;
